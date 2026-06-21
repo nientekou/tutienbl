@@ -1,0 +1,983 @@
+import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { Command } from '../../structures/Command';
+import { TuTienClient } from '../../client/TuTienClient';
+import { systemConfigService } from '../../services/SystemConfigService';
+import { inventoryRepository } from '../../database/repositories/InventoryRepository';
+import { userRepository } from '../../database/repositories/UserRepository';
+import { cultivationService } from '../../services/CultivationService';
+import db from '../../database/database';
+
+/**
+ * ID Discord của Bot Owner — người DUY NHẤT được phép dùng lệnh /admin
+ * Không phân quyền qua guild admin roles để tránh mất cân bằng game
+ */
+const BOT_OWNER_ID = '724608013981450351';
+
+export default class AdminCommand extends Command {
+  constructor() {
+    super(
+      new SlashCommandBuilder()
+        .setName('admin')
+        .setDescription('[Thiên Đạo Chủ] Lệnh quản trị hệ thống — chỉ dành cho Bot Owner.')
+        // KHÔNG setDefaultMemberPermissions để tránh guild admin bypass
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('maintenance')
+            .setDescription('[Owner Only] Bật hoặc tắt chế độ bảo trì hệ thống.')
+            .addBooleanOption(option =>
+              option
+                .setName('status')
+                .setDescription('True = Bật bảo trì, False = Tắt bảo trì.')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('giveitem')
+            .setDescription('[Owner Only] Phát vật phẩm cho tu sĩ.')
+            .addUserOption(option =>
+              option
+                .setName('tuser')
+                .setDescription('Tu sĩ nhận vật phẩm.')
+                .setRequired(true)
+            )
+            .addStringOption(option =>
+              option
+                .setName('item_id')
+                .setDescription('ID của vật phẩm.')
+                .setRequired(true)
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('quantity')
+                .setDescription('Số lượng phát.')
+                .setRequired(true)
+                .setMinValue(1)
+                .setMaxValue(9999)
+            )
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('setlevel')
+            .setDescription('[Owner Only] Đặt cấp độ cho tu sĩ (dùng để thử nghiệm).')
+            .addUserOption(option =>
+              option
+                .setName('tuser')
+                .setDescription('Tu sĩ cần đổi cấp.')
+                .setRequired(true)
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('level')
+                .setDescription('Cấp độ thiết lập (1 - 380).')
+                .setRequired(true)
+                .setMinValue(1)
+                .setMaxValue(380)
+            )
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('givecoin')
+            .setDescription('[Owner Only] Phát Linh Thạch cho tu sĩ.')
+            .addUserOption(option =>
+              option
+                .setName('tuser')
+                .setDescription('Tu sĩ nhận Linh Thạch.')
+                .setRequired(true)
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('amount')
+                .setDescription('Số Hạ Phẩm Linh Thạch.')
+                .setRequired(true)
+                .setMinValue(1)
+                .setMaxValue(10_000_000)
+            )
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('spawntraveler')
+            .setDescription('[Owner Only] Gọi Lữ Khách Thần Bí xuất hiện tại kênh Event.')
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('info')
+            .setDescription('[Owner Only] Xem thông tin hệ thống và số liệu bot.')
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('panel')
+            .setDescription('[Owner Only] Mở Bảng Điều Khiển Thiên Đạo.')
+        )
+    );
+  }
+
+  public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
+    const userId = interaction.user.id;
+
+    // ═══════════════════════════════════════════════════════════
+    // BẢO MẬT CỨNG: CHỈ BOT OWNER MỚI ĐƯỢC DÙNG LỆNH NÀY
+    // Bất kể có role admin trên guild hay không
+    // ═══════════════════════════════════════════════════════════
+    if (userId !== BOT_OWNER_ID) {
+      await interaction.reply({
+        content: [
+          '🔒 **Thiên Cơ Cấm Địa — Nghiêm Cấm Xâm Nhập!**',
+          '',
+          'Lệnh `/admin` là **Thiên Đạo Lệnh** — thánh chỉ từ Thiên Đạo Chủ.',
+          'Dù ngươi có tu vi đỉnh cao, thân phận Quản Lý hay pháp bảo trên tay,',
+          '**vĩnh viễn không có quyền can thiệp vào Thiên Cơ!**',
+          '',
+          '> *Kẻ nào cưỡng cầu Thiên Đạo, ắt chuốc kiếp nạn hồi quy.*',
+        ].join('\n'),
+        ephemeral: true
+      });
+      return;
+    }
+
+    const subcommand = interaction.options.getSubcommand();
+
+    // ─── BẢNG TIN: THÔNG TIN HỆ THỐNG ─────────────────────────
+    if (subcommand === 'info') {
+      try {
+        const totalPlayers = (db.prepare('SELECT COUNT(*) as c FROM users').get() as any)?.c || 0;
+        const totalSects = (db.prepare('SELECT COUNT(*) as c FROM sects').get() as any)?.c || 0;
+        const totalItems = (db.prepare('SELECT COUNT(*) as c FROM inventories').get() as any)?.c || 0;
+        const topPlayer = db.prepare('SELECT name, level FROM users ORDER BY level DESC LIMIT 1').get() as { name: string; level: number } | undefined;
+        const maintenanceMode = systemConfigService.isMaintenanceMode();
+        const guilds = client.guilds.cache.size;
+        const uptime = process.uptime();
+        const uptimeStr = `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`;
+
+        const embed = new EmbedBuilder()
+          .setTitle('⚙️ THIÊN ĐẠO HỆ THỐNG — THÔNG TIN VẬN HÀNH')
+          .setColor('#9b59b6')
+          .addFields(
+            { name: '🤖 Bot', value: `Tag: **${client.user?.tag}**\nUptime: **${uptimeStr}**\nGuilds: **${guilds}**`, inline: true },
+            { name: '👥 Tu Sĩ', value: `Tổng: **${totalPlayers}** người\nTông Môn: **${totalSects}**\nVật phẩm: **${totalItems}**`, inline: true },
+            { name: '🏆 Cao Thủ Nhất', value: topPlayer ? `**${topPlayer.name}** (Cấp ${topPlayer.level})` : 'Chưa có', inline: true },
+            { name: '🛠️ Bảo Trì', value: maintenanceMode ? '🔴 **ĐANG BẢO TRÌ**' : '🟢 **HOẠT ĐỘNG BÌNH THƯỜNG**', inline: true },
+            { name: '💾 Memory', value: `Heap: **${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB**`, inline: true },
+          )
+          .setFooter({ text: `Chỉ dành cho Thiên Đạo Chủ • ID: ${BOT_OWNER_ID}` })
+          .setTimestamp();
+
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+      } catch (error) {
+        await interaction.reply({ content: `❌ Lỗi khi lấy thông tin hệ thống: ${error}`, ephemeral: true });
+      }
+      return;
+    }
+
+    // ─── BẢO TRÌ ───────────────────────────────────────────────
+    if (subcommand === 'maintenance') {
+      const status = interaction.options.getBoolean('status', true);
+      systemConfigService.setMaintenanceMode(status);
+      systemConfigService.writeAuditLog(userId, 'admin_maintenance', { status });
+
+      await interaction.reply({
+        content: [
+          `🛠️ **Trạng Thái Bảo Trì: ${status ? '🔴 BẬT' : '🟢 TẮT'}**`,
+          '',
+          status
+            ? '⚠️ Hệ thống đã vào chế độ bảo trì. Mọi lệnh của tu sĩ sẽ bị tạm khóa.'
+            : '✅ Hệ thống đã hoạt động trở lại. Tu sĩ có thể tiếp tục tu luyện!',
+        ].join('\n'),
+        ephemeral: true
+      });
+      return;
+    }
+
+    // ─── PHÁT VẬT PHẨM ─────────────────────────────────────────
+    if (subcommand === 'giveitem') {
+      const targetUser = interaction.options.getUser('tuser', true);
+      const itemId = interaction.options.getString('item_id', true);
+      const quantity = interaction.options.getInteger('quantity', true);
+
+      const targetProfile = userRepository.get(targetUser.id);
+      if (!targetProfile) {
+        await interaction.reply({
+          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật trong hệ thống.`,
+          ephemeral: true
+        });
+        return;
+      }
+
+      const itemCheck = db.prepare('SELECT name FROM items WHERE id = ?').get(itemId) as { name: string } | undefined;
+      if (!itemCheck) {
+        await interaction.reply({
+          content: `❌ Vật phẩm ID **\`${itemId}\`** không tồn tại trong Thiên Tài Địa Bảo Lục.`,
+          ephemeral: true
+        });
+        return;
+      }
+
+      inventoryRepository.addItem(targetUser.id, itemId, quantity);
+      systemConfigService.writeAuditLog(userId, 'admin_giveitem', {
+        targetUserId: targetUser.id,
+        targetName: targetProfile.name,
+        itemId,
+        itemName: itemCheck.name,
+        quantity
+      });
+
+      await interaction.reply({
+        content: `🎁 **Ban Thiên Phúc:** Đã phát **${quantity}x ${itemCheck.name}** cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>)!`,
+        ephemeral: true
+      });
+      return;
+    }
+
+    // ─── ĐẶT CẤP ĐỘ ────────────────────────────────────────────
+    if (subcommand === 'setlevel') {
+      const targetUser = interaction.options.getUser('tuser', true);
+      const targetLevel = interaction.options.getInteger('level', true);
+
+      const targetProfile = userRepository.get(targetUser.id);
+      if (!targetProfile) {
+        await interaction.reply({
+          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật.`,
+          ephemeral: true
+        });
+        return;
+      }
+
+      const newStats = cultivationService.calculateStatsForLevel(targetLevel, targetProfile.linh_can);
+      const nextExpNeeded = cultivationService.calculateNextExp(targetLevel);
+
+      userRepository.update(targetUser.id, {
+        level: targetLevel,
+        tu_vi: 0,
+        exp_needed: nextExpNeeded,
+        base_hp: newStats.hp,
+        base_mp: newStats.mp,
+        base_atk: newStats.atk,
+        base_def: newStats.def,
+        base_crit: newStats.crit,
+        base_crit_res: newStats.critRes,
+        base_luck: targetProfile.base_luck
+      });
+
+      systemConfigService.writeAuditLog(userId, 'admin_setlevel', {
+        targetUserId: targetUser.id,
+        targetName: targetProfile.name,
+        oldLevel: targetProfile.level,
+        newLevel: targetLevel
+      });
+
+      await interaction.reply({
+        content: `⚡ **Thiên Đạo Can Thiệp:** Tu sĩ **${targetProfile.name}** (<@${targetUser.id}>) đã được nâng lên **Cấp ${targetLevel}**!\n📊 Stats đã được tính toán lại theo cảnh giới mới.`,
+        ephemeral: true
+      });
+      return;
+    }
+
+    // ─── PHÁT LINH THẠCH ────────────────────────────────────────
+    if (subcommand === 'givecoin') {
+      const targetUser = interaction.options.getUser('tuser', true);
+      const amount = interaction.options.getInteger('amount', true);
+
+      const targetProfile = userRepository.get(targetUser.id);
+      if (!targetProfile) {
+        await interaction.reply({
+          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật trong hệ thống.`,
+          ephemeral: true
+        });
+        return;
+      }
+
+      userRepository.update(targetUser.id, {
+        coin_ha_pham: targetProfile.coin_ha_pham + amount
+      });
+
+      systemConfigService.writeAuditLog(userId, 'admin_givecoin', {
+        targetUserId: targetUser.id,
+        targetName: targetProfile.name,
+        amount
+      });
+
+      await interaction.reply({
+        content: `🪙 **Thiên Phú Linh Khí:** Đã ban **${amount.toLocaleString()} Hạ Phẩm Linh Thạch** cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>)!\n💰 Số dư mới: **${(targetProfile.coin_ha_pham + amount).toLocaleString()}** LT.`,
+        ephemeral: true
+      });
+      return;
+    }
+
+    // ─── GỌI LỮ KHÁCH THẦN BÍ ──────────────────────────────────
+    if (subcommand === 'spawntraveler') {
+      const guildId = interaction.guildId;
+      if (!guildId) {
+        await interaction.reply({ content: 'Lệnh này phải được dùng trong Server.', ephemeral: true });
+        return;
+      }
+
+      const guildConfig = db.prepare('SELECT event_channel_id FROM guild_configs WHERE guild_id = ?').get(guildId) as any;
+      if (!guildConfig || !guildConfig.event_channel_id) {
+        await interaction.reply({ content: '❌ Server chưa được thiết lập Kênh Event (event_channel_id).', ephemeral: true });
+        return;
+      }
+
+      const { travelerService } = require('../../services/TravelerService');
+      const success = await travelerService.spawnTraveler(client, guildConfig.event_channel_id);
+
+      if (success) {
+        await interaction.reply({ content: `✅ Đã gọi Lữ Khách Thần Bí xuất hiện tại <#${guildConfig.event_channel_id}>!`, ephemeral: true });
+      } else {
+        await interaction.reply({ content: '❌ Lỗi khi gọi Lữ Khách.', ephemeral: true });
+      }
+      return;
+    }
+
+    if (subcommand === 'panel') {
+      const embed = await AdminCommand.getPanelEmbed(client);
+      const components = AdminCommand.getPanelComponents(userId);
+      await interaction.reply({ embeds: [embed], components, ephemeral: true });
+      return;
+    }
+  }
+
+  public static async getPanelEmbed(client: TuTienClient): Promise<EmbedBuilder> {
+    const totalPlayers = (db.prepare('SELECT COUNT(*) as c FROM users').get() as any)?.c || 0;
+    const totalSects = (db.prepare('SELECT COUNT(*) as c FROM sects').get() as any)?.c || 0;
+    const totalItems = (db.prepare('SELECT COUNT(*) as c FROM inventories').get() as any)?.c || 0;
+    const topPlayer = db.prepare('SELECT name, level FROM users ORDER BY level DESC LIMIT 1').get() as { name: string; level: number } | undefined;
+    const maintenanceMode = systemConfigService.isMaintenanceMode();
+    const guilds = client.guilds.cache.size;
+    const uptime = process.uptime();
+    const uptimeStr = `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`;
+    
+    // Lấy thông tin World Boss
+    const boss = db.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get() as any;
+    let bossStatus = '⚠️ Chưa xuất thế';
+    if (boss) {
+      if (boss.status === 'active') {
+        bossStatus = `🔴 Đang xuất thế (Cấp ${boss.level} | ${boss.hp}/${boss.max_hp} HP)`;
+      } else {
+        bossStatus = `💀 Bị tiêu diệt (Cấp ${boss.level})`;
+      }
+    }
+
+    // Lấy thông tin Double EXP
+    const { eventService } = require('../../services/EventService');
+    const doubleExpActive = eventService.isDoubleExpActive();
+
+    return new EmbedBuilder()
+      .setTitle('⚙️ THIÊN ĐẠO PANEL — TRUNG TÂM QUẢN TRỊ')
+      .setColor('#8e44ad')
+      .setDescription(
+        `Chào mừng **Thiên Đạo Chủ** trở lại. Bảng điều khiển này cung cấp khả năng can thiệp trực tiếp vào đại trận vận hành tam giới.\n\n` +
+        `🤖 **Trạng Thái Bot:**\n` +
+        `• Tag: **${client.user?.tag}**\n` +
+        `• Uptime: **${uptimeStr}**\n` +
+        `• Guilds: **${guilds}** guild(s)\n` +
+        `• Bộ nhớ: **${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB**\n\n` +
+        `👥 **Số Liệu Tam Giới:**\n` +
+        `• Tổng Tu Sĩ: **${totalPlayers}** | Tông Môn: **${totalSects}**\n` +
+        `• Tổng Vật Phẩm: **${totalItems}** chiếc\n` +
+        `• Chí Tôn: ${topPlayer ? `**${topPlayer.name}** (Cấp ${topPlayer.level})` : 'Chưa có'}\n\n` +
+        `🛠️ **Trạng Thái Hệ Thống:**\n` +
+        `• Bảo Trì: ${maintenanceMode ? '🔴 **ĐANG BẬT** (Chặn tu sĩ)' : '🟢 **ĐANG TẮT** (Hoạt động bình thường)'}\n` +
+        `• Nhân Đôi EXP: ${doubleExpActive ? '🔴 **ĐANG HOẠT ĐỘNG (x2 EXP)**' : '🟢 **ĐANG TẮT**'}\n` +
+        `• World Boss: **${bossStatus}**`
+      )
+      .setFooter({ text: `Quyền hạn cao nhất • ID: ${BOT_OWNER_ID}` })
+      .setTimestamp();
+  }
+
+  public static getPanelComponents(adminId: string): any[] {
+    const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`adminpanel_refresh_${adminId}`)
+        .setLabel('📊 Làm Mới')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`adminpanel_maintenance_${adminId}`)
+        .setLabel('🛠️ Bảo Trì')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(`adminpanel_spawntraveler_${adminId}`)
+        .setLabel('🦄 Lữ Khách')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`adminpanel_spawnboss_${adminId}`)
+        .setLabel('👹 Gọi Boss')
+        .setStyle(ButtonStyle.Danger)
+    );
+
+    const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`adminpanel_searchuser_${adminId}`)
+        .setLabel('👤 Tìm Kiếm Tu Sĩ')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(`adminpanel_resetweekly_${adminId}`)
+        .setLabel('📈 Reset Giới Hạn Tuần')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`adminpanel_doubleexp_${adminId}`)
+        .setLabel('⚡ Nhân Đôi EXP')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`adminpanel_dbcleanup_${adminId}`)
+        .setLabel('🧹 Dọn Dẹp DB')
+        .setStyle(ButtonStyle.Danger)
+    );
+
+    return [row1, row2];
+  }
+
+  public static getUserPanelEmbed(targetUserId: string): EmbedBuilder {
+    const user = userRepository.get(targetUserId);
+    if (!user) {
+      return new EmbedBuilder()
+        .setTitle('❌ Không tìm thấy tu sĩ')
+        .setColor('#e74c3c')
+        .setDescription(`Không tìm thấy nhân vật của tu sĩ có ID: \`${targetUserId}\`.`);
+    }
+
+    const inventoryCount = (db.prepare('SELECT COUNT(*) as c FROM inventories WHERE user_id = ?').get(targetUserId) as any)?.c || 0;
+    const deployedPet = db.prepare('SELECT name, level, rarity FROM pets WHERE user_id = ? AND is_deployed = 1').get(targetUserId) as any;
+    const petText = deployedPet ? `🐾 **${deployedPet.name}** (Cấp ${deployedPet.level} [${deployedPet.rarity.toUpperCase()}])` : '💤 Không có';
+
+    return new EmbedBuilder()
+      .setTitle(`👤 HỒ SƠ TU SĨ — ĐẠO HỮU: ${user.name}`)
+      .setColor('#3498db')
+      .setDescription(
+        `Đang xem thông tin quản trị của tu sĩ <@${targetUserId}> (ID: \`${targetUserId}\`):\n\n` +
+        `🌟 **Thông Tin Cảnh Giới:**\n` +
+        `• Cảnh Giới: **${user.title}** (Cấp ${user.level})\n` +
+        `• Tu Vi: **${user.tu_vi} / ${user.exp_needed}**\n\n` +
+        `💰 **Tài Sản & Rương Đồ:**\n` +
+        `• Linh Thạch Hạ Phẩm: **${user.coin_ha_pham.toLocaleString()}** LT\n` +
+        `• KNB: **${user.knb.toLocaleString()}** KNB\n` +
+        `• Số lượng vật phẩm trong kho: **${inventoryCount}** vật phẩm\n` +
+        `• Linh Thú xuất chiến: ${petText}\n\n` +
+        `🧬 **Linh Căn:** \`${user.linh_can}\`\n\n` +
+        `📊 **Thuộc Tính Cơ Bản (Stats Gốc):**\n` +
+        `• HP: **${user.base_hp}** | MP: **${user.base_mp}**\n` +
+        `• ATK: **${user.base_atk}** | DEF: **${user.base_def}**\n` +
+        `• Bạo Kích: **${(user.base_crit * 100).toFixed(1)}%** | Kháng Bạo: **${(user.base_crit_res * 100).toFixed(1)}%**\n` +
+        `• May Mắn: **${user.base_luck}**`
+      )
+      .setTimestamp();
+  }
+
+  public static getUserPanelComponents(targetUserId: string, adminId: string): any[] {
+    const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`adminuser_givecoin_${targetUserId}_${adminId}`)
+        .setLabel('🪙 Ban Linh Thạch')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`adminuser_giveitem_${targetUserId}_${adminId}`)
+        .setLabel('🎁 Ban Vật Phẩm')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`adminuser_setlevel_${targetUserId}_${adminId}`)
+        .setLabel('⚡ Sửa Cảnh Giới')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(`adminuser_editlinhcan_${targetUserId}_${adminId}`)
+        .setLabel('🧬 Sửa Linh Căn')
+        .setStyle(ButtonStyle.Primary)
+    );
+
+    const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`adminuser_back_${targetUserId}_${adminId}`)
+        .setLabel('🔙 Quay Lại Panel')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    return [row1, row2];
+  }
+
+  public static async handleInteraction(
+    client: TuTienClient,
+    interaction: any,
+    action: string,
+    parts: string[]
+  ): Promise<void> {
+    const adminId = interaction.user.id;
+    if (adminId !== BOT_OWNER_ID) {
+      await interaction.reply({ content: '❌ Cấm địa Thiên Đạo, đạo hữu không đủ quyền hạn!', ephemeral: true });
+      return;
+    }
+
+    const subAction = parts[1];
+
+    if (action === 'adminpanel') {
+      if (subAction === 'refresh') {
+        const embed = await AdminCommand.getPanelEmbed(client);
+        const components = AdminCommand.getPanelComponents(adminId);
+        await interaction.update({ embeds: [embed], components });
+      }
+      
+      else if (subAction === 'maintenance') {
+        const currentMode = systemConfigService.isMaintenanceMode();
+        const nextMode = !currentMode;
+        systemConfigService.setMaintenanceMode(nextMode);
+        systemConfigService.writeAuditLog(adminId, 'admin_maintenance', { status: nextMode });
+
+        const embed = await AdminCommand.getPanelEmbed(client);
+        const components = AdminCommand.getPanelComponents(adminId);
+        await interaction.update({
+          content: `🛠️ **Đại Trận Bảo Trì:** Đã ${nextMode ? '🔴 BẬT' : '🟢 TẮT'}!`,
+          embeds: [embed],
+          components
+        });
+      }
+      
+      else if (subAction === 'spawntraveler') {
+        const guildId = interaction.guildId;
+        if (!guildId) {
+          await interaction.reply({ content: '❌ Lập đàn gọi lữ khách phải thực hiện trong Server.', ephemeral: true });
+          return;
+        }
+
+        const guildConfig = db.prepare('SELECT event_channel_id FROM guild_configs WHERE guild_id = ?').get(guildId) as any;
+        if (!guildConfig || !guildConfig.event_channel_id) {
+          await interaction.reply({ content: '❌ Server chưa thiết lập kênh Event.', ephemeral: true });
+          return;
+        }
+
+        const { travelerService } = require('../../services/TravelerService');
+        const success = await travelerService.spawnTraveler(client, guildConfig.event_channel_id);
+
+        const embed = await AdminCommand.getPanelEmbed(client);
+        const components = AdminCommand.getPanelComponents(adminId);
+        if (success) {
+          await interaction.update({
+            content: `✅ Triệu hồi Lữ Khách Thần Bí thành công tại <#${guildConfig.event_channel_id}>!`,
+            embeds: [embed],
+            components
+          });
+        } else {
+          await interaction.update({
+            content: '❌ Lỗi khi triệu hồi Lữ Khách Thần Bí.',
+            embeds: [embed],
+            components
+          });
+        }
+      }
+      
+      else if (subAction === 'spawnboss') {
+        const modal = new ModalBuilder()
+          .setCustomId(`adminmodal_${adminId}_spawnboss`)
+          .setTitle('Gọi Boss Thế Giới');
+
+        const lvlInput = new TextInputBuilder()
+          .setCustomId('boss_level')
+          .setLabel('Cấp độ Boss muốn triệu hồi')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Nhập số nguyên lớn hơn 0 (Ví dụ: 5)')
+          .setValue('1')
+          .setRequired(true);
+
+        modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(lvlInput));
+        await interaction.showModal(modal);
+      }
+      
+      else if (subAction === 'searchuser') {
+        const modal = new ModalBuilder()
+          .setCustomId(`adminmodal_${adminId}_searchuser`)
+          .setTitle('Quản Lý Tu Sĩ');
+
+        const uIdInput = new TextInputBuilder()
+          .setCustomId('target_user_id')
+          .setLabel('Nhập ID Discord của tu sĩ')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Ví dụ: 724608013981450351')
+          .setRequired(true);
+
+        modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(uIdInput));
+        await interaction.showModal(modal);
+      }
+      
+      else if (subAction === 'resetweekly') {
+        const users = db.prepare('SELECT discord_id, y_canh FROM users').all() as any[];
+        let count = 0;
+        db.transaction(() => {
+          for (const u of users) {
+            try {
+              let yCanh = JSON.parse(u.y_canh || '{}');
+              if (yCanh.weekly_purchases) {
+                delete yCanh.weekly_purchases;
+                db.prepare('UPDATE users SET y_canh = ? WHERE discord_id = ?').run(JSON.stringify(yCanh), u.discord_id);
+                count++;
+              }
+            } catch (e) {}
+          }
+        })();
+
+        systemConfigService.writeAuditLog(adminId, 'admin_resetweekly', { affectedUsers: count });
+
+        const embed = await AdminCommand.getPanelEmbed(client);
+        const components = AdminCommand.getPanelComponents(adminId);
+        await interaction.update({
+          content: `✅ Đã đặt lại giới hạn mua hàng tuần của **${count}** tu sĩ thành công!`,
+          embeds: [embed],
+          components
+        });
+      }
+      
+      else if (subAction === 'dbcleanup') {
+        const { dataCleanupService } = require('../../services/DataCleanupService');
+        const stats = dataCleanupService.cleanupOldData();
+
+        const embed = await AdminCommand.getPanelEmbed(client);
+        const components = AdminCommand.getPanelComponents(adminId);
+        
+        let repContent = '❌ Dọn dẹp dữ liệu thất bại hoặc có lỗi xảy ra.';
+        if (stats) {
+          repContent = `🧹 **Dọn dẹp DB hoàn tất:**\n` +
+            `• ${stats.marketHistory} lịch sử giao dịch chợ\n` +
+            `• ${stats.duelHistory} lịch sử quyết đấu\n` +
+            `• ${stats.marketListings} tin đăng Vạn Bảo Lâu\n` +
+            `• ${stats.dungeons} bản ghi cooldown bí cảnh`;
+        }
+
+        await interaction.update({
+          content: repContent,
+          embeds: [embed],
+          components
+        });
+      }
+      
+      else if (subAction === 'doubleexp') {
+        const { eventService } = require('../../services/EventService');
+        const nextMode = !eventService.isDoubleExpActive();
+        eventService.toggleDoubleExpManual(nextMode);
+        systemConfigService.writeAuditLog(adminId, 'admin_doubleexp', { status: nextMode });
+
+        const embed = await AdminCommand.getPanelEmbed(client);
+        const components = AdminCommand.getPanelComponents(adminId);
+        await interaction.update({
+          content: `⚡ **Sự Kiện Nhân Đôi EXP:** Đã ${nextMode ? '🔴 BẬT' : '🟢 TẮT'}!`,
+          embeds: [embed],
+          components
+        });
+      }
+    }
+    
+    else if (action === 'adminuser') {
+      const targetUserId = parts[2];
+      
+      if (subAction === 'back') {
+        const embed = await AdminCommand.getPanelEmbed(client);
+        const components = AdminCommand.getPanelComponents(adminId);
+        await interaction.update({ content: '', embeds: [embed], components });
+      }
+      
+      else if (subAction === 'givecoin') {
+        const modal = new ModalBuilder()
+          .setCustomId(`adminmodal_${adminId}_givecoin_${targetUserId}`)
+          .setTitle('Ban Phát Linh Thạch');
+
+        const amountInput = new TextInputBuilder()
+          .setCustomId('coin_amount')
+          .setLabel('Số lượng Linh Thạch (Hạ Phẩm)')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Ví dụ: 10000 hoặc -5000 để trừ')
+          .setRequired(true);
+
+        modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(amountInput));
+        await interaction.showModal(modal);
+      }
+      
+      else if (subAction === 'giveitem') {
+        const modal = new ModalBuilder()
+          .setCustomId(`adminmodal_${adminId}_giveitem_${targetUserId}`)
+          .setTitle('Ban Phát Vật Phẩm');
+
+        const itemIdInput = new TextInputBuilder()
+          .setCustomId('item_id')
+          .setLabel('ID vật phẩm')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Ví dụ: pill_tu_vi_low')
+          .setRequired(true);
+
+        const qtyInput = new TextInputBuilder()
+          .setCustomId('item_qty')
+          .setLabel('Số lượng')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Nhập số nguyên dương (Ví dụ: 5)')
+          .setValue('1')
+          .setRequired(true);
+
+        modal.addComponents(
+          new ActionRowBuilder<TextInputBuilder>().addComponents(itemIdInput),
+          new ActionRowBuilder<TextInputBuilder>().addComponents(qtyInput)
+        );
+        await interaction.showModal(modal);
+      }
+      
+      else if (subAction === 'setlevel') {
+        const modal = new ModalBuilder()
+          .setCustomId(`adminmodal_${adminId}_setlevel_${targetUserId}`)
+          .setTitle('Thay Đổi Cảnh Giới');
+
+        const lvlInput = new TextInputBuilder()
+          .setCustomId('user_level')
+          .setLabel('Cấp độ thiết lập mới (1-380)')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Nhập cấp độ từ 1 tới 380')
+          .setRequired(true);
+
+        modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(lvlInput));
+        await interaction.showModal(modal);
+      }
+      
+      else if (subAction === 'editlinhcan') {
+        const targetProfile = userRepository.get(targetUserId);
+        const currentLinhCan = targetProfile ? targetProfile.linh_can : '{}';
+
+        const modal = new ModalBuilder()
+          .setCustomId(`adminmodal_${adminId}_editlinhcan_${targetUserId}`)
+          .setTitle('Sửa Đổi Linh Căn');
+
+        const lcInput = new TextInputBuilder()
+          .setCustomId('linh_can_json')
+          .setLabel('Cấu hình Linh Căn (định dạng JSON)')
+          .setStyle(TextInputStyle.Paragraph)
+          .setValue(currentLinhCan)
+          .setPlaceholder('Ví dụ: {"Kim":20,"Mộc":20,"Thủy":20,"Hỏa":20,"Thổ":20}')
+          .setRequired(true);
+
+        modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(lcInput));
+        await interaction.showModal(modal);
+      }
+    }
+  }
+
+  public static async handleModal(
+    client: TuTienClient,
+    interaction: any,
+    parts: string[]
+  ): Promise<void> {
+    const adminId = interaction.user.id;
+    if (adminId !== BOT_OWNER_ID) {
+      await interaction.reply({ content: '❌ Cấm địa Thiên Đạo, đạo hữu không đủ quyền hạn!', ephemeral: true });
+      return;
+    }
+
+    const subAction = parts[2];
+
+    if (subAction === 'spawnboss') {
+      const lvlStr = interaction.fields.getTextInputValue('boss_level');
+      const level = parseInt(lvlStr, 10);
+
+      if (isNaN(level) || level <= 0) {
+        await interaction.reply({ content: '❌ Cấp độ Boss phải là số nguyên lớn hơn 0!', ephemeral: true });
+        return;
+      }
+
+      const now = Math.floor(Date.now() / 1000);
+      const newMaxHp = Math.round(5000 * Math.pow(1.3, level - 1));
+      const newAtk = Math.round(80 * Math.pow(1.15, level - 1));
+      const newDef = Math.round(50 * Math.pow(1.15, level - 1));
+
+      db.prepare(`
+        UPDATE world_boss
+        SET hp = ?, max_hp = ?, atk = ?, def = ?, level = ?, status = 'active', last_spawned_at = ?, defeated_at = NULL, defeated_by = NULL
+        WHERE id = 'world_boss_current'
+      `).run(newMaxHp, newMaxHp, newAtk, newDef, level, now);
+
+      db.prepare("DELETE FROM world_boss_contributions").run();
+
+      const updatedBoss = db.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get() as any;
+      
+      const { BossSpawnService } = require('../../services/BossSpawnService');
+      const tempService = new BossSpawnService();
+      await tempService.broadcastBossSpawn(client, updatedBoss);
+
+      const panelEmbed = await AdminCommand.getPanelEmbed(client);
+      const components = AdminCommand.getPanelComponents(adminId);
+      
+      await interaction.update({
+        content: `👹 **Lệnh Thiên Đạo:** Đã triệu hồi Boss Thế Giới **Cấp ${level}** thành công!`,
+        embeds: [panelEmbed],
+        components
+      });
+    }
+    
+    else if (subAction === 'searchuser') {
+      const targetUserId = interaction.fields.getTextInputValue('target_user_id').trim();
+      const user = userRepository.get(targetUserId);
+
+      if (!user) {
+        await interaction.reply({ content: `❌ Không tìm thấy tu sĩ có ID \`${targetUserId}\` trong danh sách Tiên Bản.`, ephemeral: true });
+        return;
+      }
+
+      const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
+      const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
+      await interaction.update({
+        content: '',
+        embeds: [userEmbed],
+        components: userComponents
+      });
+    }
+    
+    else if (subAction === 'givecoin') {
+      const targetUserId = parts[3];
+      const amountStr = interaction.fields.getTextInputValue('coin_amount');
+      const amount = parseInt(amountStr, 10);
+
+      const targetProfile = userRepository.get(targetUserId);
+      if (!targetProfile) {
+        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        return;
+      }
+
+      if (isNaN(amount)) {
+        await interaction.reply({ content: '❌ Số lượng Linh Thạch không hợp lệ.', ephemeral: true });
+        return;
+      }
+
+      userRepository.update(targetUserId, {
+        coin_ha_pham: Math.max(0, targetProfile.coin_ha_pham + amount)
+      });
+
+      systemConfigService.writeAuditLog(adminId, 'admin_givecoin_panel', {
+        targetUserId,
+        targetName: targetProfile.name,
+        amount
+      });
+
+      const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
+      const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
+      await interaction.update({
+        content: `🪙 Đã ban phát **${amount.toLocaleString()} Linh Thạch** cho tu sĩ **${targetProfile.name}**!`,
+        embeds: [userEmbed],
+        components: userComponents
+      });
+    }
+    
+    else if (subAction === 'giveitem') {
+      const targetUserId = parts[3];
+      const itemId = interaction.fields.getTextInputValue('item_id').trim();
+      const qtyStr = interaction.fields.getTextInputValue('item_qty');
+      const qty = parseInt(qtyStr, 10);
+
+      const targetProfile = userRepository.get(targetUserId);
+      if (!targetProfile) {
+        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        return;
+      }
+
+      const itemCheck = db.prepare('SELECT name FROM items WHERE id = ?').get(itemId) as { name: string } | undefined;
+      if (!itemCheck) {
+        await interaction.reply({ content: `❌ Vật phẩm ID \`${itemId}\` không tồn tại.`, ephemeral: true });
+        return;
+      }
+
+      if (isNaN(qty) || qty <= 0) {
+        await interaction.reply({ content: '❌ Số lượng vật phẩm phải lớn hơn 0.', ephemeral: true });
+        return;
+      }
+
+      inventoryRepository.addItem(targetUserId, itemId, qty);
+
+      systemConfigService.writeAuditLog(adminId, 'admin_giveitem_panel', {
+        targetUserId,
+        targetName: targetProfile.name,
+        itemId,
+        itemName: itemCheck.name,
+        quantity: qty
+      });
+
+      const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
+      const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
+      await interaction.update({
+        content: `🎁 Đã phát **${qty}x ${itemCheck.name}** cho tu sĩ **${targetProfile.name}**!`,
+        embeds: [userEmbed],
+        components: userComponents
+      });
+    }
+    
+    else if (subAction === 'setlevel') {
+      const targetUserId = parts[3];
+      const lvlStr = interaction.fields.getTextInputValue('user_level');
+      const targetLevel = parseInt(lvlStr, 10);
+
+      const targetProfile = userRepository.get(targetUserId);
+      if (!targetProfile) {
+        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        return;
+      }
+
+      if (isNaN(targetLevel) || targetLevel < 1 || targetLevel > 380) {
+        await interaction.reply({ content: '❌ Cấp độ phải nằm trong khoảng từ 1 tới 380.', ephemeral: true });
+        return;
+      }
+
+      const newStats = cultivationService.calculateStatsForLevel(targetLevel, targetProfile.linh_can);
+      const nextExpNeeded = cultivationService.calculateNextExp(targetLevel);
+
+      userRepository.update(targetUserId, {
+        level: targetLevel,
+        tu_vi: 0,
+        exp_needed: nextExpNeeded,
+        base_hp: newStats.hp,
+        base_mp: newStats.mp,
+        base_atk: newStats.atk,
+        base_def: newStats.def,
+        base_crit: newStats.crit,
+        base_crit_res: newStats.critRes,
+        base_luck: targetProfile.base_luck
+      });
+
+      systemConfigService.writeAuditLog(adminId, 'admin_setlevel_panel', {
+        targetUserId,
+        targetName: targetProfile.name,
+        oldLevel: targetProfile.level,
+        newLevel: targetLevel
+      });
+
+      const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
+      const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
+      await interaction.update({
+        content: `⚡ Đã cập nhật cảnh giới tu sĩ **${targetProfile.name}** thành **Cấp ${targetLevel}**!`,
+        embeds: [userEmbed],
+        components: userComponents
+      });
+    }
+    
+    else if (subAction === 'editlinhcan') {
+      const targetUserId = parts[3];
+      const lcJsonStr = interaction.fields.getTextInputValue('linh_can_json');
+
+      const targetProfile = userRepository.get(targetUserId);
+      if (!targetProfile) {
+        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        return;
+      }
+
+      try {
+        JSON.parse(lcJsonStr);
+      } catch (e) {
+        await interaction.reply({ content: '❌ Chuỗi Linh Căn không hợp lệ (không đúng định dạng JSON).', ephemeral: true });
+        return;
+      }
+
+      userRepository.update(targetUserId, {
+        linh_can: lcJsonStr
+      });
+
+      systemConfigService.writeAuditLog(adminId, 'admin_editlinhcan_panel', {
+        targetUserId,
+        targetName: targetProfile.name,
+        linhCan: lcJsonStr
+      });
+
+      const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
+      const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
+      await interaction.update({
+        content: `🧬 Đã cập nhật Linh Căn cho tu sĩ **${targetProfile.name}** thành công!`,
+        embeds: [userEmbed],
+        components: userComponents
+      });
+    }
+  }
+}

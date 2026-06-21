@@ -1,0 +1,379 @@
+import db from '../database/database';
+import { userRepository } from '../database/repositories/UserRepository';
+
+export interface Mentorship {
+  id: number;
+  mentor_id: string;
+  apprentice_id: string;
+  started_at: number;
+  status: 'active' | 'graduated' | 'cancelled';
+  graduated_at: number | null;
+}
+
+class MentorshipService {
+  /**
+   * Lấy mối quan hệ sư đồ đang hoạt động của đệ tử
+   */
+  public getActiveMentorshipForApprentice(apprenticeId: string): Mentorship | undefined {
+    return db.prepare("SELECT * FROM mentorships WHERE apprentice_id = ? AND status = 'active'").get(apprenticeId) as Mentorship | undefined;
+  }
+
+  /**
+   * Lấy danh sách đệ tử đang hoạt động của sư phụ
+   */
+  public getActiveApprentices(mentorId: string): Mentorship[] {
+    return db.prepare("SELECT * FROM mentorships WHERE mentor_id = ? AND status = 'active'").all(mentorId) as Mentorship[];
+  }
+
+  /**
+   * Lấy danh sách đệ tử đã tốt nghiệp của sư phụ
+   */
+  public getGraduatedApprentices(mentorId: string): Mentorship[] {
+    return db.prepare("SELECT * FROM mentorships WHERE mentor_id = ? AND status = 'graduated'").all(mentorId) as Mentorship[];
+  }
+
+  /**
+   * Gửi lời mời nhận đệ tử / bái sư
+   */
+  public canBecomeMentorAndApprentice(mentorId: string, apprenticeId: string): { success: boolean; message: string } {
+    const mentor = userRepository.get(mentorId);
+    const apprentice = userRepository.get(apprenticeId);
+
+    if (!mentor) return { success: false, message: 'Sư phụ chưa tạo nhân vật!' };
+    if (!apprentice) return { success: false, message: 'Đệ tử chưa tạo nhân vật!' };
+
+    if (mentorId === apprenticeId) {
+      return { success: false, message: 'Đạo hữu không thể tự bái chính mình làm sư phụ!' };
+    }
+
+    if (mentor.level < 50) {
+      return { success: false, message: 'Yêu cầu sư phụ phải đạt cấp độ 50 trở lên mới có thể thu nhận đệ tử!' };
+    }
+
+    if (apprentice.level > 30) {
+      return { success: false, message: 'Chỉ có thể thu nhận tu sĩ cấp 1 đến 30 làm đệ tử!' };
+    }
+
+    // Kiểm tra đệ tử đã có sư phụ chưa
+    const activeApp = this.getActiveMentorshipForApprentice(apprenticeId);
+    if (activeApp) {
+      return { success: false, message: 'Đệ tử này hiện đã bái sư phụ khác rồi!' };
+    }
+
+    // Kiểm tra số lượng đệ tử hiện tại của sư phụ (tối đa 3)
+    const activeList = this.getActiveApprentices(mentorId);
+    if (activeList.length >= 3) {
+      return { success: false, message: 'Sư phụ hiện đã thu nhận đủ 3 đệ tử, không thể nhận thêm!' };
+    }
+
+    // Kiểm tra xem sư phụ có đang bị cooldown hủy sư đồ không
+    let yCanh: any = {};
+    try { yCanh = JSON.parse(mentor.y_canh || '{}'); } catch(e){}
+    const now = Math.floor(Date.now() / 1000);
+    if (yCanh.mentor_cooldown_until && yCanh.mentor_cooldown_until > now) {
+      const remainSec = yCanh.mentor_cooldown_until - now;
+      const hours = Math.ceil(remainSec / 3600);
+      return { success: false, message: `Sư phụ đang chịu phạt do trục xuất đệ tử cũ. Vui lòng đợi ${hours} giờ nữa!` };
+    }
+
+    return { success: true, message: 'Đủ điều kiện bái sư.' };
+  }
+
+  /**
+   * Tạo quan hệ Sư đồ
+   */
+  public createMentorship(mentorId: string, apprenticeId: string): { success: boolean; message: string } {
+    const check = this.canBecomeMentorAndApprentice(mentorId, apprenticeId);
+    if (!check.success) return check;
+
+    const now = Math.floor(Date.now() / 1000);
+    db.prepare(`
+      INSERT INTO mentorships (mentor_id, apprentice_id, started_at, status)
+      VALUES (?, ?, ?, 'active')
+    `).run(mentorId, apprenticeId, now);
+
+    return { success: true, message: 'Bái sư thành công! Hai đạo hữu đã chính thức kết thành Sư Đồ.' };
+  }
+
+  /**
+   * Hủy bỏ quan hệ sư đồ
+   */
+  public breakMentorship(initiatorId: string, targetId: string): { success: boolean; message: string } {
+    // Tìm mentorship đang hoạt động giữa hai người
+    const row = db.prepare(`
+      SELECT * FROM mentorships 
+      WHERE ((mentor_id = ? AND apprentice_id = ?) 
+         OR (mentor_id = ? AND apprentice_id = ?))
+      AND status = 'active'
+    `).get(initiatorId, targetId, targetId, initiatorId) as Mentorship | undefined;
+
+    if (!row) {
+      return { success: false, message: 'Không tìm thấy quan hệ sư đồ đang hoạt động giữa hai người!' };
+    }
+
+    const mentorId = row.mentor_id;
+    const apprenticeId = row.apprentice_id;
+
+    const mentor = userRepository.get(mentorId)!;
+    const apprentice = userRepository.get(apprenticeId)!;
+
+    const now = Math.floor(Date.now() / 1000);
+    const otherUserId = initiatorId === mentorId ? apprenticeId : mentorId;
+    const otherUser = userRepository.get(otherUserId)!;
+
+    // Kiểm tra offline >= 7 ngày để bypass penalty
+    const isOtherOfflineLong = (now - otherUser.updated_at) >= 7 * 24 * 3600;
+
+    db.transaction(() => {
+      // Cập nhật status sang cancelled
+      db.prepare("UPDATE mentorships SET status = 'cancelled' WHERE id = ?").run(row.id);
+
+      if (!isOtherOfflineLong) {
+        if (initiatorId === mentorId) {
+          // Sư phụ chủ động trục xuất đệ tử -> phạt cấm nhận đệ tử mới 48h
+          let yCanh: any = {};
+          try { yCanh = JSON.parse(mentor.y_canh || '{}'); } catch(e){}
+          yCanh.mentor_cooldown_until = now + 48 * 3600;
+          userRepository.update(mentorId, { y_canh: JSON.stringify(yCanh) });
+        } else {
+          // Đệ tử phản môn -> phạt trừ 10% tu vi
+          const newTuVi = Math.max(0, Math.floor(apprentice.tu_vi * 0.9));
+          userRepository.update(apprenticeId, { tu_vi: newTuVi });
+        }
+      }
+    })();
+
+    let penaltyMsg = '';
+    if (!isOtherOfflineLong) {
+      if (initiatorId === mentorId) {
+        penaltyMsg = '\n⚠️ **Hình phạt:** Sư phụ tự ý trục xuất đệ tử sẽ bị cấm nhận đệ tử mới trong 48 giờ.';
+      } else {
+        penaltyMsg = '\n⚠️ **Hình phạt:** Đệ tử tự ý phản môn sẽ bị tổn hao 10% tu vi hiện tại.';
+      }
+    } else {
+      penaltyMsg = '\nℹ️ *Do đối phương đã quy ẩn (offline > 7 ngày), thiên đạo miễn trừ mọi hình phạt.*';
+    }
+
+    return {
+      success: true,
+      message: `Đã hủy bỏ quan hệ sư đồ giữa **${mentor.name}** và **${apprentice.name}**!${penaltyMsg}`
+    };
+  }
+
+  /**
+   * Xử lý phần thưởng khi đệ tử làm việc (mining/gathering/patrolling)
+   */
+  public handleApprenticeWork(apprenticeId: string, coinsGained: number): { mentorGainedCoins: number; apprenticeBonusExp: number; mentorGainedExp: number } {
+    const row = this.getActiveMentorshipForApprentice(apprenticeId);
+    if (!row) return { mentorGainedCoins: 0, apprenticeBonusExp: 0, mentorGainedExp: 0 };
+
+    const mentorId = row.mentor_id;
+    const mentor = userRepository.get(mentorId);
+    const apprentice = userRepository.get(apprenticeId);
+    if (!mentor || !apprentice) return { mentorGainedCoins: 0, apprenticeBonusExp: 0, mentorGainedExp: 0 };
+
+    // Đệ tử nhận được 20 EXP cơ bản khi làm việc, cộng thêm 5% bonus sư đồ
+    const baseWorkExp = 20;
+
+    let apprenticeExpBuff = 1.0;
+    try {
+      const { heartLawService } = require('./HeartLawService');
+      const activePassives = heartLawService.getActivePassives(apprenticeId);
+      const expBoostHL = activePassives.find((hl: any) => hl.type === 'exp_boost');
+      if (expBoostHL) apprenticeExpBuff += expBoostHL.value;
+    } catch (e) {}
+
+    let mentorExpBuff = 1.0;
+    try {
+      const { heartLawService } = require('./HeartLawService');
+      const activePassives = heartLawService.getActivePassives(mentorId);
+      const expBoostHL = activePassives.find((hl: any) => hl.type === 'exp_boost');
+      if (expBoostHL) mentorExpBuff += expBoostHL.value;
+    } catch (e) {}
+
+    const apprenticeBonusExp = Math.round(baseWorkExp * 1.05 * apprenticeExpBuff); // +5% EXP
+    const mentorGainedExp = Math.round(baseWorkExp * 0.10 * mentorExpBuff); // 10% EXP
+    const mentorGainedCoins = Math.round(coinsGained * 0.05); // 5% LT
+
+    db.transaction(() => {
+      // Trao tu vi cho đệ tử
+      const newAppExp = Math.min(apprentice.tu_vi + apprenticeBonusExp, apprentice.exp_needed);
+      userRepository.update(apprenticeId, { tu_vi: newAppExp });
+
+      // Trao tu vi và linh thạch cho sư phụ
+      const newMentorExp = Math.min(mentor.tu_vi + mentorGainedExp, mentor.exp_needed);
+      userRepository.update(mentorId, {
+        tu_vi: newMentorExp,
+        coin_ha_pham: mentor.coin_ha_pham + mentorGainedCoins
+      });
+    })();
+
+    return { mentorGainedCoins, apprenticeBonusExp, mentorGainedExp };
+  }
+
+  /**
+   * Xử lý khi đệ tử tăng cấp (kiểm tra tốt nghiệp hoặc milestone)
+   */
+  public handleApprenticeLevelUp(apprenticeId: string, oldLevel: number, newLevel: number): string[] {
+    const row = this.getActiveMentorshipForApprentice(apprenticeId);
+    if (!row) return [];
+
+    const mentorId = row.mentor_id;
+    const mentor = userRepository.get(mentorId);
+    const apprentice = userRepository.get(apprenticeId);
+    if (!mentor || !apprentice) return [];
+
+    const notifications: string[] = [];
+    const now = Math.floor(Date.now() / 1000);
+
+    // Mốc cấp 20
+    if (oldLevel < 20 && newLevel >= 20) {
+      db.transaction(() => {
+        userRepository.update(mentorId, { knb: mentor.knb + 1 });
+        userRepository.update(apprenticeId, { knb: apprentice.knb + 1 });
+        const { inventoryRepository } = require('../database/repositories/InventoryRepository');
+        inventoryRepository.addItem(apprenticeId, 'pill_alchemy_tuvi', 1);
+      })();
+      notifications.push(`🎉 Đệ tử **${apprentice.name}** đạt **Cấp 20**! Sư phụ và đệ tử cùng nhận **+1 KNB**, đệ tử nhận thêm **1x Luyện Khí Đan**.`);
+    }
+
+    // Mốc cấp 35
+    if (oldLevel < 35 && newLevel >= 35) {
+      db.transaction(() => {
+        userRepository.update(mentorId, { knb: mentor.knb + 3 });
+        userRepository.update(apprenticeId, { knb: apprentice.knb + 3 });
+        const { inventoryRepository } = require('../database/repositories/InventoryRepository');
+        inventoryRepository.addItem(apprenticeId, 'pill_alchemy_tuvi', 2);
+      })();
+      notifications.push(`🎉 Đệ tử **${apprentice.name}** đạt **Cấp 35**! Sư phụ và đệ tử cùng nhận **+3 KNB**, đệ tử nhận thêm **2x Luyện Khí Đan**.`);
+    }
+
+    // Mốc cấp 50 (Tốt Nghiệp)
+    if (oldLevel < 50 && newLevel >= 50) {
+      db.transaction(() => {
+        // Tốt nghiệp
+        db.prepare("UPDATE mentorships SET status = 'graduated', graduated_at = ? WHERE id = ?").run(now, row.id);
+        
+        // Thưởng lớn
+        userRepository.update(mentorId, { knb: mentor.knb + 10 });
+        userRepository.update(apprenticeId, { knb: apprentice.knb + 5 });
+
+        // Trao danh hiệu
+        db.prepare("INSERT OR IGNORE INTO user_titles (user_id, title, source, unlocked_at) VALUES (?, 'Cao Nhân', 'mentorship', ?)").run(mentorId, now);
+        db.prepare("INSERT OR IGNORE INTO user_titles (user_id, title, source, unlocked_at) VALUES (?, 'Môn Đồ', 'mentorship', ?)").run(apprenticeId, now);
+
+        if (mentor.title === 'Tán Tu' || !mentor.title) {
+          userRepository.update(mentorId, { title: 'Cao Nhân' });
+        }
+        if (apprentice.title === 'Tán Tu' || !apprentice.title) {
+          userRepository.update(apprenticeId, { title: 'Môn Đồ' });
+        }
+      })();
+      notifications.push(`🎓 **TỐT NGHIỆP SƯ ĐỒ:** Đệ tử **${apprentice.name}** xuất sắc đạt **Cấp 50** và tốt nghiệp!\n` +
+        `• Sư phụ **${mentor.name}** nhận **+10 KNB** & danh hiệu **Cao Nhân**.\n` +
+        `• Đệ tử nhận **+5 KNB** & danh hiệu **Môn Đồ**.`);
+
+      // Kiểm tra danh hiệu "Truyền Thừa Danh Môn" (>= 3 đệ tử tốt nghiệp)
+      const graduatedCount = db.prepare("SELECT COUNT(*) as c FROM mentorships WHERE mentor_id = ? AND status = 'graduated'").get(mentorId) as { c: number };
+      if (graduatedCount.c >= 3) {
+        const freshMentor = userRepository.get(mentorId);
+        if (freshMentor) {
+          db.prepare("INSERT OR IGNORE INTO user_titles (user_id, title, source, unlocked_at) VALUES (?, 'Truyền Thừa Danh Môn', 'mentorship_legendary', ?)").run(mentorId, now);
+          // Tự động gán nếu danh hiệu hiện tại thấp hơn
+          if (!freshMentor.title || freshMentor.title === 'Tán Tu' || freshMentor.title === 'Cao Nhân') {
+            userRepository.update(mentorId, { title: 'Truyền Thừa Danh Môn' });
+          }
+          notifications.push(`🏆 **TRUYỀN THỪA DANH MÔN:** Sư phụ **${mentor.name}** đã đào tạo thành công **${graduatedCount.c}** đệ tử tốt nghiệp! Nhận danh hiệu huyền thoại **Truyền Thừa Danh Môn** (+5% DEF)!`);
+        }
+      }
+    }
+
+    return notifications;
+  }
+
+  /**
+   * Tính toán EXP bonus dựa trên số lượng đệ tử tốt nghiệp của sư phụ (mỗi người tốt nghiệp +1%, tối đa +5%)
+   */
+  public getMentorExpBonusPercent(mentorId: string): number {
+    const graduatedList = this.getGraduatedApprentices(mentorId);
+    return Math.min(5, graduatedList.length); // max +5%
+  }
+
+  /**
+   * Truyền thụ tu vi từ Sư phụ sang Đệ tử
+   */
+  public transmitCultivation(mentorId: string, apprenticeId: string, amount: number): { success: boolean; message: string } {
+    const activeApp = this.getActiveMentorshipForApprentice(apprenticeId);
+    if (!activeApp || activeApp.mentor_id !== mentorId || activeApp.status !== 'active') {
+      return { success: false, message: 'Đạo hữu và tu sĩ này không có quan hệ Sư Đồ đang hoạt động!' };
+    }
+
+    if (amount < 100 || amount > 2000) {
+      return { success: false, message: 'Mỗi lần truyền thụ tu vi phải nằm trong khoảng **100** đến **2000** EXP!' };
+    }
+
+    const mentor = userRepository.get(mentorId);
+    const apprentice = userRepository.get(apprenticeId);
+    if (!mentor || !apprentice) {
+      return { success: false, message: 'Thông tin nhân vật không hợp lệ!' };
+    }
+
+    if (mentor.tu_vi < amount) {
+      return { success: false, message: `Tu vi hiện tại của sư phụ (**${mentor.tu_vi}**) không đủ để truyền thụ **${amount}** EXP!` };
+    }
+    if (mentor.coin_ha_pham < 1000) {
+      return { success: false, message: 'Truyền thụ tu vi tiêu hao **1,000 Linh Thạch** để hộ pháp đại trận, sư phụ không đủ Linh Thạch!' };
+    }
+
+    const { getRealmDetails } = require('../utils/constants');
+    const { minorLevel } = getRealmDetails(apprentice.level);
+    if (minorLevel === 38 && apprentice.tu_vi >= apprentice.exp_needed) {
+      return { success: false, message: 'Đệ tử đã đạt cực hạn cảnh giới lớn hiện tại. Cần đột phá trước khi nhận thêm tu vi!' };
+    }
+
+    const { getYearWeekString } = require('../commands/general/shop');
+    const currentWeek = getYearWeekString();
+    
+    let yCanh: any = {};
+    try { yCanh = JSON.parse(mentor.y_canh || '{}'); } catch (e) {}
+
+    let transRecord = yCanh.mentorship_transmission || { week: '', amount: 0 };
+    if (transRecord.week !== currentWeek) {
+      transRecord = { week: currentWeek, amount: 0 };
+    }
+
+    const remainingLimit = 2000 - transRecord.amount;
+    if (amount > remainingLimit) {
+      return { 
+        success: false, 
+        message: `Sư phụ đã truyền thụ **${transRecord.amount}/2000** tu vi tuần này. Chỉ còn có thể truyền thụ tối đa **${remainingLimit}** tu vi!` 
+      };
+    }
+
+    const updatedTransferred = transRecord.amount + amount;
+    yCanh.mentorship_transmission = { week: currentWeek, amount: updatedTransferred };
+
+    db.transaction(() => {
+      userRepository.update(mentorId, {
+        tu_vi: mentor.tu_vi - amount,
+        coin_ha_pham: mentor.coin_ha_pham - 1000,
+        y_canh: JSON.stringify(yCanh)
+      });
+
+      const newAppTuVi = Math.min(apprentice.tu_vi + amount, apprentice.exp_needed);
+      userRepository.update(apprenticeId, {
+        tu_vi: newAppTuVi
+      });
+    })();
+
+    return { 
+      success: true, 
+      message: `✨ **Truyền Thụ Thành Công!**\n` +
+        `• Sư phụ hao tổn **-${amount} Tu Vi** và **-1,000 Linh Thạch** để hộ pháp đại trận.\n` +
+        `• Đệ tử **${apprentice.name}** nhận được **+${amount} Tu Vi**!\n` +
+        `• Sư phụ đã truyền thụ **${updatedTransferred}/2000** tu vi tuần này.`
+    };
+  }
+}
+
+export const mentorshipService = new MentorshipService();
