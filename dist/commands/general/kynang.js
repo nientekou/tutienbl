@@ -1,0 +1,131 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const discord_js_1 = require("discord.js");
+const Command_1 = require("../../structures/Command");
+const UserRepository_1 = require("../../database/repositories/UserRepository");
+const database_1 = __importDefault(require("../../database/database"));
+const SKILL_DETAILS = {
+    skill_fire: { name: 'Liệt Diễm Quyết 🔥', element: 'Hỏa', desc: 'Thiêu đốt đối thủ gây 20% công kích sát thương phép mỗi lượt và áp dụng trạng thái hỏa phế trong 2 hiệp.' },
+    skill_water: { name: 'Thủy Linh Quyết 💧', element: 'Thủy', desc: 'Thủy triều gột rửa cơ thể, hồi phục 12% sinh lực tối đa.' },
+    skill_wood: { name: 'Hấp Huyết Quyết 🌿', element: 'Mộc', desc: 'Lực lượng dây leo quấn quanh, chuyển hóa 25% sát thương hiệp đó thành HP hồi phục.' },
+    skill_earth: { name: 'Thổ Giáp Quyết 🪨', element: 'Thổ', desc: 'Ngưng tụ thạch giáp bảo hộ cơ thể, nhận khiên bằng 15% HP tối đa.' },
+    skill_wind: { name: 'Phong Hành Quyết 🌀', element: 'Phong', desc: 'Gia tốc thần hành bộ pháp, chắc chắn né đòn tấn công kế tiếp từ đối thủ.' },
+    skill_lightning: { name: 'Lôi Phạt Quyết ⚡', element: 'Lôi', desc: 'Đao phạt sấm sét giáng thế, tăng 50% sát thương đòn đánh và gây tê liệt địch thủ trong 1 hiệp.' }
+};
+class KyNangCommand extends Command_1.Command {
+    constructor() {
+        super(new discord_js_1.SlashCommandBuilder()
+            .setName('kynang')
+            .setDescription('Quản lý thần thông kỹ năng của đạo hữu.')
+            .addSubcommand(sub => sub
+            .setName('xem')
+            .setDescription('Xem danh sách kỹ năng đã học và đang trang bị.'))
+            .addSubcommand(sub => sub
+            .setName('trangbi')
+            .setDescription('Trang bị kỹ năng vào ô chiến đấu.')
+            .addStringOption(opt => opt
+            .setName('skill_id')
+            .setDescription('Mã kỹ năng cần trang bị (skill_fire, skill_water,...)')
+            .setRequired(true))
+            .addIntegerOption(opt => opt
+            .setName('slot')
+            .setDescription('Ô trang bị (từ 1 đến 3).')
+            .setRequired(true)
+            .addChoices({ name: 'Slot 1', value: 1 }, { name: 'Slot 2', value: 2 }, { name: 'Slot 3', value: 3 })))
+            .addSubcommand(sub => sub
+            .setName('thao')
+            .setDescription('Tháo kỹ năng khỏi ô chiến đấu.')
+            .addIntegerOption(opt => opt
+            .setName('slot')
+            .setDescription('Ô cần tháo kỹ năng (1 đến 3).')
+            .setRequired(true)
+            .addChoices({ name: 'Slot 1', value: 1 }, { name: 'Slot 2', value: 2 }, { name: 'Slot 3', value: 3 }))));
+    }
+    async execute(client, interaction) {
+        const userId = interaction.user.id;
+        const user = UserRepository_1.userRepository.get(userId);
+        if (!user) {
+            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            return;
+        }
+        const sub = interaction.options.getSubcommand();
+        if (sub === 'xem') {
+            const skills = database_1.default.prepare('SELECT * FROM user_skills WHERE user_id = ?').all(userId);
+            const embed = new discord_js_1.EmbedBuilder()
+                .setTitle(`📖 TÀNG BÍ THƯ KỸ NĂNG - ${user.name}`)
+                .setColor('#8e44ad')
+                .setDescription('Kỹ năng tu chân thức tỉnh linh căn nguyên thủy giúp đạo hữu xoay chuyển càn khôn trong combat.')
+                .setTimestamp();
+            const slots = { 1: 'Trống 🚫', 2: 'Trống 🚫', 3: 'Trống 🚫' };
+            const learnedList = [];
+            for (const skill of skills) {
+                const details = SKILL_DETAILS[skill.skill_id];
+                const skillName = details ? `${details.name} (Hệ ${details.element})` : skill.skill_id;
+                if (skill.is_equipped === 1 && skill.equipped_slot >= 1 && skill.equipped_slot <= 3) {
+                    slots[skill.equipped_slot] = `**${skillName}** (Cấp ${skill.level})`;
+                }
+                learnedList.push(`• **${skillName}** - Cấp ${skill.level}\n*└ ${details ? details.desc : 'Kỹ năng tu hành.'}*`);
+            }
+            embed.addFields({
+                name: '⚔️ Ô Chiêu Thức Trang Bị (Combat Skills)',
+                value: `• Ô số 1: ${slots[1]}\n• Ô số 2: ${slots[2]}\n• Ô số 3: ${slots[3]}`,
+                inline: false
+            }, {
+                name: '📚 Kỹ Năng Đã Lĩnh Ngộ',
+                value: learnedList.length > 0 ? learnedList.join('\n') : '*Đạo hữu chưa học pháp thuật nào. Hãy mua bí tịch tại `/shopkynang`!*',
+                inline: false
+            });
+            await interaction.reply({ embeds: [embed] });
+            return;
+        }
+        if (sub === 'trangbi') {
+            const skillId = interaction.options.getString('skill_id', true);
+            const slot = interaction.options.getInteger('slot', true);
+            // Kiểm tra xem đã học kỹ năng đó chưa
+            const skill = database_1.default.prepare('SELECT * FROM user_skills WHERE user_id = ? AND skill_id = ?')
+                .get(userId, skillId);
+            if (!skill) {
+                await interaction.reply({
+                    content: '❌ Đạo hữu chưa lĩnh ngộ kỹ năng này! Hãy mua bí tịch tương ứng để học.',
+                    ephemeral: true
+                });
+                return;
+            }
+            const details = SKILL_DETAILS[skillId];
+            const skillName = details ? details.name : skillId;
+            database_1.default.transaction(() => {
+                // Hủy trang bị kỹ năng khác ở cùng slot
+                database_1.default.prepare('UPDATE user_skills SET is_equipped = 0, equipped_slot = 0 WHERE user_id = ? AND equipped_slot = ?')
+                    .run(userId, slot);
+                // Đặt kỹ năng này vào slot
+                database_1.default.prepare('UPDATE user_skills SET is_equipped = 1, equipped_slot = ? WHERE user_id = ? AND skill_id = ?')
+                    .run(slot, userId, skillId);
+            })();
+            await interaction.reply({
+                content: `✅ Đã trang bị kỹ năng **${skillName}** vào **Ô số ${slot}**!`
+            });
+            return;
+        }
+        if (sub === 'thao') {
+            const slot = interaction.options.getInteger('slot', true);
+            // Tháo kỹ năng ở slot
+            const changes = database_1.default.prepare('UPDATE user_skills SET is_equipped = 0, equipped_slot = 0 WHERE user_id = ? AND equipped_slot = ?')
+                .run(userId, slot);
+            if (changes.changes > 0) {
+                await interaction.reply({
+                    content: `✅ Đã tháo kỹ năng khỏi **Ô số ${slot}** thành công.`
+                });
+            }
+            else {
+                await interaction.reply({
+                    content: `❌ Không có kỹ năng nào đang trang bị ở **Ô số ${slot}** để tháo.`,
+                    ephemeral: true
+                });
+            }
+        }
+    }
+}
+exports.default = KyNangCommand;
