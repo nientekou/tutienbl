@@ -155,6 +155,48 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     requiredAlchemyLevel: 3,
     baseSuccessRate: 0.50,
     expGained: 80
+  },
+  {
+    id: 'recipe_cuu_chuyen',
+    name: 'Cửu Chuyển Hoàn Hồn Đan',
+    targetPillId: 'pill_cuu_chuyen',
+    requiredMaterials: [
+      { itemId: 'material_tuyet_lien', quantity: 5 },
+      { itemId: 'material_linh_thao_1', quantity: 5 }
+    ],
+    costCoin: 1500,
+    staminaCost: 25,
+    requiredAlchemyLevel: 4,
+    baseSuccessRate: 0.45,
+    expGained: 150
+  },
+  {
+    id: 'recipe_ngo_dong',
+    name: 'Ngô Đồng Trường Sinh Đan',
+    targetPillId: 'pill_ngo_dong',
+    requiredMaterials: [
+      { itemId: 'material_ngodong', quantity: 5 },
+      { itemId: 'material_linh_thao_1', quantity: 5 }
+    ],
+    costCoin: 2000,
+    staminaCost: 30,
+    requiredAlchemyLevel: 4,
+    baseSuccessRate: 0.40,
+    expGained: 200
+  },
+  {
+    id: 'recipe_huyen_am',
+    name: 'Huyền Âm Kiếp Đan',
+    targetPillId: 'pill_huyen_am',
+    requiredMaterials: [
+      { itemId: 'material_lingzhi', quantity: 5 },
+      { itemId: 'material_linh_thao_1', quantity: 5 }
+    ],
+    costCoin: 1800,
+    staminaCost: 25,
+    requiredAlchemyLevel: 4,
+    baseSuccessRate: 0.42,
+    expGained: 180
   }
 ];
 

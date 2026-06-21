@@ -25,6 +25,9 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'talisman_speed_1', name: '📜 Thần Hành Phù', price: 25, desc: 'Gia tốc linh thực hoặc thám hiểm đi 1 giờ.' },
   { id: 'seed_linh_thao_1', name: '🌾 Hạt Giống Linh Thảo', price: 5, desc: 'Hạt giống trồng linh thảo hạ phẩm.' },
   { id: 'seed_nhan_sam_1', name: '🌾 Hạt Giống Nhân Sâm', price: 15, desc: 'Hạt giống trồng Huyết Nhân Sâm.' },
+  { id: 'seed_tuyet_lien', name: '🌾 Hạt Giống Tuyết Liên', price: 300, desc: 'Hạt giống Thiên Sơn Tuyết Liên.' },
+  { id: 'seed_lingzhi', name: '🌾 Hạt Giống Linh Chi', price: 500, desc: 'Hạt giống Cửu Diệp Linh Chi.' },
+  { id: 'seed_ngodong', name: '🌾 Hạt Giống Ngô Đồng', price: 800, desc: 'Hạt giống Ngô Đồng Quả.' },
   { id: 'cauldron_low', name: '🔥 Lò Luyện Đan - Hạ Phẩm', price: 500, desc: 'Lò đất sét nung, tăng 0% tỷ lệ thành công (có 10% tỷ lệ nứt vỡ khi nổ lò).' },
   { id: 'cauldron_mid', name: '🔥 Lò Luyện Đan - Trung Phẩm', price: 2000, desc: 'Lò đồng đen tinh thiết, tăng 10% tỷ lệ thành công.' },
   { id: 'cauldron_high', name: '🔥 Lò Luyện Đan - Thượng Phẩm', price: 10000, desc: 'Cổ đỉnh luyện đan khảm ngọc, tăng 25% tỷ lệ thành công.' },
@@ -46,7 +49,7 @@ export const SHOP_CATEGORIES = [
   },
   {
     name: '📜 Bùa Chú & Hạt Giống',
-    items: ['talisman_anti_loi', 'talisman_speed_1', 'seed_linh_thao_1', 'seed_nhan_sam_1']
+    items: ['talisman_anti_loi', 'talisman_speed_1', 'seed_linh_thao_1', 'seed_nhan_sam_1', 'seed_tuyet_lien', 'seed_lingzhi', 'seed_ngodong']
   },
   {
     name: '🔥 Đỉnh Luyện Đan',

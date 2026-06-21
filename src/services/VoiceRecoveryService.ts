@@ -78,7 +78,7 @@ export class VoiceRecoveryService {
       if (!config) return null;
 
       const targetId = config.tuluyen_channel_id || config.event_channel_id;
-      if (!targetId) return null;
+      if (!targetId || !/^\d{17,20}$/.test(targetId)) return null;
 
       const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId);
       if (!guild) return null;

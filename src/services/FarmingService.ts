@@ -58,15 +58,35 @@ export class FarmingService {
         // Cập nhật tiến trình sinh trưởng sinh học theo thời gian trôi qua
         const dt = now - plot.planted_at;
         if (dt > 0) {
-          // Tính hệ số sinh trưởng dựa trên ẩm/dinh dưỡng/sâu hại hiện tại
-          const mult = 1.0; // Giữ 1.0 vì chưa có UI tưới nước/bón phân/diệt sâu
+          // Tính toán sự giảm sút ẩm/phân và xuất hiện sâu hại sau mỗi giờ
+          const hours = Math.floor(dt / 3600);
+          
+          let newMoisture = plot.moisture;
+          let newNutrition = plot.nutrition;
+          let newPests = plot.pests;
+          
+          if (hours > 0) {
+            newMoisture = Math.max(0, plot.moisture - hours);
+            newNutrition = Math.max(0, plot.nutrition - hours);
+            
+            // Mỗi giờ trôi qua có 15% cơ hội xuất hiện sâu bệnh (nếu chưa có)
+            for (let h = 0; h < hours; h++) {
+              if (newPests === 0 && Math.random() < 0.15) {
+                newPests = 1;
+              }
+            }
+          }
+
+          // Tính hệ số sinh trưởng dựa trên trạng thái đất hiện tại (trước khi trừ hao)
+          let mult = 1.0;
+          if (plot.pests > 0 || plot.moisture < 3 || plot.nutrition < 3) {
+            mult = 0.5;
+          } else if (plot.moisture >= 4 && plot.nutrition >= 4 && plot.pests === 0) {
+            mult = 1.5;
+          }
+
           const growthEarned = Math.round(dt * mult);
           const newGrowthTime = Math.max(0, plot.growth_time - growthEarned);
-
-          // Khấu trừ tài nguyên đất tạm thời tắt đi để tránh lỗi đóng băng cooldown (do cạn kiệt ẩm/dinh dưỡng)
-          const newMoisture = 5;
-          const newNutrition = 6;
-          const newPests = 0;
 
           // Cập nhật Database
           db.prepare(`

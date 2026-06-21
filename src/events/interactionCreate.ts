@@ -411,7 +411,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             // Nếu mua thành công, thử update message gốc
             try {
               const event = db.prepare('SELECT * FROM traveler_events WHERE id = ?').get(eventId) as any;
-              if (event && event.message_id) {
+              if (event && event.message_id && event.channel_id && /^\d{17,20}$/.test(event.channel_id)) {
                 const channel = await interaction.client.channels.fetch(event.channel_id) as any;
                 if (channel) {
                   const msg = await channel.messages.fetch(event.message_id).catch(() => null);
@@ -452,7 +452,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             // Cập nhật tin nhắn gốc thành bị đánh bại
             try {
               const event = db.prepare('SELECT * FROM traveler_events WHERE id = ?').get(eventId) as any;
-              if (event && event.message_id) {
+              if (event && event.message_id && event.channel_id && /^\d{17,20}$/.test(event.channel_id)) {
                 const channel = await interaction.client.channels.fetch(event.channel_id) as any;
                 if (channel) {
                   const msg = await channel.messages.fetch(event.message_id).catch(() => null);
@@ -606,7 +606,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         }
 
         // --- GỌI CÁC HANDLERS DỰA VÀO ACTION ---
-        const cultivationActions = ['luanhoiconfirm', 'luanhoicancel', 'ycanhawaken', 'tuluyen', 'dotpha', 'loi', 'taytuynav', 'taytuyexecute', 'taytuy'];
+        const cultivationActions = ['luanhoiconfirm', 'luanhoicancel', 'ycanhawaken', 'tuluyen', 'dotpha', 'loi', 'taytuynav', 'taytuyexecute', 'taytuy', 'select', 'confirmalignment', 'dotpharisk', 'dotphastabilize'];
         const profileActions = ['hosotab', 'hosoback'];
         const lifeActions = ['alch'];
         const casinoActions = ['casinoplay', 'casinodouble', 'casinoopposite'];
@@ -2153,10 +2153,15 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const { PartyCombatEngine } = require('../services/PartyCombatEngine');
           
           const dungeon = COOP_DUNGEONS.find((d: any) => d.id === party.dungeonId);
-          if (!dungeon) return;
+          if (!dungeon) {
+            await interaction.update({ content: '❌ Bí cảnh không hợp lệ, tổ đội đã bị giải tán!', embeds: [], components: [] });
+            partyService.endParty(partyId);
+            return;
+          }
 
           await interaction.update({ content: '⚔️ **ĐANG CHUẨN BỊ TRẬN CHIẾN...**', embeds: [], components: [] });
 
+          try {
           // Chuẩn bị team
           const partyMembers = [];
           const { inventoryService } = require('../services/InventoryService');
@@ -2186,6 +2191,12 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               maxHp: stats.hp,
               isAlive: true
             });
+          }
+
+          if (partyMembers.length === 0) {
+            await interaction.editReply({ content: '❌ Không thể chuẩn bị đội hình! Không có thành viên hợp lệ.', embeds: [], components: [] });
+            partyService.endParty(partyId);
+            return;
           }
 
           // Scale HP theo số lượng người
@@ -2250,6 +2261,11 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const logEmbed = new EmbedBuilder().setTitle('📜 Diễn Biến').setDescription(logStr).setColor('#34495e');
 
           await interaction.editReply({ content: null, embeds: [embed, logEmbed], components: [] });
+          } catch (combatErr: any) {
+            console.error('[BiCanh CoOp] Lỗi chiến đấu tổ đội:', combatErr);
+            partyService.endParty(partyId);
+            await interaction.editReply({ content: `❌ Đã xảy ra lỗi trong trận chiến: ${combatErr?.message || 'Lỗi không xác định'}. Tổ đội đã giải tán.`, embeds: [], components: [] });
+          }
           return;
         }
 
@@ -2655,6 +2671,34 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
       else if (actionType === 'linhdienspeedupselect') {
         const plotIndex = parseInt(interaction.values[0], 10);
         const result = farmingService.speedupPlot(targetUserId, plotIndex);
+
+        if (!result.success) {
+          await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+          return;
+        }
+
+        const embed = getLinhDienEmbed(targetUserId);
+        const components = getLinhDienComponents(targetUserId);
+        await interaction.update({ embeds: [embed], components: components });
+        await interaction.followUp({ content: result.message, ephemeral: true });
+      }
+
+      else if (actionType === 'linhdiencareselect') {
+        const careValue = interaction.values[0]; // "water_0", "fertilize_0", "catchpests_0"
+        const [careType, plotIndexStr] = careValue.split('_');
+        const plotIndex = parseInt(plotIndexStr, 10);
+
+        let result: { success: boolean; message: string };
+        if (careType === 'water') {
+          result = farmingService.waterPlot(targetUserId, plotIndex);
+        } else if (careType === 'fertilize') {
+          result = farmingService.fertilizePlot(targetUserId, plotIndex);
+        } else if (careType === 'catchpests') {
+          result = farmingService.catchPests(targetUserId, plotIndex);
+        } else {
+          await interaction.reply({ content: '❌ Thao tác không hợp lệ!', ephemeral: true });
+          return;
+        }
 
         if (!result.success) {
           await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });

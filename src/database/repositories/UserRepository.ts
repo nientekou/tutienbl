@@ -48,6 +48,8 @@ export interface UserEntity {
   prophecy: string;
   heirloom: string;
   claimed_starting_bonus: number;
+  alignment: string;
+  qi_deviation_until: number;
   created_at: number;
   updated_at: number;
 }
@@ -95,11 +97,13 @@ export class UserRepository {
 
         user.stamina = newStamina;
         user.last_stamina_recover_at = newRecoverAt;
+        user.updated_at = now;
         
         // Cập nhật lại cache
         if (this.cache.has(discordId)) {
           this.cache.get(discordId)!.data.stamina = newStamina;
           this.cache.get(discordId)!.data.last_stamina_recover_at = newRecoverAt;
+          this.cache.get(discordId)!.data.updated_at = now;
         }
       }
     } else {

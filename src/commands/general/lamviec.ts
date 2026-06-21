@@ -19,18 +19,20 @@ const COOLDOWN_MS = 60000; // 60 giây
  */
 export function performWork(
   discordId: string,
-  workType: 'mining' | 'gathering' | 'patrolling'
+  workType: 'mining' | 'gathering' | 'patrolling' | 'adventure' | 'archaeology'
 ): { success: boolean; message?: string; embed?: EmbedBuilder; encounter?: Encounter | null } {
   const user = userRepository.get(discordId);
   if (!user) {
     return { success: false, message: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh `/taonhanvat`!' };
   }
 
+  const baseStaminaCost = (workType === 'adventure' || workType === 'archaeology') ? 15 : 10;
+
   // Kiểm tra Thể Lực
-  if (user.stamina < 10) {
+  if (user.stamina < baseStaminaCost) {
     return {
       success: false,
-      message: `❌ Đạo hữu đã cạn kiệt Thể Lực! (Yêu cầu ít nhất **10** điểm, hiện có **${user.stamina}**). Hãy nghỉ ngơi chờ Thể Lực tự hồi phục hoặc dùng đan dược!`
+      message: `❌ Đạo hữu không đủ Thể Lực cho công việc này! (Yêu cầu ít nhất **${baseStaminaCost}** điểm, hiện có **${user.stamina}**). Hãy nghỉ ngơi chờ Thể Lực tự hồi phục hoặc dùng đan dược!`
     };
   }
 
@@ -90,6 +92,37 @@ export function performWork(
     if (Math.random() < 0.10) {
       rewardItem = { id: 'pill_tu_vi_low', name: 'Sơ Cấp Tụ Khí Đan' };
     }
+  } else if (workType === 'adventure') {
+    earnedCoins = Math.floor(Math.random() * 21) + 30; // 30 -> 50
+    actionDescription = 'Đạo hữu triển khai ngự kiếm phi hành, thám hiểm tiên tích bản đồ hoang dã...';
+    if (Math.random() < 0.25) {
+      const rand = Math.random();
+      if (rand < 0.5) {
+        const seeds = [
+          { id: 'seed_tuyet_lien', name: 'Thiên Sơn Tuyết Liên Hạt' },
+          { id: 'seed_lingzhi', name: 'Cửu Diệp Linh Chi Hạt' },
+          { id: 'seed_ngodong', name: 'Ngô Đồng Quả Hạt' }
+        ];
+        rewardItem = seeds[Math.floor(Math.random() * seeds.length)];
+      } else {
+        rewardItem = { id: 'lucky_chest', name: 'Rương May Mắn' };
+      }
+    }
+  } else if (workType === 'archaeology') {
+    earnedCoins = Math.floor(Math.random() * 11) + 30; // 30 -> 40
+    actionDescription = 'Đạo hữu cầm la bàn bát quái, cẩn thận khảo cổ di tích hoang tàn cổ xưa...';
+    if (Math.random() < 0.20) {
+      if (Math.random() < 0.5) {
+        rewardItem = { id: 'material_iron_1', name: 'Huyền Thiết Sa' };
+      } else {
+        rewardItem = { id: 'mat_huyen_thiet', name: 'Huyền Thiết' };
+      }
+    }
+  }
+
+  // Áp dụng bonus Linh Thạch cho Chính Đạo (+5%)
+  if (user.alignment === 'orthodox') {
+    earnedCoins = Math.round(earnedCoins * 1.05);
   }
 
   // Nhận Tu Vi offline trước để tránh bị reset mất khi thực hiện các update khác
@@ -97,9 +130,6 @@ export function performWork(
   cultivationService.claimIdleCultivation(discordId);
 
   const freshUser = userRepository.get(discordId)!;
-
-  // Tăng tiền và trừ stamina cho user
-  const baseStaminaCost = 10;
   const staminaCost = Math.round(baseStaminaCost * (1 - staminaSave));
 
   userRepository.update(discordId, {
@@ -184,9 +214,11 @@ export default class LamViecCommand extends Command {
             .setDescription('Lựa chọn công việc tu sĩ')
             .setRequired(true)
             .addChoices(
-              { name: '⚒️ Khai Thác Linh Khoáng (Mining)', value: 'mining' },
-              { name: '🌿 Hái Lượm Linh Thảo (Gathering)', value: 'gathering' },
-              { name: '🛡️ Tuần Tra Tông Môn (Patrolling)', value: 'patrolling' }
+              { name: '⚒️ Khai Thác Linh Khoáng (Mining) - 10 TL', value: 'mining' },
+              { name: '🌿 Hái Lượm Linh Thảo (Gathering) - 10 TL', value: 'gathering' },
+              { name: '🛡️ Tuần Tra Tông Môn (Patrolling) - 10 TL', value: 'patrolling' },
+              { name: '🧭 Phiêu Lưu Bản Đồ (Adventure) - 15 TL', value: 'adventure' },
+              { name: '🏺 Khảo Cổ Cổ Mộ (Archaeology) - 15 TL', value: 'archaeology' }
             )
         )
     );
@@ -194,7 +226,7 @@ export default class LamViecCommand extends Command {
 
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const discordId = interaction.user.id;
-    const workType = interaction.options.getString('congviec', true) as 'mining' | 'gathering' | 'patrolling';
+    const workType = interaction.options.getString('congviec', true) as 'mining' | 'gathering' | 'patrolling' | 'adventure' | 'archaeology';
 
     try {
       const result = performWork(discordId, workType);

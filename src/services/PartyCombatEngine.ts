@@ -99,8 +99,7 @@ export class PartyCombatEngine {
         // Lượt người chơi
         for (const member of sortedMembers) {
           if (!member.isAlive || bossHp <= 0) continue;
-          this.executePlayerTurn(member, boss, bossHp, bossMaxHp, damageByPlayer, log);
-          bossHp = Math.max(0, bossHp);
+          bossHp = this.executePlayerTurn(member, boss, bossHp, bossMaxHp, damageByPlayer, log);
         }
         // Lượt Boss
         if (bossHp > 0) {
@@ -114,8 +113,7 @@ export class PartyCombatEngine {
         // Lượt người chơi
         for (const member of sortedMembers) {
           if (!member.isAlive || bossHp <= 0) continue;
-          this.executePlayerTurn(member, boss, bossHp, bossMaxHp, damageByPlayer, log);
-          bossHp = Math.max(0, bossHp);
+          bossHp = this.executePlayerTurn(member, boss, bossHp, bossMaxHp, damageByPlayer, log);
         }
       }
 
@@ -169,8 +167,8 @@ export class PartyCombatEngine {
     bossMaxHp: number,
     damageByPlayer: Map<string, number>,
     log: string[]
-  ): void {
-    if (!member.isAlive || bossHp <= 0) return;
+  ): number {
+    if (!member.isAlive || bossHp <= 0) return 0;
 
     // Tính sát thương
     const critRate = Math.max(0.05, member.combatant.crit - boss.critRes) + (member.combatant.luck || 10) * 0.001;
@@ -197,6 +195,8 @@ export class PartyCombatEngine {
     const hpPercent = Math.round((remainingHp / bossMaxHp) * 100);
 
     log.push(`⚔️ **${member.name}** tung chiêu, gây **-${damage}** sát thương lên Boss${critText}!${petDmgText} (HP Boss: ${remainingHp}/${bossMaxHp} - ${hpPercent}%)`);
+    
+    return remainingHp;
   }
 
   private static executeBossTurn(

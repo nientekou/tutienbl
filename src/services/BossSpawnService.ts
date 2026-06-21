@@ -101,7 +101,7 @@ export class BossSpawnService {
         const guild = client.guilds.cache.get(gConfig.guild_id) || await client.guilds.fetch(gConfig.guild_id);
         if (!guild) continue;
 
-        if (!gConfig.boss_channel_id || gConfig.boss_channel_id === 'null') continue;
+        if (!gConfig.boss_channel_id || gConfig.boss_channel_id === 'null' || !/^\d{17,20}$/.test(gConfig.boss_channel_id)) continue;
         const channel = guild.channels.cache.get(gConfig.boss_channel_id) || await guild.channels.fetch(gConfig.boss_channel_id);
         if (!channel || !channel.isTextBased()) continue;
 
@@ -186,7 +186,7 @@ export class BossSpawnService {
         const guild = client.guilds.cache.get(gConfig.guild_id);
         if (!guild) continue;
 
-        if (!gConfig.boss_channel_id || gConfig.boss_channel_id === 'null') continue;
+        if (!gConfig.boss_channel_id || gConfig.boss_channel_id === 'null' || !/^\d{17,20}$/.test(gConfig.boss_channel_id)) continue;
         const channel = guild.channels.cache.get(gConfig.boss_channel_id);
         if (!channel || !channel.isTextBased()) continue;
 

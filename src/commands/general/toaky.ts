@@ -37,6 +37,9 @@ export default class ToaKyCommand extends Command {
             .addStringOption(opt =>
               opt.setName('nguyenlieu').setDescription('ID nguyên liệu (ví dụ: material_iron_1)').setRequired(true)
             )
+            .addIntegerOption(opt =>
+              opt.setName('soluong').setDescription('Số lượng muốn cho ăn').setRequired(false)
+            )
         )
     );
   }
@@ -167,7 +170,8 @@ export default class ToaKyCommand extends Command {
     if (sub === 'nuoiduong') {
       const mountId = interaction.options.getInteger('id', true);
       const material = interaction.options.getString('nguyenlieu', true);
-      const result = mountService.feedMount(userId, mountId, material);
+      const qty = interaction.options.getInteger('soluong') || 1;
+      const result = mountService.feedMount(userId, mountId, material, qty);
       await interaction.reply({ content: result.message, ephemeral: !result.success });
       return;
     }

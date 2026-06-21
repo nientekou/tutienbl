@@ -234,13 +234,23 @@ class SectWarService {
       return { success: false, message: 'Lỗi tính toán chỉ số chiến đấu!' };
     }
 
+    // Áp dụng hình phạt Chính Đạo (-5% ATK trong PvP)
+    let finalPlayerAtk = playerStats.atk;
+    if (user.alignment === 'orthodox') {
+      finalPlayerAtk = Math.round(finalPlayerAtk * 0.95);
+    }
+    let finalTargetAtk = targetStats.atk;
+    if (target.alignment === 'orthodox') {
+      finalTargetAtk = Math.round(finalTargetAtk * 0.95);
+    }
+
     const { soulImprintService } = require('./SoulImprintService');
 
     const playerCombatant: Combatant = {
       name: user.name,
       hp: playerStats.hp,
       maxHp: playerStats.hp,
-      atk: playerStats.atk,
+      atk: finalPlayerAtk,
       def: playerStats.def,
       crit: playerStats.crit,
       critRes: playerStats.critRes,
@@ -255,7 +265,7 @@ class SectWarService {
       name: target.name,
       hp: targetStats.hp,
       maxHp: targetStats.hp,
-      atk: targetStats.atk,
+      atk: finalTargetAtk,
       def: targetStats.def,
       crit: targetStats.crit,
       critRes: targetStats.critRes,

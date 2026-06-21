@@ -82,6 +82,10 @@ export function initDatabase() {
       -- Bí Cảnh Co-op
       dungeon_clears INTEGER DEFAULT 0,
       
+      -- Hệ thống Tiên Ma
+      alignment TEXT DEFAULT 'neutral',
+      qi_deviation_until INTEGER DEFAULT 0,
+      
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -125,6 +129,12 @@ export function initDatabase() {
   }
   if (!userColNames.includes('claimed_starting_bonus')) {
     db.exec("ALTER TABLE users ADD COLUMN claimed_starting_bonus INTEGER DEFAULT 0");
+  }
+  if (!userColNames.includes('alignment')) {
+    db.exec("ALTER TABLE users ADD COLUMN alignment TEXT DEFAULT 'neutral'");
+  }
+  if (!userColNames.includes('qi_deviation_until')) {
+    db.exec("ALTER TABLE users ADD COLUMN qi_deviation_until INTEGER DEFAULT 0");
   }
 
   // Migration: thêm cột mới cho inventories
@@ -2625,6 +2635,39 @@ function seedItems() {
     },
     // Hạt Giống
     {
+      id: 'seed_tuyet_lien',
+      name: 'Thiên Sơn Tuyết Liên Hạt',
+      type: 'seed',
+      rarity: 'rare',
+      description: 'Hạt giống linh thực dùng gieo trồng Thiên Sơn Tuyết Liên.',
+      stats: JSON.stringify({ growth_time: 720, product: 'material_tuyet_lien' }),
+      value_ha_pham: 300,
+      usable: 0,
+      equipable: 0
+    },
+    {
+      id: 'seed_lingzhi',
+      name: 'Cửu Diệp Linh Chi Hạt',
+      type: 'seed',
+      rarity: 'rare',
+      description: 'Hạt giống linh thực dùng gieo trồng Cửu Diệp Linh Chi.',
+      stats: JSON.stringify({ growth_time: 1200, product: 'material_lingzhi' }),
+      value_ha_pham: 50,
+      usable: 0,
+      equipable: 0
+    },
+    {
+      id: 'seed_ngodong',
+      name: 'Ngô Đồng Quả Hạt',
+      type: 'seed',
+      rarity: 'rare',
+      description: 'Hạt giống linh thực dùng gieo trồng Ngô Đồng Quả.',
+      stats: JSON.stringify({ growth_time: 1800, product: 'material_ngodong' }),
+      value_ha_pham: 800,
+      usable: 0,
+      equipable: 0
+    },
+    {
       id: 'seed_blood_flower',
       name: 'Hạt Giống Huyết Hoa',
       type: 'seed',
@@ -2659,6 +2702,39 @@ function seedItems() {
     },
     // Linh Thảo Thu Hoạch
     {
+      id: 'material_tuyet_lien',
+      name: 'Thiên Sơn Tuyết Liên',
+      type: 'material',
+      rarity: 'rare',
+      description: 'Đóa sen tuyết cực hàn nở trên đỉnh tuyết sơn, dùng để luyện Cửu Chuyển Hoàn Hồn Đan.',
+      stats: null,
+      value_ha_pham: 900,
+      usable: 0,
+      equipable: 0
+    },
+    {
+      id: 'material_lingzhi',
+      name: 'Cửu Diệp Linh Chi',
+      type: 'material',
+      rarity: 'rare',
+      description: 'Linh chi chín lá hấp thu tinh hoa trời đất, dùng để luyện Huyền Âm Kiếp Đan.',
+      stats: null,
+      value_ha_pham: 1500,
+      usable: 0,
+      equipable: 0
+    },
+    {
+      id: 'material_ngodong',
+      name: 'Ngô Đồng Quả',
+      type: 'material',
+      rarity: 'rare',
+      description: 'Linh quả sinh trưởng trên cây Ngô Đồng cổ thụ, dùng để luyện Ngô Đồng Trường Sinh Đan.',
+      stats: null,
+      value_ha_pham: 2400,
+      usable: 0,
+      equipable: 0
+    },
+    {
       id: 'material_blood_flower',
       name: 'Huyết Hoa',
       type: 'material',
@@ -2692,6 +2768,39 @@ function seedItems() {
       equipable: 0
     },
     // Đan dược mới
+    {
+      id: 'pill_cuu_chuyen',
+      name: 'Cửu Chuyển Hoàn Hồn Đan',
+      type: 'pill',
+      rarity: 'epic',
+      description: 'Linh đan gia tăng vĩnh viễn +1000 HP tối đa cơ bản.',
+      stats: JSON.stringify({ add_hp_perm: 1000 }),
+      value_ha_pham: 4000,
+      usable: 1,
+      equipable: 0
+    },
+    {
+      id: 'pill_ngo_dong',
+      name: 'Ngô Đồng Trường Sinh Đan',
+      type: 'pill',
+      rarity: 'epic',
+      description: 'Linh đan gia tăng vĩnh viễn +50 Công Kích (ATK) tối đa cơ bản.',
+      stats: JSON.stringify({ add_atk_perm: 50 }),
+      value_ha_pham: 6000,
+      usable: 1,
+      equipable: 0
+    },
+    {
+      id: 'pill_huyen_am',
+      name: 'Huyền Âm Kiếp Đan',
+      type: 'pill',
+      rarity: 'epic',
+      description: 'Linh đan gia tăng vĩnh viễn +30 Phòng Ngự (DEF) tối đa cơ bản.',
+      stats: JSON.stringify({ add_def_perm: 30 }),
+      value_ha_pham: 5000,
+      usable: 1,
+      equipable: 0
+    },
     {
       id: 'pill_hp_max_perm',
       name: 'Huyết Nguyên Đan',

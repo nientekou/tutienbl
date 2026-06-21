@@ -121,7 +121,8 @@ class SpiritWeaponService {
   public feedSpirit(
     userId: string,
     spiritId: number,
-    materialItemId: string
+    inventoryId: number,
+    qty: number = 1
   ): {
     success: boolean;
     message: string;
@@ -138,49 +139,73 @@ class SpiritWeaponService {
     const spirit = db.prepare('SELECT * FROM spirit_weapons WHERE id = ? AND user_id = ?').get(spiritId, userId) as SpiritWeapon | null;
     if (!spirit) return { success: false, message: 'Khí linh không tồn tại!' };
 
-    const inv = db.prepare('SELECT * FROM inventories WHERE user_id = ? AND item_id = ?').get(userId, materialItemId) as any;
+    const inv = db.prepare('SELECT * FROM inventories WHERE user_id = ? AND id = ?').get(userId, inventoryId) as any;
     if (!inv || inv.quantity < 1) return { success: false, message: 'Không có nguyên liệu để nuôi dưỡng!' };
 
+    if (inv.is_equipped === 1) return { success: false, message: 'Không thể hiến tế trang bị đang mặc!' };
+    if (inv.is_life_bound === 1) return { success: false, message: 'Không thể hiến tế trang bị Bản Mệnh!' };
+
+    const item = db.prepare('SELECT * FROM items WHERE id = ?').get(inv.item_id) as any;
+    if (!item) return { success: false, message: 'Vật phẩm không tồn tại!' };
+
+    if (item.type === 'chest' || item.type === 'quest' || item.type === 'token') {
+      return { success: false, message: 'Vật phẩm này không thể hiến tế cho Khí Linh!' };
+    }
+
+    const actualQty = Math.min(qty, inv.quantity);
+    if (actualQty <= 0) return { success: false, message: 'Số lượng không hợp lệ!' };
+
     // Mỗi nguyên liệu cho 10-50 EXP tùy rarity
-    const item = db.prepare('SELECT * FROM items WHERE id = ?').get(materialItemId) as any;
     const rarityExp: Record<string, number> = { common: 10, uncommon: 20, rare: 35, epic: 60, legendary: 100 };
     const expGain = rarityExp[item?.rarity] || 10;
 
-    const newExp = spirit.exp + expGain;
-    const expNeeded = spirit.level * 50;
     let newLevel = spirit.level;
-    let remainingExp = newExp;
+    let remainingExp = spirit.exp;
     let leveledUp = false;
     let newSkillName = '';
+    let consumedCount = 0;
 
-    while (remainingExp >= expNeeded) {
-      remainingExp -= expNeeded;
-      newLevel++;
-      leveledUp = true;
-      // Check skill unlock at new level
-      if (newLevel === 3 || newLevel === 5 || newLevel === 7 || newLevel === 10 || newLevel === 12) {
-        const newSkill = this.getAvailableSkillForLevel(newLevel);
-        if (newSkill) {
-          db.prepare('UPDATE spirit_weapons SET skill_id = ? WHERE id = ?').run(newSkill.id, spiritId);
-          newSkillName = newSkill.name;
+    for (let i = 0; i < actualQty; i++) {
+      remainingExp += expGain;
+      consumedCount++;
+
+      let expNeeded = newLevel * 50;
+      while (remainingExp >= expNeeded) {
+        remainingExp -= expNeeded;
+        newLevel++;
+        leveledUp = true;
+        // Check skill unlock at new level
+        if (newLevel === 3 || newLevel === 5 || newLevel === 7 || newLevel === 10 || newLevel === 12) {
+          const newSkill = this.getAvailableSkillForLevel(newLevel);
+          if (newSkill) {
+            newSkillName = newSkill.name;
+          }
         }
+        expNeeded = newLevel * 50;
       }
     }
 
     db.transaction(() => {
-      inventoryRepository.removeItem(userId, materialItemId, 1);
+      inventoryRepository.removeItemById(inventoryId, consumedCount);
       db.prepare('UPDATE spirit_weapons SET exp = ?, level = ? WHERE id = ?')
         .run(remainingExp, newLevel, spiritId);
+      if (newSkillName) {
+        const newSkill = this.getAvailableSkillForLevel(newLevel);
+        if (newSkill) {
+          db.prepare('UPDATE spirit_weapons SET skill_id = ? WHERE id = ?').run(newSkill.id, spiritId);
+        }
+      }
     })();
 
     const nextExpNeeded = newLevel * 50;
+    const totalExpGained = consumedCount * expGain;
 
     return {
       success: true,
-      message: `🍽️ **${spirit.spirit_name}** hấp thụ nguyên liệu **${item?.name || materialItemId}**, nhận **+${expGain}** EXP!${leveledUp ? `\n⬆️ **Thăng cấp: Cấp ${newLevel}**` : ''}${newSkillName ? `\n🔮 Kỹ năng mới: **${newSkillName}**` : ''}`,
+      message: `🍽️ **${spirit.spirit_name}** hấp thụ x${consumedCount} nguyên liệu **${item?.name || inv.item_id}**, nhận **+${totalExpGained}** EXP!${leveledUp ? `\n⬆️ **Thăng cấp: Cấp ${newLevel}**` : ''}${newSkillName ? `\n🔮 Kỹ năng mới: **${newSkillName}**` : ''}`,
       spiritName: spirit.spirit_name,
-      materialName: item?.name || materialItemId,
-      expGain,
+      materialName: item?.name || inv.item_id,
+      expGain: totalExpGained,
       oldLevel: spirit.level,
       newLevel,
       leveledUp,

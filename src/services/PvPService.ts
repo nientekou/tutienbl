@@ -106,10 +106,14 @@ class PvPService {
     const finalLoserLoss = Math.max(loserLoss, -50);
 
     // Cướp Đoạt Linh Thạch (Phá Sản PvP) - Cướp 2% đến 5% Linh Thạch Hạ Phẩm của người thua
-    const stealPercent = (Math.floor(Math.random() * 4) + 2) / 100; // 0.02 - 0.05
+    let stealPercent = (Math.floor(Math.random() * 4) + 2) / 100; // 0.02 - 0.05
+    let maxStolen = 5000;
+    if (winner.alignment === 'demonic') {
+      stealPercent += 0.10; // Ma Đạo cướp thêm 10%
+      maxStolen = 15000;    // Nâng hạn mức cướp tối đa cho Ma Đạo
+    }
     let stolenCoins = Math.floor(loser.coin_ha_pham * stealPercent);
-    // Giới hạn cướp tối đa 5000 Linh Thạch mỗi trận để tránh quá tàn nhẫn
-    if (stolenCoins > 5000) stolenCoins = 5000;
+    if (stolenCoins > maxStolen) stolenCoins = maxStolen;
     
     // Đảm bảo không cướp được nếu người thua không có tiền
     if (stolenCoins < 0) stolenCoins = 0;

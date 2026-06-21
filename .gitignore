@@ -3,3 +3,7 @@ yarn.lock
 dist
 .env
 .vscode
+implementation_plan.md
+task.md
+update.md
+walkthrough.md

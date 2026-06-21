@@ -73,7 +73,12 @@ const GUIDES: Record<string, { title: string; color: `#${string}`; content: stri
       '  • `/trangbi nangsao` — Nâng sao (+20% chỉ số/sao, max 5⭐)',
       '  • `/trangbi ghep` — Ghép Mảnh thành trang bị S/SS/SSS',
       '',
-      '⚡ **Khí Linh:** Trang bị Epic+ có thể thức tỉnh khí linh. Dùng `/khilinh`.',
+      '⚡ **Khí Linh (Linh Hồn Trang Bị):**',
+      '  • Thức tỉnh khí linh cho trang bị phẩm chất Epic trở lên bằng `/khilinh thuctinh [mã_hành_trang]`.',
+      '  • Tra cứu mã **ID Khí Linh** bằng lệnh `/khilinh danhsach` hoặc xem ở tab **Linh Thú** trong `/hoso`.',
+      '  • Cho ăn: `/khilinh nuoiduong [ID_khí_linh] [mã_hành_trang] [soluong]` để tăng EXP.',
+      '  • Trò chuyện: `/khilinh tuongtac [ID_khí_linh]` tăng độ thân mật.',
+      '  • Xem thông tin & kỹ năng: `/khilinh kynang [ID_khí_linh]`.',
     ].join('\n'),
   },
   taimat: {

@@ -87,6 +87,10 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
     activeStats.speed * 10 + activeStats.dodge * 1000
   ) : baseCp;
 
+  let alignmentStr = 'Tán Tu ⚪';
+  if (user.alignment === 'orthodox') alignmentStr = 'Chính Đạo ⚖️';
+  else if (user.alignment === 'demonic') alignmentStr = 'Ma Đạo 👿';
+
   const embed = new EmbedBuilder()
     .setTitle(`🔮 HỒ SƠ TU SĨ - ${user.name}`)
     .setColor('#8a2be2')
@@ -107,6 +111,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
         name: '✨ Trạng Thái',
         value: [
           `📜 Cảnh giới: **${realmInfo.fullName}**`,
+          `🎭 Đạo Thống: **${alignmentStr}**`,
           `🧘 Ngộ Tính: **${user.ngotinh}**`,
           `⚡ Thể Lực: **${user.stamina}/500**`,
           `🍀 May Mắn: **${user.base_luck}**`,
@@ -438,14 +443,14 @@ function getLinhThuTabEmbed(user: UserEntity): EmbedBuilder {
   // Spirit weapons
   if (spiritWeapons.length > 0) {
     for (const sw of spiritWeapons) {
-      const affinityBar = '❤️'.repeat(Math.min(sw.affinity, 5)) + '🖤'.repeat(Math.max(0, 5 - sw.affinity));
+      const affinityBar = '❤️'.repeat(Math.min(Math.floor(sw.affinity / 20), 5)) + '🖤'.repeat(Math.max(0, 5 - Math.floor(sw.affinity / 20)));
       embed.addFields({
-        name: `⚡ Khí Linh: ${sw.spirit_name}`,
+        name: `⚡ Khí Linh: ${sw.spirit_name} (ID: ${sw.id})`,
         value: [
           `• **Đẳng cấp:** Cấp **${sw.level}**`,
-          `• **Độ thân thiết:** ${affinityBar} (${sw.affinity})`,
+          `• **Độ thân thiết:** ${affinityBar} (${sw.affinity}/100)`,
           `• **Thần thông kỹ năng:** **${sw.skill_id || 'Chưa thức tỉnh'}**`,
-          `*Dùng \`/khilinh tungduong\` để tăng hảo cảm.*`
+          `*Dùng \`/khilinh tuongtac\` với ID để tăng hảo cảm.*`
         ].join('\n'),
         inline: false,
       });
@@ -599,10 +604,23 @@ export function getHoSoActionMenus(userId: string): ActionRowBuilder<StringSelec
 }
 
 export function getHoSoAllComponents(userId: string, activeTab: HoSoTab = 'chiso'): ActionRowBuilder<any>[] {
-  return [
+  const components: ActionRowBuilder<any>[] = [
     ...getTabNavigationRows(userId, activeTab),
     ...getHoSoActionMenus(userId),
   ];
+
+  const user = userRepository.get(userId);
+  if (user && user.level >= 39 && (!user.alignment || user.alignment === 'neutral')) {
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`select_alignment_${userId}`)
+        .setLabel('🎭 Chọn Đạo Thống (Chính/Ma)')
+        .setStyle(ButtonStyle.Success)
+    );
+    components.push(row);
+  }
+
+  return components;
 }
 
 export function getInventoryEmbed(userId: string, page: number): { embed: EmbedBuilder; totalPages: number; itemsOnPage: InventoryItem[] } {

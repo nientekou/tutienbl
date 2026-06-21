@@ -78,9 +78,20 @@ export class TribulationService {
       throw new Error('Không thể lấy chỉ số chiến đấu của tu sĩ.');
     }
 
+    const user = userRepository.get(userId);
+
     // Số đạo sét dựa vào cảnh giới: Trúc Cơ (majorIndex = 0) là 3 đạo sét, các bậc sau tăng dần
     const bolts = 3 + majorIndex * 2;
-    const damage = Math.round(20 + majorIndex * 15);
+    // Tăng thử thách Lôi Kiếp đại cảnh giới: Sát thương phụ thuộc vào cảnh giới lớn và HP tối đa của người chơi
+    let damage = Math.round(40 + majorIndex * 50 + stats.hp * 0.06);
+
+    if (user) {
+      if (user.alignment === 'orthodox') {
+        damage = Math.round(damage * 0.90); // Giảm 10% sát thương Lôi Kiếp cho Chính Đạo
+      } else if (user.alignment === 'demonic') {
+        damage = Math.round(damage * 1.15); // Tăng 15% sát thương Lôi Kiếp cho Ma Đạo
+      }
+    }
 
     const elementInfo = this.getOncomingKiepInfo(userId);
 

@@ -29,16 +29,29 @@ export function getLinhDienEmbed(userId: string): EmbedBuilder {
     .setColor('#2ecc71')
     .setTimestamp();
 
-  let plotsText = '';
+  const fields: { name: string; value: string; inline?: boolean }[] = [];
   for (let i = 0; i < 6; i++) {
     if (i < unlockedCount) {
       const p = plots[i];
+      let name = `🌱 Ô Đất Số ${i + 1}`;
+      let value = '';
       if (p.status === 'empty') {
-        plotsText += `**Ô số ${i + 1}:** 🟫 *Đất trống trống trải*\n`;
+        name = `🟫 Ô Đất Số ${i + 1} (Trống)`;
+        value = `*Đất trống trải*`;
       } else {
         const remaining = p.timeRemaining || 0;
+        let detailsText = `💧 Ẩm: **${p.moisture}/5** | 🪱 Dinh dưỡng: **${p.nutrition}/6** | 🐛 Sâu: **${p.pests === 0 ? 'Không' : 'Có ⚠️'}**`;
+        
+        let speedText = '⚡ Tốc độ: 100%';
+        if (p.pests > 0 || p.moisture < 3 || p.nutrition < 3) {
+          speedText = '🐢 Tốc độ: 50% (Kém)';
+        } else if (p.moisture >= 4 && p.nutrition >= 4 && p.pests === 0) {
+          speedText = '🚀 Tốc độ: 150% (Hoàn hảo)';
+        }
+
         if (remaining <= 0) {
-          plotsText += `**Ô số ${i + 1}:** ✨ **${p.seedName}** (Đã chín - Sẵn sàng thu hoạch!)\n`;
+          name = `✨ Ô Đất Số ${i + 1} (${p.seedName})`;
+          value = `**Đã chín - Có thể thu hoạch!**\n└ ${detailsText}\n└ ${speedText}`;
         } else {
           // Lấy stats của hạt giống để lấy tổng thời gian tăng trưởng gốc
           let totalGrowthTime = 300;
@@ -57,18 +70,24 @@ export function getLinhDienEmbed(userId: string): EmbedBuilder {
           
           const min = Math.floor(remaining / 60);
           const sec = remaining % 60;
-          plotsText += `**Ô số ${i + 1}:** 🌱 **${p.seedName}**\n└ ${growthBar} (Còn \`${min}m ${sec}s\`)\n`;
+          name = `🌱 Ô Đất Số ${i + 1} (${p.seedName})`;
+          value = `${growthBar} (Còn \`${min}m ${sec}s\`)\n└ ${detailsText}\n└ ${speedText}`;
         }
       }
+      fields.push({ name, value, inline: true });
     } else {
       const cost = costList[i - 1];
-      plotsText += `**Ô số ${i + 1}:** 🔒 *Chưa khai khẩn* (Phí mở: **${cost}** Linh Thạch)\n`;
+      fields.push({
+        name: `🔒 Ô Đất Số ${i + 1}`,
+        value: `*Chưa khai khẩn*\n└ Phí mở: **${cost}** Linh Thạch`,
+        inline: true
+      });
     }
   }
 
   embed.addFields(
-    { name: '📋 Trạng Thái Các Ô Đất', value: plotsText },
-    { name: '💼 Tài sản', value: `🟤 **${user.coin_ha_pham}** Linh Thạch Hạ Phẩm` }
+    ...fields,
+    { name: '💼 Tài sản', value: `🟤 **${user.coin_ha_pham}** Linh Thạch Hạ Phẩm`, inline: false }
   );
 
   return embed;
@@ -134,6 +153,53 @@ export function getLinhDienComponents(userId: string): any[] {
     ).setDisabled(true);
   }
   rows.push(new ActionRowBuilder().addComponents(speedSelect));
+
+  // 3. Dropdown chăm sóc Linh Điền (Tưới nước, Bón phân, Diệt sâu)
+  const careSelect = new StringSelectMenuBuilder()
+    .setCustomId(`linhdiencareselect_${userId}`)
+    .setPlaceholder('💧 Chăm sóc Linh Điền (Tưới nước, Bón phân, Bắt sâu)...');
+
+  const careOptions: StringSelectMenuOptionBuilder[] = [];
+
+  plots.forEach(p => {
+    if (p.status === 'growing') {
+      if (p.moisture < 5) {
+        careOptions.push(
+          new StringSelectMenuOptionBuilder()
+            .setLabel(`💧 Tưới Nước - Ô ${p.plot_index + 1} (${p.seedName})`)
+            .setDescription(`Độ ẩm: ${p.moisture}/5. Tăng độ ẩm linh thổ.`)
+            .setValue(`water_${p.plot_index}`)
+        );
+      }
+      if (p.nutrition < 6) {
+        careOptions.push(
+          new StringSelectMenuOptionBuilder()
+            .setLabel(`🪱 Bón Phân - Ô ${p.plot_index + 1} (${p.seedName})`)
+            .setDescription(`Dinh dưỡng: ${p.nutrition}/6. Tăng dinh dưỡng linh thổ.`)
+            .setValue(`fertilize_${p.plot_index}`)
+        );
+      }
+      if (p.pests > 0) {
+        careOptions.push(
+          new StringSelectMenuOptionBuilder()
+            .setLabel(`🐛 Diệt Sâu - Ô ${p.plot_index + 1} (${p.seedName})`)
+            .setDescription(`Bắt sâu bệnh cắn phá linh thực.`)
+            .setValue(`catchpests_${p.plot_index}`)
+        );
+      }
+    }
+  });
+
+  if (careOptions.length > 0) {
+    careSelect.addOptions(careOptions);
+  } else {
+    careSelect.addOptions(
+      new StringSelectMenuOptionBuilder()
+        .setLabel('Linh điền hiện không có ô đất cần chăm bón')
+        .setValue('no_care')
+    ).setDisabled(true);
+  }
+  rows.push(new ActionRowBuilder().addComponents(careSelect));
 
   // 3. Hàng nút bấm chức năng (Thu hoạch, Mở rộng, Làm mới)
   const hasReadyToHarvest = plots.some(p => p.status === 'growing' && (p.timeRemaining || 0) <= 0);

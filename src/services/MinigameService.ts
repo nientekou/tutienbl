@@ -577,8 +577,19 @@ export class MinigameService {
     const chillerStats = inventoryService.getActiveStats(duel.challengerId);
     const targetStats = inventoryService.getActiveStats(duel.targetId);
     
-    const chillerAtk = chillerStats?.atk || 100;
-    const targetAtk = targetStats?.atk || 100;
+    let chillerAtk = chillerStats?.atk || 100;
+    let targetAtk = targetStats?.atk || 100;
+
+    // Áp dụng hình phạt Chính Đạo (-5% ATK trong PvP/Quyết Đấu)
+    const challengerUser = userRepository.get(duel.challengerId);
+    if (challengerUser && challengerUser.alignment === 'orthodox') {
+      chillerAtk = Math.round(chillerAtk * 0.95);
+    }
+    const targetUser = userRepository.get(duel.targetId);
+    if (targetUser && targetUser.alignment === 'orthodox') {
+      targetAtk = Math.round(targetAtk * 0.95);
+    }
+
     const chillerDef = chillerStats?.def || 50;
     const targetDef = targetStats?.def || 50;
 

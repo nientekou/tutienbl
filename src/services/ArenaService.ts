@@ -171,11 +171,21 @@ export class ArenaService {
 
     const { soulImprintService } = require('./SoulImprintService');
 
+    let challengerAtk = cStats.atk;
+    if (cUser.alignment === 'orthodox') {
+      challengerAtk = Math.round(challengerAtk * 0.95);
+    }
+
+    let opponentAtk = oStats.atk;
+    if (oUser.alignment === 'orthodox') {
+      opponentAtk = Math.round(opponentAtk * 0.95);
+    }
+
     const challenger: Combatant = {
       name: cUser.name,
       hp: cStats.hp,
       maxHp: cStats.hp,
-      atk: cStats.atk,
+      atk: challengerAtk,
       def: cStats.def,
       crit: cStats.crit,
       critRes: cStats.critRes,
@@ -190,7 +200,7 @@ export class ArenaService {
       name: oUser.name,
       hp: oStats.hp,
       maxHp: oStats.hp,
-      atk: oStats.atk,
+      atk: opponentAtk,
       def: oStats.def,
       crit: oStats.crit,
       critRes: oStats.critRes,

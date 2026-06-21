@@ -35,7 +35,8 @@ const CAMNANG_DATA: Record<string, { title: string; color: `#${string}`; content
       '',
       '🔹 **2. Khảm Ngọc & Khí Linh (`/khambha` & `/khilinh`):**',
       '• Khảm bảo thạch ngũ hành vào trang bị để cộng thêm thuộc tính bạo kích, chính xác, né tránh.',
-      '• Thức tỉnh **Khí Linh** trong trang bị Sử Thi trở lên để mở khóa linh hồn binh khí, mang lại thuộc tính đặc biệt ẩn giấu.',
+      '• Thức tỉnh **Khí Linh** trong trang bị Sử Thi trở lên bằng `/khilinh thuctinh [mã_hành_trang]` để mở khóa linh hồn binh khí.',
+      '• Tra cứu mã **ID Khí Linh** bằng lệnh `/khilinh danhsach` hoặc xem ở tab **Linh Thú** trong `/hoso`. Sử dụng ID này để nuôi dưỡng tăng EXP (`/khilinh nuoiduong [ID] [mã_túi]`), tương tác tăng thân mật (`/khilinh tuongtac [ID]`) hoặc đột phá tiến hóa khi đạt cấp 20 (`/khilinh tienhoa [ID]`).',
       '',
       '🔹 **3. Tâm Pháp Tiên Gia (`/tamphap`):**',
       '• Lĩnh ngộ các bí tịch Tâm Pháp để kích hoạt kỹ năng bị động hoặc chủ động mạnh mẽ trong chiến đấu PvP/PvE.'

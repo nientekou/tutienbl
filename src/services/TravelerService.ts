@@ -53,6 +53,10 @@ export class TravelerService {
 
     // Thông báo ra kênh
     try {
+      if (!/^\d{17,20}$/.test(channelId)) {
+        console.error('[TravelerService] Invalid channelId (not a snowflake):', channelId);
+        return false;
+      }
       const channel = await client.channels.fetch(channelId) as TextChannel;
       if (channel && channel.isTextBased()) {
         const embed = new EmbedBuilder()

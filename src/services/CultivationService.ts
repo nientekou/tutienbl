@@ -91,7 +91,7 @@ export class CultivationService {
   /**
    * Tính toán các chỉ số chiến đấu cơ bản dựa trên Level và Linh Căn
    */
-  public calculateStatsForLevel(level: number, linhCanJson: string) {
+  public calculateStatsForLevel(level: number, linhCanJson: string, alignment: string = 'neutral') {
     const { majorIndex } = getRealmDetails(level);
     // Mỗi Đại Cảnh Giới (majorIndex) sẽ cung cấp một lượng chỉ số đột phá
     // Hệ số nhân cấp độ cảnh giới: 1.0 (Luyện Khí) -> 1.5 (Trúc Cơ) -> 2.25 -> ...
@@ -139,6 +139,14 @@ export class CultivationService {
       // Bỏ qua lỗi JSON
     }
 
+    // Hiệu ứng Đạo Thống (Alignment)
+    if (alignment === 'orthodox') {
+      def = Math.round(def * 1.10); // +10% DEF
+    } else if (alignment === 'demonic') {
+      atk = Math.round(atk * 1.10); // +10% ATK
+      crit += 0.05;                 // +5% Crit
+    }
+
     return {
       hp,
       mp,
@@ -183,11 +191,14 @@ export class CultivationService {
 
     const { minorLevel } = getRealmDetails(user.level);
     
-    // Nếu tu sĩ đã đạt Đại Viên Mãn (tầng 38) và tu vi đầy -> không thể tích lũy thêm tu vi idle
-    if (minorLevel === 38 && user.tu_vi >= user.exp_needed) {
+    // Nếu tu sĩ đã đạt cực hạn (tu vi đầy) -> không thể tích lũy thêm tu vi idle
+    if (user.tu_vi >= user.exp_needed) {
       // Cập nhật lại updated_at để tránh tích lũy dồn ép
       userRepository.update(discordId, { updated_at: now });
-      return { gained: 0, message: 'Tu vi của đạo hữu đã đạt cực hạn cảnh giới lớn. Cần **Đột Phá** để tiếp tục tích lũy Linh khí nhàn rỗi!', user: userRepository.get(discordId)! };
+      const limitMsg = minorLevel === 38
+        ? 'Tu vi của đạo hữu đã đạt cực hạn cảnh giới lớn. Cần **Đột Phá** để tiếp tục tích lũy Linh khí nhàn rỗi!'
+        : `Tu vi của đạo hữu đã đạt cực hạn tầng ${minorLevel}. Cần thực hiện lệnh \`/dotpha\` để tiếp tục tích lũy Linh khí nhàn rỗi!`;
+      return { gained: 0, message: limitMsg, user: userRepository.get(discordId)! };
     }
 
     // Tốc độ tích lũy: base speed tăng theo cấp độ (ví dụ: 0.05 + level * 0.01 tu vi/giây)
@@ -238,12 +249,24 @@ export class CultivationService {
       }
     } catch (e) {}
 
+    // Hiệu ứng Đạo Thống (Alignment) & Tẩu Hỏa Nhập Ma
+    let alignmentSpeedMultiplier = 1.0;
+    if (user.alignment === 'demonic') {
+      alignmentSpeedMultiplier = 1.15; // Ma Đạo: x1.15 cultivation speed
+    }
+
+    let isQiDeviated = false;
+    if (user.qi_deviation_until && user.qi_deviation_until > now) {
+      alignmentSpeedMultiplier *= 0.5; // Giảm 50% hiệu suất
+      isQiDeviated = true;
+    }
+
     // Hồi phục offline có decay: >6h (21600s) hiệu suất giảm 50%
     const normalSeconds = Math.min(diffSeconds, 21600);
     const decaySeconds = Math.max(0, diffSeconds - 21600);
 
-    const normalGained = normalSeconds * baseSpeed * speedMultiplier * leylineExpBuff * eventMultiplier * heartLawExpBuff;
-    const decayGained = decaySeconds * baseSpeed * speedMultiplier * leylineExpBuff * eventMultiplier * heartLawExpBuff * 0.5;
+    const normalGained = normalSeconds * baseSpeed * speedMultiplier * leylineExpBuff * eventMultiplier * heartLawExpBuff * alignmentSpeedMultiplier;
+    const decayGained = decaySeconds * baseSpeed * speedMultiplier * leylineExpBuff * eventMultiplier * heartLawExpBuff * 0.5 * alignmentSpeedMultiplier;
     const idleGained = Math.floor(normalGained + decayGained);
 
     if (idleGained <= 0) {
@@ -263,7 +286,10 @@ export class CultivationService {
 
     let message = '';
     if (actualGained > 0) {
-      const decayNote = diffSeconds > 21600 ? ' *(Hiệu suất thiền định giảm 50% sau 6 giờ ngoại tuyến)*' : '';
+      let decayNote = diffSeconds > 21600 ? ' *(Hiệu suất thiền định giảm 50% sau 6 giờ ngoại tuyến)*' : '';
+      if (isQiDeviated) {
+        decayNote += ' ⚠️ *(Hiệu suất tu luyện giảm 50% do đang bị Tẩu Hỏa Nhập Ma)*';
+      }
       message = `🧘 **Nhàn Rỗi:** Trong lúc đạo hữu ngoại tuyến, cơ thể tự động vận hành đại chu thiên hấp thu linh khí, tích lũy thêm **+${actualGained}** Tu Vi!${decayNote}`;
     }
 
@@ -281,6 +307,16 @@ export class CultivationService {
     const user = userRepository.get(discordId);
     if (!user) {
       return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!' };
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (user.qi_deviation_until && user.qi_deviation_until > now) {
+      const remaining = user.qi_deviation_until - now;
+      const minutes = Math.ceil(remaining / 60);
+      return {
+        success: false,
+        message: `❌ **TẨU HỎA NHẬP MA!** Đạo tâm của đạo hữu đang hỗn loạn, kinh mạch điên đảo. Không thể thiền định chủ động trong **${minutes} phút** nữa!`
+      };
     }
 
     // Giới hạn không cho tích lũy tu vi quá mức khi chưa đột phá cảnh giới lớn
@@ -331,7 +367,12 @@ export class CultivationService {
       }
     } catch (e) {}
 
-    const gained = Math.round(baseGained * speedMultiplier * leylineExpBuff * eventMultiplier * heartLawExpBuff);
+    let alignmentSpeedMultiplier = 1.0;
+    if (user.alignment === 'demonic') {
+      alignmentSpeedMultiplier = 1.15; // Ma Đạo: x1.15 cultivation speed
+    }
+
+    const gained = Math.round(baseGained * speedMultiplier * leylineExpBuff * eventMultiplier * heartLawExpBuff * alignmentSpeedMultiplier);
 
     const newTuVi = Math.min(user.tu_vi + gained, user.exp_needed); // Không vượt quá exp_needed ở tầng 38
     
@@ -385,7 +426,7 @@ export class CultivationService {
   /**
    * Thực hiện đột phá cảnh giới (Thăng cấp)
    */
-  public breakthrough(discordId: string, usePill: string | boolean = false, forceSuccess: boolean = false): { success: boolean; isMajor: boolean; message: string; rolled?: number; rate?: number; user?: UserEntity } {
+  public breakthrough(discordId: string, usePill: string | boolean = false, forceSuccess: boolean = false, qiDeviationDisturbance: boolean = false): { success: boolean; isMajor: boolean; message: string; rolled?: number; rate?: number; user?: UserEntity } {
     const user = userRepository.get(discordId);
     if (!user) {
       return { success: false, isMajor: false, message: 'Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!' };
@@ -412,7 +453,10 @@ export class CultivationService {
       let usedPillName = '';
 
       if (typeof usePill === 'string' && usePill === 'bequan') {
-        const cost = user.level * 200;
+        let cost = user.level * 200;
+        if (user.alignment === 'orthodox') {
+          cost = Math.round(cost * 0.90); // Giảm 10% phí Bế Quan cho Chính Đạo
+        }
         if (user.coin_ha_pham < cost) {
           return {
             success: false,
@@ -441,14 +485,25 @@ export class CultivationService {
         }
       }
 
-      const totalRate = forceSuccess ? 100 : Math.min(baseRate + (luckBonus * 100) + pillBonus, 100);
+      let alignmentRateMod = 0;
+      if (user.alignment === 'neutral' || !user.alignment) {
+        alignmentRateMod = 5; // Tán Tu +5% tỷ lệ đột phá tự nhiên
+      } else if (user.alignment === 'demonic') {
+        alignmentRateMod = -5; // Ma Đạo -5% tỷ lệ đột phá tự nhiên
+      }
+      let qiDeviationPenalty = 0;
+      if (qiDeviationDisturbance) {
+        qiDeviationPenalty = 15; // Giảm 15% tỷ lệ đột phá do quấy nhiễu
+      }
+
+      const totalRate = forceSuccess ? 100 : Math.max(0, Math.min(baseRate + (luckBonus * 100) + pillBonus + alignmentRateMod - qiDeviationPenalty, 100));
       const rolled = forceSuccess ? 0 : Math.random() * 100;
 
       if (rolled <= totalRate) {
         // THÀNH CÔNG
         const nextLevel = user.level + 1;
         const nextExpNeeded = this.calculateNextExp(nextLevel);
-        const newStats = this.calculateStatsForLevel(nextLevel, user.linh_can);
+        const newStats = this.calculateStatsForLevel(nextLevel, user.linh_can, user.alignment);
 
       userRepository.update(discordId, {
         level: nextLevel,
@@ -501,14 +556,24 @@ export class CultivationService {
         // THẤT BẠI TẦNG NHỎ -> Phạt mất 15% Tu Vi
         const lossAmount = Math.round(user.tu_vi * 0.15);
         const newTuVi = Math.max(user.tu_vi - lossAmount, 0);
-        userRepository.update(discordId, { tu_vi: newTuVi });
+
+        let qiDeviationMsg = '';
+        const updates: Partial<UserEntity> = { tu_vi: newTuVi };
+
+        if (qiDeviationDisturbance) {
+          const now = Math.floor(Date.now() / 1000);
+          updates.qi_deviation_until = now + 1800; // 30 phút tẩu hỏa nhập ma
+          qiDeviationMsg = '\n⚠️ **TẨU HỎA NHẬP MA!** Do đạo tâm lung lay lại cưỡng ép trùng kích thất bại, kinh mạch của đạo hữu bị đảo lộn, rơi vào trạng thái Tẩu Hỏa Nhập Ma trong **30 phút**! (Giảm 50% hiệu suất tu vi nhàn rỗi và không thể thiền định chủ động trong thời gian này).';
+        }
+
+        userRepository.update(discordId, updates);
         const updatedUser = userRepository.get(discordId)!;
         
         const pillText = usedPillName ? ` Mặc dù đã dùng **${usedPillName}** nhưng cơ duyên chưa tới,` : '';
         return {
           success: false,
           isMajor: false,
-          message: `❌ **BÌNH CẢNH CẢN BƯỚC!** Đạo hữu đột phá thất bại!${pillText} Linh khí tiêu tán, tổn hao **-${lossAmount}** Tu Vi! (Tỷ lệ: ${totalRate.toFixed(1)}%, Roll: ${rolled.toFixed(1)}%)`,
+          message: `❌ **BÌNH CẢNH CẢN BƯỚC!** Đạo hữu đột phá thất bại!${pillText} Linh khí tiêu tán, tổn hao **-${lossAmount}** Tu Vi! (Tỷ lệ: ${totalRate.toFixed(1)}%, Roll: ${rolled.toFixed(1)}%)${qiDeviationMsg}`,
           rolled,
           rate: totalRate,
           user: updatedUser
@@ -524,7 +589,10 @@ export class CultivationService {
       let hasPill = false;
 
       if (typeof usePill === 'string' && usePill === 'bequan') {
-        const cost = user.level * 1000;
+        let cost = user.level * 1000;
+        if (user.alignment === 'orthodox') {
+          cost = Math.round(cost * 0.90); // Giảm 10% phí Bế Quan cho Chính Đạo
+        }
         if (user.coin_ha_pham < cost) {
           return {
             success: false,
@@ -552,14 +620,21 @@ export class CultivationService {
         }
       }
 
-      const totalRate = forceSuccess ? 100 : Math.min(baseRate + (luckBonus * 100) + pillBonus, 99); // Max 99%
+      let alignmentRateMod = 0;
+      if (user.alignment === 'neutral' || !user.alignment) {
+        alignmentRateMod = 5; // Tán Tu +5% tỷ lệ đột phá tự nhiên
+      } else if (user.alignment === 'demonic') {
+        alignmentRateMod = -5; // Ma Đạo -5% tỷ lệ đột phá tự nhiên
+      }
+
+      const totalRate = forceSuccess ? 100 : Math.max(0, Math.min(baseRate + (luckBonus * 100) + pillBonus + alignmentRateMod, 99)); // Max 99%
       const rolled = forceSuccess ? 0 : Math.random() * 100;
       
       if (rolled <= totalRate) {
         // ĐỘT PHÁ THÀNH CÔNG
         const nextLevel = user.level + 1;
         const nextExpNeeded = this.calculateNextExp(nextLevel);
-        const newStats = this.calculateStatsForLevel(nextLevel, user.linh_can);
+        const newStats = this.calculateStatsForLevel(nextLevel, user.linh_can, user.alignment);
         
         // Cập nhật danh hiệu (title) tương ứng đại cảnh mới
         const nextRealm = getRealmDetails(nextLevel);
@@ -791,7 +866,9 @@ export class CultivationService {
       base_def: newStats.def,
       base_crit: newStats.crit,
       base_crit_res: newStats.critRes,
-      base_luck: newStats.luck
+      base_luck: newStats.luck,
+      alignment: 'neutral',
+      qi_deviation_until: 0
     });
 
     const updatedUser = userRepository.get(discordId)!;

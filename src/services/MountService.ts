@@ -54,7 +54,7 @@ class MountService {
     return { success: true, message: `🐎 Đã thu hồi **${active.name}** về mãnh thú các.` };
   }
 
-  public feedMount(userId: string, mountId: number, materialItemId: string): { success: boolean; message: string; leveledUp?: boolean } {
+  public feedMount(userId: string, mountId: number, materialItemId: string, qty: number = 1): { success: boolean; message: string; leveledUp?: boolean } {
     const mount = this.getMount(mountId, userId);
     if (!mount) return { success: false, message: 'Tọa kỵ không tồn tại!' };
 
@@ -69,16 +69,31 @@ class MountService {
     const rarityExp: Record<string, number> = { common: 15, uncommon: 30, rare: 50, epic: 80, legendary: 150 };
     const expGain = rarityExp[item?.rarity] || 15;
 
-    const newExp = mount.exp + expGain;
-    const expNeeded = mount.level * EXP_PER_LEVEL;
     let newLevel = mount.level;
-    let remainingExp = newExp;
+    let remainingExp = mount.exp;
     let leveledUp = false;
+    let consumedCount = 0;
 
-    while (remainingExp >= expNeeded && newLevel < MAX_LEVEL) {
-      remainingExp -= expNeeded;
-      newLevel++;
-      leveledUp = true;
+    const maxConsume = Math.min(qty, inv.quantity);
+
+    for (let i = 0; i < maxConsume; i++) {
+      if (newLevel >= MAX_LEVEL) {
+        break;
+      }
+      remainingExp += expGain;
+      consumedCount++;
+
+      let expNeeded = (newLevel < 1 ? 1 : newLevel) * EXP_PER_LEVEL;
+      while (remainingExp >= expNeeded && newLevel < MAX_LEVEL) {
+        remainingExp -= expNeeded;
+        newLevel++;
+        leveledUp = true;
+        expNeeded = (newLevel < 1 ? 1 : newLevel) * EXP_PER_LEVEL;
+      }
+    }
+
+    if (consumedCount === 0) {
+      return { success: false, message: `**${mount.name}** đã đạt cấp tối đa (${MAX_LEVEL})!` };
     }
 
     // Tính bonus mới dựa trên level
@@ -95,8 +110,8 @@ class MountService {
     }
 
     db.transaction(() => {
-      if (inv.quantity > 1) {
-        db.prepare('UPDATE inventories SET quantity = quantity - 1 WHERE id = ?').run(inv.id);
+      if (inv.quantity > consumedCount) {
+        db.prepare('UPDATE inventories SET quantity = quantity - ? WHERE id = ?').run(consumedCount, inv.id);
       } else {
         db.prepare('DELETE FROM inventories WHERE id = ?').run(inv.id);
       }
@@ -104,7 +119,8 @@ class MountService {
         .run(remainingExp, newLevel, newSpeedBonus, newStaminaSave, newTamed, mountId);
     })();
 
-    let msg = `🍖 **${mount.name}** hấp thụ **${item?.name || materialItemId}**, nhận **+${expGain}** EXP!`;
+    const totalExpGained = consumedCount * expGain;
+    let msg = `🍖 **${mount.name}** hấp thụ x${consumedCount} **${item?.name || materialItemId}**, nhận **+${totalExpGained}** EXP!`;
     if (!mount.is_tamed && newTamed) {
       msg += `\n🎉 **THUẦN HÓA THÀNH CÔNG!** Đạo hữu đã có thể cưỡi tọa kỵ này.`;
     } else if (leveledUp) {

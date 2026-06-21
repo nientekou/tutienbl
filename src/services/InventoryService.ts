@@ -33,7 +33,7 @@ export class InventoryService {
       critRes: user.base_crit_res,
       luck: user.base_luck,
       speed: user.base_speed ?? 100,
-      dodge: user.base_dodge ?? 0.05
+      dodge: (user.base_dodge ?? 0.05) + ((user.alignment === 'neutral' || !user.alignment) ? 0.05 : 0)
     };
 
     // Cộng hưởng từ Ý Cảnh (Ý Cảnh & Đạo Quả)
@@ -526,6 +526,34 @@ export class InventoryService {
           success: true,
           message: `💊 **Ngộ Ý Thành Công!** Đạo hữu uống Ý Cảnh Đan, thần thức sáng suốt, Ngộ Tính tăng vọt **+30** điểm (Hiện có: **${user.ngotinh + 30}** Ngộ Tính)!`
         };
+      }
+
+      // --- Đan dược tăng chỉ số vĩnh viễn (HP, ATK, DEF) ---
+      if (stats.add_hp_perm || stats.add_atk_perm || stats.add_def_perm) {
+        let field = '';
+        let amount = 0;
+        let msg = '';
+        
+        if (stats.add_hp_perm) {
+          field = 'base_hp';
+          amount = stats.add_hp_perm;
+          msg = `💊 **Thần Dược Tăng HP!** Đạo hữu uống **${item.name}**, dược lực tẩy tủy phạt cốt, tăng vĩnh viễn **+${amount}** HP cơ bản (Hiện có: **${user.base_hp + amount}** HP)!`;
+        } else if (stats.add_atk_perm) {
+          field = 'base_atk';
+          amount = stats.add_atk_perm;
+          msg = `💊 **Thần Dược Tăng ATK!** Đạo hữu uống **${item.name}**, khí lực tung hoành kinh mạch, tăng vĩnh viễn **+${amount}** Công Kích cơ bản (Hiện có: **${user.base_atk + amount}** ATK)!`;
+        } else if (stats.add_def_perm) {
+          field = 'base_def';
+          amount = stats.add_def_perm;
+          msg = `💊 **Thần Dược Tăng DEF!** Đạo hữu uống **${item.name}**, linh lực ngưng tụ hộ thể, tăng vĩnh viễn **+${amount}** Phòng Ngự cơ bản (Hiện có: **${user.base_def + amount}** DEF)!`;
+        }
+
+        db.transaction(() => {
+          userRepository.update(userId, { [field]: (user as any)[field] + amount });
+          invRepo.removeItemById(inventoryId, 1);
+        })();
+        
+        return { success: true, message: msg };
       }
 
       // 4. Nếu là đan dược phục hồi HP (Immersive text)

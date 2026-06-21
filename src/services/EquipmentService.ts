@@ -6,7 +6,7 @@ export class EquipmentService {
   /**
    * Giám Định Phôi Trang Bị
    */
-  public appraisePhoi(userId: string, inventoryId: number): { success: boolean; message: string; rewardItemName?: string } {
+  public appraisePhoi(userId: string, inventoryId: number, qty: number = 1): { success: boolean; message: string; rewardItemName?: string } {
     const user = userRepository.get(userId);
     if (!user) {
       return { success: false, message: 'Đạo hữu chưa tạo nhân vật!' };
@@ -21,8 +21,14 @@ export class EquipmentService {
       return { success: false, message: 'Vật phẩm này không phải là Phôi Trang Bị!' };
     }
 
-    if (user.coin_ha_pham < 50) {
-      return { success: false, message: 'Không đủ Linh Thạch để giám định! (Phí giám định: **50** Linh Thạch).' };
+    const actualQty = Math.min(qty, item.quantity);
+    if (actualQty <= 0) {
+      return { success: false, message: 'Số lượng giám định không hợp lệ.' };
+    }
+
+    const cost = 50 * actualQty;
+    if (user.coin_ha_pham < cost) {
+      return { success: false, message: `Không đủ Linh Thạch để giám định! (Phí giám định: **${cost}** Linh Thạch cho ${actualQty} phôi).` };
     }
 
     // Xác định loại phôi (vũ khí hay đạo bào) và phẩm chất (f -> sss)
@@ -30,60 +36,59 @@ export class EquipmentService {
     const phoiType = parts[1]; // 'weapon' hoặc 'armor'
     const phoiGrade = parts[2]; // 'f', 'd', 'c', 'b', 'a', 's', 'ss', 'sss'
 
-    // Ánh xạ thành phẩm
-    let targetItemId = '';
-    if (phoiType === 'weapon') {
-      targetItemId = `weapon_sword_${phoiGrade}`;
-    } else if (phoiType === 'armor') {
-      targetItemId = `armor_robe_${phoiGrade}`;
-    } else if (phoiType === 'accessory') {
-      const rand = Math.random();
-      if (rand < 0.33) targetItemId = 'ring_1';
-      else if (rand < 0.66) targetItemId = 'necklace_1';
-      else targetItemId = 'amulet_1';
-    } else if (phoiType === 'mount') {
-      const rand = Math.random();
-      if (rand < 0.5) targetItemId = 'mount_sword_1';
-      else targetItemId = 'mount_beast_1';
-    }
+    const itemsToAdd: Array<{ userId: string; itemId: string; quantity: number; customStats: string | null }> = [];
+    let lastRewardItemName = '';
 
-    // Kiểm tra thành phẩm tồn tại trong DB items
-    const staticItem = db.prepare('SELECT name, rarity FROM items WHERE id = ?').get(targetItemId) as { name: string; rarity: string } | undefined;
-    if (!staticItem) {
-      return { success: false, message: 'Thành phẩm rèn đúc của phôi này thất truyền trong thiên địa.' };
-    }
+    for (let i = 0; i < actualQty; i++) {
+      let targetItemId = '';
+      if (phoiType === 'weapon') {
+        targetItemId = `weapon_sword_${phoiGrade}`;
+      } else if (phoiType === 'armor') {
+        targetItemId = `armor_robe_${phoiGrade}`;
+      } else if (phoiType === 'accessory') {
+        const rand = Math.random();
+        if (rand < 0.33) targetItemId = 'ring_1';
+        else if (rand < 0.66) targetItemId = 'necklace_1';
+        else targetItemId = 'amulet_1';
+      } else if (phoiType === 'mount') {
+        const rand = Math.random();
+        if (rand < 0.5) targetItemId = 'mount_sword_1';
+        else targetItemId = 'mount_beast_1';
+      }
 
-    // Tạo chỉ số phụ ngẫu nhiên
-    const customStats = this.generateCustomStats(phoiGrade);
+      const staticItem = db.prepare('SELECT name, rarity FROM items WHERE id = ?').get(targetItemId) as { name: string; rarity: string } | undefined;
+      if (!staticItem) {
+        return { success: false, message: 'Thành phẩm rèn đúc của phôi này thất truyền trong thiên địa.' };
+      }
+
+      lastRewardItemName = staticItem.name;
+      const customStats = this.generateCustomStats(phoiGrade);
+      itemsToAdd.push({
+        userId,
+        itemId: targetItemId,
+        quantity: 1,
+        customStats: customStats ? JSON.stringify(customStats) : null
+      });
+    }
 
     // Chạy Transaction an toàn
     const appraiseTx = db.transaction(() => {
-      // Trừ 50 Linh thạch
-      db.prepare('UPDATE users SET coin_ha_pham = coin_ha_pham - 50 WHERE discord_id = ?').run(userId);
+      // Trừ Linh thạch
+      db.prepare('UPDATE users SET coin_ha_pham = coin_ha_pham - ? WHERE discord_id = ?').run(cost, userId);
       
-      // Xóa 1 phôi
-      inventoryRepository.removeItemById(inventoryId, 1);
+      // Xóa phôi
+      inventoryRepository.removeItemById(inventoryId, actualQty);
       
       // Thêm thành phẩm giám định
-      inventoryRepository.addItem(userId, targetItemId, 1, customStats ? JSON.stringify(customStats) : null);
+      inventoryRepository.addMultipleItems(itemsToAdd);
     });
 
     appraiseTx();
 
-    let statsDescription = '';
-    if (customStats) {
-      statsDescription = '\n✨ **Chỉ số phụ thức tỉnh:**' +
-        (customStats.atk ? `\n• Công kích: **+${customStats.atk}**` : '') +
-        (customStats.def ? `\n• Phòng ngự: **+${customStats.def}**` : '') +
-        (customStats.hp ? `\n• Sinh lực: **+${customStats.hp}**` : '') +
-        (customStats.crit ? `\n• Bạo kích: **+${(customStats.crit * 100).toFixed(1)}%**` : '') +
-        (customStats.luck ? `\n• May mắn: **+${customStats.luck}**` : '');
-    }
-
     return {
       success: true,
-      message: `🔮 **Giám định thành công!** Đạo hữu tiêu tốn 50 Linh Thạch chế tác phôi **${item.name}** thành **${staticItem.name}**!${statsDescription}`,
-      rewardItemName: staticItem.name
+      message: `🔮 **Giám định thành công!** Đạo hữu tiêu tốn **${cost}** Linh Thạch chế tác x${actualQty} phôi **${item.name}** thành trang bị tương ứng thành công!`,
+      rewardItemName: lastRewardItemName
     };
   }
 
@@ -141,6 +146,88 @@ export class EquipmentService {
       success: true,
       message: `⚙️ **Phân giải thành công!** Đạo hữu nghiền nát **${item.name}** thành bột cát linh khí, thu hoạch được **+${fragmentsGained}** Mảnh Trang Bị!`,
       fragmentsGained
+    };
+  }
+
+  /**
+   * Phân Giải Trang Bị Hàng Loạt
+   */
+  public salvageEquipmentBulk(userId: string, targetRarity: string): { success: boolean; message: string; fragmentsGained?: number } {
+    const RARITY_ORDER: Record<string, number> = {
+      common: 1,
+      uncommon: 2,
+      rare: 3,
+      epic: 4,
+      legendary: 5
+    };
+
+    const targetOrder = RARITY_ORDER[targetRarity.toLowerCase()];
+    if (!targetOrder) {
+      return { success: false, message: 'Phẩm chất không hợp lệ.' };
+    }
+
+    const allItems = inventoryRepository.getUserInventory(userId);
+    const salvageable = allItems.filter(item => {
+      if (item.equipable !== 1) return false;
+      if (item.is_equipped === 1) return false;
+      if (item.is_life_bound === 1) return false;
+      const order = RARITY_ORDER[item.rarity.toLowerCase()] || 0;
+      return order <= targetOrder;
+    });
+
+    if (salvageable.length === 0) {
+      return { success: false, message: `Không tìm thấy trang bị nào chưa đeo và không bản mệnh có phẩm chất từ **${targetRarity.toUpperCase()}** trở xuống!` };
+    }
+
+    let totalFragmentsGained = 0;
+    const itemsToRemove: number[] = [];
+
+    for (const item of salvageable) {
+      let fragmentsGained = 1;
+      if (item.item_id.endsWith('_ex')) {
+        fragmentsGained = 500;
+      } else if (item.rarity === 'common') {
+        fragmentsGained = 1;
+      } else if (item.rarity === 'uncommon') {
+        fragmentsGained = 3;
+      } else if (item.rarity === 'rare') {
+        fragmentsGained = 10;
+      } else if (item.rarity === 'epic') {
+        fragmentsGained = 35;
+      } else if (item.rarity === 'legendary') {
+        fragmentsGained = 120;
+      }
+
+      if (item.stars > 0) {
+        const starCosts = [10, 20, 50, 100, 250];
+        let investment = 0;
+        for (let i = 0; i < item.stars; i++) {
+          investment += starCosts[i];
+        }
+        fragmentsGained += Math.round(investment * 0.7);
+      }
+
+      totalFragmentsGained += fragmentsGained * item.quantity;
+      itemsToRemove.push(item.id);
+    }
+
+    const salvageTx = db.transaction(() => {
+      for (const invId of itemsToRemove) {
+        // Lấy thông tin quantity hiện tại để xóa đúng
+        const it = inventoryRepository.get(invId);
+        if (it) {
+          inventoryRepository.removeItemById(invId, it.quantity);
+        }
+      }
+      inventoryRepository.addItem(userId, 'item_fragment', totalFragmentsGained);
+    });
+
+    salvageTx();
+
+    return {
+      success: true,
+      message: `⚙️ **Phân giải hàng loạt thành công!** Đạo hữu đã phân giải **${salvageable.length}** trang bị phẩm chất từ **${targetRarity.toUpperCase()}** trở xuống, thu hoạch được **+${totalFragmentsGained}** Mảnh Trang Bị!`,
+      fragmentsGained: totalFragmentsGained
     };
   }
 

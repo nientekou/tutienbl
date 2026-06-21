@@ -311,17 +311,24 @@ export default class AdminCommand extends Command {
         return;
       }
 
-      const guildConfig = db.prepare('SELECT event_channel_id FROM guild_configs WHERE guild_id = ?').get(guildId) as any;
-      if (!guildConfig || !guildConfig.event_channel_id) {
-        await interaction.reply({ content: '❌ Server chưa được thiết lập Kênh Event (event_channel_id).', ephemeral: true });
-        return;
+      const guildConfig = db.prepare('SELECT event_channel_id, tuluyen_channel_id FROM guild_configs WHERE guild_id = ?').get(guildId) as any;
+      let targetChannelId = guildConfig?.event_channel_id;
+
+      if (!targetChannelId) {
+        targetChannelId = guildConfig?.tuluyen_channel_id || interaction.channelId;
+        // Self-heal: Save fallback to DB so automatic events also work!
+        if (guildConfig) {
+          db.prepare('UPDATE guild_configs SET event_channel_id = ? WHERE guild_id = ?').run(targetChannelId, guildId);
+        } else {
+          db.prepare('INSERT INTO guild_configs (guild_id, event_channel_id) VALUES (?, ?)').run(guildId, targetChannelId);
+        }
       }
 
       const { travelerService } = require('../../services/TravelerService');
-      const success = await travelerService.spawnTraveler(client, guildConfig.event_channel_id);
+      const success = await travelerService.spawnTraveler(client, targetChannelId);
 
       if (success) {
-        await interaction.reply({ content: `✅ Đã gọi Lữ Khách Thần Bí xuất hiện tại <#${guildConfig.event_channel_id}>!`, ephemeral: true });
+        await interaction.reply({ content: `✅ Đã gọi Lữ Khách Thần Bí xuất hiện tại <#${targetChannelId}>!`, ephemeral: true });
       } else {
         await interaction.reply({ content: '❌ Lỗi khi gọi Lữ Khách.', ephemeral: true });
       }
@@ -535,20 +542,27 @@ export default class AdminCommand extends Command {
           return;
         }
 
-        const guildConfig = db.prepare('SELECT event_channel_id FROM guild_configs WHERE guild_id = ?').get(guildId) as any;
-        if (!guildConfig || !guildConfig.event_channel_id) {
-          await interaction.reply({ content: '❌ Server chưa thiết lập kênh Event.', ephemeral: true });
-          return;
+        const guildConfig = db.prepare('SELECT event_channel_id, tuluyen_channel_id FROM guild_configs WHERE guild_id = ?').get(guildId) as any;
+        let targetChannelId = guildConfig?.event_channel_id;
+
+        if (!targetChannelId) {
+          targetChannelId = guildConfig?.tuluyen_channel_id || interaction.channelId;
+          // Self-heal: Save fallback to DB so automatic events also work!
+          if (guildConfig) {
+            db.prepare('UPDATE guild_configs SET event_channel_id = ? WHERE guild_id = ?').run(targetChannelId, guildId);
+          } else {
+            db.prepare('INSERT INTO guild_configs (guild_id, event_channel_id) VALUES (?, ?)').run(guildId, targetChannelId);
+          }
         }
 
         const { travelerService } = require('../../services/TravelerService');
-        const success = await travelerService.spawnTraveler(client, guildConfig.event_channel_id);
+        const success = await travelerService.spawnTraveler(client, targetChannelId);
 
         const embed = await AdminCommand.getPanelEmbed(client);
         const components = AdminCommand.getPanelComponents(adminId);
         if (success) {
           await interaction.update({
-            content: `✅ Triệu hồi Lữ Khách Thần Bí thành công tại <#${guildConfig.event_channel_id}>!`,
+            content: `✅ Triệu hồi Lữ Khách Thần Bí thành công tại <#${targetChannelId}>!`,
             embeds: [embed],
             components
           });

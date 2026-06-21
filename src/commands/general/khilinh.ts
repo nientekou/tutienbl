@@ -22,27 +22,33 @@ export default class KhiLinhCommand extends Command {
         .addSubcommand(sub =>
           sub
             .setName('nuoiduong')
-            .setDescription('Cho khí linh ăn trang bị/nguyên liệu để tăng cấp')
-            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID Khí Linh').setRequired(true))
-            .addStringOption(opt => opt.setName('material_id').setDescription('ID nguyên liệu/trang bị dùng để hiến tế').setRequired(true))
+            .setDescription('Cho khí linh ăn trang bị hoặc nguyên liệu tăng EXP')
+            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID Khí Linh (Xem trong /khilinh danhsach hoặc /hoso)').setRequired(true))
+            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('Mã hành trang của vật phẩm trong túi đồ (xem trong /tuido)').setRequired(true))
+            .addIntegerOption(opt => opt.setName('soluong').setDescription('Số lượng hiến tế').setRequired(false))
         )
         .addSubcommand(sub =>
           sub
             .setName('tuongtac')
             .setDescription('Trò chuyện với khí linh để tăng độ thân thiết')
-            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID Khí Linh').setRequired(true))
+            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID Khí Linh (Xem trong /khilinh danhsach hoặc /hoso)').setRequired(true))
         )
         .addSubcommand(sub =>
           sub
             .setName('kynang')
             .setDescription('Xem thông tin và kỹ năng của Khí Linh')
-            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID Khí Linh').setRequired(true))
+            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID Khí Linh (Xem trong /khilinh danhsach hoặc /hoso)').setRequired(true))
         )
         .addSubcommand(sub =>
           sub
             .setName('tienhoa')
             .setDescription('Tiến hóa khí linh đạt cấp 20')
-            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID Khí Linh').setRequired(true))
+            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID Khí Linh (Xem trong /khilinh danhsach hoặc /hoso)').setRequired(true))
+        )
+        .addSubcommand(sub =>
+          sub
+            .setName('danhsach')
+            .setDescription('Xem danh sách tất cả Khí Linh đang sở hữu')
         )
     );
   }
@@ -95,9 +101,10 @@ export default class KhiLinhCommand extends Command {
     }
     else if (subcmd === 'nuoiduong') {
       const spiritId = interaction.options.getInteger('spirit_id', true);
-      const materialId = interaction.options.getString('material_id', true);
+      const inventoryId = interaction.options.getInteger('inventory_id', true);
+      const qty = interaction.options.getInteger('soluong') || 1;
       
-      const res = spiritWeaponService.feedSpirit(userId, spiritId, materialId);
+      const res = spiritWeaponService.feedSpirit(userId, spiritId, inventoryId, qty);
       if (!res.success) {
         await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
         return;
@@ -203,9 +210,49 @@ export default class KhiLinhCommand extends Command {
             value: skill 
               ? `**${skill.name}**\n└ *${skill.description}*` 
               : '*Khí linh này hiện chưa ngộ ra kỹ năng nào.*'
+          },
+          {
+            name: '🍖 Thức Ăn Thức Tỉnh & Nuôi Dưỡng',
+            value: '• **Common (Thường):** +10 EXP\n' +
+                   '• **Uncommon (Nhã):** +20 EXP\n' +
+                   '• **Rare (Tốt):** +35 EXP\n' +
+                   '• **Epic (Kỷ Vật):** +60 EXP\n' +
+                   '• **Legendary (Truyền Thuyết):** +100 EXP\n' +
+                   '*Khí linh có thể nuốt các loại khoáng sản, linh thạch, tinh thạch, linh thảo hoặc trang bị không dùng.*'
           }
         )
         .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    }
+    else if (subcmd === 'danhsach') {
+      const spiritWeapons = spiritWeaponService.getSpiritWeapons(userId);
+      if (spiritWeapons.length === 0) {
+        await interaction.reply({
+          content: '🍃 Đạo hữu hiện chưa thức tỉnh Khí Linh nào. Hãy dùng `/khilinh thuctinh [mã_trang_bi]` trên trang bị phẩm chất Epic trở lên!',
+          ephemeral: true
+        });
+        return;
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle('⚡ Danh Sách Khí Linh Sở Hữu ⚡')
+        .setColor('#8e44ad')
+        .setTimestamp();
+
+      spiritWeapons.forEach(sw => {
+        const itemInfo = db.prepare('SELECT name, rarity FROM items WHERE id = ?').get(sw.item_id) as any;
+        const expBar = getProgressBar(sw.exp, sw.level * 50);
+        const affinityBar = '❤️'.repeat(Math.min(Math.floor(sw.affinity / 20), 5)) + '🖤'.repeat(Math.max(0, 5 - Math.floor(sw.affinity / 20)));
+        
+        embed.addFields({
+          name: `🔮 ${sw.spirit_name} (ID: **${sw.id}**)`,
+          value: `• **Pháp Bảo ký chủ:** **${itemInfo?.name || sw.item_id}** [${itemInfo?.rarity.toUpperCase() || 'UNKNOWN'}]\n` +
+                 `• **Cấp độ:** Cấp **${sw.level}** (EXP: ${expBar} - ${sw.exp}/${sw.level * 50})\n` +
+                 `• **Thân mật:** ${affinityBar} (${sw.affinity}/100)\n` +
+                 `• **Kỹ năng:** **${sw.skill_id || 'Chưa thức tỉnh'}**`
+        });
+      });
 
       await interaction.reply({ embeds: [embed] });
     }
