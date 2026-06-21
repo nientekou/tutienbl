@@ -83,10 +83,21 @@ export default class CuuTrungCommand extends Command {
 
               if (buyRes.combatResult.winner === 'player') {
                 embed.setColor('#2ecc71')
-                  .setDescription(`🎉 **Chiến thắng vẻ vang!** Đạo hữu đã đả bại **${floorConfig.name}** ở tầng ${nextFloor}!\n\n${buyRes.rewardsLog}`);
+                  .setDescription(
+                    (nextFloor === 5
+                      ? `💔 **TUYỆT CẢNH SINH TỬ!** Đạo hữu đã vượt qua thử thách với chỉ **1 HP** và đánh bại **${floorConfig.name}**! Một chiến tích hiếm có!\n\n`
+                      : nextFloor === 9
+                        ? `👑 **CỬU TRÙNG ĐỈNH!** Đạo hữu đã chinh phục đỉnh cao Cửu Trùng Tháp, đánh bại **${floorConfig.name}**! Danh hiệu **Thiên Trụ** đã thuộc về ngươi!\n\n`
+                        : `🎉 **Chiến thắng vẻ vang!** Đạo hữu đã đả bại **${floorConfig.name}** ở tầng ${nextFloor}!\n\n`) +
+                    `${buyRes.rewardsLog}`);
               } else {
                 embed.setColor('#e74c3c')
-                  .setDescription(`💀 **Bại trận!** Thần thức của đạo hữu đã bị trục xuất khỏi Cửu Trùng Tháp sau **${buyRes.combatResult.rounds}** hiệp đấu.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`);
+                  .setDescription(
+                    nextFloor === 5
+                      ? `💔 **TUYỆT CẢNH SINH TỬ!** Chỉ với **1 HP**, đạo hữu đã không thể xoay chuyển tình thế trước **${floorConfig.name}** ở tầng ${nextFloor}.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`
+                      : nextFloor === 9
+                        ? `👑 **CỬU TRÙNG ĐỈNH!** Đạo hữu suýt chạm tới đỉnh cao nhưng đã gục ngã trước **${floorConfig.name}** ở tầng ${nextFloor}. Hãy tu luyện thêm và thử lại!`
+                        : `💀 **Bại trận!** Thần thức của đạo hữu đã bị trục xuất khỏi Cửu Trùng Tháp sau **${buyRes.combatResult.rounds}** hiệp đấu.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`);
               }
 
               await i.editReply({
@@ -119,10 +130,21 @@ export default class CuuTrungCommand extends Command {
 
         if (res.combatResult.winner === 'player') {
           embed.setColor('#2ecc71')
-            .setDescription(`🎉 **Chiến thắng vẻ vang!** Đạo hữu đã đả bại **${floorConfig.name}** ở tầng ${nextFloor}!\n\n${res.rewardsLog}`);
+            .setDescription(
+              (nextFloor === 5
+                ? `💔 **TUYỆT CẢNH SINH TỬ!** Đạo hữu đã vượt qua thử thách với chỉ **1 HP** và đánh bại **${floorConfig.name}**! Một chiến tích hiếm có!\n\n`
+                : nextFloor === 9
+                  ? `👑 **CỬU TRÙNG ĐỈNH!** Đạo hữu đã chinh phục đỉnh cao Cửu Trùng Tháp, đánh bại **${floorConfig.name}**! Danh hiệu **Thiên Trụ** đã thuộc về ngươi!\n\n`
+                  : `🎉 **Chiến thắng vẻ vang!** Đạo hữu đã đả bại **${floorConfig.name}** ở tầng ${nextFloor}!\n\n`) +
+              `${res.rewardsLog}`);
         } else {
           embed.setColor('#e74c3c')
-            .setDescription(`💀 **Bại trận!** Thần thức của đạo hữu đã bị trục xuất khỏi Cửu Trùng Tháp sau **${res.combatResult.rounds}** hiệp đấu.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`);
+            .setDescription(
+              nextFloor === 5
+                ? `💔 **TUYỆT CẢNH SINH TỬ!** Chỉ với **1 HP**, đạo hữu đã không thể xoay chuyển tình thế trước **${floorConfig.name}** ở tầng ${nextFloor}.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`
+                : nextFloor === 9
+                  ? `👑 **CỬU TRÙNG ĐỈNH!** Đạo hữu suýt chạm tới đỉnh cao nhưng đã gục ngã trước **${floorConfig.name}** ở tầng ${nextFloor}. Hãy tu luyện thêm và thử lại!`
+                  : `💀 **Bại trận!** Thần thức của đạo hữu đã bị trục xuất khỏi Cửu Trùng Tháp sau **${res.combatResult.rounds}** hiệp đấu.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`);
         }
 
         await interaction.reply({

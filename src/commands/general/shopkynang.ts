@@ -3,6 +3,8 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
+import { getShopEmbed, getShopComponents } from './shop';
+
 
 export const SKILL_BOOKS = [
   { id: 'book_fire', name: '🔥 Bí Tịch: Liệt Diễm Quyết', price: 500, element: 'Hỏa', desc: 'Sách hỏa hệ linh lực, dùng học Liệt Diễm Quyết. Sát thương cực mạnh thiêu đốt đối thủ.' },
@@ -17,48 +19,11 @@ export const SKILL_BOOKS = [
  * Xây dựng Embed cửa hàng bí tịch kỹ năng (dùng cho lệnh và nút bấm trong /hoso)
  */
 export function getShopKyNangEmbed(userId: string): EmbedBuilder {
-  const user = userRepository.get(userId);
-
-  const embed = new EmbedBuilder()
-    .setTitle('🏪 VẠN PHÁP SƠN TRANG - THỦ THƯ TIÊN CÁC 🏪')
-    .setColor('#8e44ad')
-    .setDescription('Nơi tu sĩ mua các bản sao cuốn sách cổ ghi chép pháp tắc nguyên thủy để thức tỉnh kỹ năng chiến đấu.\n*Chọn bí tịch từ Menu thả xuống bên dưới để thỉnh nhanh 1 cuốn.*')
-    .setFooter({ text: 'Sau khi mua, dùng /dungkynang để đọc hiểu và lĩnh ngộ pháp tắc.' })
-    .setTimestamp();
-
-  for (const book of SKILL_BOOKS) {
-    embed.addFields({
-      name: `${book.name} (\`${book.id}\`)`,
-      value: `• Hệ linh căn: **${book.element}**\n• Giá: **${book.price}** Linh Thạch\n• Hiệu ứng: *${book.desc}*`
-    });
-  }
-
-  embed.addFields({
-    name: '💼 Hành trang linh thạch',
-    value: `🟤 **${user ? user.coin_ha_pham : 0}** Hạ Phẩm Linh Thạch.`
-  });
-
-  return embed;
+  return getShopEmbed(userId, 'congphap');
 }
 
-/**
- * Xây dựng Components (Select Menu thỉnh sách) cho cửa hàng bí tịch
- */
 export function getShopKyNangComponents(userId: string): any[] {
-  const selectMenu = new StringSelectMenuBuilder()
-    .setCustomId(`sknbuy_0_${userId}`)
-    .setPlaceholder('📚 Chọn bí tịch để thỉnh nhanh (1 cuốn)...');
-
-  for (const book of SKILL_BOOKS) {
-    selectMenu.addOptions(
-      new StringSelectMenuOptionBuilder()
-        .setLabel(`${book.name.replace(/[^\p{L}\p{N} \-]/gu, '').trim().substring(0, 80) || book.id} (${book.price} LT)`.substring(0, 100))
-        .setDescription(book.desc.substring(0, 100))
-        .setValue(book.id)
-    );
-  }
-
-  return [new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu)];
+  return getShopComponents(userId, 'congphap');
 }
 
 export default class ShopKyNangCommand extends Command {

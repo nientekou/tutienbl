@@ -340,7 +340,7 @@ export default class TaoNhanVatCommand extends Command {
             ].filter(Boolean).join('\n'),
           },
         )
-        .setFooter({ text: 'Hành trình tu tiên của ngươi bắt đầu từ đây. Dùng /hoso để theo dõi tu vi! Dùng /camnang để xem điển tịch.' })
+        .setFooter({ text: '📖 Hãy dùng lệnh /camnang để xem Cẩm Nang Tiên Lộ hướng dẫn tân thủ!' })
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });

@@ -249,10 +249,13 @@ export default class LinhDienCommand extends Command {
       return;
     }
 
+    // Trì hoãn phản hồi do các truy vấn và xử lý bên dưới có thể mất thời gian
+    await interaction.deferReply();
+
     const embed = getLinhDienEmbed(userId);
     const components = getLinhDienComponents(userId);
 
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [embed],
       components: components as any[]
     });

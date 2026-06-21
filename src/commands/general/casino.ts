@@ -2,278 +2,57 @@ import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionR
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
-import { inventoryService } from '../../services/InventoryService';
-import db from '../../database/database';
+import { casinoService } from '../../services/CasinoService';
 
 export const casinoCooldowns = new Map<string, number>();
 export const MIN_BET = 50;
-export const MAX_BET = 200000;
-
-export async function runCasinoGame(
-  userId: string,
-  subcommand: string,
-  bet: number,
-  choice: string
-): Promise<{ success: boolean; message?: string; embed?: EmbedBuilder }> {
-  const user = userRepository.get(userId);
-  if (!user) {
-    return { success: false, message: 'Đạo hữu chưa tạo nhân vật! Hãy dùng `/taonhanvat` để bắt đầu.' };
-  }
-
-  // Validate Bet Limit
-  if (bet < MIN_BET || bet > MAX_BET) {
-    return {
-      success: false,
-      message: `Lượng Linh Thạch cược không hợp lệ! Mức cược tối thiểu là **${MIN_BET}** và tối đa là **${MAX_BET.toLocaleString()}** Linh Thạch Hạ Phẩm.`
-    };
-  }
-
-  // Check balance (retrieve fresh user to avoid cache mismatch)
-  if (user.coin_ha_pham < bet) {
-    return {
-      success: false,
-      message: `Số dư của đạo hữu không đủ! (Hiện có: **${user.coin_ha_pham.toLocaleString()}** / Yêu cầu cược: **${bet.toLocaleString()}** LT).`
-    };
-  }
-
-  // Fetch Luck stat (affects relief/bonus payouts)
-  const activeStats = inventoryService.getActiveStats(userId);
-  const luck = activeStats ? activeStats.luck : user.base_luck;
-
-  let isWin = false;
-  let rewardChange = 0;
-  let description = '';
-  let title = '';
-  let color = '';
-
-  if (subcommand === 'doden') {
-    title = '🔴 ĐỎ ĐEN CHIẾN - THỬ THÁCH NHÂN PHẨM ⚫';
-    const roll = Math.random() < 0.5 ? 'do' : 'den';
-    isWin = choice === roll;
-
-    if (isWin) {
-      rewardChange = bet;
-      color = '#2ecc71';
-      description = `🔮 Đạo hữu **${user.name}** đặt niềm tin vào ${choice === 'do' ? '🔴 Đỏ' : '⚫ Đen'}!\n\n` +
-                    `Bát mở ra: ${roll === 'do' ? '🔴 **ĐỎ**' : '⚫ **ĐEN**'}\n` +
-                    `🎉 **THẮNG LỢI!** Nhận thêm **+${bet.toLocaleString()}** Linh Thạch Hạ Phẩm.`;
-    } else {
-      rewardChange = -bet;
-      color = '#e74c3c';
-      description = `🔮 Đạo hữu **${user.name}** đặt niềm tin vào ${choice === 'do' ? '🔴 Đỏ' : '⚫ Đen'}...\n\n` +
-                    `Bát mở ra: ${roll === 'do' ? '🔴 **ĐỎ**' : '⚫ **ĐEN**'}\n` +
-                    `💸 **THẤT BẠI!** Mất trắng **-${bet.toLocaleString()}** Linh Thạch Hạ Phẩm.`;
-    }
-  } else if (subcommand === 'taixiu') {
-    title = '🎲 LỘC PHONG ĐÀI - TÀI XỈU 🎲';
-    const d1 = Math.floor(Math.random() * 6) + 1;
-    const d2 = Math.floor(Math.random() * 6) + 1;
-    const d3 = Math.floor(Math.random() * 6) + 1;
-    const total = d1 + d2 + d3;
-    const resultType = total >= 11 ? 'tai' : 'xiu';
-    isWin = choice === resultType;
-
-    const diceEmoji: Record<number, string> = {
-      1: '⚀', 2: '⚁', 3: '⚂', 4: '⚃', 5: '⚄', 6: '⚅'
-    };
-    const diceResultString = `${diceEmoji[d1]} [${d1}]  ${diceEmoji[d2]} [${d2}]  ${diceEmoji[d3]} [${d3}]`;
-
-    if (isWin) {
-      rewardChange = Math.floor(bet * 0.95); // 5% house edge
-      color = '#2ecc71';
-      description = `🔮 Đạo hữu **${user.name}** đặt cược vào ${choice === 'tai' ? '📈 **Tài**' : '📉 **Xỉu**'}!\n\n` +
-                    `🎲 Xúc xắc: ${diceResultString}\n` +
-                    `➡️ Tổng điểm: **${total}** ➔ **${resultType === 'tai' ? '📈 TÀI' : '📉 XỈU'}**\n\n` +
-                    `🎉 **THẮNG LỢI!** Nhận thêm **+${rewardChange.toLocaleString()}** Linh Thạch Hạ Phẩm (đã trừ 5% phí sàn).`;
-    } else {
-      rewardChange = -bet;
-      color = '#e74c3c';
-      description = `🔮 Đạo hữu **${user.name}** đặt cược vào ${choice === 'tai' ? '📈 **Tài**' : '📉 **Xỉu**'}...\n\n` +
-                    `🎲 Xúc xắc: ${diceResultString}\n` +
-                    `➡️ Tổng điểm: **${total}** ➔ **${resultType === 'tai' ? '📈 TÀI' : '📉 XỈU'}**\n\n` +
-                    `💸 **THẤT BẠI!** Mất trắng **-${bet.toLocaleString()}** Linh Thạch Hạ Phẩm.`;
-    }
-  } else if (subcommand === 'baucua') {
-    title = '🎃 LÔ NGHỆ ĐÀI - BẦU CUA TÔM CÁ 🦀';
-    const keys = ['bau', 'cua', 'tom', 'ca', 'ga', 'nai'];
-    const r1 = keys[Math.floor(Math.random() * keys.length)];
-    const r2 = keys[Math.floor(Math.random() * keys.length)];
-    const r3 = keys[Math.floor(Math.random() * keys.length)];
-    const rolls = [r1, r2, r3];
-
-    const count = rolls.filter(r => r === choice).length;
-    isWin = count > 0;
-
-    const baucuaMeta: Record<string, { emoji: string; name: string }> = {
-      bau: { emoji: '🎃', name: 'Bầu' },
-      cua: { emoji: '🦀', name: 'Cua' },
-      tom: { emoji: '🦐', name: 'Tôm' },
-      ca: { emoji: '🐟', name: 'Cá' },
-      ga: { emoji: '🐔', name: 'Gà' },
-      nai: { emoji: '🦌', name: 'Nai' }
-    };
-
-    const diceResultString = `${baucuaMeta[r1].emoji} [${baucuaMeta[r1].name}]  ${baucuaMeta[r2].emoji} [${baucuaMeta[r2].name}]  ${baucuaMeta[r3].emoji} [${baucuaMeta[r3].name}]`;
-
-    if (isWin) {
-      // 5% house edge on net winnings
-      rewardChange = Math.floor(bet * count * 0.95);
-      color = '#2ecc71';
-      description = `🔮 Đạo hữu **${user.name}** đặt cược vào **${baucuaMeta[choice].emoji} ${baucuaMeta[choice].name}**!\n\n` +
-                    `🎲 Bát mở ra: ${diceResultString}\n` +
-                    `🎯 Xuất hiện **${count}** lần linh vật đặt cược!\n\n` +
-                    `🎉 **THẮNG LỢI!** Nhận thêm **+${rewardChange.toLocaleString()}** Linh Thạch Hạ Phẩm (đã trừ 5% phí sàn).`;
-    } else {
-      rewardChange = -bet;
-      color = '#e74c3c';
-      description = `🔮 Đạo hữu **${user.name}** đặt cược vào **${baucuaMeta[choice].emoji} ${baucuaMeta[choice].name}**...\n\n` +
-                    `🎲 Bát mở ra: ${diceResultString}\n` +
-                    `❌ Không xuất hiện linh vật đã chọn!\n\n` +
-                    `💸 **THẤT BẠI!** Mất trắng **-${bet.toLocaleString()}** Linh Thạch Hạ Phẩm.`;
-    }
-  }
-
-  // Apply Luck stat influence
-  let luckText = '';
-  if (luck > 10) {
-    if (isWin) {
-      const bonusRate = Math.min(0.10, (luck - 10) * 0.005); // max 10% bonus payout
-      const bonusAmount = Math.floor(rewardChange * bonusRate);
-      if (bonusAmount > 0) {
-        rewardChange += bonusAmount;
-        luckText = `\n\n🔮 **Khí Vận Hanh Thông:** Hào quang May Mắn (**${luck}**) độ trì, đạo hữu nhận thêm thiên đạo chúc phúc **+${bonusAmount.toLocaleString()}** Linh Thạch Hạ Phẩm!`;
-      }
-    } else {
-      const refundRate = Math.min(0.15, (luck - 10) * 0.0075); // max 15% refund
-      const refundAmount = Math.floor(bet * refundRate);
-      if (refundAmount > 0) {
-        rewardChange += refundAmount;
-        luckText = `\n\n🔮 **Cơ Duyên Cứu Trợ:** Khí vận hanh thông (May Mắn **${luck}**), thiên đạo bảo hộ giảm thiểu kiếp nạn hoàn trả lại **+${refundAmount.toLocaleString()}** Linh Thạch Hạ Phẩm!`;
-      }
-    }
-  }
-
-  // Update database inside transaction
-  db.transaction(() => {
-    userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham + rewardChange });
-  })();
-
-  const updatedUser = userRepository.get(userId)!;
-
-  const embed = new EmbedBuilder()
-    .setTitle(title)
-    .setColor(color as `#${string}`)
-    .setDescription(description + luckText + `\n\n🪙 Số dư hiện tại: **${updatedUser.coin_ha_pham.toLocaleString()}** Linh Thạch Hạ Phẩm.`)
-    .setTimestamp()
-    .setFooter({ text: 'Vận mệnh xoay vần, được thua do trời.' });
-
-  return { success: true, embed };
-}
-
-export function getCasinoButtons(
-  subcommand: string,
-  bet: number,
-  choice: string,
-  userId: string
-): ActionRowBuilder<ButtonBuilder> | null {
-  const row = new ActionRowBuilder<ButtonBuilder>();
-
-  row.addComponents(
-    new ButtonBuilder()
-      .setCustomId(`casinoplay_${subcommand}_${bet}_${choice}_${userId}`)
-      .setLabel('🔄 Chơi Lại')
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId(`casinodouble_${subcommand}_${bet}_${choice}_${userId}`)
-      .setLabel('✖2 Gấp Đôi')
-      .setStyle(ButtonStyle.Success)
-  );
-
-  // opposite choice is only applicable for doden and taixiu
-  if (subcommand === 'doden' || subcommand === 'taixiu') {
-    row.addComponents(
-      new ButtonBuilder()
-        .setCustomId(`casinoopposite_${subcommand}_${bet}_${choice}_${userId}`)
-        .setLabel('🔄 Đổi Bên')
-        .setStyle(ButtonStyle.Secondary)
-    );
-  }
-
-  return row;
-}
 
 export default class CasinoCommand extends Command {
   constructor() {
     super(
       new SlashCommandBuilder()
         .setName('casino')
-        .setDescription('Hệ thống Đỏ Đen & Tài Xỉu & Bầu Cua thử thách vận khí nhận Linh Thạch.')
-        .addSubcommand(sub =>
-          sub
-            .setName('doden')
-            .setDescription('🔴 Đỏ Đen - Tỷ lệ 1 ăn 1 (50/50)')
-            .addIntegerOption(opt =>
-              opt
-                .setName('cuoc')
-                .setDescription(`Số Linh Thạch Hạ Phẩm muốn cược (${MIN_BET} - ${MAX_BET.toLocaleString()})`)
-                .setRequired(true)
-            )
-            .addStringOption(opt =>
-              opt
-                .setName('lua_chon')
-                .setDescription('Chọn Đỏ hoặc Đen')
-                .setRequired(true)
-                .addChoices(
-                  { name: '🔴 Đỏ', value: 'do' },
-                  { name: '⚫ Đen', value: 'den' }
-                )
-            )
-        )
+        .setDescription('🎰 Sòng bài tu tiên — Thử vận may, trúng Jackpot!')
         .addSubcommand(sub =>
           sub
             .setName('taixiu')
-            .setDescription('🎲 Tài Xỉu - Tỷ lệ 1 ăn 0.95 (Trừ phí sàn 5%)')
+            .setDescription('🎲 Tài Xỉu (Sic Bo) — Tài/Xỉu, Lẻ/Chẵn, Bộ Ba')
             .addIntegerOption(opt =>
-              opt
-                .setName('cuoc')
-                .setDescription(`Số Linh Thạch Hạ Phẩm muốn cược (${MIN_BET} - ${MAX_BET.toLocaleString()})`)
-                .setRequired(true)
+              opt.setName('cuoc').setDescription('Số Linh Thạch muốn cược').setRequired(true).setMinValue(50)
             )
             .addStringOption(opt =>
-              opt
-                .setName('lua_chon')
-                .setDescription('Chọn Tài (11-18) hoặc Xỉu (3-10)')
-                .setRequired(true)
+              opt.setName('loai').setDescription('Loại cược').setRequired(true)
                 .addChoices(
-                  { name: '📈 Tài (11 - 18)', value: 'tai' },
-                  { name: '📉 Xỉu (3 - 10)', value: 'xiu' }
+                  { name: '📈 Tài (11-18)', value: 'tai' },
+                  { name: '📉 Xỉu (3-10)', value: 'xiu' },
+                  { name: '🔢 Lẻ', value: 'odd' },
+                  { name: '🔢 Chẵn', value: 'even' },
+                  { name: '🎯 Bộ Ba Bất Kỳ', value: 'any_triple' },
                 )
             )
         )
         .addSubcommand(sub =>
           sub
-            .setName('baucua')
-            .setDescription('🎃 Bầu Cua Tôm Cá - Tỷ lệ thắng dựa trên số xúc xắc trùng khớp')
+            .setName('blackjack')
+            .setDescription('🃏 Blackjack — Đấu với nhà cái, rút bài 21 điểm')
             .addIntegerOption(opt =>
-              opt
-                .setName('cuoc')
-                .setDescription(`Số Linh Thạch Hạ Phẩm muốn cược (${MIN_BET} - ${MAX_BET.toLocaleString()})`)
-                .setRequired(true)
+              opt.setName('cuoc').setDescription('Số Linh Thạch muốn cược').setRequired(true).setMinValue(50)
             )
-            .addStringOption(opt =>
-              opt
-                .setName('lua_chon')
-                .setDescription('Chọn linh vật muốn cược')
-                .setRequired(true)
-                .addChoices(
-                  { name: '🎃 Bầu', value: 'bau' },
-                  { name: '🦀 Cua', value: 'cua' },
-                  { name: '🦐 Tôm', value: 'tom' },
-                  { name: '🐟 Cá', value: 'ca' },
-                  { name: '🐔 Gà', value: 'ga' },
-                  { name: '🦌 Nai', value: 'nai' }
-                )
-            )
+        )
+        .addSubcommand(sub =>
+          sub
+            .setName('lichsu')
+            .setDescription('📜 Lịch sử cược — 10 ván gần nhất')
+        )
+        .addSubcommand(sub =>
+          sub
+            .setName('thongke')
+            .setDescription('📊 Thống kê cá cược của bạn')
+        )
+        .addSubcommand(sub =>
+          sub
+            .setName('jackpot')
+            .setDescription('🎰 Xem quỹ Jackpot hiện tại')
         )
     );
   }
@@ -281,40 +60,193 @@ export default class CasinoCommand extends Command {
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
-
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật! Hãy dùng `/taonhanvat` để bắt đầu.', ephemeral: true });
-      return;
-    }
-
-    // Check Cooldown
-    const COOLDOWN_MS = 8000; // 8s cooldown
-    const now = Date.now();
-    const lastActive = casinoCooldowns.get(userId) || 0;
-    if (now - lastActive < COOLDOWN_MS) {
-      const remainingSec = Math.ceil((COOLDOWN_MS - (now - lastActive)) / 1000);
-      await interaction.reply({
-        content: `⏳ Đạo hữu đang bị tâm ma hối thúc! Hãy bình tĩnh dưỡng thần, quay lại sau **${remainingSec}** giây.`,
-        ephemeral: true
-      });
+      await interaction.reply({ content: '❌ Chưa tạo nhân vật! Dùng `/taonhanvat` trước.', ephemeral: true });
       return;
     }
 
     const subcommand = interaction.options.getSubcommand(true);
-    const bet = interaction.options.getInteger('cuoc', true);
-    const choice = interaction.options.getString('lua_chon', true);
+    const now = Date.now();
+
+    // Check cooldown for games (not for lichsu/thongke/jackpot)
+    if (['taixiu', 'blackjack'].includes(subcommand)) {
+      const lastActive = casinoCooldowns.get(userId) || 0;
+      if (now - lastActive < 8000) {
+        const remaining = Math.ceil((8000 - (now - lastActive)) / 1000);
+        await interaction.reply({ content: `⏳ Chờ **${remaining}** giây giữa các ván!`, ephemeral: true });
+        return;
+      }
+    }
 
     await interaction.deferReply();
-    casinoCooldowns.set(userId, now);
 
-    const result = await runCasinoGame(userId, subcommand, bet, choice);
+    if (subcommand === 'taixiu') {
+      const bet = interaction.options.getInteger('cuoc', true);
+      const rawChoice = interaction.options.getString('loai', true);
 
-    if (!result.success) {
-      await interaction.editReply({ content: `❌ ${result.message}` });
+      // Map choices to bet types
+      let betType: string;
+      let choice: string | undefined;
+      if (rawChoice === 'any_triple') {
+        betType = 'any_triple';
+      } else if (['tai', 'xiu'].includes(rawChoice)) {
+        betType = 'tai_xiu';
+        choice = rawChoice;
+      } else {
+        betType = 'odd_even';
+        choice = rawChoice;
+      }
+
+      casinoCooldowns.set(userId, now);
+      const result = casinoService.playSicBo(userId, bet, betType, choice);
+
+      if (!result.success) {
+        await interaction.editReply({ content: `❌ ${result.message}` });
+        return;
+      }
+
+      const maxBet = casinoService.getMaxBetForLevel(user.level);
+      const embed = new EmbedBuilder()
+        .setTitle('🎲 Xí Ngầu (Sic Bo)')
+        .setColor(result.payout > result.bet ? 0x2ecc71 : 0xe74c3c)
+        .setDescription(result.details)
+        .addFields(
+          { name: '💰 Cược', value: `${result.bet.toLocaleString()} LT`, inline: true },
+          { name: result.payout > result.bet ? '🎉 Nhận' : '💸 Mất', value: result.payout > result.bet ? `+${result.payout.toLocaleString()} LT` : `-${result.bet.toLocaleString()} LT`, inline: true },
+          { name: '🪙 Số dư', value: `${result.updatedBalance.toLocaleString()} LT`, inline: true },
+          { name: '🎰 Jackpot', value: `${casinoService.getJackpot().toLocaleString()} LT`, inline: true },
+          { name: '📊 Hạn mức', value: `Tối đa: ${maxBet.toLocaleString()} LT`, inline: true },
+          { name: '🏆 Tỉ lệ thắng', value: `${casinoService.getStats(userId).win_rate}`, inline: true },
+        )
+        .setTimestamp()
+        .setFooter({ text: '1% mỗi cược vào Jackpot • 5% phí sàn' });
+
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`casinoreplay_taixiu_${rawChoice}_${userId}`)
+          .setLabel(`🔄 Chơi Lại (${bet.toLocaleString()} LT)`)
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId(`casinodouble_taixiu_${rawChoice}_${bet}_${userId}`)
+          .setLabel('✖2 Gấp Đôi')
+          .setStyle(ButtonStyle.Success)
+          .setDisabled(bet * 2 > maxBet)
+      );
+
+      await interaction.editReply({ embeds: [embed], components: [row] });
       return;
     }
 
-    const row = getCasinoButtons(subcommand, bet, choice, userId);
-    await interaction.editReply({ embeds: [result.embed!], components: row ? [row] : [] });
+    if (subcommand === 'blackjack') {
+      const bet = interaction.options.getInteger('cuoc', true);
+      casinoCooldowns.set(userId, now);
+      const result = casinoService.playBlackjack(userId, bet);
+
+      if (!result.success) {
+        await interaction.editReply({ content: `❌ ${result.message}` });
+        return;
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle('🃏 Blackjack')
+        .setColor(result.payout > result.bet ? 0x2ecc71 : result.payout === result.bet ? 0xf1c40f : 0xe74c3c)
+        .setDescription(result.details)
+        .addFields(
+          { name: '💰 Cược', value: `${result.bet.toLocaleString()} LT`, inline: true },
+          { name: result.payout >= result.bet ? '🎉 Nhận' : '💸 Mất', value: result.payout >= result.bet ? `+${(result.payout - result.bet).toLocaleString()} LT` : `-${result.bet.toLocaleString()} LT`, inline: true },
+          { name: '🪙 Số dư', value: `${result.updatedBalance.toLocaleString()} LT`, inline: true },
+        )
+        .setTimestamp()
+        .setFooter({ text: 'Blackjack (3:2) • Thường (1:1) • Hòa hoàn tiền' });
+
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`casinoreplay_blackjack_${bet}_${userId}`)
+          .setLabel(`🔄 Chơi Lại (${bet.toLocaleString()} LT)`)
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId(`casinodouble_blackjack_${bet}_${userId}`)
+          .setLabel('✖2 Gấp Đôi')
+          .setStyle(ButtonStyle.Success)
+      );
+
+      await interaction.editReply({ embeds: [embed], components: [row] });
+      return;
+    }
+
+    if (subcommand === 'lichsu') {
+      const history = casinoService.getHistory(userId, 10);
+      const stats = casinoService.getStats(userId);
+      const embed = new EmbedBuilder()
+        .setTitle('📜 Lịch Sử Cá Cược — 10 Ván Gần Nhất')
+        .setColor(0x9b59b6)
+        .setTimestamp();
+
+      if (history.length === 0) {
+        embed.setDescription('🚫 Đạo hữu chưa có lịch sử cá cược nào!');
+      } else {
+        const lines = history.map((h: any, i: number) => {
+          const icon = h.result === 'win' ? '✅' : h.result === 'push' ? '🔄' : '❌';
+          const time = new Date(h.created_at * 1000).toLocaleString('vi-VN');
+          return `${icon} **${h.game_type}** — Cược ${h.bet.toLocaleString()} LT → Nhận ${h.payout.toLocaleString()} LT *(${time})*`;
+        });
+        embed.setDescription(lines.join('\n'));
+      }
+
+      embed.addFields(
+        { name: '📊 Tổng cược', value: stats.total_bets.toString(), inline: true },
+        { name: '✅ Thắng', value: stats.total_wins.toString(), inline: true },
+        { name: '❌ Thua', value: stats.total_losses.toString(), inline: true },
+        { name: '🎯 Tỉ lệ thắng', value: stats.win_rate, inline: true },
+        { name: '💰 Tổng cược', value: stats.total_bet_amount.toLocaleString() + ' LT', inline: true },
+        { name: '🏆 Lãi/Lỗ', value: `${stats.net >= 0 ? '+' : ''}${stats.net.toLocaleString()} LT`, inline: true },
+      );
+
+      await interaction.editReply({ embeds: [embed] });
+      return;
+    }
+
+    if (subcommand === 'thongke') {
+      const stats = casinoService.getStats(userId);
+      const embed = new EmbedBuilder()
+        .setTitle('📊 Thống Kê Cá Cược')
+        .setColor(0x3498db)
+        .addFields(
+          { name: '🎰 Tổng số ván', value: stats.total_bets.toLocaleString(), inline: true },
+          { name: '✅ Thắng', value: stats.total_wins.toLocaleString(), inline: true },
+          { name: '❌ Thua', value: stats.total_losses.toLocaleString(), inline: true },
+          { name: '🎯 Tỉ lệ thắng', value: stats.win_rate, inline: true },
+          { name: '💰 Tổng tiền cược', value: stats.total_bet_amount.toLocaleString() + ' LT', inline: true },
+          { name: '🏆 Tổng tiền nhận', value: stats.total_payout.toLocaleString() + ' LT', inline: true },
+          { name: '📈 Lãi/Lỗ ròng', value: `${stats.net >= 0 ? '+' : ''}${stats.net.toLocaleString()} LT`, inline: true },
+          { name: '💎 Thắng lớn nhất', value: stats.biggest_win.toLocaleString() + ' LT', inline: true },
+        )
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
+      return;
+    }
+
+    if (subcommand === 'jackpot') {
+      const jackpot = casinoService.getJackpot();
+      const embed = new EmbedBuilder()
+        .setTitle('🎰 Quỹ Jackpot')
+        .setColor(0xffd700)
+        .setDescription([
+          `💰 **Quỹ hiện tại:** ${jackpot.toLocaleString()} Linh Thạch`,
+          ``,
+          `📌 **Thể lệ:**`,
+          `• **1%** mỗi lần cược được nạp vào quỹ Jackpot`,
+          `• **0.1%** cơ hội trúng Jackpot mỗi ván`,
+          `• Khi trúng, nhận **80%** quỹ Jackpot`,
+          `• Quỹ tối đa: 5,000,000 LT`,
+          ``,
+          `🎲 Hãy thử vận may với \`/casino taixiu\` hoặc \`/casino blackjack\`!`,
+        ].join('\n'))
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
+      return;
+    }
   }
 }

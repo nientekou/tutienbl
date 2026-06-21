@@ -31,6 +31,9 @@ export interface Combatant {
   reflectRate?: number; // Tỷ lệ phản sát thương (ví dụ 0.2 là phản 20%)
   isNineHeavensFloor5?: boolean; // Tầng 5 boss
   isNineHeavensFloor9?: boolean; // Tầng 9 boss
+  mp?: number;
+  maxMp?: number;
+  block_chance?: number;
 }
 
 export interface PetCombatConfig {
@@ -485,6 +488,26 @@ export class CombatEngine {
               activeSkill = player.equippedSkills[skillIndex];
             }
 
+            // MP cost for skills
+            const mpCost = activeSkill ? Math.max(0, Math.floor(activeSkill.level * 5)) : 0;
+            const playerMp = player.mp ?? player.maxMp ?? 100;
+            if (mpCost > 0 && playerMp < mpCost) {
+              activeSkill = null;
+              log.push(`⚠️ **${player.name}** không đủ nội lực (${playerMp}/${player.maxMp ?? 100}), kỹ năng bị phong ấn hiệp này!`);
+            } else if (mpCost > 0) {
+              const newMp = playerMp - mpCost;
+              log.push(`💧 **${player.name}** tiêu hao **${mpCost}** Nội Lực (${newMp}/${player.maxMp ?? 100})`);
+            }
+
+            // Phá Nguyên Hành - sacrifice HP to recover MP when empty
+            if (playerMp === 0 && playerHp > playerMaxHp * 0.1) {
+              const hpSacrifice = Math.round(playerMaxHp * 0.1);
+              const mpRecovered = 30;
+              playerHp -= hpSacrifice;
+              const newMp = Math.min(player.maxMp ?? 100, mpRecovered);
+              log.push(`💢 **[Phá Nguyên Hành]** **${player.name}** hy sinh **${hpSacrifice}** HP để chuyển hóa thành **${mpRecovered}** Nội Lực! (HP: ${Math.max(0, playerHp)}/${playerMaxHp}, MP: ${newMp}/${player.maxMp ?? 100})`);
+            }
+
             // Tỉ lệ bạo kích
             const critRate = Math.max(0.05, player.crit - enemy.critRes) + player.luck * 0.001;
             const isCrit = Math.random() < critRate;
@@ -612,6 +635,14 @@ export class CombatEngine {
           } else {
             const critRate = Math.max(0.05, enemy.crit - player.critRes);
             const isCrit = Math.random() < critRate;
+
+            // Block chance - chance to completely block a normal attack
+            const playerBlockChance = player.block_chance ?? 0.05;
+            const isBlocked = Math.random() < playerBlockChance;
+            if (isBlocked && !isCrit) {
+              log.push(`🛡️ **${player.name}** dùng thần lực chặn hoàn toàn đòn đánh của **${enemy.name}**!`);
+              return; // Skip damage
+            }
 
             let playerDef = player.def;
             if (playerShield > 0 && (elements['Thổ'] ?? 0) >= 90) {

@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, AutocompleteInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { systemConfigService } from '../../services/SystemConfigService';
@@ -46,6 +46,7 @@ export default class AdminCommand extends Command {
                 .setName('item_id')
                 .setDescription('ID của vật phẩm.')
                 .setRequired(true)
+                .setAutocomplete(true)
             )
             .addIntegerOption(option =>
               option
@@ -54,6 +55,23 @@ export default class AdminCommand extends Command {
                 .setRequired(true)
                 .setMinValue(1)
                 .setMaxValue(9999)
+            )
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('giveknb')
+            .setDescription('[Owner Only] Phát KNB cho tu sĩ.')
+            .addUserOption(option =>
+              option
+                .setName('tuser')
+                .setDescription('Tu sĩ nhận KNB.')
+                .setRequired(true)
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('amount')
+                .setDescription('Số lượng KNB phát (có thể âm để trừ).')
+                .setRequired(true)
             )
         )
         .addSubcommand(subcommand =>
@@ -418,6 +436,40 @@ export default class AdminCommand extends Command {
 
       await interaction.reply({
         content: `🪙 **Thiên Phú Linh Khí:** Đã ban **${amount.toLocaleString()} Hạ Phẩm Linh Thạch** cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>)!\n💰 Số dư mới: **${(targetProfile.coin_ha_pham + amount).toLocaleString()}** LT.`,
+        ephemeral: true
+      });
+      return;
+    }
+
+    // ─── PHÁT KNB ──────────────────────────────────────────────
+    if (subcommand === 'giveknb') {
+      const targetUser = interaction.options.getUser('tuser', true);
+      const amount = interaction.options.getInteger('amount', true);
+
+      const targetProfile = userRepository.get(targetUser.id);
+      if (!targetProfile) {
+        await interaction.reply({
+          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật trong hệ thống.`,
+          ephemeral: true
+        });
+        return;
+      }
+
+      const currentKnb = targetProfile.knb || 0;
+      const newKnb = Math.max(0, currentKnb + amount);
+
+      userRepository.update(targetUser.id, {
+        knb: newKnb
+      });
+
+      systemConfigService.writeAuditLog(userId, 'admin_giveknb', {
+        targetUserId: targetUser.id,
+        targetName: targetProfile.name,
+        amount
+      });
+
+      await interaction.reply({
+        content: `💎 **Thiên Phú Kim Bảo:** Đã điều chỉnh **${amount.toLocaleString()} KNB** cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>)!\n💰 Số dư mới: **${newKnb.toLocaleString()}** KNB.`,
         ephemeral: true
       });
       return;
@@ -812,6 +864,10 @@ export default class AdminCommand extends Command {
       new ButtonBuilder()
         .setCustomId(`adminpanel_spawnboss_${adminId}`)
         .setLabel('👹 Gọi Boss')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId(`adminpanel_killboss_${adminId}`)
+        .setLabel('💀 Diệt Boss')
         .setStyle(ButtonStyle.Danger)
     );
 
@@ -871,12 +927,21 @@ export default class AdminCommand extends Command {
       ? `🔴 **BỊ PHONG ẤN** (Lý do: *${banInfo.reason}* - ngày ${new Date(banInfo.created_at * 1000).toLocaleString('vi-VN')})` 
       : '🟢 **ĐANG HOẠT ĐỘNG**';
 
+    const now = Math.floor(Date.now() / 1000);
+    let injuryText = '🟢 **Khỏe mạnh**';
+    if (user.injury_end_time && user.injury_end_time > now) {
+      const remain = user.injury_end_time - now;
+      const minutes = Math.ceil(remain / 60);
+      injuryText = `🔴 **Trọng thương** (Còn ${minutes} phút)`;
+    }
+
     return new EmbedBuilder()
       .setTitle(`👤 HỒ SƠ TU SĨ — ĐẠO HỮU: ${user.name}`)
       .setColor(banInfo ? '#e74c3c' : '#3498db')
       .setDescription(
         `Đang xem thông tin quản trị của tu sĩ <@${targetUserId}> (ID: \`${targetUserId}\`):\n\n` +
-        `⚠️ **Trạng thái:** ${statusText}\n\n` +
+        `⚠️ **Trạng thái:** ${statusText}\n` +
+        `🩹 **Chấn thương:** ${injuryText}\n\n` +
         `🌟 **Thông Tin Cảnh Giới:**\n` +
         `• Cảnh Giới: **${user.title}** (Cấp ${user.level})\n` +
         `• Tu Vi: **${user.tu_vi} / ${user.exp_needed}**\n` +
@@ -905,6 +970,10 @@ export default class AdminCommand extends Command {
         .setLabel('🪙 Ban Linh Thạch')
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
+        .setCustomId(`adminuser_giveknb_${targetUserId}_${adminId}`)
+        .setLabel('💎 Ban KNB')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
         .setCustomId(`adminuser_giveitem_${targetUserId}_${adminId}`)
         .setLabel('🎁 Ban Vật Phẩm')
         .setStyle(ButtonStyle.Success),
@@ -924,6 +993,17 @@ export default class AdminCommand extends Command {
         .setLabel('🔋 Sửa Thể Lực')
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
+        .setCustomId(`adminuser_heal_${targetUserId}_${adminId}`)
+        .setLabel('❤️ Trị Thương')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`adminuser_resetweekly_${targetUserId}_${adminId}`)
+        .setLabel('🔄 Reset Hạn Tuần')
+        .setStyle(ButtonStyle.Primary)
+    );
+
+    const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
         .setCustomId(isBanned ? `adminuser_unban_${targetUserId}_${adminId}` : `adminuser_ban_${targetUserId}_${adminId}`)
         .setLabel(isBanned ? '🔓 Giải Phong' : '🔒 Phong Ấn')
         .setStyle(isBanned ? ButtonStyle.Success : ButtonStyle.Danger),
@@ -933,7 +1013,7 @@ export default class AdminCommand extends Command {
         .setStyle(ButtonStyle.Secondary)
     );
 
-    return [row1, row2];
+    return [row1, row2, row3];
   }
 
   public static async handleInteraction(
@@ -1027,6 +1107,37 @@ export default class AdminCommand extends Command {
 
         modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(lvlInput));
         await interaction.showModal(modal);
+      }
+      
+      else if (subAction === 'killboss') {
+        const boss = db.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get() as any;
+        if (!boss || boss.hp <= 0 || boss.status !== 'active') {
+          await interaction.reply({ content: '❌ Hiện không có Boss Thế Giới nào đang hoạt động để tiêu diệt!', ephemeral: true });
+          return;
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        db.prepare("UPDATE world_boss SET hp = 0, status = 'defeated', defeated_at = ?, defeated_by = ? WHERE id = 'world_boss_current'")
+          .run(now, adminId);
+
+        // Distribute rewards and announce
+        const { combatService } = require('../../services/CombatService');
+        const rewardsLogs = combatService.distributeWorldBossRewards(boss.level, adminId);
+        
+        const { bossSpawnService } = require('../../services/BossSpawnService');
+        const currentBoss = db.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get() as any;
+        await bossSpawnService.updateBossEmbeds(client, currentBoss);
+        await bossSpawnService.broadcastBossDefeatedLogs(client, currentBoss, rewardsLogs);
+
+        systemConfigService.writeAuditLog(adminId, 'admin_killboss', { bossLevel: boss.level });
+
+        const embed = await AdminCommand.getPanelEmbed(client);
+        const components = AdminCommand.getPanelComponents(adminId);
+        await interaction.update({
+          content: `💀 **Lệnh Thiên Đạo:** Đã kết liễu Boss Thế Giới cấp **${boss.level}** và kết toán phát thưởng thành công!`,
+          embeds: [embed],
+          components
+        });
       }
       
       else if (subAction === 'searchuser') {
@@ -1471,6 +1582,80 @@ export default class AdminCommand extends Command {
           components: userComponents
         });
       }
+      
+      else if (subAction === 'giveknb') {
+        const modal = new ModalBuilder()
+          .setCustomId(`adminmodal_${adminId}_giveknb_${targetUserId}`)
+          .setTitle('Ban Phát KNB');
+
+        const amountInput = new TextInputBuilder()
+          .setCustomId('knb_amount')
+          .setLabel('Số lượng KNB')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Ví dụ: 500 hoặc -100 để trừ')
+          .setRequired(true);
+
+        modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(amountInput));
+        await interaction.showModal(modal);
+      }
+
+      else if (subAction === 'heal') {
+        const targetProfile = userRepository.get(targetUserId);
+        if (!targetProfile) {
+          await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+          return;
+        }
+
+        userRepository.update(targetUserId, { injury_end_time: 0 });
+        systemConfigService.writeAuditLog(adminId, 'admin_heal_panel', {
+          targetUserId,
+          targetName: targetProfile.name
+        });
+
+        const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
+        const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
+        await interaction.update({
+          content: `❤️ Đã trị thương thành công, phục hồi thể trạng khỏe mạnh cho tu sĩ **${targetProfile.name}**!`,
+          embeds: [userEmbed],
+          components: userComponents
+        });
+      }
+
+      else if (subAction === 'resetweekly') {
+        const targetProfile = userRepository.get(targetUserId);
+        if (!targetProfile) {
+          await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+          return;
+        }
+
+        let resetDone = false;
+        try {
+          let yCanh = JSON.parse(targetProfile.y_canh || '{}');
+          if (yCanh.weekly_purchases) {
+            delete yCanh.weekly_purchases;
+            db.prepare('UPDATE users SET y_canh = ? WHERE discord_id = ?').run(JSON.stringify(yCanh), targetUserId);
+            resetDone = true;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+
+        systemConfigService.writeAuditLog(adminId, 'admin_resetweekly_user', {
+          targetUserId,
+          targetName: targetProfile.name,
+          success: resetDone
+        });
+
+        const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
+        const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
+        await interaction.update({
+          content: resetDone 
+            ? `🔄 Đã reset giới hạn mua hàng tuần của tu sĩ **${targetProfile.name}** thành công!`
+            : `⚠️ Tu sĩ **${targetProfile.name}** hiện chưa mua vật phẩm giới hạn tuần nào để reset.`,
+          embeds: [userEmbed],
+          components: userComponents
+        });
+      }
     }
   }
 
@@ -1573,6 +1758,41 @@ export default class AdminCommand extends Command {
       const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
       await interaction.update({
         content: `🪙 Đã ban phát **${amount.toLocaleString()} Linh Thạch** cho tu sĩ **${targetProfile.name}**!`,
+        embeds: [userEmbed],
+        components: userComponents
+      });
+    }
+    
+    else if (subAction === 'giveknb') {
+      const targetUserId = parts[3];
+      const amountStr = interaction.fields.getTextInputValue('knb_amount');
+      const amount = parseInt(amountStr, 10);
+
+      const targetProfile = userRepository.get(targetUserId);
+      if (!targetProfile) {
+        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        return;
+      }
+
+      if (isNaN(amount)) {
+        await interaction.reply({ content: '❌ Số lượng KNB không hợp lệ.', ephemeral: true });
+        return;
+      }
+
+      userRepository.update(targetUserId, {
+        knb: Math.max(0, (targetProfile.knb || 0) + amount)
+      });
+
+      systemConfigService.writeAuditLog(adminId, 'admin_giveknb_panel', {
+        targetUserId,
+        targetName: targetProfile.name,
+        amount
+      });
+
+      const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
+      const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
+      await interaction.update({
+        content: `💎 Đã điều chỉnh **${amount.toLocaleString()} KNB** cho tu sĩ **${targetProfile.name}**!`,
         embeds: [userEmbed],
         components: userComponents
       });
@@ -1856,6 +2076,22 @@ export default class AdminCommand extends Command {
         embeds: [userEmbed],
         components: userComponents
       });
+    }
+  }
+
+  public async autocomplete(client: TuTienClient, interaction: AutocompleteInteraction): Promise<void> {
+    const focusedOption = interaction.options.getFocused(true);
+    if (focusedOption.name === 'item_id') {
+      const query = focusedOption.value;
+      const items = db.prepare('SELECT id, name FROM items WHERE name LIKE ? OR id LIKE ? LIMIT 25')
+        .all(`%${query}%`, `%${query}%`) as any[];
+      
+      await interaction.respond(
+        items.map(item => ({
+          name: `${item.name} (${item.id})`,
+          value: item.id
+        }))
+      );
     }
   }
 }

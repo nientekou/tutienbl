@@ -19,7 +19,7 @@ const COOLDOWN_MS = 60000; // 60 giây
  */
 export function performWork(
   discordId: string,
-  workType: 'mining' | 'gathering' | 'patrolling' | 'adventure' | 'archaeology'
+  workType: 'mining' | 'gathering' | 'patrolling' | 'adventure' | 'archaeology' | 'escort'
 ): { success: boolean; message?: string; embed?: EmbedBuilder; encounter?: Encounter | null } {
   const user = userRepository.get(discordId);
   if (!user) {
@@ -36,7 +36,7 @@ export function performWork(
     };
   }
 
-  const baseStaminaCost = (workType === 'adventure' || workType === 'archaeology') ? 15 : 10;
+  const baseStaminaCost = (workType === 'adventure' || workType === 'archaeology' || workType === 'escort') ? 15 : 10;
 
   // Kiểm tra Thể Lực
   if (user.stamina < baseStaminaCost) {
@@ -63,6 +63,19 @@ export function performWork(
     };
   }
 
+  // Giới hạn làm việc hàng ngày (chống farm)
+  const todayStart = Math.floor(Date.now() / 1000) - 86400;
+  const dailyWorkCount = db.prepare(
+    "SELECT COUNT(*) as c FROM audit_logs WHERE user_id = ? AND action = 'work' AND created_at >= ? AND json_extract(details, '$.accident') != 1"
+  ).get(discordId, todayStart) as { c: number };
+  const DAILY_WORK_LIMIT = 50;
+  if (dailyWorkCount.c >= DAILY_WORK_LIMIT) {
+    return {
+      success: false,
+      message: `⚠️ Đạo hữu đã làm việc **${dailyWorkCount.c}/${DAILY_WORK_LIMIT}** lần hôm nay. Hãy quay lại vào ngày mai! (Giới hạn chống farm tiền.)`
+    };
+  }
+
   // Ghi nhận mốc thời gian làm việc mới
   workCooldowns.set(discordId, now);
 
@@ -76,7 +89,8 @@ export function performWork(
     gathering: 0.05,
     patrolling: 0.08,
     adventure: 0.12,
-    archaeology: 0.15
+    archaeology: 0.15,
+    escort: 0.10
   };
 
   const isAccident = Math.random() < accidentRates[workType];
@@ -92,6 +106,8 @@ export function performWork(
       actionDescription = '💥 **Tai Nạn Lao Động:** Ngự kiếm phi hành quá tốc độ bị khí lưu bạo loạn quấn lấy, điên đảo kinh mạch...';
     } else if (workType === 'archaeology') {
       actionDescription = '💥 **Tai Nạn Lao Động:** Kích hoạt nhầm cấm chế cổ mộ viễn cổ, bị tà khí âm phong trùng kích nhục thân...';
+    } else if (workType === 'escort') {
+      actionDescription = '💥 **Tai Nạn Lao Động:** Đoàn hộ tiêu bị thảo khấu mai phục! Hàng hóa tổn thất nặng nề...';
     }
   } else {
     if (workType === 'mining') {
@@ -151,6 +167,18 @@ export function performWork(
           rewardItem = { id: 'mat_huyen_thiet', name: 'Huyền Thiết' };
         }
       }
+    } else if (workType === 'escort') {
+      earnedCoins = Math.floor(Math.random() * 41) + 40; // 40 -> 80
+      actionDescription = 'Đạo hữu hộ tống thương đội vận chuyển hàng hóa qua vùng sơn tặc nguy hiểm...';
+      // 15% bị thảo khấu mai phục cướp mất 20% thu nhập
+      if (Math.random() < 0.15) {
+        const lostCoins = Math.round(earnedCoins * 0.2);
+        earnedCoins -= lostCoins;
+        actionDescription += `\n⚠️ **Thảo khấu mai phục:** Bọn cướp đường xuất hiện cướp mất **${lostCoins}** Linh Thạch!`;
+      }
+      if (Math.random() < rewardItemChance) {
+        rewardItem = { id: 'item_fragment', name: 'Mảnh Bảo Vật' };
+      }
     }
 
     // Áp dụng bonus Linh Thạch cho Chính Đạo (+5%)
@@ -186,7 +214,7 @@ export function performWork(
   const now2 = Math.floor(Date.now() / 1000);
   db.prepare(
     "INSERT INTO audit_logs (user_id, action, details, created_at) VALUES (?, 'work', ?, ?)"
-  ).run(discordId, JSON.stringify({ type: workType, accident: isAccident }), now2);
+  ).run(discordId, JSON.stringify({ type: workType, accident: isAccident, coins: earnedCoins, stamina: staminaCost }), now2);
 
   if (!isAccident) {
     const totalWork = db.prepare(
@@ -276,7 +304,8 @@ export default class LamViecCommand extends Command {
               { name: '🌿 Hái Lượm Linh Thảo (Gathering) - 10 TL', value: 'gathering' },
               { name: '🛡️ Tuần Tra Tông Môn (Patrolling) - 10 TL', value: 'patrolling' },
               { name: '🧭 Phiêu Lưu Bản Đồ (Adventure) - 15 TL', value: 'adventure' },
-              { name: '🏺 Khảo Cổ Cổ Mộ (Archaeology) - 15 TL', value: 'archaeology' }
+              { name: '🏺 Khảo Cổ Cổ Mộ (Archaeology) - 15 TL', value: 'archaeology' },
+              { name: '🚚 Hộ Tiêu Thương Đội (Escort) - 15 TL', value: 'escort' }
             )
         )
     );
@@ -284,7 +313,7 @@ export default class LamViecCommand extends Command {
 
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const discordId = interaction.user.id;
-    const workType = interaction.options.getString('congviec', true) as 'mining' | 'gathering' | 'patrolling' | 'adventure' | 'archaeology';
+    const workType = interaction.options.getString('congviec', true) as 'mining' | 'gathering' | 'patrolling' | 'adventure' | 'archaeology' | 'escort';
 
     try {
       const result = performWork(discordId, workType);

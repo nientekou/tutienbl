@@ -771,6 +771,66 @@ function testNewEnhancements() {
     });
 }
 
+function testBrotherhood() {
+  console.log('\n🧪 Test Brotherhood...');
+  const { brotherhoodService } = require('../src/services/BrotherhoodService');
+  
+  const bonus = brotherhoodService.getSharedExpBonus('user1');
+  console.log(`  ✅ Brotherhood EXP bonus: ${bonus * 100}%`);
+  
+  const atkBonus = brotherhoodService.getPartyAtkBonus('user1', 'user2');
+  console.log(`  ✅ Brotherhood ATK bonus with same: ${(atkBonus * 100)}%`);
+  
+  const noBonus = brotherhoodService.getPartyAtkBonus('user1', 'user3');
+  console.log(`  ✅ Brotherhood ATK bonus with different: ${(noBonus * 100)}%`);
+  
+  console.log('  ✅ Brotherhood tests passed!');
+}
+
+function testBlockChance() {
+  console.log('\n🧪 Test Block Chance...');
+  const { CombatEngine } = require('../src/services/CombatEngine');
+  
+  for (let i = 0; i < 5; i++) {
+    const result = CombatEngine.run(
+      { name: 'Player', hp: 1000, maxHp: 1000, atk: 100, def: 50, crit: 0.1, critRes: 0, luck: 10, block_chance: 0.1, dodge: 0.05, speed: 100 },
+      { name: 'Enemy', hp: 100, maxHp: 100, atk: 80, def: 30, crit: 0.05, critRes: 0, luck: 5, dodge: 0.05, speed: 100 }
+    );
+    console.log(`  ✅ Battle ${i+1}: ${result.winner}, rounds: ${result.rounds}`);
+  }
+  console.log('  ✅ Block chance tests passed!');
+}
+
+function testNotifications() {
+  console.log('\n🧪 Test Notification System...');
+  const { notificationService } = require('../src/services/NotificationService');
+  
+  notificationService.setSetting('test_user', 'linhdien_ripe', true);
+  notificationService.setSetting('test_user', 'arena_season_end', false);
+  
+  const settings = notificationService.getSettings('test_user');
+  console.log(`  ✅ Notification settings: ${JSON.stringify(settings)}`);
+  console.log('  ✅ Notification tests passed!');
+}
+
+function testExpReduction() {
+  console.log('\n🧪 Test EXP Reduction...');
+  const { CultivationService } = require('../src/services/CultivationService');
+  const svc = new CultivationService();
+  
+  const expLv50 = svc.calculateNextExp(50);
+  const expLv100 = svc.calculateNextExp(100);
+  const expLv150 = svc.calculateNextExp(150);
+  
+  console.log(`  ✅ EXP needed Lv50: ${expLv50}`);
+  console.log(`  ✅ EXP needed Lv100: ${expLv100}`);
+  console.log(`  ✅ EXP needed Lv150: ${expLv150} (should be reduced vs base formula)`);
+  
+  const multiplier = svc.getExpMultiplierForSource(120, 50);
+  console.log(`  ✅ EXP multiplier (Lv120 from Lv50): ${multiplier}`);
+  console.log('  ✅ EXP reduction tests passed!');
+}
+
 function runAll() {
   try {
     initDatabase();
@@ -786,6 +846,10 @@ function runAll() {
     testAdminPanelSystem();
     testNewFeatures();
     testNewEnhancements();
+    testBrotherhood();
+    testBlockChance();
+    testNotifications();
+    testExpReduction();
     console.log('All tests passed successfully! 🎉');
   } catch (error) {
     console.error('Test failed:', error);

@@ -10,6 +10,8 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { dailyQuestService } from '../../services/DailyQuestService';
+import { questChainService, QUEST_CHAINS } from '../../services/QuestChainService';
+import { communityQuestService } from '../../services/CommunityQuestService';
 import { getProgressBar } from '../../utils/constants';
 
 const CATEGORY_EMOJI: Record<string, string> = {
@@ -69,6 +71,17 @@ export function getNhiemVuEmbed(userId: string): EmbedBuilder {
     });
   }
 
+  const communityData = communityQuestService.getActiveQuestWithParticipant(userId);
+  if (communityData.quest) {
+    const q = communityData.quest;
+    const progressBar = getProgressBar(q.current_progress, q.total_required);
+    embed.addFields({
+      name: `🌍 **NHIỆM VỤ CỘNG ĐỒNG: ${q.name}**`,
+      value: `📖 ${q.description}\n${progressBar} (${q.current_progress}/${q.total_required})\n👤 **Đóng góp của bạn:** ${communityData.contribution}\n⏳ Còn lại: <t:${q.ends_at}:R>\n💰 Thưởng: 🟤 ${q.reward_coins} Linh Thạch | 🌿 ${q.reward_exp} Tu Vi`,
+      inline: false
+    });
+  }
+
   embed.setFooter({ text: 'Tiến trình tự động cập nhật khi đạo hữu thực hiện các hoạt động tương ứng.' });
   return embed;
 }
@@ -114,12 +127,125 @@ export function getNhiemVuComponents(userId: string): ActionRowBuilder<ButtonBui
   return rows;
 }
 
+export function getQuestChainEmbed(userId: string): EmbedBuilder {
+  const user = userRepository.get(userId);
+  if (!user) {
+    return new EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Nhân vật không tồn tại.');
+  }
+
+  const progressData = questChainService.getDetailedProgress(userId);
+  const availableChains = questChainService.getAvailableChains(userId);
+
+  const embed = new EmbedBuilder()
+    .setTitle('⚔️ NHIỆM VỤ CHUỖI - TU TIÊN LỘ')
+    .setColor('#f39c12')
+    .setDescription('Những thử thách tu tiên trải dài theo từng bước. Hoàn thành tất cả bước trong một chuỗi để nhận phần thưởng cuối cùng!')
+    .setTimestamp();
+
+  if (progressData.length === 0 && availableChains.length === 0) {
+    embed.setDescription('🎉 Bạn đã hoàn thành tất cả chuỗi nhiệm vụ hiện có!');
+    return embed;
+  }
+
+  for (const chain of QUEST_CHAINS) {
+    const progress = progressData.find(p => p.chain_id === chain.id);
+    const isCompleted = progress?.completed === 1;
+    const isStarted = !!progress;
+
+    if (isCompleted) {
+      embed.addFields({
+        name: `✅ ${chain.name}`,
+        value: `📖 ${chain.description}\n🏁 **Đã hoàn thành!**`,
+        inline: false
+      });
+      continue;
+    }
+
+    const stepIndex = progress?.step_index ?? 0;
+    const currentStep = chain.steps[stepIndex];
+
+    let stepLines = chain.steps.map((step, i) => {
+      if (i < stepIndex) return `   ✅ **${step.name}** - Đã hoàn thành`;
+      if (i === stepIndex) {
+        if (!isStarted) return `   ⏳ **${step.name}** - ${step.description}`;
+        const stepProgress = progress ? progress.progress : 0;
+        const bar = getProgressBar(stepProgress, step.objectiveTarget);
+        return `   ▶️ **${step.name}** - ${bar} (${stepProgress}/${step.objectiveTarget})`;
+      }
+      return `   🔒 **${step.name}** - ${step.description}`;
+    }).join('\n');
+
+    embed.addFields({
+      name: `${isStarted ? '⏳' : '📋'} ${chain.name}`,
+      value: `📖 ${chain.description}\n${stepLines}\n🎁 Thưởng cuối: 🟤 ${chain.finalRewardCoins} Linh Thạch | 🌿 ${chain.finalRewardExp} Tu Vi${chain.finalRewardTitle ? ` | 🏅 Danh hiệu: ${chain.finalRewardTitle}` : ''}`,
+      inline: false
+    });
+  }
+
+  return embed;
+}
+
+export function getQuestChainComponents(userId: string): ActionRowBuilder<ButtonBuilder>[] {
+  const progressData = questChainService.getDetailedProgress(userId);
+  const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+
+  const activeProgress = progressData.find(p => p.completed === 0);
+  if (activeProgress) {
+    const chain = QUEST_CHAINS.find(c => c.id === activeProgress.chain_id);
+    if (chain) {
+      const step = chain.steps[activeProgress.step_index];
+      if (step && activeProgress.progress >= step.objectiveTarget) {
+        const claimRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`chainclaim_${activeProgress.chain_id}_${userId}`)
+            .setLabel(`🎁 Nhận Thưởng: ${step.name}`)
+            .setStyle(ButtonStyle.Success)
+        );
+        rows.push(claimRow);
+      }
+    }
+  }
+
+  for (const chain of QUEST_CHAINS) {
+    const prog = progressData.find(p => p.chain_id === chain.id);
+    if (!prog || prog.completed) {
+      if (!prog) {
+        const startRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`chainstart_${chain.id}_${userId}`)
+            .setLabel(`▶️ Bắt đầu: ${chain.name}`)
+            .setStyle(ButtonStyle.Primary)
+        );
+        rows.push(startRow);
+      }
+    }
+  }
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`hosoback_${userId}`)
+      .setLabel('🔙 Quay Lại Hồ Sơ')
+      .setStyle(ButtonStyle.Secondary)
+  );
+  rows.push(backRow);
+
+  return rows;
+}
+
 export default class NhiemVuCommand extends Command {
   constructor() {
     super(
       new SlashCommandBuilder()
         .setName('nhiemvu')
-        .setDescription('Xem và nhận thưởng nhiệm vụ hàng ngày từ Thiên Cơ Các.')
+        .setDescription('Xem nhiệm vụ, nhiệm vụ chuỗi và nhiệm vụ cộng đồng.')
+        .addSubcommand(sub =>
+          sub.setName('hàng-ngày')
+             .setDescription('Xem nhiệm vụ hàng ngày từ Thiên Cơ Các.')
+        )
+        .addSubcommand(sub =>
+          sub.setName('chuong-trinh')
+             .setDescription('Xem tiến trình nhiệm vụ chuỗi (Quest Chain).')
+        )
     );
   }
 
@@ -132,8 +258,16 @@ export default class NhiemVuCommand extends Command {
       return;
     }
 
-    const embed = getNhiemVuEmbed(userId);
-    const rows = getNhiemVuComponents(userId);
-    await interaction.reply({ embeds: [embed], components: rows });
+    const subcommand = interaction.options.getSubcommand(false);
+
+    if (subcommand === 'chuong-trinh') {
+      const embed = getQuestChainEmbed(userId);
+      const rows = getQuestChainComponents(userId);
+      await interaction.reply({ embeds: [embed], components: rows });
+    } else {
+      const embed = getNhiemVuEmbed(userId);
+      const rows = getNhiemVuComponents(userId);
+      await interaction.reply({ embeds: [embed], components: rows });
+    }
   }
 }

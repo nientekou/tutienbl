@@ -197,6 +197,106 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     requiredAlchemyLevel: 4,
     baseSuccessRate: 0.27, // giảm từ 0.42
     expGained: 180
+  },
+  {
+    id: 'recipe_tay_tuy',
+    name: 'Tẩy Tủy Đan',
+    targetPillId: 'pill_tay_tuy',
+    requiredMaterials: [
+      { itemId: 'material_blood_flower', quantity: 10 },
+      { itemId: 'material_void_herb', quantity: 10 },
+      { itemId: 'material_wind_leaf', quantity: 10 },
+      { itemId: 'material_tuyet_lien', quantity: 5 }
+    ],
+    costCoin: 5000,
+    staminaCost: 50,
+    requiredAlchemyLevel: 5,
+    baseSuccessRate: 0.20,
+    expGained: 500
+  },
+  {
+    id: 'recipe_protect_hoa',
+    name: 'Hỏa Linh Đan',
+    targetPillId: 'pill_protect_hoa',
+    requiredMaterials: [
+      { itemId: 'material_blood_flower', quantity: 3 },
+      { itemId: 'material_linh_thao_1', quantity: 5 }
+    ],
+    costCoin: 800,
+    staminaCost: 20,
+    requiredAlchemyLevel: 3,
+    baseSuccessRate: 0.40,
+    expGained: 80
+  },
+  {
+    id: 'recipe_protect_thuy',
+    name: 'Thủy Nguyên Đan',
+    targetPillId: 'pill_protect_thuy',
+    requiredMaterials: [
+      { itemId: 'material_void_herb', quantity: 3 },
+      { itemId: 'material_linh_thao_1', quantity: 5 }
+    ],
+    costCoin: 800,
+    staminaCost: 20,
+    requiredAlchemyLevel: 3,
+    baseSuccessRate: 0.40,
+    expGained: 80
+  },
+  {
+    id: 'recipe_protect_moc',
+    name: 'Mộc Linh Hoàn',
+    targetPillId: 'pill_protect_moc',
+    requiredMaterials: [
+      { itemId: 'material_tuyet_lien', quantity: 3 },
+      { itemId: 'material_linh_thao_1', quantity: 5 }
+    ],
+    costCoin: 800,
+    staminaCost: 20,
+    requiredAlchemyLevel: 3,
+    baseSuccessRate: 0.40,
+    expGained: 80
+  },
+  {
+    id: 'recipe_protect_kim',
+    name: 'Kim Cương Đan',
+    targetPillId: 'pill_protect_kim',
+    requiredMaterials: [
+      { itemId: 'material_linh_thao_1', quantity: 8 },
+      { itemId: 'material_iron_1', quantity: 3 }
+    ],
+    costCoin: 800,
+    staminaCost: 20,
+    requiredAlchemyLevel: 3,
+    baseSuccessRate: 0.40,
+    expGained: 80
+  },
+  {
+    id: 'recipe_protect_tho',
+    name: 'Địa Thổ Đan',
+    targetPillId: 'pill_protect_tho',
+    requiredMaterials: [
+      { itemId: 'material_linh_thao_1', quantity: 8 },
+      { itemId: 'material_nhan_sam_1', quantity: 3 }
+    ],
+    costCoin: 800,
+    staminaCost: 20,
+    requiredAlchemyLevel: 3,
+    baseSuccessRate: 0.40,
+    expGained: 80
+  },
+  {
+    id: 'recipe_co_duyen',
+    name: 'Cơ Duyên Đơn',
+    targetPillId: 'pill_co_duyen',
+    requiredMaterials: [
+      { itemId: 'material_ngodong', quantity: 5 },
+      { itemId: 'material_linh_thao_1', quantity: 10 }
+    ],
+    costCoin: 2000,
+    staminaCost: 30,
+    requiredAlchemyLevel: 4,
+    baseSuccessRate: 0.25,
+    expGained: 150
   }
 ];
 

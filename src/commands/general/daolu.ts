@@ -50,6 +50,8 @@ export default class DaoLuCommand extends Command {
 
       const intimacyBar = getProgressBar(couple.intimacy, 2000, 10);
 
+      const anniversaryMsg = coupleService.checkAnniversaryOnInfo(couple.id);
+
       const embed = new EmbedBuilder()
         .setTitle('💞 HỒ SƠ ĐẠO LỮ 💞')
         .setColor('#ff69b4')
@@ -59,6 +61,11 @@ export default class DaoLuCommand extends Command {
           { name: 'Ngày thành hôn', value: `<t:${couple.marriage_date}:D>`, inline: true }
         )
         .setFooter({ text: 'Dùng /daolu song-tu mỗi ngày để nhận Tu Vi!' });
+
+      if (anniversaryMsg) {
+        embed.setDescription(anniversaryMsg);
+      }
+
       await interaction.reply({ embeds: [embed] });
 
     } else if (sub === 'cau-hon') {

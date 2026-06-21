@@ -1,6 +1,7 @@
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryService } from './InventoryService';
+import { newbieProtectionService } from './NewbieProtectionService';
 import { CombatEngine, Combatant, CombatResult } from './CombatEngine';
 
 export interface ArenaProfile {
@@ -63,6 +64,8 @@ export class ArenaService {
         return true;
       }
     } catch (e) {}
+    // Newbie protection: người chơi mới không thể bị tấn công
+    if (newbieProtectionService.isProtected(userId)) return true;
     return false;
   }
 

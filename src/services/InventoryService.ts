@@ -14,13 +14,160 @@ export interface ActiveStats {
   luck: number;
   speed: number;
   dodge: number;
+  block_chance: number;
+  elementResonance?: ElementResonanceInfo | null;
+}
+
+export interface ElementResonanceInfo {
+  element: string;
+  buff?: string;
+  resonance: boolean;
+  buffs: string[];
+  // Các chỉ số cộng hưởng
+  atkPercent?: number;
+  hpPercent?: number;
+  defPercent?: number;
+  critBonus?: number;
+  critDmgBonus?: number;
+  armorPierce?: number;
+  lifesteal?: number;
+  hpRegenPercent?: number;
+  dodgeBonus?: number;
+  accuracyBonus?: number;
+  controlBonus?: number;
+  burnChance?: number;
+  controlResist?: number;
+  thornsPercent?: number;
 }
 
 export class InventoryService {
+  private statsCache = new Map<string, { stats: ActiveStats, cachedAt: number }>();
+  private readonly STATS_CACHE_TTL_MS = 30000; // 30 seconds
+
   /**
-   * Tính toán toàn bộ chỉ số thực tế của tu sĩ (Base + Điểm Trang Bị + Ý Cảnh + Tông Môn)
+   * Tính toán cộng hưởng Linh Căn với kỹ năng/tâm pháp đang trang bị
    */
+  public computeElementResonance(userId: string): ElementResonanceInfo {
+    const user = userRepository.get(userId);
+    if (!user) return { element: '', resonance: false, buffs: [] };
+
+    // 1. Tìm linh căn mạnh nhất
+    let linhCan: Record<string, number> = {};
+    try { linhCan = JSON.parse(user.linh_can); } catch { return { element: '', resonance: false, buffs: [] }; }
+
+    const elements = Object.entries(linhCan).sort((a, b) => b[1] - a[1]);
+    if (elements.length === 0) return { element: '', resonance: false, buffs: [] };
+
+    const strongestElement = elements[0][0];
+    const strongestPct = elements[0][1];
+
+    // 2. Kiểm tra kỹ năng đang trang bị có cùng hệ không
+    const equippedSkills = db.prepare("SELECT skill_id FROM user_skills WHERE user_id = ? AND is_equipped = 1").all(userId) as { skill_id: string }[];
+
+    const SKILL_DETAILS: Record<string, { name: string; element: string; desc: string }> = {
+      skill_fire: { name: 'Liệt Diễm Quyết 🔥', element: 'Hỏa', desc: '' },
+      skill_water: { name: 'Thủy Linh Quyết 💧', element: 'Thủy', desc: '' },
+      skill_wood: { name: 'Hấp Huyết Quyết 🌿', element: 'Mộc', desc: '' },
+      skill_earth: { name: 'Thổ Giáp Quyết 🪨', element: 'Thổ', desc: '' },
+      skill_wind: { name: 'Phong Hành Quyết 🌀', element: 'Phong', desc: '' },
+      skill_lightning: { name: 'Lôi Phạt Quyết ⚡', element: 'Lôi', desc: '' }
+    };
+
+    const hasMatchingSkill = equippedSkills.some(s => {
+      const detail = SKILL_DETAILS[s.skill_id];
+      return detail && detail.element === strongestElement;
+    });
+
+    // 3. Kiểm tra tâm pháp đang trang bị có cùng hệ không
+    const equippedHeartLaws = db.prepare(`
+      SELECT hl.id, hl.name, hl.element
+      FROM user_heart_laws uhl
+      JOIN heart_laws hl ON uhl.heart_law_id = hl.id
+      WHERE uhl.user_id = ? AND uhl.is_equipped > 0
+    `).all(userId) as { id: string; name: string; element: string }[];
+
+    const hasMatchingHeartLaw = equippedHeartLaws.some(hl => hl.element === strongestElement);
+
+    // 4. Nếu có cộng hưởng
+    const resonance = (hasMatchingSkill || hasMatchingHeartLaw) && strongestPct >= 40;
+    if (!resonance) {
+      return { element: strongestElement, resonance: false, buffs: [] };
+    }
+
+    // 5. Tra bảng buff theo linh căn
+    const result: ElementResonanceInfo = {
+      element: strongestElement,
+      resonance: true,
+      buffs: [],
+      atkPercent: 0,
+      hpPercent: 0,
+      defPercent: 0,
+      critBonus: 0,
+      critDmgBonus: 0,
+      armorPierce: 0,
+      lifesteal: 0,
+      hpRegenPercent: 0,
+      dodgeBonus: 0,
+      accuracyBonus: 0,
+      controlBonus: 0,
+      burnChance: 0,
+      controlResist: 0,
+      thornsPercent: 0,
+    };
+
+    switch (strongestElement) {
+      case 'Kim':
+        result.atkPercent = 0.15;
+        result.armorPierce = 0.10;
+        result.critBonus = 0.05;
+        result.buff = 'Kim +15% Vật Công, +10% Xuyên Giáp, +5% Bạo Kích';
+        result.buffs = ['+15% Vật Công', '+10% Xuyên Giáp', '+5% Bạo Kích'];
+        break;
+      case 'Mộc':
+        result.hpPercent = 0.10;
+        result.lifesteal = 0.05;
+        result.hpRegenPercent = 0.02;
+        result.buff = 'Mộc +10% Max HP, +5% Hút Máu, Hồi 2% HP/lượt';
+        result.buffs = ['+10% Max HP', '+5% Hút Máu', 'Hồi 2% HP/lượt'];
+        break;
+      case 'Thủy':
+        result.dodgeBonus = 0.15;
+        result.accuracyBonus = 0.10;
+        result.controlBonus = 0.05;
+        result.buff = 'Thủy +15% Thân Pháp, +10% Chính Xác, +5% Khống Chế';
+        result.buffs = ['+15% Thân Pháp', '+10% Chính Xác', '+5% Khống Chế'];
+        break;
+      case 'Hỏa':
+        result.atkPercent = 0.15;
+        result.critDmgBonus = 0.15;
+        result.burnChance = 0.15;
+        result.buff = 'Hỏa +15% Pháp Công, +15% Sát Thương Bạo Kích, 15% Thiêu Đốt';
+        result.buffs = ['+15% Pháp Công', '+15% Sát Thương Bạo Kích', '15% Thiêu Đốt'];
+        break;
+      case 'Thổ':
+        result.defPercent = 0.20;
+        result.controlResist = 0.10;
+        result.thornsPercent = 0.08;
+        result.buff = 'Thổ +20% Phòng Thủ, +10% Kháng Khống Chế, +8% Phản Thương';
+        result.buffs = ['+20% Phòng Thủ', '+10% Kháng Khống Chế', '+8% Phản Thương'];
+        break;
+      default:
+        result.buff = '';
+        result.buffs = [];
+    }
+
+    return result;
+  }
+
+  /**
+    * Tính toán toàn bộ chỉ số thực tế của tu sĩ (Base + Điểm Trang Bị + Ý Cảnh + Tông Môn + Cộng Hưởng Linh Căn)
+    */
   public getActiveStats(userId: string): ActiveStats | null {
+    const now = Date.now();
+    const cached = this.statsCache.get(userId);
+    if (cached && now - cached.cachedAt < this.STATS_CACHE_TTL_MS) {
+      return { ...cached.stats };
+    }
     const user = userRepository.get(userId);
     if (!user) return null;
 
@@ -33,7 +180,8 @@ export class InventoryService {
       critRes: user.base_crit_res,
       luck: user.base_luck,
       speed: user.base_speed ?? 100,
-      dodge: (user.base_dodge ?? 0.05) + ((user.alignment === 'neutral' || !user.alignment) ? 0.05 : 0)
+      dodge: (user.base_dodge ?? 0.05) + ((user.alignment === 'neutral' || !user.alignment) ? 0.05 : 0),
+      block_chance: 0.05,
     };
 
     // Cộng hưởng từ Ý Cảnh (Ý Cảnh & Đạo Quả)
@@ -233,6 +381,19 @@ export class InventoryService {
       }
     }
 
+    // --- Cộng Hưởng Linh Căn (Element Resonance) ---
+    const resonance = this.computeElementResonance(userId);
+    if (resonance.resonance) {
+      if (resonance.atkPercent) multipliers.atk += resonance.atkPercent;
+      if (resonance.hpPercent) multipliers.hp += resonance.hpPercent;
+      if (resonance.defPercent) multipliers.def += resonance.defPercent;
+      if (resonance.critBonus) stats.crit += resonance.critBonus;
+      if (resonance.dodgeBonus) stats.dodge += resonance.dodgeBonus;
+      stats.elementResonance = resonance;
+    } else {
+      stats.elementResonance = resonance; // lưu cả khi không resonance để hiển thị
+    }
+
     // Áp dụng % multipliers vào final stats
     stats.hp = Math.round(stats.hp * multipliers.hp);
     stats.mp = Math.round(stats.mp * multipliers.mp);
@@ -240,7 +401,13 @@ export class InventoryService {
     stats.def = Math.round(stats.def * multipliers.def);
     stats.speed = Math.round(stats.speed * multipliers.speed);
 
+    this.statsCache.set(userId, { stats: { ...stats }, cachedAt: now });
+
     return stats;
+  }
+
+  public invalidateStatsCache(userId: string): void {
+    this.statsCache.delete(userId);
   }
 
   /**
@@ -267,6 +434,7 @@ export class InventoryService {
     else if (item.item_id.startsWith('ring_')) slot = 'ring';
     else if (item.item_id.startsWith('necklace_')) slot = 'necklace';
     else if (item.item_id.startsWith('amulet_')) slot = 'amulet';
+    else if (item.item_id.startsWith('pendant_') || item.item_id.startsWith('boi_pham_')) slot = 'pendant';
     else if (item.item_id.startsWith('mount_')) slot = 'mount';
     else slot = 'treasure'; // Pháp bảo
 

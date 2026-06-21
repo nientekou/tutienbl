@@ -98,6 +98,28 @@ export default class VanBaoLauCommand extends Command {
             .addIntegerOption(opt => opt.setName('watchlist_id').setDescription('ID mục yêu thích').setRequired(true))
             .addIntegerOption(opt => opt.setName('gia_toi_da').setDescription('Giá tối đa auto-bid').setRequired(true))
         )
+        .addSubcommand(sub =>
+          sub.setName('muahang')
+            .setDescription('Tạo đơn ủy thác thu mua vật phẩm.')
+            .addStringOption(opt => opt.setName('item_id').setDescription('Mã vật phẩm cần mua').setRequired(true))
+            .addIntegerOption(opt => opt.setName('soluong').setDescription('Số lượng mua (tối đa 999)').setRequired(true))
+            .addIntegerOption(opt => opt.setName('gia').setDescription('Giá Linh Thạch/đơn vị').setRequired(true))
+        )
+        .addSubcommand(sub =>
+          sub.setName('banhang')
+            .setDescription('Bán vật phẩm vào đơn ủy thác thu mua.')
+            .addIntegerOption(opt => opt.setName('order_id').setDescription('Mã đơn ủy thác').setRequired(true))
+            .addIntegerOption(opt => opt.setName('soluong').setDescription('Số lượng bán').setRequired(true))
+        )
+        .addSubcommand(sub =>
+          sub.setName('huymua')
+            .setDescription('Hủy đơn ủy thác thu mua của bạn.')
+            .addIntegerOption(opt => opt.setName('order_id').setDescription('Mã đơn ủy thác').setRequired(true))
+        )
+        .addSubcommand(sub =>
+          sub.setName('dsmuahang')
+            .setDescription('Xem danh sách đơn ủy thác thu mua đang hoạt động.')
+        )
     );
   }
 
@@ -128,6 +150,14 @@ export default class VanBaoLauCommand extends Command {
       await this.handleLichSu(interaction, userId);
     } else if (sub === 'autobid') {
       await this.handleAutoBid(interaction, userId);
+    } else if (sub === 'muahang') {
+      await this.handleMuaHang(interaction, userId, user);
+    } else if (sub === 'banhang') {
+      await this.handleBanHang(interaction, userId);
+    } else if (sub === 'huymua') {
+      await this.handleHuyMua(interaction, userId);
+    } else if (sub === 'dsmuahang') {
+      await this.handleDsMuaHang(interaction);
     }
   }
 
@@ -151,7 +181,7 @@ export default class VanBaoLauCommand extends Command {
     const embed = new EmbedBuilder()
       .setTitle('🏪 VẠN BẢO LÂU - SÀN GIAO DỊCH & ĐẤU GIÁ 🏪')
       .setColor('#e67e22')
-      .setDescription('Nơi giao lưu vật phẩm & đấu giá giữa các tu sĩ. Mọi giao dịch chịu 10% thuế.\nDùng `/vanbaolau tim` để tìm kiếm nâng cao.')
+      .setDescription('Nơi giao lưu vật phẩm & đấu giá giữa các tu sĩ. Mọi giao dịch chịu 2% thuế (tối thiểu theo cảnh giới, tối đa 20 tin/ngày).\nDùng `/vanbaolau tim` để tìm kiếm nâng cao.')
       .setTimestamp();
 
     if (fixedListings.length > 0) {
@@ -382,5 +412,48 @@ export default class VanBaoLauCommand extends Command {
 
     const result = marketService.setAutoBid(userId, watchlistId, true, maxPrice);
     await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: true });
+  }
+
+  private async handleMuaHang(interaction: ChatInputCommandInteraction, userId: string, user: any): Promise<void> {
+    const itemId = interaction.options.getString('item_id', true).trim().toLowerCase();
+    const quantity = interaction.options.getInteger('soluong', true);
+    const unitPrice = interaction.options.getInteger('gia', true);
+    const result = marketService.createBuyOrder(userId, itemId, quantity, unitPrice);
+    await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: !result.success });
+  }
+
+  private async handleBanHang(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
+    const orderId = interaction.options.getInteger('order_id', true);
+    const quantity = interaction.options.getInteger('soluong', true);
+    const result = marketService.fillBuyOrder(userId, orderId, quantity);
+    await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: !result.success });
+  }
+
+  private async handleHuyMua(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
+    const orderId = interaction.options.getInteger('order_id', true);
+    const result = marketService.cancelBuyOrder(userId, orderId);
+    await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: !result.success });
+  }
+
+  private async handleDsMuaHang(interaction: ChatInputCommandInteraction): Promise<void> {
+    const { orders } = marketService.getActiveBuyOrders(1, 20);
+
+    const embed = new EmbedBuilder()
+      .setTitle('📋 ỦY THÁC THU MUA')
+      .setColor('#3498db')
+      .setTimestamp();
+
+    if (orders.length === 0) {
+      embed.setDescription('*Chưa có đơn ủy thác mua nào. Dùng `/vanbaolau muahang` để tạo!*');
+    } else {
+      let text = '';
+      for (const o of orders) {
+        const remaining = o.quantity - o.filled_quantity;
+        text += `• **#${o.id}** ${o.item_name || o.item_id} — **${o.price_per_unit} LT**/đv | Cần **${remaining}**/${o.quantity}\n   Người mua: ${o.buyer_name}\n`;
+      }
+      embed.setDescription(text);
+    }
+
+    await interaction.reply({ embeds: [embed] });
   }
 }

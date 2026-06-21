@@ -135,7 +135,7 @@ export default class DotPhaCommand extends Command {
           `💎 **Bế Quan Đột Phá:** Hao tổn **${bequanMajorCost}** Linh Thạch Hạ Phẩm để đột phá an toàn 100% (bỏ qua lôi kiếp).\n\n` +
           `⚠️ **Cảnh báo nguy hiểm:** Hãy chắc chắn đạo hữu đang đầy đủ HP/MP. Nếu HP về 0 giữa lôi kiếp, đạo hữu sẽ đột phá thất bại, bị **Trọng Thương (1 giờ)** và tổn thất **-30%** tu vi hiện có!`
         )
-        .setFooter({ text: 'Nhấn nút bên dưới để bắt đầu lôi kiếp hoặc chọn Bế Quan!' })
+        .setFooter({ text: '📖 Xem thêm về Kiếp Số tại /camnang chuong3' })
         .setTimestamp();
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(

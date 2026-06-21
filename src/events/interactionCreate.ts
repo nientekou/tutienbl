@@ -27,8 +27,10 @@ import { getYCanhEmbed, getYCanhComponents } from '../commands/general/ycanh';
 import { getLuanHoiEmbed, getLuanHoiComponents } from '../commands/general/luanhoi';
 import { explorationService, EXPLORATION_LOCATIONS } from '../services/ExplorationService';
 import { dailyQuestService } from '../services/DailyQuestService';
+import { questChainService, QUEST_CHAINS } from '../services/QuestChainService';
+import { communityQuestService } from '../services/CommunityQuestService';
 import { getKhamBhaEmbed, getKhamBhaComponents } from '../commands/general/khambha';
-import { getNhiemVuEmbed, getNhiemVuComponents } from '../commands/general/nhiemvu';
+import { getNhiemVuEmbed, getNhiemVuComponents, getQuestChainEmbed, getQuestChainComponents } from '../commands/general/nhiemvu';
 import { getShopEmbed, getShopComponents, SHOP_ITEMS, checkAndUpdateWeeklyLimit } from '../commands/general/shop';
 import { getShopKyNangEmbed, getShopKyNangComponents, SKILL_BOOKS } from '../commands/general/shopkynang';
 import { getTowerEmbed, getTowerComponents } from '../commands/general/leothap';
@@ -71,84 +73,101 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
   }
 
   public async execute(client: TuTienClient, interaction: Interaction): Promise<void> {
-    const userId = interaction.user.id;
-
-    // Kiểm tra xem người dùng có bị phong ấn (ban) hay không
-    const banCheck = db.prepare('SELECT reason FROM banned_users WHERE user_id = ?').get(userId) as { reason: string } | undefined;
-    if (banCheck) {
-      if (interaction.isRepliable()) {
-        await interaction.reply({
-          content: `🔒 **Trục Xuất Tam Giới:**\n\nLinh hồn của đạo hữu đã bị Thiên Đạo phong ấn (Ban).\n📝 **Lý do:** *${banCheck.reason || 'Không rõ lý do'}*\n\n*Ngươi không thể can thiệp hay thực hiện bất kỳ hành động nào trong tam giới.*`,
-          ephemeral: true
-        });
-      }
-      return;
-    }
-
-    // Cập nhật điểm hoạt động của server (Guild Activity Tracking)
-    if (interaction.guildId) {
-      const now = Math.floor(Date.now() / 1000);
-      try {
-        db.prepare(`
-          INSERT INTO guild_configs (guild_id, interaction_count, last_interaction_at)
-          VALUES (?, 1, ?)
-          ON CONFLICT(guild_id) DO UPDATE SET interaction_count = interaction_count + 1, last_interaction_at = ?
-        `).run(interaction.guildId, now, now);
-      } catch (err) {
-        console.error('[Activity] Lỗi khi cập nhật điểm hoạt động guild:', err);
-      }
-    }
-
-    // Các button được quản lý bởi awaitMessageComponent collector (taonhanvat flow, daolu, setup)
-    // Phải bỏ qua hoàn toàn ở đây để collector có thể xử lý độc quyền, tránh race condition
-    if (interaction.isButton() && (
-      interaction.customId.startsWith('bg_') ||
-      interaction.customId.startsWith('dest_') ||
-      interaction.customId === 'accept_marriage' ||
-      interaction.customId === 'decline_marriage' ||
-      interaction.customId === 'confirm_reset' ||
-      interaction.customId === 'cancel_reset'
-    )) {
-      return;
-    }
-    
-    // Kiểm tra chế độ bảo trì
-    const isDeveloper = userId === '888888888888888881' || 
-      userId === '888888888888888882' ||
-      (client.application?.owner?.id === userId) ||
-      (client.application?.owner as any)?.members?.has(userId);
-
-    const isMaintenance = systemConfigService.isMaintenanceMode();
-    if (isMaintenance && !isDeveloper) {
-      if (interaction.isRepliable()) {
-        await interaction.reply({
-          content: '⚠️ **Hệ Thống Tu Chân Bảo Trì:** Linh khí thiên địa hỗn loạn, đại trận bảo trì đang được kích hoạt. Đạo hữu vui lòng quay lại sau!',
-          ephemeral: true
-        });
-      }
-      return;
-    }
-
-    // Lấy khóa chống race condition / spam
-    if (!InteractionLock.acquire(userId)) {
-      if (interaction.isRepliable()) {
+    // 0. Xử lý Autocomplete trước tiên (không cần lock, không cần check ban/bảo trì/activity)
+    if (interaction.isAutocomplete()) {
+      const command = client.commands.get(interaction.commandName);
+      if (command && (command as any).autocomplete) {
         try {
-          await interaction.reply({
-            content: '❌ **Thao tác quá nhanh:** Hệ thống đang xử lý hành động trước đó của đạo hữu, vui lòng không spam!',
-            ephemeral: true
-          });
-        } catch (lockErr: any) {
-          // Bỏ qua nếu interaction đã được collector xử lý trước (40060) hoặc hết hạn (10062)
-          if (lockErr?.code !== 10062 && lockErr?.code !== 40060 &&
-              lockErr?.rawError?.code !== 10062 && lockErr?.rawError?.code !== 40060) {
-            console.error('[InteractionLock] Lỗi khi reply spam warning:', lockErr);
-          }
+          await (command as any).autocomplete(client, interaction);
+        } catch (err) {
+          console.error(`[Autocomplete Error] Lỗi gợi ý lệnh /${interaction.commandName}:`, err);
         }
       }
       return;
     }
 
+    const userId = interaction.user.id;
+
+    let acquired = false;
     try {
+      // Kiểm tra xem người dùng có bị phong ấn (ban) hay không
+      const banCheck = db.prepare('SELECT reason FROM banned_users WHERE user_id = ?').get(userId) as { reason: string } | undefined;
+      if (banCheck) {
+        if (interaction.isRepliable()) {
+          await interaction.reply({
+            content: `🔒 **Trục Xuất Tam Giới:**\n\nLinh hồn của đạo hữu đã bị Thiên Đạo phong ấn (Ban).\n📝 **Lý do:** *${banCheck.reason || 'Không rõ lý do'}*\n\n*Ngươi không thể can thiệp hay thực hiện bất kỳ hành động nào trong tam giới.*`,
+            ephemeral: true
+          });
+        }
+        return;
+      }
+
+      // Cập nhật điểm hoạt động của server (Guild Activity Tracking)
+      if (interaction.guildId) {
+        const now = Math.floor(Date.now() / 1000);
+        try {
+          db.prepare(`
+            INSERT INTO guild_configs (guild_id, interaction_count, last_interaction_at)
+            VALUES (?, 1, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET interaction_count = interaction_count + 1, last_interaction_at = ?
+          `).run(interaction.guildId, now, now);
+        } catch (err) {
+          console.error('[Activity] Lỗi khi cập nhật điểm hoạt động guild:', err);
+        }
+      }
+
+      // Các button được quản lý bởi awaitMessageComponent collector (taonhanvat flow, daolu, setup)
+      // Phải bỏ qua hoàn toàn ở đây để collector có thể xử lý độc quyền, tránh race condition
+      if (interaction.isButton() && (
+        interaction.customId.startsWith('bg_') ||
+        interaction.customId.startsWith('dest_') ||
+        interaction.customId === 'accept_marriage' ||
+        interaction.customId === 'decline_marriage' ||
+        interaction.customId === 'confirm_reset' ||
+        interaction.customId === 'cancel_reset'
+      )) {
+        return;
+      }
+      
+      // Kiểm tra chế độ bảo trì
+      const BOT_OWNER_ID = '724608013981450351';
+      const isDeveloper = userId === BOT_OWNER_ID ||
+        userId === '888888888888888881' || 
+        userId === '888888888888888882' ||
+        (client.application?.owner?.id === userId) ||
+        (client.application?.owner as any)?.members?.has(userId);
+
+      const isMaintenance = systemConfigService.isMaintenanceMode();
+      if (isMaintenance && !isDeveloper) {
+        if (interaction.isRepliable()) {
+          await interaction.reply({
+            content: '⚠️ **Hệ Thống Tu Chân Bảo Trì:** Linh khí thiên địa hỗn loạn, đại trận bảo trì đang được kích hoạt. Đạo hữu vui lòng quay lại sau!',
+            ephemeral: true
+          });
+        }
+        return;
+      }
+
+      // Lấy khóa chống race condition / spam
+      if (!InteractionLock.acquire(userId)) {
+        if (interaction.isRepliable()) {
+          try {
+            await interaction.reply({
+              content: '❌ **Thao tác quá nhanh:** Hệ thống đang xử lý hành động trước đó của đạo hữu, vui lòng không spam!',
+              ephemeral: true
+            });
+          } catch (lockErr: any) {
+            // Bỏ qua nếu interaction đã được collector xử lý trước (40060) hoặc hết hạn (10062)
+            if (lockErr?.code !== 10062 && lockErr?.code !== 40060 &&
+                lockErr?.rawError?.code !== 10062 && lockErr?.rawError?.code !== 40060) {
+              console.error('[InteractionLock] Lỗi khi reply spam warning:', lockErr);
+            }
+          }
+        }
+        return;
+      }
+
+      acquired = true;
       // 1. Xử lý Slash Command (Chat Input Command)
       if (interaction.isChatInputCommand()) {
         const command = client.commands.get(interaction.commandName);
@@ -189,7 +208,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           interaction.customId.startsWith('anky_select_') ||
           interaction.customId.startsWith('dungkynang_select_') ||
           interaction.customId.startsWith('doitienselect_') ||
-          interaction.customId.startsWith('pb_')
+          interaction.customId.startsWith('pb_') ||
+          interaction.customId.startsWith('bptselect_') ||
+          interaction.customId.startsWith('adminpanel_') ||
+          interaction.customId.startsWith('adminuser_')
         ))
       ) {
         let customId = interaction.customId;
@@ -666,9 +688,9 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
         // --- GỌI CÁC HANDLERS DỰA VÀO ACTION ---
         const cultivationActions = ['luanhoiconfirm', 'luanhoicancel', 'ycanhawaken', 'tuluyen', 'dotpha', 'loi', 'taytuynav', 'taytuyexecute', 'taytuy', 'select', 'confirmalignment', 'dotpharisk', 'dotphastabilize'];
-        const profileActions = ['hosotab', 'hosoback'];
+        const profileActions = ['hosotab', 'hosoback', 'hosolb'];
         const lifeActions = ['alch'];
-        const casinoActions = ['casinoplay', 'casinodouble', 'casinoopposite'];
+        const casinoActions = ['casinoplay', 'casinodouble', 'casinoopposite', 'casinoreplay'];
         const tradeActions = ['trade'];
 
         if (cultivationActions.includes(action)) {
@@ -698,6 +720,31 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         if (tradeActions.includes(action)) {
           const { TradeInteractionHandler } = require('../handlers/interactions/TradeInteractionHandler');
           await TradeInteractionHandler.handle(interaction as any, action, parts, targetUserId);
+          return;
+        }
+
+        // --- Nút Bảng Phong Thần ---
+        else if (action === 'bpt') {
+          const subType = parts[1];
+          const page = parseInt(parts[2], 10) || 1;
+          const targetUserId = parts[parts.length - 1];
+
+          const { buildLeaderboardMessage } = require('../commands/general/bangphongthan');
+          const messageOptions = buildLeaderboardMessage(targetUserId, subType, page);
+
+          await interaction.update(messageOptions);
+          return;
+        }
+
+        // --- Dropdown Bảng Phong Thần ---
+        else if (action === 'bptselect' && interaction.isStringSelectMenu()) {
+          const category = interaction.values[0];
+          const targetUserId = parts[1];
+
+          const { buildLeaderboardMessage } = require('../commands/general/bangphongthan');
+          const messageOptions = buildLeaderboardMessage(targetUserId, category, 1);
+
+          await interaction.update(messageOptions);
           return;
         }
 
@@ -1347,6 +1394,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             new ButtonBuilder()
               .setCustomId(`lamviecwork_patrolling_${targetUserId}`)
               .setLabel('🛡️ Tuần Tra')
+              .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+              .setCustomId(`lamviecwork_escort_${targetUserId}`)
+              .setLabel('🚚 Hộ Tiêu')
               .setStyle(ButtonStyle.Success)
           );
           const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -1361,7 +1412,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         // --- Nút: THỰC THI LÀM VIỆC (từ menu Làm Việc trong hồ sơ) ---
         else if (action === 'lamviecwork') {
           // customId: lamviecwork_<jobType>_<userId> => targetUserId nằm ở parts[2]
-          const jobType = parts[1] as 'mining' | 'gathering' | 'patrolling';
+          const jobType = parts[1] as 'mining' | 'gathering' | 'patrolling' | 'escort';
           const workTargetId = parts[2];
 
           if (interaction.user.id !== workTargetId) {
@@ -1400,6 +1451,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             new ButtonBuilder()
               .setCustomId(`lamviecwork_patrolling_${workTargetId}`)
               .setLabel('🛡️ Tuần Tra')
+              .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+              .setCustomId(`lamviecwork_escort_${workTargetId}`)
+              .setLabel('🚚 Hộ Tiêu')
               .setStyle(ButtonStyle.Success)
           );
           const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -1649,13 +1704,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         else if (action === 'shopkynangnav') {
           const embed = getShopKyNangEmbed(targetUserId);
           const sknComps = getShopKyNangComponents(targetUserId);
-          const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-              .setCustomId(`hosoback_${targetUserId}`)
-              .setLabel('🔙 Quay Lại Hồ Sơ')
-              .setStyle(ButtonStyle.Secondary)
-          );
-          await interaction.update({ embeds: [embed], components: [...sknComps, backRow] });
+          const rowsArr = Array.isArray(sknComps) ? sknComps : [sknComps];
+          await interaction.update({ embeds: [embed], components: rowsArr });
         }
 
         // --- Nút: ĐI ĐẾN WORLD BOSS (từ hồ sơ) ---
@@ -1754,14 +1804,48 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         else if (action === 'shopnav') {
           const embed = getShopEmbed(targetUserId);
           const rows = getShopComponents(targetUserId);
-          const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-              .setCustomId(`hosoback_${targetUserId}`)
-              .setLabel('🔙 Quay Lại Hồ Sơ')
-              .setStyle(ButtonStyle.Secondary)
-          );
           const rowsArr = Array.isArray(rows) ? rows : [rows];
-          await interaction.update({ embeds: [embed], components: [...rowsArr, backRow] });
+          await interaction.update({ embeds: [embed], components: rowsArr });
+        }
+        // --- Nút: CỬA HÀNG PHÂN KHU (Shop Revamp) ---
+        else if (action === 'shop') {
+          let primaryId: string | undefined;
+          let subId: string | undefined;
+          let page = 1;
+
+          if (parts.length >= 5) {
+            // Items page: shop_{primaryId}_{subId}_{page}_{userId}
+            primaryId = parts[1];
+            subId = parts[2];
+            page = parseInt(parts[3]) || 1;
+          } else if (parts.length === 3) {
+            // Category page: shop_{primaryId}_{userId}
+            primaryId = parts[1];
+          }
+          // parts.length === 2 → main page, no params
+
+          const embed = getShopEmbed(targetUserId, primaryId, subId, page);
+          const rows = getShopComponents(targetUserId, primaryId, subId, page);
+          const rowsArr = Array.isArray(rows) ? rows : [rows];
+          await interaction.update({ embeds: [embed], components: rowsArr });
+        }
+        // --- Nút: TÌM KIẾM CỬA HÀNG ---
+        else if (action === 'shopsearch') {
+          const modal = new ModalBuilder()
+            .setCustomId(`shopsearchmodal_${targetUserId}`)
+            .setTitle('🔍 Tìm Kiếm Vật Phẩm');
+
+          const searchInput = new TextInputBuilder()
+            .setCustomId('search_query')
+            .setLabel('Nhập tên hoặc mã vật phẩm')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMinLength(1)
+            .setMaxLength(100);
+
+          modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(searchInput));
+          await interaction.showModal(modal);
+          return;
         }
         // --- Nút: ĐI ĐẾN SĂN YÊU THÚ (từ hồ sơ) ---
         else if (action === 'sanyeuthunaav') {
@@ -1971,6 +2055,30 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const embed = getNhiemVuEmbed(targetUserId);
           const rows = getNhiemVuComponents(targetUserId);
+          await interaction.update({ embeds: [embed], components: rows });
+          await interaction.followUp({ content: result.message, ephemeral: true });
+        }
+
+        // --- Nút: BẮT ĐẦU CHUỖI NHIỆM VỤ ---
+        else if (action === 'chainstart') {
+          const chainId = parts[1];
+          const result = questChainService.startChain(targetUserId, chainId);
+
+          const embed = getQuestChainEmbed(targetUserId);
+          const rows = getQuestChainComponents(targetUserId);
+          await interaction.update({ embeds: [embed], components: rows });
+          if (result.message) {
+            await interaction.followUp({ content: result.message, ephemeral: true });
+          }
+        }
+
+        // --- Nút: NHẬN THƯỞNG BƯỚC CHUỖI NHIỆM VỤ ---
+        else if (action === 'chainclaim') {
+          const chainId = parts[1];
+          const result = questChainService.claimStepReward(targetUserId);
+
+          const embed = getQuestChainEmbed(targetUserId);
+          const rows = getQuestChainComponents(targetUserId);
           await interaction.update({ embeds: [embed], components: rows });
           await interaction.followUp({ content: result.message, ephemeral: true });
         }
@@ -2754,6 +2862,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         }
       }
 
+      return;
     }
 
     // 3. Xử lý Dropdown Menu (String Select Menu Interactions)
@@ -2763,13 +2872,24 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
       const actionType = parts[0];
       const targetUserId = parts[parts.length - 1];
       const page = parseInt(parts[1], 10) || 1;
-      // Bảo mật: Chỉ cho phép người sở hữu hồ sơ tương tác túi đồ
+      
+      // Bảo mật: Chỉ cho phép người sở hữu tương tác
       if (interaction.user.id !== targetUserId) {
         console.log(`[DEBUG] Block 3 Error: user.id='${interaction.user.id}', targetUserId='${targetUserId}', customId='${customId}'`);
+        const actionLabel = actionType === 'bptselect' ? 'bảng xếp hạng' : 'túi đồ';
         await interaction.reply({
-          content: `❌ **Cảnh báo:** Đạo hữu không thể tương tác với túi đồ của tu sĩ khác! (Your ID: ${interaction.user.id}, Target ID: ${targetUserId})`,
+          content: `❌ **Cảnh báo:** Đạo hữu không thể tương tác với ${actionLabel} của tu sĩ khác!`,
           ephemeral: true
         });
+        return;
+      }
+
+      // --- Menu: BẢNG PHONG THẦN CATEGORY SELECT ---
+      if (actionType === 'bptselect') {
+        const selectedCategory = interaction.values[0];
+        const { buildLeaderboardMessage } = require('../commands/general/bangphongthan');
+        const messageOptions = buildLeaderboardMessage(targetUserId, selectedCategory, 1);
+        await interaction.update(messageOptions);
         return;
       }
 
@@ -2996,15 +3116,12 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             return;
           }
 
-          const embed = getShopEmbed(targetUserId);
-          const shopComps = getShopComponents(targetUserId);
-          const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-              .setCustomId(`hosoback_${targetUserId}`)
-              .setLabel('🔙 Quay Lại Hồ Sơ')
-              .setStyle(ButtonStyle.Secondary)
-          );
-          await interaction.update({ embeds: [embed], components: [...shopComps, backRow] });
+          const primaryId = parts[1];
+          const pageNum = parseInt(parts[2], 10) || 1;
+          const embed = getShopEmbed(targetUserId, primaryId, undefined, pageNum);
+          const shopComps = getShopComponents(targetUserId, primaryId, undefined, pageNum);
+          const rowsArr = Array.isArray(shopComps) ? shopComps : [shopComps];
+          await interaction.update({ embeds: [embed], components: rowsArr });
           await interaction.followUp({ content: `🛒 Mua thành công **1x ${item.name}** (−${item.price} KNB)!`, ephemeral: true });
         } else {
           if (buyer.coin_ha_pham < item.price) {
@@ -3028,15 +3145,12 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             return;
           }
 
-          const embed = getShopEmbed(targetUserId);
-          const shopComps = getShopComponents(targetUserId);
-          const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-              .setCustomId(`hosoback_${targetUserId}`)
-              .setLabel('🔙 Quay Lại Hồ Sơ')
-              .setStyle(ButtonStyle.Secondary)
-          );
-          await interaction.update({ embeds: [embed], components: [...shopComps, backRow] });
+          const primaryId = parts[1];
+          const pageNum = parseInt(parts[2], 10) || 1;
+          const embed = getShopEmbed(targetUserId, primaryId, undefined, pageNum);
+          const shopComps = getShopComponents(targetUserId, primaryId, undefined, pageNum);
+          const rowsArr = Array.isArray(shopComps) ? shopComps : [shopComps];
+          await interaction.update({ embeds: [embed], components: rowsArr });
           await interaction.followUp({ content: `🛒 Mua thành công **1x ${item.name}** (−${item.price} Linh Thạch)!`, ephemeral: true });
         }
       }
@@ -3063,15 +3177,12 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         userRepository.update(targetUserId, { coin_ha_pham: buyer.coin_ha_pham - book.price });
         inventoryRepository.addItem(targetUserId, book.id, 1);
 
-        const embed = getShopKyNangEmbed(targetUserId);
-        const sknComps = getShopKyNangComponents(targetUserId);
-        const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`hosoback_${targetUserId}`)
-            .setLabel('🔙 Quay Lại Hồ Sơ')
-            .setStyle(ButtonStyle.Secondary)
-        );
-        await interaction.update({ embeds: [embed], components: [...sknComps, backRow] });
+        const primaryId = parts[1];
+        const pageNum = parseInt(parts[2], 10) || 1;
+        const embed = getShopEmbed(targetUserId, primaryId, undefined, pageNum);
+        const sknComps = getShopComponents(targetUserId, primaryId, undefined, pageNum);
+        const rowsArr = Array.isArray(sknComps) ? sknComps : [sknComps];
+        await interaction.update({ embeds: [embed], components: rowsArr });
         await interaction.followUp({ content: `📚 Thỉnh thành công **1x ${book.name}** (−${book.price} Linh Thạch)! Dùng \`/dungkynang item_id: ${book.id}\` để lĩnh ngộ.`, ephemeral: true });
       }
       return;
@@ -3144,6 +3255,18 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           await interaction.reply({ content: `✅ Quy đổi thành công! ${res.message}`, ephemeral: true });
         }
       }
+
+      // --- Modal: TÌM KIẾM CỬA HÀNG ---
+      else if (action === 'shopsearchmodal') {
+        const searchQuery = interaction.fields.getTextInputValue('search_query');
+        const embed = getShopEmbed(targetUserId, undefined, undefined, 1, searchQuery);
+        const rows = getShopComponents(targetUserId, undefined, undefined, 1, searchQuery);
+        if ((interaction as any).update) {
+          await (interaction as any).update({ embeds: [embed], components: rows });
+        } else {
+          await interaction.reply({ embeds: [embed], components: rows });
+        }
+      }
       return;
     }
     } catch (error: any) {
@@ -3171,7 +3294,9 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         }
       }
     } finally {
-      InteractionLock.release(userId);
+      if (acquired) {
+        InteractionLock.release(userId);
+      }
     }
   }
 }

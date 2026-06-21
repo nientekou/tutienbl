@@ -83,9 +83,20 @@ export class CultivationService {
    * Tính toán lượng EXP (Tu Vi) cần thiết để lên cấp/tầng tiếp theo
    */
   public calculateNextExp(level: number): number {
-    // Tăng trưởng exp bậc đa thức thay vì hàm mũ để tránh tràn số (JS MAX_SAFE_INTEGER)
-    // Công thức: 100 * (level ^ 2.2)
-    return Math.round(100 * Math.pow(level, 2.2));
+    const base = Math.round(100 * Math.pow(level, 2.2));
+    if (level >= 100) {
+      return Math.round(base * 0.7);
+    }
+    return base;
+  }
+
+  public getExpMultiplierForSource(playerLevel: number, sourceLevel: number): number {
+    const diff = playerLevel - sourceLevel;
+    if (diff >= 50) return 0.1;
+    if (diff >= 30) return 0.3;
+    if (diff >= 15) return 0.5;
+    if (diff >= 5) return 0.8;
+    return 1.0;
   }
 
   /**

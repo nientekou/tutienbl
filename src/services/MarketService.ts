@@ -3,6 +3,7 @@ import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
 import { systemConfigService } from './SystemConfigService';
 import { leylineService } from './LeylineService';
+import { getRealmDetails } from '../utils/constants';
 
 export interface MarketListing {
   id: number;
@@ -47,6 +48,52 @@ export interface TransactionRecord {
 }
 
 class MarketService {
+  private getTodaysDateUtc(): string {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  private getMinPriceForLevel(level: number): number {
+    const realm = getRealmDetails(level);
+    const minPrices = [10, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
+    return minPrices[Math.min(realm.majorIndex, minPrices.length - 1)];
+  }
+
+  private getDailyTracking(userId: string): { sell_count: number; total_sales: number; total_tax: number } {
+    const date = this.getTodaysDateUtc();
+    const row = db.prepare(`
+      SELECT sell_count, total_sales, total_tax FROM market_daily_tracking
+      WHERE user_id = ? AND date = ?
+    `).get(userId, date) as { sell_count: number; total_sales: number; total_tax: number } | undefined;
+    return row || { sell_count: 0, total_sales: 0, total_tax: 0 };
+  }
+
+  private checkDailySellLimit(userId: string): { canSell: boolean; count: number; max: number } {
+    const max = 20;
+    const tracking = this.getDailyTracking(userId);
+    return { canSell: tracking.sell_count < max, count: tracking.sell_count, max };
+  }
+
+  private incrementSellCount(userId: string): void {
+    const date = this.getTodaysDateUtc();
+    db.prepare(`
+      INSERT INTO market_daily_tracking (user_id, date, sell_count, total_sales, total_tax)
+      VALUES (?, ?, 1, 0, 0)
+      ON CONFLICT(user_id, date) DO UPDATE SET
+        sell_count = sell_count + 1
+    `).run(userId, date);
+  }
+
+  private recordCompletedSale(userId: string, price: number, tax: number): void {
+    const date = this.getTodaysDateUtc();
+    db.prepare(`
+      INSERT INTO market_daily_tracking (user_id, date, sell_count, total_sales, total_tax)
+      VALUES (?, ?, 0, ?, ?)
+      ON CONFLICT(user_id, date) DO UPDATE SET
+        total_sales = total_sales + ?,
+        total_tax = total_tax + ?
+    `).run(userId, date, price, tax, price, tax);
+  }
+
   /**
    * Tạo đấu giá với thời gian đếm ngược
    */
@@ -65,6 +112,12 @@ class MarketService {
     if (item.is_equipped === 1) return { success: false, message: 'Vật phẩm đang đeo, tháo ra trước!' };
     if (item.quantity < quantity) return { success: false, message: 'Không đủ số lượng!' };
     if (startingBid <= 0) return { success: false, message: 'Giá khởi điểm phải > 0!' };
+
+    const minPrice = this.getMinPriceForLevel(user.level);
+    if (startingBid < minPrice) return { success: false, message: `Cảnh giới của đạo hữu yêu cầu giá khởi điểm tối thiểu **${minPrice} Linh Thạch**!` };
+
+    const limit = this.checkDailySellLimit(userId);
+    if (!limit.canSell) return { success: false, message: `Đã đạt giới hạn bán **${limit.max} vật phẩm/ngày**! Vui lòng chờ ngày mới.` };
 
     // Phí đăng ký đấu giá 100 Linh Thạch
     if (user.coin_ha_pham < 100) return { success: false, message: 'Cần 100 Linh Thạch phí đăng ký đấu giá!' };
@@ -95,6 +148,8 @@ class MarketService {
         VALUES (?, ?, ?, ?, 'ha_pham', ?, 'auction', ?, 50, ?, ?, 'active')
       `).run(userId, finalInvId, item.item_id, quantity, startingBid, startingBid, now, expiresAt);
 
+      this.incrementSellCount(userId);
+
       systemConfigService.writeAuditLog(userId, 'create_auction', {
         listingId: result.lastInsertRowid,
         itemName: item.name,
@@ -123,6 +178,12 @@ class MarketService {
     if (item.quantity < quantity) return { success: false, message: `Không đủ số lượng! (Có: ${item.quantity})` };
     if (price <= 0) return { success: false, message: 'Giá phải > 0!' };
 
+    const minPrice = this.getMinPriceForLevel(user.level);
+    if (price < minPrice) return { success: false, message: `Cảnh giới của đạo hữu yêu cầu giá bán tối thiểu **${minPrice} Linh Thạch**!` };
+
+    const limit = this.checkDailySellLimit(userId);
+    if (!limit.canSell) return { success: false, message: `Đã đạt giới hạn bán **${limit.max} vật phẩm/ngày**! Vui lòng chờ ngày mới.` };
+
     const now = Math.floor(Date.now() / 1000);
     const expiresAt = now + 7 * 24 * 3600;
 
@@ -148,6 +209,7 @@ class MarketService {
       `).run(userId, finalInvId, item.item_id, quantity, price, now, expiresAt);
       
       listingId = res.lastInsertRowid as number;
+      this.incrementSellCount(userId);
     })();
 
     return {
@@ -172,10 +234,10 @@ class MarketService {
 
     const seller = userRepository.get(listing.seller_id);
     
-    // Leyline Buff Kinh Tế (-10% thuế)
-    let taxRate = 0.1;
+    // 2% thuế giao dịch, Leyline Buff Kinh Tế giảm 10% thuế
+    let taxRate = 0.02;
     if (leylineService.isBuffActive('kinhte')) {
-      taxRate = 0.09; // Giảm 10% của 0.1 -> 0.09 (hoặc giảm thẳng còn 0%, nhưng theo yêu cầu là -10% phí)
+      taxRate = 0.018;
     }
     const tax = Math.round(listing.price * taxRate);
     const payout = listing.price - tax;
@@ -186,6 +248,9 @@ class MarketService {
     db.transaction(() => {
       userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - listing.price });
       if (seller) userRepository.update(listing.seller_id, { coin_ha_pham: seller.coin_ha_pham + payout });
+      // Nộp thuế vào tài khoản hệ thống
+      const marketUser = userRepository.get('market');
+      if (marketUser) userRepository.update('market', { coin_ha_pham: marketUser.coin_ha_pham + tax });
       db.prepare("UPDATE market_listings SET status = 'sold' WHERE id = ?").run(listingId);
 
       const marketItem = db.prepare('SELECT * FROM inventories WHERE id = ?').get(listing.inventory_id) as any;
@@ -212,6 +277,8 @@ class MarketService {
         INSERT INTO market_transaction_history (user_id, type, listing_id, item_id, quantity, price, tax, counterparty_id, created_at)
         VALUES (?, 'sell', ?, ?, ?, ?, ?, ?, ?)
       `).run(listing.seller_id, listingId, listing.item_id, listing.quantity, payout, tax, userId, now);
+
+      this.recordCompletedSale(listing.seller_id, listing.price, tax);
     })();
 
     return { success: true, message: `🎉 Mua thành công **${listing.quantity}x ${itemName}** giá **${listing.price} LT** (thuế: ${tax} LT)!` };
@@ -330,10 +397,10 @@ class MarketService {
       return;
     }
 
-    // Leyline Buff Kinh Tế (-10% thuế)
-    let taxRate = 0.1;
+    // 2% thuế giao dịch, Leyline Buff Kinh Tế giảm 10% thuế
+    let taxRate = 0.02;
     if (leylineService.isBuffActive('kinhte')) {
-      taxRate = 0.09;
+      taxRate = 0.018;
     }
     const tax = Math.round(listing.current_bid! * taxRate);
     const payout = listing.current_bid! - tax;
@@ -341,6 +408,9 @@ class MarketService {
     const tx = db.transaction(() => {
       // Ghi nhận thanh toán: tiền đã khóa từ bidder, chỉ cần chuyển cho seller
       userRepository.update(listing.seller_id, { coin_ha_pham: seller.coin_ha_pham + payout });
+      // Nộp thuế vào tài khoản hệ thống
+      const marketUser = userRepository.get('market');
+      if (marketUser) userRepository.update('market', { coin_ha_pham: marketUser.coin_ha_pham + tax });
 
       // Chuyển vật phẩm
       const marketItem = db.prepare('SELECT * FROM inventories WHERE id = ?').get(listing.inventory_id) as any;
@@ -372,6 +442,8 @@ class MarketService {
         INSERT INTO market_transaction_history (user_id, type, listing_id, item_id, quantity, price, tax, counterparty_id, created_at)
         VALUES (?, 'sell', ?, ?, ?, ?, ?, ?, ?)
       `).run(listing.seller_id, listingId, listing.item_id, listing.quantity, payout, tax, listing.current_bidder_id, now);
+
+      this.recordCompletedSale(listing.seller_id, listing.current_bid!, tax);
 
       systemConfigService.writeAuditLog(listing.current_bidder_id!, 'auction_win', {
         listingId,
@@ -653,6 +725,186 @@ class MarketService {
       endsAt: event.ended_at,
       remainingHours,
     };
+  }
+
+  // ─── Buy Orders (Ủy Thác Thu Mua) ───
+
+  /**
+   * Tạo đơn ủy thác thu mua
+   */
+  createBuyOrder(userId: string, itemId: string, quantity: number, unitPrice: number): { success: boolean; message: string; orderId?: number } {
+    const user = userRepository.get(userId);
+    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (quantity <= 0 || quantity > 999) return { success: false, message: 'Số lượng từ 1 đến 999!' };
+    if (unitPrice <= 0) return { success: false, message: 'Giá phải > 0!' };
+
+    const item = db.prepare('SELECT name FROM items WHERE id = ?').get(itemId) as { name: string } | undefined;
+    if (!item) return { success: false, message: 'Vật phẩm không tồn tại!' };
+
+    const totalCost = quantity * unitPrice;
+    const minPrice = this.getMinPriceForLevel(user.level);
+    if (unitPrice < minPrice) return { success: false, message: `Cảnh giới yêu cầu giá tối thiểu **${minPrice} LT**/đơn vị!` };
+
+    // Ký quỹ 10%
+    const deposit = Math.round(totalCost * 0.10);
+    const totalDeduct = totalCost + deposit;
+
+    if (user.coin_ha_pham < totalDeduct) {
+      return { success: false, message: `Không đủ Linh Thạch! (Cần: ${totalDeduct} LT gồm ${deposit} LT ký quỹ, Có: ${user.coin_ha_pham} LT)` };
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const expiresAt = now + 7 * 24 * 3600; // 7 ngày
+
+    db.transaction(() => {
+      userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - totalDeduct });
+
+      const res = db.prepare(`
+        INSERT INTO buy_orders (user_id, item_id, quantity, price_per_unit, total_cost, deposit, filled_quantity, status, created_at, expires_at)
+        VALUES (?, ?, ?, ?, ?, ?, 0, 'active', ?, ?)
+      `).run(userId, itemId, quantity, unitPrice, totalCost, deposit, now, expiresAt);
+
+      systemConfigService.writeAuditLog(userId, 'create_buy_order', { orderId: res.lastInsertRowid, itemId, quantity, unitPrice, deposit });
+    })();
+
+    return {
+      success: true,
+      message: `📜 **Đã tạo đơn ủy thác!** Mua **${quantity}x ${item.name}** giá **${unitPrice} LT**/đơn vị.\n💰 Đã khấu trừ: **${totalCost} LT** (tiền hàng) + **${deposit} LT** (ký quỹ 10%).\n⏳ Hiệu lực: **7 ngày**.`,
+      orderId: (db.prepare('SELECT id FROM buy_orders WHERE user_id = ? ORDER BY id DESC LIMIT 1').get(userId) as any)?.id
+    };
+  }
+
+  /**
+   * Bán vào đơn ủy thác (người bán match với buy order)
+   */
+  fillBuyOrder(userId: string, orderId: number, quantity: number): { success: boolean; message: string } {
+    const seller = userRepository.get(userId);
+    if (!seller) return { success: false, message: 'Nhân vật không tồn tại!' };
+
+    const order = db.prepare("SELECT * FROM buy_orders WHERE id = ? AND status = 'active'").get(orderId) as any;
+    if (!order) return { success: false, message: 'Đơn ủy thác không tồn tại hoặc đã hoàn tất!' };
+    if (order.user_id === userId) return { success: false, message: 'Không thể tự bán vào đơn ủy thác của mình!' };
+
+    const remaining = order.quantity - order.filled_quantity;
+    if (quantity > remaining) return { success: false, message: `Chỉ cần **${remaining}** vật phẩm nữa!` };
+
+    // Kiểm tra người bán có đủ item không
+    const sellerInv = inventoryRepository.getUserInventory(userId);
+    const item = sellerInv.find(i => i.item_id === order.item_id && i.is_equipped === 0);
+    if (!item || item.quantity < quantity) return { success: false, message: `Không đủ **${order.item_id}** trong hành trang!` };
+
+    const buyer = userRepository.get(order.user_id);
+    const payout = quantity * order.price_per_unit;
+    const now = Math.floor(Date.now() / 1000);
+
+    db.transaction(() => {
+      // Người bán nhận tiền
+      userRepository.update(userId, { coin_ha_pham: seller.coin_ha_pham + payout });
+
+      // Chuyển item từ seller tới buyer
+      const buyerInv = inventoryRepository.getUserInventory(order.user_id);
+      const existing = buyerInv.find(i => i.item_id === order.item_id && i.is_equipped === 0 && i.equipable === 0);
+      if (existing) {
+        db.prepare('UPDATE inventories SET quantity = quantity + ? WHERE id = ?').run(quantity, existing.id);
+        db.prepare('UPDATE inventories SET quantity = quantity - ? WHERE id = ?').run(quantity, item.id);
+        if (item.quantity - quantity <= 0) {
+          db.prepare('DELETE FROM inventories WHERE id = ?').run(item.id);
+        }
+      } else {
+        db.prepare('UPDATE inventories SET quantity = quantity - ? WHERE id = ?').run(quantity, item.id);
+        if (item.quantity - quantity <= 0) {
+          db.prepare('DELETE FROM inventories WHERE id = ?').run(item.id);
+        }
+        db.prepare("INSERT INTO inventories (user_id, item_id, quantity, created_at) VALUES (?, ?, ?, ?)")
+          .run(order.user_id, order.item_id, quantity, now);
+      }
+
+      // Cập nhật buy order
+      const newFilled = order.filled_quantity + quantity;
+      const newStatus = newFilled >= order.quantity ? 'completed' : 'active';
+      db.prepare('UPDATE buy_orders SET filled_quantity = ?, status = ? WHERE id = ?')
+        .run(newFilled, newStatus, orderId);
+
+      // Nếu hoàn tất, trả lại ký quỹ cho buyer
+      if (newStatus === 'completed') {
+        if (buyer) {
+          userRepository.update(order.user_id, { coin_ha_pham: buyer.coin_ha_pham + order.deposit });
+        }
+      }
+
+      // Ghi log
+      const buyerName = buyer?.name || 'Không xác định';
+      systemConfigService.writeAuditLog(userId, 'fill_buy_order', { orderId, itemId: order.item_id, quantity, payout, buyerId: order.user_id });
+    })();
+
+    const itemName = db.prepare('SELECT name FROM items WHERE id = ?').get(order.item_id) as { name: string } | undefined;
+    return {
+      success: true,
+      message: `✅ **Bán thành công!** Đã bán **${quantity}x ${itemName?.name || order.item_id}** vào đơn ủy thác #${orderId}.\n💰 Nhận **${payout} LT**.`
+    };
+  }
+
+  /**
+   * Hủy đơn ủy thác thu mua (mất ký quỹ)
+   */
+  cancelBuyOrder(userId: string, orderId: number): { success: boolean; message: string } {
+    const order = db.prepare("SELECT * FROM buy_orders WHERE id = ? AND user_id = ?").get(orderId, userId) as any;
+    if (!order) return { success: false, message: 'Đơn ủy thác không tồn tại!' };
+    if (order.status !== 'active') return { success: false, message: 'Đơn ủy thác đã hoàn tất hoặc bị hủy!' };
+
+    const filled = order.filled_quantity;
+    const unfilledQty = order.quantity - filled;
+    const refund = unfilledQty * order.price_per_unit; // Hoàn tiền hàng chưa mua được
+
+    const now = Math.floor(Date.now() / 1000);
+    db.transaction(() => {
+      const user = userRepository.get(userId);
+      if (user) {
+        userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham + refund });
+      }
+      db.prepare("UPDATE buy_orders SET status = 'cancelled' WHERE id = ?").run(orderId);
+      systemConfigService.writeAuditLog(userId, 'cancel_buy_order', { orderId, refund, depositLost: order.deposit });
+    })();
+
+    return {
+      success: true,
+      message: `🚫 **Đã hủy đơn ủy thác #${orderId}.**\n💰 Hoàn lại: **${refund} LT** (${unfilledQty} x ${order.price_per_unit} LT).\n💸 Mất ký quỹ: **${order.deposit} LT**.`
+    };
+  }
+
+  /**
+   * Lấy danh sách buy orders đang active
+   */
+  getActiveBuyOrders(page: number = 1, limit: number = 10): { orders: any[]; totalCount: number; page: number; totalPages: number } {
+    const countResult = db.prepare("SELECT COUNT(*) as c FROM buy_orders WHERE status = 'active'").get() as { c: number };
+    const totalCount = countResult.c;
+    const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+    const offset = (page - 1) * limit;
+
+    const orders = db.prepare(`
+      SELECT b.*, u.name as buyer_name, i.name as item_name
+      FROM buy_orders b
+      JOIN users u ON b.user_id = u.discord_id
+      LEFT JOIN items i ON b.item_id = i.id
+      WHERE b.status = 'active'
+      ORDER BY b.price_per_unit DESC, b.created_at ASC
+      LIMIT ? OFFSET ?
+    `).all(limit, offset) as any[];
+
+    return { orders, totalCount, page, totalPages };
+  }
+
+  /**
+   * Lấy buy orders của user
+   */
+  getUserBuyOrders(userId: string): any[] {
+    return db.prepare(`
+      SELECT b.*, i.name as item_name
+      FROM buy_orders b
+      LEFT JOIN items i ON b.item_id = i.id
+      WHERE b.user_id = ?
+      ORDER BY b.created_at DESC
+    `).all(userId) as any[];
   }
 }
 

@@ -3,6 +3,8 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import db from '../../database/database';
+import { sectService } from '../../services/SectService';
+import { guildWarService } from '../../services/GuildWarService';
 
 interface SectEntity {
   id: number;
@@ -58,6 +60,47 @@ export default class TongMonCommand extends Command {
                    { name: 'Linh Điền', value: 'linhdien' },
                    { name: 'Tàng Kinh Các', value: 'tangkinhcac' }
                  )
+            )
+        )
+        .addSubcommand(sub =>
+          sub.setName('thongke').setDescription('Thống kê đóng góp và xếp hạng trong Tông Môn')
+        )
+        .addSubcommandGroup(group =>
+          group.setName('tthi').setDescription('Giải đấu nội bộ Tông Môn')
+            .addSubcommand(sub =>
+              sub.setName('batdau').setDescription('[Tông Chủ] Mở giải đấu nội bộ')
+            )
+            .addSubcommand(sub =>
+              sub.setName('thamgia').setDescription('Đăng ký tham gia giải đấu nội bộ')
+            )
+            .addSubcommand(sub =>
+              sub.setName('ketthuc').setDescription('[Tông Chủ] Kết thúc giải đấu và nhận thưởng')
+            )
+            .addSubcommand(sub =>
+              sub.setName('thongtin').setDescription('Xem thông tin giải đấu nội bộ')
+            )
+            .addSubcommand(sub =>
+              sub.setName('rut').setDescription('Rút khỏi giải đấu nội bộ')
+            )
+        )
+        .addSubcommandGroup(group =>
+          group.setName('lienminh').setDescription('Liên minh Tông Môn')
+            .addSubcommand(sub =>
+              sub.setName('moi').setDescription('Gửi lời mời liên minh đến một Tông Môn')
+                .addStringOption(opt => opt.setName('ten').setDescription('Tên Tông Môn muốn kết minh').setRequired(true))
+            )
+            .addSubcommand(sub =>
+              sub.setName('chapnhan').setDescription('Chấp nhận lời mời liên minh')
+            )
+            .addSubcommand(sub =>
+              sub.setName('huy').setDescription('Phá vỡ liên minh hiện tại')
+            )
+            .addSubcommand(sub =>
+              sub.setName('thongtin').setDescription('Xem thông tin liên minh của Tông Môn')
+            )
+            .addSubcommand(sub =>
+              sub.setName('tuyen-chien').setDescription('Tuyên chiến với liên minh khác')
+                .addStringOption(opt => opt.setName('ten').setDescription('Tên Tông Môn trong liên minh muốn tấn công').setRequired(true))
             )
         )
     );
@@ -240,6 +283,233 @@ export default class TongMonCommand extends Command {
 
       await interaction.reply({ content: `🏗️ **NÂNG CẤP THÀNH CÔNG!**\nTông Chủ tiêu hao **${cost}** Quỹ Tông Môn để nâng cấp **${info.name}** lên Cấp **${bLevel + 1}**!` });
       return;
+    }
+
+    if (sub === 'thongke') {
+      if (!user.sect_id) {
+        await interaction.reply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn nào!', ephemeral: true });
+        return;
+      }
+
+      const sect = db.prepare('SELECT * FROM sects WHERE id = ?').get(user.sect_id) as any;
+      if (!sect) {
+        await interaction.reply({ content: '❌ Không tìm thấy Tông Môn!', ephemeral: true });
+        return;
+      }
+
+      // Top 3 EXP contribution
+      const topExp = db.prepare(`
+        SELECT discord_id, name, level, sect_contribution
+        FROM users
+        WHERE sect_id = ?
+        ORDER BY sect_contribution DESC
+        LIMIT 3
+      `).all(user.sect_id) as any[];
+
+      // Top 3 Linh Thạch
+      const topLT = db.prepare(`
+        SELECT discord_id, name, level, coin_ha_pham
+        FROM users
+        WHERE sect_id = ?
+        ORDER BY coin_ha_pham DESC
+        LIMIT 3
+      `).all(user.sect_id) as any[];
+
+      // Top 3 Boss damage
+      const topBoss = db.prepare(`
+        SELECT u.discord_id, u.name, u.level, COALESCE(SUM(wb.damage), 0) as total_damage
+        FROM users u
+        LEFT JOIN world_boss_contributions wb ON u.discord_id = wb.user_id
+        WHERE u.sect_id = ?
+        GROUP BY u.discord_id
+        ORDER BY total_damage DESC
+        LIMIT 3
+      `).all(user.sect_id) as any[];
+
+      // Bar chart data (top 5 by sect_contribution)
+      const barData = db.prepare(`
+        SELECT name, sect_contribution
+        FROM users
+        WHERE sect_id = ?
+        ORDER BY sect_contribution DESC
+        LIMIT 5
+      `).all(user.sect_id) as any[];
+
+      const maxVal = barData.length > 0 ? Math.max(...barData.map(b => b.sect_contribution)) : 1;
+      const chartLines = barData.map((b, i) =>
+        `#${i + 1} **${b.name}**: ${'█'.repeat(Math.max(1, Math.round((b.sect_contribution / maxVal) * 10)))} (${b.sect_contribution})`
+      );
+
+      // Weekly bonus: Sunday 23:00-23:59
+      const now = new Date();
+      const nowUnix = Math.floor(Date.now() / 1000);
+      const dayOfWeek = now.getDay();
+      const hours = now.getHours();
+      const isBonusTime = dayOfWeek === 0 && hours === 23;
+
+      let bonusMsg = '';
+      if (isBonusTime) {
+        const weekStart = nowUnix - (dayOfWeek * 86400 + hours * 3600 + now.getMinutes() * 60 + now.getSeconds());
+        if (!sect.last_weekly_bonus_at || sect.last_weekly_bonus_at < weekStart) {
+          const top3 = db.prepare(`
+            SELECT discord_id, name, sect_contribution
+            FROM users
+            WHERE sect_id = ?
+            ORDER BY sect_contribution DESC
+            LIMIT 3
+          `).all(user.sect_id) as any[];
+
+          const rewards = [100, 60, 30];
+          db.transaction(() => {
+            top3.forEach((m, i) => {
+              if (i < 3) {
+                userRepository.update(m.discord_id, { sect_contribution: m.sect_contribution + rewards[i] });
+              }
+            });
+            db.prepare('UPDATE sects SET last_weekly_bonus_at = ? WHERE id = ?').run(nowUnix, sect.id);
+          })();
+
+          bonusMsg = `🎁 **Thưởng Cuối Tuần Tông Môn Điểm:**\n${top3.map((m, i) => `#${i + 1} **${m.name}**: +${rewards[i]} điểm`).join('\n')}`;
+        }
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle(`📊 THỐNG KÊ TÔNG MÔN: ${sect.name}`)
+        .setColor('#f1c40f')
+        .addFields(
+          { name: '🥇 Top Đóng Góp EXP', value: topExp.map((m, i) => `#${i + 1} **${m.name}** (Cấp ${m.level}): ${m.sect_contribution} điểm`).join('\n') || '*Chưa có dữ liệu*', inline: true },
+          { name: '💎 Top Đóng Góp Linh Thạch', value: topLT.map((m, i) => `#${i + 1} **${m.name}** (Cấp ${m.level}): ${m.coin_ha_pham} LT`).join('\n') || '*Chưa có dữ liệu*', inline: true },
+          { name: '🐉 Top Săn Boss', value: topBoss.map((m, i) => `#${i + 1} **${m.name}** (Cấp ${m.level}): ${m.total_damage} dmg`).join('\n') || '*Chưa có dữ liệu*', inline: true },
+          { name: '📈 Biểu Đồ Đóng Góp (Top 5)', value: chartLines.join('\n') || '*Chưa có dữ liệu*' }
+        )
+        .setFooter({ text: '📊 Cập nhật theo thời gian thực' });
+
+      if (bonusMsg) {
+        embed.setDescription(bonusMsg);
+      }
+
+      await interaction.reply({ embeds: [embed] });
+      return;
+    }
+
+    const group = interaction.options.getSubcommandGroup();
+    if (group === 'tthi') {
+      if (!user.sect_id) {
+        await interaction.reply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn nào!', ephemeral: true });
+        return;
+      }
+
+      if (sub === 'batdau') {
+        if (user.sect_role !== 'master') {
+          await interaction.reply({ content: '❌ Chỉ có Tông Chủ mới có quyền mở giải đấu!', ephemeral: true });
+          return;
+        }
+        const result = guildWarService.startTournament(user.sect_id, userId);
+        await interaction.reply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message, ephemeral: !result.success });
+        return;
+      }
+
+      if (sub === 'thamgia') {
+        const userName = user.name;
+        const result = guildWarService.joinTournament(user.sect_id, userId, userName);
+        await interaction.reply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message, ephemeral: !result.success });
+        return;
+      }
+
+      if (sub === 'ketthuc') {
+        if (user.sect_role !== 'master') {
+          await interaction.reply({ content: '❌ Chỉ có Tông Chủ mới có quyền kết thúc giải đấu!', ephemeral: true });
+          return;
+        }
+        const result = guildWarService.endTournament(user.sect_id, userId);
+        await interaction.reply({ content: result.success ? result.message : '❌ ' + result.message, ephemeral: !result.success });
+        return;
+      }
+
+      if (sub === 'thongtin') {
+        const info = guildWarService.getTournamentInfo(user.sect_id);
+        if (!info) {
+          await interaction.reply({ content: '📭 Tông Môn của đạo hữu hiện không có giải đấu nào.', ephemeral: true });
+          return;
+        }
+        const statusText = info.status === 'open' ? '🟢 Đang mở đăng ký' : info.status === 'fighting' ? '⚔️ Đang diễn ra' : '🏁 Đã kết thúc';
+        const embed = new EmbedBuilder()
+          .setTitle('🏟️ Giải Đấu Nội Bộ')
+          .setColor('#9b59b6')
+          .setDescription(`**Trạng thái:** ${statusText}\n**Người tham gia (${info.participants.length}):** ${info.participants.join(', ') || 'Chưa có'}`)
+          .setFooter({ text: info.winnerName ? `🏆 Quán quân: ${info.winnerName}` : 'Chưa có quán quân' });
+        await interaction.reply({ embeds: [embed] });
+        return;
+      }
+
+      if (sub === 'rut') {
+        const result = guildWarService.leaveTournament(user.sect_id, userId);
+        await interaction.reply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message, ephemeral: !result.success });
+        return;
+      }
+    }
+
+    if (group === 'lienminh') {
+      if (!user.sect_id) {
+        await interaction.reply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn nào!', ephemeral: true });
+        return;
+      }
+
+      if (sub === 'moi') {
+        const targetName = interaction.options.getString('ten', true);
+        const targetSect = db.prepare('SELECT id, name FROM sects WHERE name = ?').get(targetName) as { id: number; name: string } | undefined;
+        if (!targetSect) {
+          await interaction.reply({ content: '❌ Không tìm thấy Tông Môn **' + targetName + '** trên giang hồ!', ephemeral: true });
+          return;
+        }
+        const result = sectService.formAlliance(user.sect_id, targetSect.id, userId);
+        await interaction.reply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message, ephemeral: !result.success });
+        return;
+      }
+
+      if (sub === 'chapnhan') {
+        const result = sectService.acceptAlliance(user.sect_id, userId);
+        await interaction.reply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message, ephemeral: !result.success });
+        return;
+      }
+
+      if (sub === 'huy') {
+        const result = sectService.breakAlliance(user.sect_id, userId);
+        await interaction.reply({ content: result.success ? result.message : '❌ ' + result.message, ephemeral: !result.success });
+        return;
+      }
+
+      if (sub === 'thongtin') {
+        const data = sectService.getAlliance(user.sect_id);
+        if (!data) {
+          await interaction.reply({ content: '❌ Tông Môn của đạo hữu hiện không có liên minh nào!', ephemeral: true });
+          return;
+        }
+        const embed = new EmbedBuilder()
+          .setTitle('🤝 Liên Minh Tông Môn')
+          .setColor('#3498db')
+          .setDescription(`**${data.partnerSect.name}**`)
+          .addFields(
+            { name: '👑 Tông Chủ', value: data.partnerSect.master_name, inline: true },
+            { name: '📊 Cấp Độ', value: `${data.partnerSect.level}`, inline: true },
+            { name: '👥 Thành Viên', value: `${data.partnerSect.member_count}`, inline: true },
+            { name: '📅 Kết Minh Từ', value: `<t:${data.alliance.formed_at}:R>` }
+          );
+        await interaction.reply({ embeds: [embed] });
+        return;
+      }
+
+      if (sub === 'tuyen-chien') {
+        const targetName = interaction.options.getString('ten', true);
+        const targetSect = db.prepare('SELECT id, name FROM sects WHERE name = ?').get(targetName) as { id: number; name: string } | undefined;
+        if (!targetSect) {
+          await interaction.reply({ content: '❌ Không tìm thấy Tông Môn **' + targetName + '** trên giang hồ!', ephemeral: true });
+          return;
+        }
+        const result = sectService.declareWar(userId, user.sect_id, targetSect.id);
+        await interaction.reply({ content: result.success ? result.message : '❌ ' + result.message, ephemeral: !result.success });
+        return;
+      }
     }
   }
 }

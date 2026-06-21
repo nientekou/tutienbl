@@ -86,7 +86,70 @@ export function performHunt(userId: string): HuntResult {
   let monster: WildMonster;
 
   const randSpecial = Math.random();
-  if (randSpecial < 0.005) { // 0.5% Thần Thú Kỳ Lân
+  if (randSpecial < 0.005) { // 0.5% Kỳ Lân Bạch Ngọc
+    monster = {
+      name: 'Kỳ Lân Bạch Ngọc 🦄',
+      templateId: 'pet_qilin',
+      hp: 15000, atk: 700, def: 400,
+      expReward: 3500, coinRewardMin: 1200, coinRewardMax: 2500,
+      captureRate: 0.03, rarity: 'legendary',
+      petBaseHp: 3500, petBaseAtk: 250, petBaseDef: 120
+    };
+  } else if (randSpecial < 0.010) { // 0.5% Côn Bằng Tiên Thú
+    monster = {
+      name: 'Côn Bằng Tiên Thú 🦅',
+      templateId: 'pet_kun_pen',
+      hp: 14000, atk: 750, def: 350,
+      expReward: 3200, coinRewardMin: 1100, coinRewardMax: 2200,
+      captureRate: 0.03, rarity: 'legendary',
+      petBaseHp: 3200, petBaseAtk: 280, petBaseDef: 100
+    };
+  } else if (randSpecial < 0.020) { // 1.0% Thao Thiết
+    monster = {
+      name: 'Thao Thiết Cổ Thú 🐉',
+      templateId: 'pet_taotie',
+      hp: 18000, atk: 650, def: 500,
+      expReward: 3000, coinRewardMin: 1000, coinRewardMax: 2000,
+      captureRate: 0.03, rarity: 'legendary',
+      petBaseHp: 4000, petBaseAtk: 220, petBaseDef: 150
+    };
+  } else if (randSpecial < 0.035) { // 1.5% Hắc Long Tử
+    monster = {
+      name: 'Hắc Long Tử 🐲',
+      templateId: 'pet_black_dragon',
+      hp: 8000, atk: 500, def: 250,
+      expReward: 2000, coinRewardMin: 600, coinRewardMax: 1200,
+      captureRate: 0.06, rarity: 'epic',
+      petBaseHp: 2000, petBaseAtk: 160, petBaseDef: 90
+    };
+  } else if (randSpecial < 0.055) { // 2.0% Phượng Hoàng Lửa
+    monster = {
+      name: 'Phượng Hoàng Lửa 🦩',
+      templateId: 'pet_fire_phoenix',
+      hp: 9000, atk: 480, def: 220,
+      expReward: 2200, coinRewardMin: 650, coinRewardMax: 1300,
+      captureRate: 0.06, rarity: 'epic',
+      petBaseHp: 2200, petBaseAtk: 150, petBaseDef: 85
+    };
+  } else if (randSpecial < 0.085) { // 3.0% Cửu Thiên Huyền Điểu
+    monster = {
+      name: 'Cửu Thiên Huyền Điểu 🐦',
+      templateId: 'pet_sky_bird',
+      hp: 2000, atk: 150, def: 80,
+      expReward: 500, coinRewardMin: 100, coinRewardMax: 300,
+      captureRate: 0.12, rarity: 'rare',
+      petBaseHp: 800, petBaseAtk: 60, petBaseDef: 30
+    };
+  } else if (randSpecial < 0.125) { // 4.0% Thiên Hồ Cửu Vĩ
+    monster = {
+      name: 'Thiên Hồ Cửu Vĩ 🦊',
+      templateId: 'pet_nine_tail',
+      hp: 2200, atk: 140, def: 85,
+      expReward: 550, coinRewardMin: 110, coinRewardMax: 320,
+      captureRate: 0.12, rarity: 'rare',
+      petBaseHp: 750, petBaseAtk: 65, petBaseDef: 35
+    };
+  } else if (randSpecial < 0.130) { // 0.5% Thần Thú Kỳ Lân (cũ)
     monster = {
       name: 'Thần Thú Kỳ Lân 🦄',
       templateId: 'kylan',
@@ -95,7 +158,7 @@ export function performHunt(userId: string): HuntResult {
       captureRate: 0.03, rarity: 'legendary',
       petBaseHp: 3000, petBaseAtk: 200, petBaseDef: 100
     };
-  } else if (randSpecial < 0.015) { // 1.0% Hỏa Phượng Hoàng
+  } else if (randSpecial < 0.140) { // 1.0% Hỏa Phượng Hoàng
     monster = {
       name: 'Hỏa Phượng Hoàng 🦚',
       templateId: 'phuonghoang',
@@ -104,7 +167,7 @@ export function performHunt(userId: string): HuntResult {
       captureRate: 0.04, rarity: 'legendary',
       petBaseHp: 2500, petBaseAtk: 220, petBaseDef: 80
     };
-  } else if (randSpecial < 0.03) { // 1.5% Tỳ Hưu Chiêu Tài
+  } else if (randSpecial < 0.155) { // 1.5% Tỳ Hưu Chiêu Tài
     monster = {
       name: 'Tỳ Hưu Chiêu Tài 🦁',
       templateId: 'tyhuu',
@@ -113,7 +176,7 @@ export function performHunt(userId: string): HuntResult {
       captureRate: 0.08, rarity: 'epic',
       petBaseHp: 1500, petBaseAtk: 120, petBaseDef: 60
     };
-  } else if (randSpecial < 0.05) { // 2.0% Linh Khuyển Chó Đỏ (was previously 2%)
+  } else if (randSpecial < 0.175) { // 2.0% Linh Khuyển Chó Đỏ
     monster = {
       name: 'Linh Khuyển Chó Đỏ 🐕',
       templateId: 'chodo',
@@ -285,7 +348,14 @@ export function performHunt(userId: string): HuntResult {
       const now = Math.floor(Date.now() / 1000);
       
       let petSkills = '[]';
-      if (monster.templateId === 'kylan') petSkills = JSON.stringify(['qilin_fortune']);
+      if (monster.templateId === 'pet_qilin') petSkills = JSON.stringify(['qilin_heal']);
+      else if (monster.templateId === 'pet_kun_pen') petSkills = JSON.stringify(['kunpen_hp']);
+      else if (monster.templateId === 'pet_taotie') petSkills = JSON.stringify(['taotie_def']);
+      else if (monster.templateId === 'pet_black_dragon') petSkills = JSON.stringify(['dragon_berserk']);
+      else if (monster.templateId === 'pet_fire_phoenix') petSkills = JSON.stringify(['phoenix_rebirth']);
+      else if (monster.templateId === 'pet_sky_bird') petSkills = JSON.stringify(['sky_agile']);
+      else if (monster.templateId === 'pet_nine_tail') petSkills = JSON.stringify(['nine_charm']);
+      else if (monster.templateId === 'kylan') petSkills = JSON.stringify(['qilin_fortune']);
       else if (monster.templateId === 'phuonghoang') petSkills = JSON.stringify(['reborn_flame']);
       else if (monster.templateId === 'tyhuu') petSkills = JSON.stringify(['gold_blessing']);
 
@@ -505,8 +575,10 @@ export function getSanYeuThuEmbed(userId: string): EmbedBuilder {
       `⚡ **Thể Lực Tiêu Hao:** **15** mỗi lần săn\n\n` +
       `🎯 **Linh Thú Xuất Hiện Tại Khu Vực:**\n${monstersText}\n` +
       `✨ **Tỷ lệ thu phục thành công:** **${rateText}**\n\n` +
-      `🍀 **Yêu Thú Đặc Biệt (Gặp ngẫu nhiên 2%):**\n` +
-      `• **Linh Khuyển Chó Đỏ 🐕** (HP: 600 | Công: 55 | Thủ: 35 | Tỷ lệ thu phục: **15%** | Phẩm chất: **Sử Thi**)\n\n` +
+      `🍀 **Yêu Thú Đặc Biệt (17.5% tổng):**\n` +
+      `🟡 **Huyền Thoại:** Kỳ Lân Bạch Ngọc 🦄(0.5%) | Côn Bằng 🦅(0.5%) | Thao Thiết 🐉(1%) | Kỳ Lân 🦄(0.5%) | Phượng Hoàng 🦚(1%)\n` +
+      `🟣 **Sử Thi:** Hắc Long Tử 🐲(1.5%) | Phượng Hoàng Lửa 🦩(2%) | Tỳ Hưu 🦁(1.5%) | Linh Khuyển 🐕(2%)\n` +
+      `🔵 **Hiếm:** Cửu Thiên Huyền Điểu 🐦(3%) | Thiên Hồ Cửu Vĩ 🦊(4%)\n\n` +
       `*Bấm nút bên dưới để xuất phát săn bắn ngay!*`
     )
     .setFooter({ text: 'Đạo hữu cần ít nhất 15 Thể Lực để thực hiện săn bắt yêu thú.' })

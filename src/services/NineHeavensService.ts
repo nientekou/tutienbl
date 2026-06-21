@@ -396,6 +396,7 @@ class NineHeavensService {
 
         const lthapReward = nextFloor * 2000;
         const knbReward = nextFloor * 2;
+        const titleReward = nextFloor === 9 ? '\n👑 **Danh hiệu Thiên Trụ đã được phong tặng!**' : '';
         userRepository.update(userId, {
           coin_ha_pham: user.coin_ha_pham + lthapReward,
           knb: user.knb + knbReward,
@@ -426,7 +427,8 @@ class NineHeavensService {
         rewardsLog = `🎉 **VƯỢT THÁP THÀNH CÔNG TẦNG ${nextFloor}!**\n` +
           `• Thần quang tẩy tủy: ${extraLoot}\n` +
           `• Phần thưởng khích lệ: +**${lthapReward.toLocaleString()} Linh Thạch** & +**${knbReward} KNB**!` +
-          artifactMessage;
+          artifactMessage +
+          titleReward;
       }
     })();
 

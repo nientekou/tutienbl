@@ -443,6 +443,55 @@ class EncounterService {
       if (reward.pet_template_id === 'random_mythical') {
         const mythicalPool = [
           {
+            templateId: 'pet_qilin',
+            name: 'Kỳ Lân Bạch Ngọc 🦄',
+            rarity: 'legendary',
+            petBaseHp: 3500, petBaseAtk: 250, petBaseDef: 120,
+            skills: ['qilin_heal']
+          },
+          {
+            templateId: 'pet_kun_pen',
+            name: 'Côn Bằng 🦅',
+            rarity: 'legendary',
+            petBaseHp: 3200, petBaseAtk: 280, petBaseDef: 100,
+            skills: ['kunpen_hp']
+          },
+          {
+            templateId: 'pet_taotie',
+            name: 'Thao Thiết 🐉',
+            rarity: 'legendary',
+            petBaseHp: 4000, petBaseAtk: 220, petBaseDef: 150,
+            skills: ['taotie_def']
+          },
+          {
+            templateId: 'pet_black_dragon',
+            name: 'Hắc Long Tử 🐲',
+            rarity: 'epic',
+            petBaseHp: 2000, petBaseAtk: 160, petBaseDef: 90,
+            skills: ['dragon_berserk']
+          },
+          {
+            templateId: 'pet_fire_phoenix',
+            name: 'Phượng Hoàng Lửa 🦩',
+            rarity: 'epic',
+            petBaseHp: 2200, petBaseAtk: 150, petBaseDef: 85,
+            skills: ['phoenix_rebirth']
+          },
+          {
+            templateId: 'pet_sky_bird',
+            name: 'Cửu Thiên Huyền Điểu 🐦',
+            rarity: 'rare',
+            petBaseHp: 800, petBaseAtk: 60, petBaseDef: 30,
+            skills: ['sky_agile']
+          },
+          {
+            templateId: 'pet_nine_tail',
+            name: 'Thiên Hồ Cửu Vĩ 🦊',
+            rarity: 'rare',
+            petBaseHp: 750, petBaseAtk: 65, petBaseDef: 35,
+            skills: ['nine_charm']
+          },
+          {
             templateId: 'kylan',
             name: 'Kỳ Lân 🦄',
             rarity: 'legendary',

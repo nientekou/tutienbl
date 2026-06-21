@@ -9,9 +9,10 @@ import { inventoryService, ActiveStats } from '../../services/InventoryService';
 import { mountService } from '../../services/MountService';
 import { spiritWeaponService } from '../../services/SpiritWeaponService';
 import { bloodlineService } from '../../services/BloodlineService';
+import { leaderboardService } from '../../services/LeaderboardService';
 import db from '../../database/database';
 
-export type HoSoTab = 'chiso' | 'taisan' | 'chientich' | 'trangbi' | 'linhthu' | 'somenh';
+export type HoSoTab = 'chiso' | 'taisan' | 'chientich' | 'trangbi' | 'linhthu' | 'somenh' | 'bangxephang';
 
 const TAB_LABELS: Record<HoSoTab, { name: string; emoji: string }> = {
   chiso: { name: 'Chỉ Số', emoji: '📊' },
@@ -20,6 +21,7 @@ const TAB_LABELS: Record<HoSoTab, { name: string; emoji: string }> = {
   trangbi: { name: 'Trang Bị', emoji: '⚔️' },
   linhthu: { name: 'Linh Thú', emoji: '🐉' },
   somenh: { name: 'Số Mệnh', emoji: '📜' },
+  bangxephang: { name: 'Bảng Phong Thần', emoji: '👑' },
 };
 
 const SLOT_EMOJI: Record<string, string> = {
@@ -32,6 +34,19 @@ function getDayGreeting(): string {
   if (h < 12) return '🌅 Sớm mai an lành, chúc đạo hữu tu tiên tấn tới!';
   if (h < 18) return '☀️ Trời đẹp, đạo hữu nên đi khám phá dã ngoại!';
   return '🌆 Hoàng hôn buông xuống, linh khí dồi dào, thích hợp thiền định.';
+}
+
+const TITLE_BUFFS: Record<string, string> = {
+  'Thiên Trụ': '❤️ HP +5%, ⚔️ ATK +5%, 🛡️ DEF +5%',
+  'Thánh Địa Bá Chủ': '⚔️ ATK +5%',
+  'Chiến Thần Vô Song': '⚔️ ATK +8%',
+  'Truyền Thừa Danh Môn': '🛡️ DEF +5%',
+};
+
+function getTitleLine(user: UserEntity): string {
+  const title = user.title || 'Tán Tu';
+  const buff = title !== 'Tán Tu' && TITLE_BUFFS[title] ? ` *(Buff: ${TITLE_BUFFS[title]})*` : '';
+  return `🏆 **Danh hiệu:** **${title}**${buff}`;
 }
 
 function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): EmbedBuilder {
@@ -97,7 +112,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
     .setDescription(
       `*${greeting}*\n\n` +
       `👤 **Đạo hiệu:** **${user.name}**\n` +
-      `🏆 **Danh hiệu:** **${user.title || 'Tán Tu'}**\n` +
+      `${getTitleLine(user)}\n` +
       `⚡ **Tiên Lực (Lực Chiến):** 🌌 **${formatNumber(showCp)}**` +
       (user.luan_hoi_count > 0 ? `\n🌀 **Luân Hồi:** **Chuyển Thế Đời thứ ${user.luan_hoi_count}**` : '')
     )
@@ -123,6 +138,11 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
         value: formattedLinhCan,
         inline: true,
       },
+      ...(activeStats?.elementResonance?.resonance ? [{
+        name: `⚡ Cộng Hưởng Linh Căn (${activeStats.elementResonance.element})`,
+        value: `📍 **Đã kích hoạt!**\n${activeStats.elementResonance.buffs.map(b => `• ${b}`).join('\n')}`,
+        inline: true,
+      }] : []),
       {
         name: '👥 Đồng Hành & Động Phủ',
         value: [
@@ -175,6 +195,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
     });
   }
 
+  embed.setFooter({ text: '📖 Xem Cẩm Nang Tiên Lộ với /camnang' });
   return embed;
 }
 
@@ -536,11 +557,11 @@ function getSoMenhTabEmbed(user: UserEntity): EmbedBuilder {
 }
 
 export function getTabNavigationRows(userId: string, activeTab: HoSoTab): ActionRowBuilder<ButtonBuilder>[] {
-  const tabs: HoSoTab[] = ['chiso', 'taisan', 'chientich', 'trangbi', 'linhthu', 'somenh'];
+  const tabs: HoSoTab[] = ['chiso', 'taisan', 'chientich', 'trangbi', 'linhthu', 'somenh', 'bangxephang'];
   const rows: ActionRowBuilder<ButtonBuilder>[] = [];
   
-  for (let i = 0; i < tabs.length; i += 3) {
-    const rowTabs = tabs.slice(i, i + 3);
+  for (let i = 0; i < tabs.length; i += 4) {
+    const rowTabs = tabs.slice(i, i + 4);
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       ...rowTabs.map(tab => {
         const info = TAB_LABELS[tab];
@@ -604,10 +625,36 @@ export function getHoSoActionMenus(userId: string): ActionRowBuilder<StringSelec
 }
 
 export function getHoSoAllComponents(userId: string, activeTab: HoSoTab = 'chiso'): ActionRowBuilder<any>[] {
-  const components: ActionRowBuilder<any>[] = [
-    ...getTabNavigationRows(userId, activeTab),
-    ...getHoSoActionMenus(userId),
-  ];
+  const components: ActionRowBuilder<any>[] = [];
+
+  // Tab Bảng Phong Thần: hiển thị nút chọn danh mục & nút quay lại, ẩn các menu tab và menu hành động
+  if (activeTab === 'bangxephang') {
+    const lbTypes = [
+      { id: 'combatPower', label: 'Lực Chiến', emoji: '⚔️' },
+      { id: 'realm', label: 'Cảnh Giới', emoji: '🌀' },
+      { id: 'wealth', label: 'Tài Sản', emoji: '🪙' },
+      { id: 'sectContribution', label: 'Cống Hiến', emoji: '🏛️' },
+    ];
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      ...lbTypes.map(t =>
+        new ButtonBuilder()
+          .setCustomId(`hosolb_${t.id}_${userId}`)
+          .setLabel(`${t.emoji} ${t.label}`)
+          .setStyle(ButtonStyle.Secondary)
+      ),
+      new ButtonBuilder()
+        .setCustomId(`hosoback_${userId}`)
+        .setLabel('🔙 Trở Lại Hồ Sơ')
+        .setStyle(ButtonStyle.Primary)
+    );
+    components.push(row);
+  } else {
+    // Các tab bình thường: hiển thị đầy đủ hàng điều hướng tab và menu hành động
+    components.push(
+      ...getTabNavigationRows(userId, activeTab),
+      ...getHoSoActionMenus(userId)
+    );
+  }
 
   const user = userRepository.get(userId);
   if (user && user.level >= 39 && (!user.alignment || user.alignment === 'neutral')) {
@@ -745,10 +792,9 @@ export default class HoSoCommand extends Command {
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const discordId = interaction.user.id;
 
-    const idleRes = cultivationService.claimIdleCultivation(discordId);
-    const user = idleRes ? idleRes.user : userRepository.get(discordId);
-
-    if (!user) {
+    // Kiểm tra nhanh xem người chơi có tồn tại không trước khi defer
+    const userExists = userRepository.get(discordId);
+    if (!userExists) {
       await interaction.reply({
         content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat` để bước vào con đường tu tiên!',
         ephemeral: true,
@@ -756,15 +802,21 @@ export default class HoSoCommand extends Command {
       return;
     }
 
+    // Trì hoãn phản hồi do các truy vấn và xử lý bên dưới có thể mất thời gian
+    await interaction.deferReply();
+
+    const idleRes = cultivationService.claimIdleCultivation(discordId);
+    const user = idleRes ? idleRes.user : userRepository.get(discordId);
+
     const activeStats = inventoryService.getActiveStats(discordId);
-    const embed = getChiSoTabEmbed(user, activeStats);
+    const embed = getChiSoTabEmbed(user || userExists, activeStats);
 
     if (idleRes && idleRes.gained > 0) {
       embed.setDescription(`✨ **Thu Hoạch Nhàn Rỗi:** Đạo hữu tự động hấp thu thêm **+${idleRes.gained}** Tu Vi!\n\n` + (embed.data.description || ''));
     }
 
     const rows = getHoSoAllComponents(discordId, 'chiso');
-    await interaction.reply({ embeds: [embed], components: rows });
+    await interaction.editReply({ embeds: [embed], components: rows });
   }
 }
 
@@ -785,5 +837,14 @@ export function getHoSoTabEmbed(userId: string, tab: HoSoTab): EmbedBuilder {
       return getLinhThuTabEmbed(user);
     case 'somenh':
       return getSoMenhTabEmbed(user);
+    case 'bangxephang': {
+      const embed = new EmbedBuilder()
+        .setTitle('👑 Bảng Phong Thần')
+        .setColor(0xFFD700)
+        .setDescription('*Chọn một danh mục bên dưới để xem bảng xếp hạng.*\n\nDữ liệu được cập nhật mỗi **5 phút**.\n\n📋 **Các danh mục:**\n⚔️ Lực Chiến\n🌀 Cảnh Giới\n🪙 Tài Sản\n🏛️ Cống Hiến Tông Môn')
+        .setFooter({ text: 'Sử dụng các nút bên dưới để chuyển danh mục.' })
+        .setTimestamp();
+      return embed;
+    }
   }
 }

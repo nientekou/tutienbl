@@ -16,6 +16,9 @@ export interface UserEntity {
   base_luck: number;
   base_speed: number;
   base_dodge: number;
+  mp: number;
+  max_mp: number;
+  block_chance: number;
   linh_can: string;
   coin_ha_pham: number;
   coin_trung_pham: number;
@@ -119,6 +122,23 @@ export class UserRepository {
       }
     }
 
+    // Hồi phục MP: 1 điểm mỗi 30 giây (tối đa max_mp)
+    if (user.mp < user.max_mp) {
+      const mpElapsed = now - lastRecover;
+      if (mpElapsed >= 30) {
+        const mpRecoverAmount = Math.floor(mpElapsed / 30);
+        const newMp = Math.min(user.max_mp, user.mp + mpRecoverAmount);
+        db.prepare('UPDATE users SET mp = ?, updated_at = ? WHERE discord_id = ?')
+          .run(newMp, now, discordId);
+        user.mp = newMp;
+        user.updated_at = now;
+        if (this.cache.has(discordId)) {
+          this.cache.get(discordId)!.data.mp = newMp;
+          this.cache.get(discordId)!.data.updated_at = now;
+        }
+      }
+    }
+
     return user;
   }
 
@@ -153,7 +173,7 @@ export class UserRepository {
     const stmt = db.prepare(`
       INSERT INTO users (
         discord_id, name, title, level, tu_vi, exp_needed,
-        base_hp, base_mp, base_atk, base_def, base_crit, base_crit_res, base_luck, base_speed, base_dodge,
+        base_hp, base_mp, base_atk, base_def, base_crit, base_crit_res, base_luck, base_speed, base_dodge, mp, max_mp,
         linh_can, coin_ha_pham, coin_trung_pham, coin_thuong_pham, knb,
         alchemy_level, alchemy_exp, forging_level, forging_exp,
         partner_id, intimacy, last_songtu_at,
@@ -162,7 +182,7 @@ export class UserRepository {
         created_at, updated_at
       ) VALUES (
         ?, ?, 'Tán Tu', 1, 0, 100,
-        ?, ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, 100, 100,
         ?, ?, 0, 0, ?,
         1, 0, 1, 0,
         NULL, 0, 0,

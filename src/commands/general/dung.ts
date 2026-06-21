@@ -95,20 +95,9 @@ export default class DungCommand extends Command {
       return;
     }
 
-    // Xử lý sử dụng đan dược hồi thể lực (Ví dụ đan dược mới hồi stamina nếu có, hoặc đan dược bình thường)
-    if (itemId === 'pill_stamina_1') { // ví dụ nếu có đan dược thể lực
-      const restoreAmount = 50 * qty;
-      const newStamina = Math.min(500, user.stamina + restoreAmount);
-      
-      db.transaction(() => {
-        userRepository.update(userId, { stamina: newStamina });
-        inventoryRepository.removeItem(userId, itemId, qty);
-      })();
-
-      await interaction.editReply({
-        content: `💊 Sử dụng **${qty}x** đan dược thể lực, hồi phục **+${restoreAmount}** Thể Lực! (Hiện tại: **${newStamina}/500**).`
-      });
-      return;
+    // Đan dược hồi thể lực - chuyển về handler tổng quát (có giới hạn ngày)
+    if (itemId.startsWith('pill_stamina_')) {
+      // Fall through to generic handler below
     }
 
     // Sử dụng bình thường thông qua InventoryService (lặp qty lần)

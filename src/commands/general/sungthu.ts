@@ -5,6 +5,7 @@ import { userRepository } from '../../database/repositories/UserRepository';
 import { dailyQuestService } from '../../services/DailyQuestService';
 import { achievementService } from '../../services/AchievementService';
 import { checkPetAchievements } from './sanyeuthu';
+import { getProgressBar, formatNumber } from '../../utils/constants';
 import db from '../../database/database';
 
 interface PetEntity {
@@ -36,6 +37,13 @@ export const PET_SKILLS: Record<string, { name: string; emoji: string; descripti
   gold_blessing: { name: 'Kim Nguyên Hộ Trì', emoji: '💰', description: 'Tăng +10% Linh Thạch nhận được sau mỗi trận đấu dã ngoại.', minLevel: 1 },
   reborn_flame:  { name: 'Nirvana Chi Hỏa', emoji: '🔥', description: 'Hồi phục khẩn cấp +25% HP tối đa cho chủ nhân khi lượng HP xuống dưới 20% (mỗi trận 1 lần).', minLevel: 1 },
   qilin_fortune: { name: 'Kỳ Lân Tường Thụy', emoji: '🦄', description: 'Tăng cát tường cát khí: +15 May Mắn và +5% Né Tránh cho chủ nhân khi xuất chiến.', minLevel: 1 },
+  qilin_heal:    { name: 'Bạch Ngọc Hồi Xuân', emoji: '💚', description: 'Tăng 15% hiệu quả hồi máu cho chủ nhân, tịnh hóa 1 debuff mỗi hiệp.', minLevel: 1 },
+  kunpen_hp:     { name: 'Côn Bằng Pháp Thân', emoji: '💜', description: 'Buff +20% HP tối đa cho chủ nhân, kèm AoE hút MP kẻ địch mỗi hiệp.', minLevel: 1 },
+  taotie_def:    { name: 'Thao Thiết Hộ Thể', emoji: '🛡️', description: 'Giảm 10% sát thương nhận vào, phong tỏa Tâm Pháp đối thủ 2 hiệp.', minLevel: 1 },
+  dragon_berserk: { name: 'Long Huyết Cuồng Bạo', emoji: '🐉', description: '+20% ATK khi HP chủ nhân dưới 30%, kích hoạt Long Hút hồi phục 5% HP mỗi hiệp.', minLevel: 1 },
+  phoenix_rebirth: { name: 'Phượng Hoàng Tái Sinh', emoji: '🔥', description: 'Miễn dịch Ngộ Độc, Tái Sinh 1 lần/trận với 30% HP khi tử vong.', minLevel: 1 },
+  sky_agile:    { name: 'Cửu Thiên Phong Tốc', emoji: '💨', description: '+8% tốc độ đánh và +8% né tránh cho chủ nhân khi xuất chiến.', minLevel: 1 },
+  nine_charm:   { name: 'Hồn Mê Chỉ Pháp', emoji: '🌸', description: '+10% né tránh, gây mê 1 hiệp lên kẻ địch khi bị tấn công.', minLevel: 1 },
 };
 
 // === Helper functions for button handlers ===
@@ -94,18 +102,25 @@ export function getSungThuEmbed(userId: string): EmbedBuilder {
       } catch (e) {}
 
       const starStr = mut.stars > 0 ? ` [${'★'.repeat(mut.stars)}]` : '';
+      const displayAtk = pet.base_atk + (mut.bonus_atk || 0);
+      const displayDef = pet.base_def + (mut.bonus_def || 0);
+      const displayHp = pet.base_hp + (mut.bonus_hp || 0);
       const bonusAtk = mut.bonus_atk > 0 ? ` (+${mut.bonus_atk})` : '';
       const bonusDef = mut.bonus_def > 0 ? ` (+${mut.bonus_def})` : '';
       const bonusHp = mut.bonus_hp > 0 ? ` (+${mut.bonus_hp})` : '';
 
       const genderText = pet.gender === 0 ? 'Đực ♂️' : 'Cái ♀️';
 
+      const expNeeded = pet.level * 100;
+      const expBar = getProgressBar(pet.exp, expNeeded, 10);
+
       embed.addFields({
         name: `${emoji} ID: \`${pet.id}\` | ${pet.name}${starStr} (Cấp ${pet.level}) [${pet.rarity.toUpperCase()}]`,
         value: [
           `• Trạng thái: ${status}`,
           `• Giới tính: **${genderText}**`,
-          `• Đấu sức: Công **${pet.base_atk}**${bonusAtk} | Thủ **${pet.base_def}**${bonusDef} | HP **${pet.base_hp}**${bonusHp}`,
+          `• EXP: ${expBar} (${formatNumber(pet.exp)}/${formatNumber(expNeeded)})`,
+          `• Chỉ số: ⚔️ ATK **${displayAtk}**${bonusAtk} | 🛡️ DEF **${displayDef}**${bonusDef} | ❤️ HP **${displayHp}**${bonusHp}`,
           `• Kỹ Năng:\n${skillsText}${evolutionHint}`
         ].join('\n')
       });
@@ -187,6 +202,19 @@ export default class SungThuCommand extends Command {
             .setDescription('Thôn phệ sủng thú khác để tăng Tinh Túc (Mutations/Stars) cho chủ thú.')
             .addIntegerOption(opt => opt.setName('main_id').setDescription('ID linh thú chính (sẽ mạnh lên).').setRequired(true))
             .addIntegerOption(opt => opt.setName('food_id').setDescription('ID linh thú làm thức ăn (sẽ biến mất).').setRequired(true))
+        )
+        .addSubcommand(sub =>
+          sub
+            .setName('doiten')
+            .setDescription('Đổi tên linh thú (Phí 1,000 Linh Thạch).')
+            .addIntegerOption(opt => opt.setName('pet_id').setDescription('ID linh thú cần đổi tên.').setRequired(true))
+            .addStringOption(opt => opt.setName('name').setDescription('Tên mới cho linh thú (1-30 ký tự).').setRequired(true))
+        )
+        .addSubcommand(sub =>
+          sub
+            .setName('hocky')
+            .setDescription('Học kỹ năng mới cho linh thú cấp 70+ (Phí 5,000 Linh Thạch).')
+            .addIntegerOption(opt => opt.setName('pet_id').setDescription('ID linh thú cần học kỹ năng.').setRequired(true))
         )
     );
   }
@@ -519,6 +547,88 @@ export default class SungThuCommand extends Command {
 
       await interaction.reply({
         content: `🌀 **THÔN PHỆ THÀNH CÔNG!**\n\nLinh thú **${mainPet.name}** đã cắn nuốt **${foodPet.name}** và ngưng tụ thêm 1 Tinh Túc!\n\n⭐ **Cảnh Giới Tinh Túc:** ${mutations.stars} Sao\n⚔️ **Chỉ Số Đột Phá:** +${addedAtk} ATK | +${addedDef} DEF | +${addedHp} HP`
+      });
+      return;
+    }
+
+    // --- SUBCOMMAND: ĐỔI TÊN ---
+    if (sub === 'doiten') {
+      const petId = interaction.options.getInteger('pet_id', true);
+      const newName = interaction.options.getString('name', true).trim();
+
+      if (newName.length < 1 || newName.length > 30) {
+        await interaction.reply({ content: '❌ Tên linh thú phải từ 1-30 ký tự!', ephemeral: true });
+        return;
+      }
+
+      const pet = db.prepare('SELECT * FROM pets WHERE id = ? AND user_id = ?').get(petId, userId) as PetEntity | undefined;
+
+      if (!pet) {
+        await interaction.reply({ content: '❌ Linh thú không tồn tại!', ephemeral: true });
+        return;
+      }
+
+      if (user.coin_ha_pham < 1000) {
+        await interaction.reply({ content: '❌ Đạo hữu không đủ 1,000 Linh Thạch để đổi tên!', ephemeral: true });
+        return;
+      }
+
+      const oldName = pet.name;
+      db.transaction(() => {
+        db.prepare('UPDATE pets SET name = ? WHERE id = ?').run(newName, petId);
+        userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - 1000 });
+      })();
+
+      await interaction.reply({
+        content: `✏️ Đạo hữu đã đổi tên linh thú từ **${oldName}** thành **${newName}**! (-1,000 LT)`
+      });
+      return;
+    }
+
+    // --- SUBCOMMAND: HỌC KỸ NĂNG MỚI (Cấp 70+) ---
+    if (sub === 'hocky') {
+      const petId = interaction.options.getInteger('pet_id', true);
+      const pet = db.prepare('SELECT * FROM pets WHERE id = ? AND user_id = ?').get(petId, userId) as PetEntity | undefined;
+
+      if (!pet) {
+        await interaction.reply({ content: '❌ Linh thú không tồn tại!', ephemeral: true });
+        return;
+      }
+
+      if (pet.level < 70) {
+        await interaction.reply({ content: `❌ **${pet.name}** chưa đạt cấp 70 để học kỹ năng mới! (Hiện cấp **${pet.level}**)`, ephemeral: true });
+        return;
+      }
+
+      const currentSkills: string[] = JSON.parse(pet.skills || '[]');
+
+      if (currentSkills.length >= 2) {
+        await interaction.reply({ content: `❌ **${pet.name}** đã có 2 kỹ năng, không thể học thêm!`, ephemeral: true });
+        return;
+      }
+
+      if (user.coin_ha_pham < 5000) {
+        await interaction.reply({ content: '❌ Đạo hữu không đủ 5,000 Linh Thạch để học kỹ năng!', ephemeral: true });
+        return;
+      }
+
+      const availableSkills = Object.keys(PET_SKILLS).filter(s => !currentSkills.includes(s));
+      if (availableSkills.length === 0) {
+        await interaction.reply({ content: '❌ Linh thú đã học hết các kỹ năng hiện có!', ephemeral: true });
+        return;
+      }
+
+      const randomSkill = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+      const skillDef = PET_SKILLS[randomSkill];
+
+      currentSkills.push(randomSkill);
+      db.transaction(() => {
+        db.prepare('UPDATE pets SET skills = ? WHERE id = ?').run(JSON.stringify(currentSkills), petId);
+        userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - 5000 });
+      })();
+
+      await interaction.reply({
+        content: `📚 **HỌC KỸ NĂNG THÀNH CÔNG!** (-5,000 LT)\n\n🐉 Linh thú **${pet.name}** đã lĩnh hội kỹ năng mới!\n\n${skillDef.emoji} **${skillDef.name}**: ${skillDef.description}`
       });
       return;
     }

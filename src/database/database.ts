@@ -662,6 +662,83 @@ export function initDatabase() {
     db.prepare("INSERT INTO system_config (key, value) VALUES ('maintenance_mode', '0')").run();
   }
 
+  // Casino History Table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS casino_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      game_type TEXT NOT NULL,
+      bet INTEGER NOT NULL,
+      result TEXT NOT NULL,
+      payout INTEGER NOT NULL,
+      details TEXT,
+      created_at INTEGER NOT NULL
+    )
+  `);
+
+  // Casino Stats Table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS casino_stats (
+      user_id TEXT PRIMARY KEY,
+      total_bets INTEGER DEFAULT 0,
+      total_wins INTEGER DEFAULT 0,
+      total_losses INTEGER DEFAULT 0,
+      total_bet_amount INTEGER DEFAULT 0,
+      total_payout INTEGER DEFAULT 0,
+      biggest_win INTEGER DEFAULT 0,
+      last_played_at INTEGER DEFAULT 0
+    )
+  `);
+
+  // Casino Jackpot
+  const checkJackpot = db.prepare("SELECT key FROM system_config WHERE key = 'casino_jackpot'").get();
+  if (!checkJackpot) {
+    db.prepare("INSERT INTO system_config (key, value) VALUES ('casino_jackpot', '0')").run();
+  }
+  const checkJackpotCap = db.prepare("SELECT key FROM system_config WHERE key = 'jackpot_cap'").get();
+  if (!checkJackpotCap) {
+    db.prepare("INSERT INTO system_config (key, value) VALUES ('jackpot_cap', '5000000')").run();
+  }
+
+  // Buy Orders (Ủy Thác Thu Mua)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS buy_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      item_id TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      price_per_unit INTEGER NOT NULL,
+      total_cost INTEGER NOT NULL,
+      deposit INTEGER NOT NULL,
+      filled_quantity INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'active',
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    )
+  `);
+
+  // Bảng Sư Đồ (Mentor System)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS mentors (
+      mentor_id TEXT NOT NULL,
+      student_id TEXT NOT NULL,
+      started_at INTEGER NOT NULL,
+      PRIMARY KEY (student_id)
+    )
+  `);
+
+  // Bảng thông báo sự kiện (Webhook/Notification)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      message TEXT NOT NULL,
+      importance TEXT DEFAULT 'medium',
+      created_at INTEGER NOT NULL,
+      is_sent INTEGER DEFAULT 0
+    )
+  `);
+
   // Thêm người dùng hệ thống 'market' phục vụ Vạn Bảo Lâu đấu giá
   const checkMarketUser = db.prepare("SELECT discord_id FROM users WHERE discord_id = 'market'").get();
   if (!checkMarketUser) {
@@ -707,6 +784,15 @@ export function initDatabase() {
   if (!columnNames.includes('injury_end_time')) {
     db.exec("ALTER TABLE users ADD COLUMN injury_end_time INTEGER DEFAULT 0");
   }
+  if (!columnNames.includes('mp')) {
+    db.exec("ALTER TABLE users ADD COLUMN mp INTEGER DEFAULT 100");
+  }
+  if (!columnNames.includes('max_mp')) {
+    db.exec("ALTER TABLE users ADD COLUMN max_mp INTEGER DEFAULT 100");
+  }
+  if (!columnNames.includes('block_chance')) {
+    db.exec("ALTER TABLE users ADD COLUMN block_chance REAL DEFAULT 0.05");
+  }
   if (!columnNames.includes('sect_role')) {
     db.exec("ALTER TABLE users ADD COLUMN sect_role TEXT DEFAULT 'member'");
   }
@@ -719,6 +805,9 @@ export function initDatabase() {
   }
   if (!sectColumnNames.includes('dan_duong_level')) {
     db.exec("ALTER TABLE sects ADD COLUMN dan_duong_level INTEGER DEFAULT 0");
+  }
+  if (!sectColumnNames.includes('last_weekly_bonus_at')) {
+    db.exec("ALTER TABLE sects ADD COLUMN last_weekly_bonus_at INTEGER DEFAULT 0");
   }
 
   // Cập nhật cấu trúc bảng inventories nếu thiếu cột stars, durability
@@ -880,6 +969,21 @@ export function initDatabase() {
       created_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_gw_logs_war ON guild_war_attack_logs(war_id);
+  `);
+
+  // Bảng Liên Minh Tông Môn (Sect Alliances)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sect_alliances (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sect_id_1 INTEGER NOT NULL REFERENCES sects(id) ON DELETE CASCADE,
+      sect_id_2 INTEGER NOT NULL REFERENCES sects(id) ON DELETE CASCADE,
+      formed_at INTEGER NOT NULL,
+      status TEXT DEFAULT 'active' CHECK(status IN ('active', 'pending', 'broken')),
+      broken_at INTEGER,
+      UNIQUE(sect_id_1, sect_id_2)
+    );
+    CREATE INDEX IF NOT EXISTS idx_sect_alliances_s1 ON sect_alliances(sect_id_1);
+    CREATE INDEX IF NOT EXISTS idx_sect_alliances_s2 ON sect_alliances(sect_id_2);
   `);
 
   // Bảng Watchlist Vạn Bảo Lâu - V6
@@ -1133,6 +1237,23 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_user_treasure_maps_user ON user_treasure_maps(user_id);
   `);
 
+  // Bảng Kho Báu từ Mảnh Bản Đồ (Map Fragment System)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS treasure_locations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_id TEXT NOT NULL REFERENCES users(discord_id) ON DELETE CASCADE,
+      coord_x INTEGER NOT NULL,
+      coord_y INTEGER NOT NULL,
+      location_name TEXT NOT NULL,
+      rarity TEXT DEFAULT 'rare',
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      is_claimed INTEGER DEFAULT 0,
+      UNIQUE(coord_x, coord_y)
+    );
+    CREATE INDEX IF NOT EXISTS idx_treasure_locations_owner ON treasure_locations(owner_id);
+  `);
+
   // 3. Pháp Bảo Khí Linh (Spirit Weapons)
   db.exec(`
     CREATE TABLE IF NOT EXISTS spirit_weapons (
@@ -1225,6 +1346,18 @@ export function initDatabase() {
     // Ignore if table doesn't exist yet somehow
   }
 
+  // Bảng theo dõi giao dịch chợ hàng ngày
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS market_daily_tracking (
+      user_id TEXT NOT NULL REFERENCES users(discord_id) ON DELETE CASCADE,
+      date TEXT NOT NULL,
+      sell_count INTEGER DEFAULT 0,
+      total_sales INTEGER DEFAULT 0,
+      total_tax INTEGER DEFAULT 0,
+      PRIMARY KEY(user_id, date)
+    );
+  `);
+
   // 6. Chợ Trời - Đấu Giá Định Kỳ (Auction Events)
   db.exec(`
     CREATE TABLE IF NOT EXISTS auction_events (
@@ -1268,6 +1401,15 @@ export function initDatabase() {
 
   // Thực hiện Nạp dữ liệu mẫu
   seedItems();
+
+  // Seed Mảnh Bản Đồ item
+  const mapFragmentItem = db.prepare("SELECT id FROM items WHERE id = 'map_fragment'").get();
+  if (!mapFragmentItem) {
+    db.prepare(`
+      INSERT INTO items (id, name, type, rarity, description, stats, value_ha_pham, usable, equipable)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run('map_fragment', 'Mảnh Bản Đồ', 'material', 'common', 'Một mảnh bản đồ cổ xưa. Thu thập 5 mảnh để ghép thành bản đồ kho báu. Dùng /khamphabando ghep.', '{}', 100, 0, 0);
+  }
 
   // Seed Spirit Skills
   seedSpiritSkills();
@@ -1328,6 +1470,59 @@ export function initDatabase() {
       last_session_end INTEGER DEFAULT 0,
       stamina_at_join INTEGER DEFAULT 0,
       session_bonus_added INTEGER DEFAULT 0
+    );
+  `);
+
+  // Bảng cài đặt thông báo DM cho người chơi
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_notification_settings (
+      user_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      enabled INTEGER DEFAULT 0 CHECK(enabled IN (0, 1)),
+      UNIQUE(user_id, type)
+    );
+    CREATE INDEX IF NOT EXISTS idx_notif_settings_user ON user_notification_settings(user_id);
+  `);
+
+  // Bảng Quest Chain Progress (Nhiệm Vụ Chuỗi)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS quest_chain_progress (
+      user_id TEXT NOT NULL REFERENCES users(discord_id) ON DELETE CASCADE,
+      chain_id TEXT NOT NULL,
+      step_index INTEGER DEFAULT 0,
+      progress INTEGER DEFAULT 0,
+      completed INTEGER DEFAULT 0,
+      finished_at INTEGER,
+      PRIMARY KEY(user_id, chain_id)
+    );
+  `);
+
+  // Bảng Community Quest (Nhiệm Vụ Cộng Đồng)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS community_quests (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      objective_type TEXT NOT NULL,
+      total_required INTEGER NOT NULL,
+      current_progress INTEGER DEFAULT 0,
+      reward_exp INTEGER DEFAULT 0,
+      reward_coins INTEGER DEFAULT 0,
+      reward_items TEXT DEFAULT '[]',
+      started_at INTEGER NOT NULL,
+      ends_at INTEGER NOT NULL,
+      status TEXT DEFAULT 'active'
+    );
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS community_quest_participants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quest_id TEXT NOT NULL REFERENCES community_quests(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
+      contribution INTEGER DEFAULT 0,
+      claimed INTEGER DEFAULT 0,
+      UNIQUE(quest_id, user_id)
     );
   `);
 
@@ -1477,6 +1672,16 @@ function seedAchievements() {
     { id: 'sh_13',     name: 'Đại Thương Gia',          category: 'sinh_hoat', description: 'Mua/bán 100 giao dịch trên Vạn Bảo Lâu',icon: '🪙', target_value: 100,  reward_title: 'Đại Thương Gia',   reward_exp: 20000, reward_coins: 100000, sort_order: 64 },
     { id: 'sh_14',     name: 'Chăm Chỉ Làm Việc',       category: 'sinh_hoat', description: 'Làm việc 10 lần',                     icon: '⛏️', target_value: 10,   reward_title: null,               reward_exp: 500,   reward_coins: 2000,   sort_order: 65 },
     { id: 'sh_15',     name: 'Lao Động Cần Cù',         category: 'sinh_hoat', description: 'Làm việc 70 lần',                     icon: '⛏️', target_value: 70,   reward_title: 'Người Lao Động Cần Cù', reward_exp: 5000, reward_coins: 20000, sort_order: 66 },
+
+    // ===== GIAI ĐOẠN 2 (THÀNH TỰU MỚI) =====
+    { id: 'sh_16',     name: 'Linh Đan Sư',             category: 'sinh_hoat', description: 'Luyện đan thành công 100 lần',            icon: '🔥', target_value: 100,  reward_title: '',                    reward_exp: 1000, reward_coins: 5000,   sort_order: 67 },
+    { id: 'cd_14',     name: 'Kẻ Săn Thú',              category: 'chien_dau', description: 'Bắt thành công 20 sủng vật hiếm trở lên', icon: '🐾', target_value: 20,   reward_title: '',                    reward_exp: 2000, reward_coins: 10000,  sort_order: 68 },
+    { id: 'sh_17',     name: 'Thương Gia Vạn Kim',      category: 'sinh_hoat', description: 'Bán hàng trên Vạn Bảo Lâu tổng cộng 1,000,000 Linh Thạch', icon: '🪙', target_value: 1000000, reward_title: '', reward_exp: 5000, reward_coins: 50000, sort_order: 69 },
+    { id: 'sh_18',     name: 'Tiên Canh Nông',          category: 'sinh_hoat', description: 'Thu hoạch thảo dược 50 lần',             icon: '🌾', target_value: 50,   reward_title: '',                    reward_exp: 500,  reward_coins: 3000,   sort_order: 70 },
+    { id: 'tl_19',     name: 'Thiên Mệnh Chi Tử',       category: 'tu_luyen',  description: 'Sở hữu Huyết Mạch huyền thoại',          icon: '🩸', target_value: 1,    reward_title: '',                    reward_exp: 3000, reward_coins: 20000,  sort_order: 71 },
+    { id: 'pvp_10',    name: 'Bá Chủ Vạn Thế',          category: 'pvp',       description: 'Giữ vị trí #1 Arena trong 3 mùa liên tiếp', icon: '🏆', target_value: 3,    reward_title: '',                    reward_exp: 10000, reward_coins: 100000, sort_order: 72 },
+    { id: 'sh_19',     name: 'Trưởng Lão Minh Triết',    category: 'sinh_hoat', description: 'Đào tạo thành công 5+ đệ tử tốt nghiệp',  icon: '📜', target_value: 5,    reward_title: '',                    reward_exp: 3000, reward_coins: 30000,  sort_order: 73 },
+    { id: 'pvp_11',    name: 'Chiến Thần Vô Song',       category: 'pvp',       description: 'Thắng 50 trận PvP liên tiếp',            icon: '⚔️', target_value: 50,   reward_title: 'Chiến Thần Vô Song',  reward_exp: 5000, reward_coins: 50000,  sort_order: 74 },
   ];
 
   const stmt = db.prepare(`
@@ -2723,7 +2928,7 @@ function seedItems() {
       type: 'seed',
       rarity: 'uncommon',
       description: 'Hạt giống linh thực dùng gieo trồng Huyết Hoa.',
-      stats: null,
+      stats: JSON.stringify({ growth_time: 600, product: 'material_blood_flower' }),
       value_ha_pham: 50,
       usable: 0,
       equipable: 0
@@ -2734,7 +2939,7 @@ function seedItems() {
       type: 'seed',
       rarity: 'rare',
       description: 'Hạt giống linh thực dùng gieo trồng Hư Không Thảo.',
-      stats: null,
+      stats: JSON.stringify({ growth_time: 600, product: 'material_void_herb' }),
       value_ha_pham: 100,
       usable: 0,
       equipable: 0
@@ -2745,7 +2950,7 @@ function seedItems() {
       type: 'seed',
       rarity: 'rare',
       description: 'Hạt giống linh thực dùng gieo trồng Thiên Phong Diệp.',
-      stats: null,
+      stats: JSON.stringify({ growth_time: 600, product: 'material_wind_leaf' }),
       value_ha_pham: 100,
       usable: 0,
       equipable: 0
@@ -2788,7 +2993,7 @@ function seedItems() {
       id: 'material_blood_flower',
       name: 'Huyết Hoa',
       type: 'material',
-      rarity: 'uncommon',
+      rarity: 'common',
       description: 'Linh thảo đỏ như máu, dùng làm nguyên liệu luyện Huyết Nguyên Đan.',
       stats: null,
       value_ha_pham: 150,
@@ -2985,6 +3190,110 @@ function seedItems() {
       value_ha_pham: 10000,
       usable: 0,
       equipable: 1
+    },
+    // --- Cơ Duyên Đơn (Alchemy Recipe Target) ---
+    {
+      id: 'pill_co_duyen',
+      name: 'Cơ Duyên Đơn',
+      type: 'pill',
+      rarity: 'rare',
+      description: 'Linh đan kỳ ngộ tăng cường vận mệnh, gia tăng +15% May Mắn trong 1 giờ.',
+      stats: JSON.stringify({ luck_buff: 15, duration: 3600 }),
+      value_ha_pham: 2000,
+      usable: 1,
+      equipable: 0
+    },
+    // --- Phong Ấn Thư ---
+    {
+      id: 'item_seal_scroll',
+      name: 'Phong Ấn Thư',
+      type: 'scroll',
+      rarity: 'rare',
+      description: 'Cuộn bí tịch cổ xưa chứa phong ấn linh lực, dùng để gia tăng sức mạnh pháp trận.',
+      stats: '{}',
+      value_ha_pham: 2000,
+      usable: 1,
+      equipable: 0
+    },
+    // --- Huyền Thiên Bảo Giám ---
+    {
+      id: 'item_divine_mirror',
+      name: 'Huyền Thiên Bảo Giám',
+      type: 'artifact',
+      rarity: 'epic',
+      description: 'Bảo kính thượng cổ phản chiếu vạn vật, chứa đựng tiên cơ tối thượng.',
+      stats: '{}',
+      value_ha_pham: 10000,
+      usable: 1,
+      equipable: 0
+    },
+    // --- Bội Phẩm (Pendant) Items ---
+    {
+      id: 'pendant_linh_1',
+      name: 'Bội Phẩm Linh Khí',
+      type: 'equipment',
+      rarity: 'rare',
+      description: 'Ngọc bội linh khí ôn hòa, tăng cường pháp lực cho người đeo.',
+      stats: JSON.stringify({ mp: 50, mp_percent: 0.05 }),
+      value_ha_pham: 500,
+      usable: 0,
+      equipable: 1
+    },
+    {
+      id: 'pendant_linh_2',
+      name: 'Bội Phẩm Pháp Lực',
+      type: 'equipment',
+      rarity: 'epic',
+      description: 'Ngọc bội pháp lực tinh túy, hấp thu linh khí hùng hồn.',
+      stats: JSON.stringify({ mp: 150, mp_percent: 0.10 }),
+      value_ha_pham: 2000,
+      usable: 0,
+      equipable: 1
+    },
+    {
+      id: 'pendant_linh_3',
+      name: 'Bội Phẩm Tiên Lực',
+      type: 'equipment',
+      rarity: 'legendary',
+      description: 'Ngọc bội tiên lực viễn cổ, khai mở pháp lực vô biên.',
+      stats: JSON.stringify({ mp: 300, mp_percent: 0.15 }),
+      value_ha_pham: 10000,
+      usable: 0,
+      equipable: 1
+    },
+    // --- Nhẫn Pháp (Spiritual Ring) Items ---
+    {
+      id: 'ring_spirit_1',
+      name: 'Nhẫn Pháp Sơ Cấp',
+      type: 'equipment',
+      rarity: 'rare',
+      description: 'Nhẫn pháp sơ cấp chứa phù văn, sơ bộ tăng bạo kích và kháng bạo.',
+      stats: JSON.stringify({ crit: 0.03, crit_res: 0.02 }),
+      value_ha_pham: 600,
+      usable: 0,
+      equipable: 1
+    },
+    {
+      id: 'ring_spirit_2',
+      name: 'Nhẫn Pháp Trung Cấp',
+      type: 'equipment',
+      rarity: 'epic',
+      description: 'Nhẫn pháp trung cấp khắc linh văn, gia trì bạo kích và kháng bạo rõ rệt.',
+      stats: JSON.stringify({ crit: 0.06, crit_res: 0.04 }),
+      value_ha_pham: 2500,
+      usable: 0,
+      equipable: 1
+    },
+    {
+      id: 'ring_spirit_3',
+      name: 'Nhẫn Pháp Cao Cấp',
+      type: 'equipment',
+      rarity: 'legendary',
+      description: 'Nhẫn pháp cao cấp thượng cổ truyền thừa, bộc phát bạo kích tối thượng.',
+      stats: JSON.stringify({ crit: 0.10, crit_res: 0.07 }),
+      value_ha_pham: 10000,
+      usable: 0,
+      equipable: 1
     }
   ];
 
@@ -3170,6 +3479,31 @@ function seedHeartLaws() {
   });
   tx();
   console.log(`✅ Đã seed ${laws.length} bí kíp tâm pháp.`);
+}
+
+// Tạo index cho các cột thường query (tối ưu hiệu năng)
+try {
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_inventories_user_id ON inventories(user_id);
+    CREATE INDEX IF NOT EXISTS idx_inventories_item_id ON inventories(item_id);
+    CREATE INDEX IF NOT EXISTS idx_market_listings_seller_id ON market_listings(seller_id);
+    CREATE INDEX IF NOT EXISTS idx_market_listings_status ON market_listings(status);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
+    CREATE INDEX IF NOT EXISTS idx_user_skills_user_id ON user_skills(user_id);
+    CREATE INDEX IF NOT EXISTS idx_user_heart_laws_user_id ON user_heart_laws(user_id);
+    CREATE INDEX IF NOT EXISTS idx_buy_orders_user_id ON buy_orders(user_id);
+    CREATE INDEX IF NOT EXISTS idx_buy_orders_status ON buy_orders(status);
+    CREATE INDEX IF NOT EXISTS idx_pets_user_id ON pets(user_id);
+    CREATE INDEX IF NOT EXISTS idx_daily_quests_user_id ON daily_quests(user_id);
+    CREATE INDEX IF NOT EXISTS idx_arena_profiles_elo ON arena_profiles(elo);
+    CREATE INDEX IF NOT EXISTS idx_sects_level ON sects(level);
+    CREATE INDEX IF NOT EXISTS idx_community_quests_status ON community_quests(status);
+  `);
+  console.log(`✅ Đã tạo index cho database.`);
+} catch (e) {
+  console.log(`ℹ️ Index đã tồn tại, bỏ qua.`);
 }
 
 export default db;

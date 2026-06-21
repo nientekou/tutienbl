@@ -384,6 +384,11 @@ export class CombatService {
       const isDoubleExp = eventService.isDoubleExpActive();
       if (isDoubleExp) expReward = Math.round(expReward * 2);
 
+      // Newbie protection: x2 EXP cho người chơi mới
+      const { newbieProtectionService } = require('./NewbieProtectionService');
+      const newbieMult = newbieProtectionService.getExpMultiplier(userId);
+      if (newbieMult > 1) expReward = Math.round(expReward * newbieMult);
+
       // Giới hạn tu vi không vượt mức đột phá
       const cappedNewTuVi = Math.min(user.tu_vi + expReward, user.exp_needed);
       const actualGainedExp = cappedNewTuVi - user.tu_vi;

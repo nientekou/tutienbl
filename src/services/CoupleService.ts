@@ -105,6 +105,13 @@ class CoupleService {
     return '';
   }
 
+  // Kiểm tra mốc kỷ niệm từ thông tin Đạo Lữ (không cần song tu)
+  public checkAnniversaryOnInfo(coupleId: number): string {
+    const couple = coupleRepository.getCoupleById(coupleId);
+    if (!couple) return '';
+    return this.checkAnniversaryMilestones(couple);
+  }
+
   // Tặng quà tăng hảo cảm
   public giveGift(coupleId: number, giftValue: number): { success: boolean; message: string } {
     const couple = coupleRepository.getCoupleById(coupleId);

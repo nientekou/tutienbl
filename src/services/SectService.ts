@@ -3,6 +3,8 @@ import { userRepository, UserEntity } from '../database/repositories/UserReposit
 import { achievementService } from './AchievementService';
 import { leylineService } from './LeylineService';
 
+const revengeWindows = new Map<string, { attackerName: string; victimName: string; expiresAt: number; sectId: number }>();
+
 export interface SectDetails {
   id: number;
   name: string;
@@ -295,6 +297,360 @@ export class SectService {
       success: true,
       message: `🏗️ **Nâng cấp thành công!** Tông môn **${sect.name}** tiêu hao **${cost}** tài nguyên để thăng cấp **${facilityName}** lên **Cấp ${nextLevel}** (${effectText})!`
     };
+  }
+
+  /**
+   * Gửi lời mời liên minh đến Tông Môn khác
+   */
+  public formAlliance(sectId1: number, sectId2: number, requesterUserId: string): { success: boolean; message: string } {
+    const sect1 = db.prepare('SELECT * FROM sects WHERE id = ?').get(sectId1) as any;
+    if (!sect1) return { success: false, message: 'Tông Môn yêu cầu không tồn tại!' };
+
+    if (sect1.master_id !== requesterUserId) {
+      return { success: false, message: 'Chỉ có Tông Chủ mới có quyền gửi lời mời liên minh!' };
+    }
+
+    const sect2 = db.prepare('SELECT * FROM sects WHERE id = ?').get(sectId2) as any;
+    if (!sect2) return { success: false, message: 'Tông Môn được mời không tồn tại!' };
+
+    if (sectId1 === sectId2) return { success: false, message: 'Không thể liên minh với chính mình!' };
+
+    const existing = db.prepare(`
+      SELECT id, status FROM sect_alliances
+      WHERE (sect_id_1 = ? AND sect_id_2 = ?) OR (sect_id_1 = ? AND sect_id_2 = ?)
+    `).get(sectId1, sectId2, sectId2, sectId1) as any;
+
+    if (existing) {
+      if (existing.status === 'active') return { success: false, message: 'Hai Tông Môn đã là liên minh!' };
+      if (existing.status === 'pending') return { success: false, message: 'Đã có lời mời liên minh giữa hai Tông Môn này, vui lòng chờ phản hồi!' };
+      if (existing.status === 'broken') {
+        const broken = db.prepare('SELECT broken_at FROM sect_alliances WHERE id = ?').get(existing.id) as { broken_at: number };
+        if (broken?.broken_at) {
+          const cooldownEnd = broken.broken_at + 7 * 24 * 3600;
+          if (Math.floor(Date.now() / 1000) < cooldownEnd) {
+            const remaining = Math.ceil((cooldownEnd - Math.floor(Date.now() / 1000)) / 3600);
+            return { success: false, message: `Vừa phá vỡ liên minh, cần chờ thêm **${remaining} giờ** nữa!` };
+          }
+        }
+        db.prepare('DELETE FROM sect_alliances WHERE id = ?').run(existing.id);
+      }
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    db.prepare(`
+      INSERT INTO sect_alliances (sect_id_1, sect_id_2, formed_at, status)
+      VALUES (?, ?, ?, 'pending')
+    `).run(sectId1, sectId2, now);
+
+    return { success: true, message: `📜 **Liên Minh** - Tông Chủ **${sect1.name}** đã gửi lời đề nghị liên minh đến **${sect2.name}**!\nHãy chờ Tông Chủ phe kia chấp nhận bằng \`/tongmon lienminh chapnhan\`.` };
+  }
+
+  /**
+   * Chấp nhận lời mời liên minh
+   */
+  public acceptAlliance(sectId: number, requesterUserId: string): { success: boolean; message: string } {
+    const sect = db.prepare('SELECT * FROM sects WHERE id = ?').get(sectId) as any;
+    if (!sect) return { success: false, message: 'Tông Môn không tồn tại!' };
+    if (sect.master_id !== requesterUserId) {
+      return { success: false, message: 'Chỉ có Tông Chủ mới có quyền chấp nhận liên minh!' };
+    }
+
+    const alliance = db.prepare(`
+      SELECT a.*, s.name as partner_name
+      FROM sect_alliances a
+      JOIN sects s ON a.sect_id_1 = s.id
+      WHERE a.sect_id_2 = ? AND a.status = 'pending'
+      ORDER BY a.formed_at DESC LIMIT 1
+    `).get(sectId) as any;
+
+    if (!alliance) {
+      return { success: false, message: 'Không có lời mời liên minh nào đang chờ xử lý!' };
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    db.prepare('UPDATE sect_alliances SET status = ?, formed_at = ? WHERE id = ?')
+      .run('active', now, alliance.id);
+
+    return { success: true, message: `🤝 **LIÊN MINH THÀNH CÔNG!** **${sect.name}** và **${alliance.partner_name}** chính thức kết minh, đồng sinh tử!` };
+  }
+
+  /**
+   * Phá vỡ liên minh
+   */
+  public breakAlliance(sectId: number, requesterUserId: string): { success: boolean; message: string } {
+    const sect = db.prepare('SELECT * FROM sects WHERE id = ?').get(sectId) as any;
+    if (!sect) return { success: false, message: 'Tông Môn không tồn tại!' };
+    if (sect.master_id !== requesterUserId) {
+      return { success: false, message: 'Chỉ có Tông Chủ mới có quyền phá vỡ liên minh!' };
+    }
+
+    const alliance = db.prepare(`
+      SELECT a.*, s1.name as name1, s2.name as name2
+      FROM sect_alliances a
+      JOIN sects s1 ON a.sect_id_1 = s1.id
+      JOIN sects s2 ON a.sect_id_2 = s2.id
+      WHERE (a.sect_id_1 = ? OR a.sect_id_2 = ?) AND a.status = 'active'
+    `).get(sectId, sectId) as any;
+
+    if (!alliance) {
+      return { success: false, message: 'Tông Môn này hiện không có liên minh nào!' };
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    db.prepare('UPDATE sect_alliances SET status = ?, broken_at = ? WHERE id = ?')
+      .run('broken', now, alliance.id);
+
+    return { success: true, message: `💔 **PHÁ VỠ LIÊN MINH!** **${alliance.name1}** và **${alliance.name2}** chính thức đoạn tuyệt!` };
+  }
+
+  /**
+   * Xem thông tin liên minh của Tông Môn
+   */
+  public getAlliance(sectId: number): { alliance: any; partnerSect: any } | null {
+    const alliance = db.prepare(`
+      SELECT a.*,
+        CASE WHEN a.sect_id_1 = ? THEN a.sect_id_2 ELSE a.sect_id_1 END as partner_id
+      FROM sect_alliances a
+      WHERE (a.sect_id_1 = ? OR a.sect_id_2 = ?) AND a.status = 'active'
+    `).get(sectId, sectId, sectId) as any;
+
+    if (!alliance) return null;
+
+    const partnerSect = db.prepare('SELECT * FROM sects WHERE id = ?').get(alliance.partner_id) as any;
+    const partnerMaster = userRepository.get(partnerSect.master_id);
+    const partnerCount = db.prepare('SELECT COUNT(*) as c FROM users WHERE sect_id = ?').get(partnerSect.id) as { c: number };
+
+    return {
+      alliance: {
+        id: alliance.id,
+        formed_at: alliance.formed_at,
+        status: alliance.status
+      },
+      partnerSect: {
+        id: partnerSect.id,
+        name: partnerSect.name,
+        master_id: partnerSect.master_id,
+        master_name: partnerMaster?.name || 'Vô danh',
+        level: partnerSect.level,
+        member_count: partnerCount.c
+      }
+    };
+  }
+
+  /**
+   * Bảng xếp hạng liên minh
+   */
+  public getAllianceLeaderboard(): Array<{ sect1: string; sect2: string; formed_at: number; total_level: number }> {
+    const rows = db.prepare(`
+      SELECT s1.name as name1, s2.name as name2, a.formed_at, s1.level as level1, s2.level as level2
+      FROM sect_alliances a
+      JOIN sects s1 ON a.sect_id_1 = s1.id
+      JOIN sects s2 ON a.sect_id_2 = s2.id
+      WHERE a.status = 'active'
+      ORDER BY (s1.level + s2.level) DESC, a.formed_at ASC
+      LIMIT 20
+    `).all() as any[];
+
+    return rows.map(r => ({
+      sect1: r.name1,
+      sect2: r.name2,
+      formed_at: r.formed_at,
+      total_level: r.level1 + r.level2
+    }));
+  }
+
+  /**
+   * Kiểm tra hai Tông Môn có đang liên minh không
+   */
+  public isAllied(sectId1: number, sectId2: number): boolean {
+    const result = db.prepare(`
+      SELECT id FROM sect_alliances
+      WHERE ((sect_id_1 = ? AND sect_id_2 = ?) OR (sect_id_1 = ? AND sect_id_2 = ?))
+        AND status = 'active'
+    `).get(sectId1, sectId2, sectId2, sectId1);
+    return !!result;
+  }
+
+  /**
+   * Tuyên chiến giữa hai liên minh
+   */
+  public declareWar(requesterUserId: string, allianceSectId: number, targetAllianceSectId: number): { success: boolean; message: string; warId?: string } {
+    const requester = userRepository.get(requesterUserId);
+    if (!requester) return { success: false, message: 'Nhân vật không tồn tại.' };
+
+    const challengerSect = db.prepare('SELECT * FROM sects WHERE id = ?').get(allianceSectId) as any;
+    if (!challengerSect) return { success: false, message: 'Tông Môn của đạo hữu không tồn tại!' };
+    if (challengerSect.master_id !== requesterUserId) {
+      return { success: false, message: 'Chỉ có Tông Chủ mới có thể tuyên chiến!' };
+    }
+
+    const defenderSect = db.prepare('SELECT * FROM sects WHERE id = ?').get(targetAllianceSectId) as any;
+    if (!defenderSect) return { success: false, message: 'Tông Môn mục tiêu không tồn tại!' };
+
+    const challengerAlliance = db.prepare(`
+      SELECT id FROM sect_alliances WHERE (sect_id_1 = ? OR sect_id_2 = ?) AND status = 'active'
+    `).get(allianceSectId, allianceSectId) as any;
+    if (!challengerAlliance) return { success: false, message: 'Tông Môn của đạo hữu không có liên minh!' };
+
+    const defenderAlliance = db.prepare(`
+      SELECT id FROM sect_alliances WHERE (sect_id_1 = ? OR sect_id_2 = ?) AND status = 'active'
+    `).get(targetAllianceSectId, targetAllianceSectId) as any;
+    if (!defenderAlliance) return { success: false, message: 'Tông Môn mục tiêu không có liên minh!' };
+
+    if (requester.coin_ha_pham < 2000) {
+      return { success: false, message: `Không đủ Linh Thạch! Cần 2000 LT (Có: ${requester.coin_ha_pham})` };
+    }
+
+    const activeWar = db.prepare(
+      "SELECT id FROM guild_wars WHERE (challenger_sect_id = ? OR defender_sect_id = ?) AND status IN ('pending', 'active')"
+    ).get(allianceSectId, allianceSectId) as any;
+    if (activeWar) return { success: false, message: 'Tông Môn đang trong chiến tranh khác!' };
+
+    const activeWarDef = db.prepare(
+      "SELECT id FROM guild_wars WHERE (challenger_sect_id = ? OR defender_sect_id = ?) AND status IN ('pending', 'active')"
+    ).get(targetAllianceSectId, targetAllianceSectId) as any;
+    if (activeWarDef) return { success: false, message: 'Tông Môn mục tiêu đang trong chiến tranh khác!' };
+
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const warId = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const now = Math.floor(Date.now() / 1000);
+    const maxRounds = Math.min(challengerSect.level, defenderSect.level) + 3;
+
+    const challengerMembers = db.prepare(`
+      SELECT DISTINCT u.discord_id, u.sect_id FROM users u
+      JOIN sect_alliances a ON (a.sect_id_1 = u.sect_id OR a.sect_id_2 = u.sect_id)
+      WHERE (a.sect_id_1 = ? OR a.sect_id_2 = ?) AND a.status = 'active' AND u.sect_id IS NOT NULL
+    `).all(allianceSectId, allianceSectId) as { discord_id: string; sect_id: number }[];
+
+    const defenderMembers = db.prepare(`
+      SELECT DISTINCT u.discord_id, u.sect_id FROM users u
+      JOIN sect_alliances a ON (a.sect_id_1 = u.sect_id OR a.sect_id_2 = u.sect_id)
+      WHERE (a.sect_id_1 = ? OR a.sect_id_2 = ?) AND a.status = 'active' AND u.sect_id IS NOT NULL
+    `).all(targetAllianceSectId, targetAllianceSectId) as { discord_id: string; sect_id: number }[];
+
+    db.transaction(() => {
+      userRepository.update(requesterUserId, { coin_ha_pham: requester.coin_ha_pham - 2000 });
+
+      db.prepare(`
+        INSERT INTO guild_wars (id, challenger_sect_id, defender_sect_id, status, max_rounds, created_at)
+        VALUES (?, ?, ?, 'pending', ?, ?)
+      `).run(warId, allianceSectId, targetAllianceSectId, maxRounds, now);
+
+      const insertParticipant = db.prepare(`
+        INSERT OR IGNORE INTO guild_war_participants (war_id, user_id, sect_id, side)
+        VALUES (?, ?, ?, ?)
+      `);
+
+      for (const m of challengerMembers) {
+        insertParticipant.run(warId, m.discord_id, m.sect_id, 'challenger');
+      }
+      for (const m of defenderMembers) {
+        insertParticipant.run(warId, m.discord_id, m.sect_id, 'defender');
+      }
+    })();
+
+    return {
+      success: true,
+      message: `⚔️ **CHIẾN TRANH LIÊN MINH!** Liên minh **${challengerSect.name}** tuyên chiến với liên minh **${defenderSect.name}**!\nMã chiến: \`${warId}\`\nPhí phát động: -2000 Linh Thạch`,
+      warId
+    };
+  }
+
+  // ──── Cân Bằng Phe Phái (Underdog System) ────
+
+  /**
+   * Lấy số lượng thành viên của một Tông Môn
+   */
+  public getMemberCount(sectId: number): number {
+    const result = db.prepare('SELECT COUNT(*) as count FROM users WHERE sect_id = ?').get(sectId) as { count: number };
+    return result.count;
+  }
+
+  /**
+   * Tính tỉ lệ sĩ số giữa hai Tông Môn (luôn >= 1)
+   * VD: 20 vs 5 => ratio = 4
+   */
+  public getSizeRatio(sectId1: number, sectId2: number): { largerId: number; smallerId: number; ratio: number } {
+    const c1 = this.getMemberCount(sectId1);
+    const c2 = this.getMemberCount(sectId2);
+    if (c1 === c2) return { largerId: sectId1, smallerId: sectId2, ratio: 1 };
+    if (c1 > c2) return { largerId: sectId1, smallerId: sectId2, ratio: c1 / c2 };
+    return { largerId: sectId2, smallerId: sectId1, ratio: c2 / c1 };
+  }
+
+  /**
+   * Damage multiplier cho phe nhỏ khi đánh phe lớn (Underdog Attack Buff)
+   * ratio 1-1.5x => +0% | 1.5-2x => +10% | 2-3x => +20% | 3-5x => +30% | 5x+ => +50%
+   */
+  public getUnderdogAttackMultiplier(mySectId: number, enemySectId: number): number {
+    const { largerId, smallerId, ratio } = this.getSizeRatio(mySectId, enemySectId);
+    // Nếu mình là phe lớn, không buff
+    if (largerId === mySectId) return 1.0;
+    if (ratio >= 5.0) return 1.50;
+    if (ratio >= 3.0) return 1.30;
+    if (ratio >= 2.0) return 1.20;
+    if (ratio >= 1.5) return 1.10;
+    return 1.0;
+  }
+
+  /**
+   * Damage reduction cho phe lớn (Zerg Penalty)
+   * ratio 1-1.5x => 0% | 1.5-2x => -10% | 2-3x => -20% | 3-5x => -30% | 5x+ => -50%
+   */
+  public getZergDamageReduction(mySectId: number, enemySectId: number): number {
+    const { largerId, smallerId, ratio } = this.getSizeRatio(mySectId, enemySectId);
+    // Nếu mình là phe nhỏ, không penalty
+    if (smallerId === mySectId) return 1.0;
+    if (ratio >= 5.0) return 0.50;
+    if (ratio >= 3.0) return 0.70;
+    if (ratio >= 2.0) return 0.80;
+    if (ratio >= 1.5) return 0.90;
+    return 1.0;
+  }
+
+  /**
+   * Reward multiplier cho phe nhỏ thắng phe lớn
+   * ratio 1-1.5x => 1x | 1.5-2x => 1.5x | 2-3x => 2x | 3-5x => 3x | 5x+ => 5x
+   */
+  public getUnderdogRewardMultiplier(sectId: number, enemySectId: number): number {
+    const { largerId, smallerId, ratio } = this.getSizeRatio(sectId, enemySectId);
+    // Phe lớn thắng phe nhỏ: không bonus
+    if (largerId === sectId) return 1.0;
+    // Phe nhỏ thắng phe lớn
+    if (ratio >= 5.0) return 5.0;
+    if (ratio >= 3.0) return 3.0;
+    if (ratio >= 2.0) return 2.0;
+    if (ratio >= 1.5) return 1.5;
+    return 1.0;
+  }
+
+  /**
+   * Kiểm tra phe nào là underdog (trả về sectId phe yếu hơn, null nếu cân bằng)
+   */
+  public getUnderdogSectId(sectId1: number, sectId2: number): number | null {
+    const { largerId, smallerId, ratio } = this.getSizeRatio(sectId1, sectId2);
+    return ratio >= 1.5 ? smallerId : null;
+  }
+
+  /**
+   * Khi thành viên bị đánh bại trong PvP, các thành viên khác trong Tông Môn nhận thông báo
+   */
+  public notifySectDefeat(sectId: number, defeatedName: string, attackerName: string): string[] {
+    const members = db.prepare(
+      'SELECT discord_id FROM users WHERE sect_id = ? AND discord_id != ?'
+    ).all(sectId, '') as { discord_id: string }[];
+
+    const notificationMsg = `⚔️ **${defeatedName}** đã bị **${attackerName}** đánh bại! Đồng môn có thể báo thù trong 24h không tốn Thể Lực!`;
+
+    const revengeKey = `revenge_${sectId}_${Date.now()}`;
+    revengeWindows.set(revengeKey, {
+      attackerName,
+      victimName: defeatedName,
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+      sectId
+    });
+
+    return members.map(m => m.discord_id);
   }
 
   /**

@@ -4,6 +4,8 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { formatNumber } from '../../utils/constants';
 import db from '../../database/database';
+import { getShopEmbed, getShopComponents } from './shop';
+
 
 export default class DoiTienCommand extends Command {
   constructor() {
@@ -243,56 +245,9 @@ export default class DoiTienCommand extends Command {
 }
 
 export function getDoiTienEmbed(userId: string): EmbedBuilder {
-  const user = userRepository.get(userId)!;
-  return new EmbedBuilder()
-    .setTitle('⚖️ TIỆM ĐỔI TIỀN PHƯỜNG THỊ ⚖️')
-    .setColor('#f1c40f')
-    .setDescription('Chào mừng đạo hữu đến với Tiệm Đổi Tiền Phường Thị! Hãy chọn loại chuyển đổi tiền tệ mong muốn phía dưới.')
-    .addFields(
-      {
-        name: '💼 Tài sản hiện có',
-        value: [
-          `🟤 Hạ Phẩm Linh Thạch: **${formatNumber(user.coin_ha_pham)}** LT`,
-          `⚪ Trung Phẩm Linh Thạch: **${formatNumber(user.coin_trung_pham)}** LT`,
-          `🟡 Thượng Phẩm Linh Thạch: **${formatNumber(user.coin_thuong_pham)}** LT`,
-          `💎 Kim Nguyên Bảo: **${formatNumber(user.knb)}** KNB`
-        ].join('\n')
-      },
-      {
-        name: '📊 Tỷ giá quy đổi',
-        value: [
-          `• 🟤 Hạ Phẩm ➡️ ⚪ Trung Phẩm: **100:1**`,
-          `• ⚪ Trung Phẩm ➡️ 🟤 Hạ Phẩm: **1:100**`,
-          `• ⚪ Trung Phẩm ➡️ 🟡 Thượng Phẩm: **100:1**`,
-          `• 🟡 Thượng Phẩm ➡️ ⚪ Trung Phẩm: **1:100**`,
-          `• 🟤 Hạ Phẩm ➡️ 🟡 Thượng Phẩm: **10.000:1**`,
-          `• 🟡 Thượng Phẩm ➡️ 🟤 Hạ Phẩm: **1:10.000**`,
-          `• 💎 KNB ➡️ 🟡 Thượng Phẩm: **1:5**`,
-          `• 🟡 Thượng Phẩm ➡️ 💎 KNB: **5:1**`,
-          `• 💎 KNB ➡️ 🟤 Hạ Phẩm: **1:50.000**`,
-          `• 🟤 Hạ Phẩm ➡️ 💎 KNB: **50.000:1**`
-        ].join('\n')
-      }
-    )
-    .setTimestamp();
+  return getShopEmbed(userId, 'doitien');
 }
 
-export function getDoiTienComponents(userId: string): ActionRowBuilder<StringSelectMenuBuilder>[] {
-  const selectMenu = new StringSelectMenuBuilder()
-    .setCustomId(`doitienselect_${userId}`)
-    .setPlaceholder('Chọn loại quy đổi tiền tệ')
-    .addOptions(
-      { label: '🟤 Hạ Phẩm ➡️ ⚪ Trung Phẩm (100:1)', value: 'ha_sang_trung' },
-      { label: '⚪ Trung Phẩm ➡️ 🟤 Hạ Phẩm (1:100)', value: 'trung_sang_ha' },
-      { label: '⚪ Trung Phẩm ➡️ 🟡 Thượng Phẩm (100:1)', value: 'trung_sang_thuong' },
-      { label: '🟡 Thượng Phẩm ➡️ ⚪ Trung Phẩm (1:100)', value: 'thuong_sang_trung' },
-      { label: '🟤 Hạ Phẩm ➡️ 🟡 Thượng Phẩm (10k:1)', value: 'ha_sang_thuong' },
-      { label: '🟡 Thượng Phẩm ➡️ 🟤 Hạ Phẩm (1:10k)', value: 'thuong_sang_ha' },
-      { label: '💎 KNB ➡️ 🟡 Thượng Phẩm (1:5)', value: 'knb_sang_thuong' },
-      { label: '🟡 Thượng Phẩm ➡️ 💎 KNB (5:1)', value: 'thuong_sang_knb' },
-      { label: '💎 KNB ➡️ 🟤 Hạ Phẩm (1:50k)', value: 'knb_sang_ha' },
-      { label: '🟤 Hạ Phẩm ➡️ 💎 KNB (50k:1)', value: 'ha_sang_knb' }
-    );
-
-  return [new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu)];
+export function getDoiTienComponents(userId: string): any[] {
+  return getShopComponents(userId, 'doitien');
 }
