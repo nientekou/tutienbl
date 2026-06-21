@@ -104,10 +104,10 @@ export default class TaoNhanVatCommand extends Command {
 
     for (let i = 0; i < embeds.length; i++) {
       await interaction.editReply({ embeds: [embeds[i]] });
-      await new Promise(r => setTimeout(r, 3000));
+      await new Promise(r => setTimeout(r, 8000));
     }
     
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 3000));
   }
 
   private async stepSpiritRootCeremony(interaction: ChatInputCommandInteraction, linhCan: Record<string, number>): Promise<void> {
@@ -144,7 +144,7 @@ export default class TaoNhanVatCommand extends Command {
       .setFooter({ text: `Ngươi sở hữu ${type} Linh Căn.` });
 
     await interaction.editReply({ embeds: [embed] });
-    await new Promise(r => setTimeout(r, 4000));
+    await new Promise(r => setTimeout(r, 10000));
   }
 
   private async stepChooseBackground(interaction: ChatInputCommandInteraction, name: string): Promise<(typeof BACKGROUNDS)[number] | null> {
@@ -197,7 +197,7 @@ export default class TaoNhanVatCommand extends Command {
     await interaction.editReply({ embeds: [storyEmbed], components: [] });
 
     // Brief delay for dramatic effect
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 6000));
     return background;
   }
 
@@ -248,7 +248,7 @@ export default class TaoNhanVatCommand extends Command {
       .setDescription(`*"${destiny.line}"*`);
     await interaction.editReply({ embeds: [lineEmbed], components: [] });
 
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 5000));
     return destiny;
   }
 

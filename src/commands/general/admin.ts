@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { systemConfigService } from '../../services/SystemConfigService';
@@ -6,13 +6,13 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import { userRepository } from '../../database/repositories/UserRepository';
 import { cultivationService } from '../../services/CultivationService';
 import db from '../../database/database';
+import { config } from '../../config';
 
 /**
  * ID Discord của Bot Owner — người DUY NHẤT được phép dùng lệnh /admin
  * Không phân quyền qua guild admin roles để tránh mất cân bằng game
  */
 const BOT_OWNER_ID = '724608013981450351';
-
 export default class AdminCommand extends Command {
   constructor() {
     super(
@@ -108,6 +108,126 @@ export default class AdminCommand extends Command {
           subcommand
             .setName('panel')
             .setDescription('[Owner Only] Mở Bảng Điều Khiển Thiên Đạo.')
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('ban')
+            .setDescription('[Owner Only] Phong ấn (ban) tu sĩ khỏi tam giới.')
+            .addUserOption(option =>
+              option
+                .setName('tuser')
+                .setDescription('Tu sĩ muốn phong ấn.')
+                .setRequired(true)
+            )
+            .addStringOption(option =>
+              option
+                .setName('reason')
+                .setDescription('Lý do phong ấn.')
+                .setRequired(false)
+            )
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('unban')
+            .setDescription('[Owner Only] Giải phong (unban) tu sĩ.')
+            .addStringOption(option =>
+              option
+                .setName('user_id')
+                .setDescription('Discord ID của tu sĩ cần giải phong.')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('givestamina')
+            .setDescription('[Owner Only] Ban phát/thu hồi thể lực của tu sĩ.')
+            .addUserOption(option =>
+              option
+                .setName('tuser')
+                .setDescription('Tu sĩ nhận/trừ thể lực.')
+                .setRequired(true)
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('amount')
+                .setDescription('Số lượng thể lực cần thay đổi (có thể âm để trừ).')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('logs')
+            .setDescription('[Owner Only] Truy vấn nhật ký audit hệ thống.')
+            .addUserOption(option =>
+              option
+                .setName('tuser')
+                .setDescription('Lọc theo tu sĩ thực hiện hành động.')
+                .setRequired(false)
+            )
+            .addStringOption(option =>
+              option
+                .setName('action')
+                .setDescription('Lọc theo loại hành động.')
+                .setRequired(false)
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('limit')
+                .setDescription('Giới hạn số bản ghi hiển thị (mặc định 10, tối đa 25).')
+                .setRequired(false)
+                .setMinValue(1)
+                .setMaxValue(25)
+            )
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('broadcast')
+            .setDescription('[Owner Only] Truyền âm thông báo đến toàn bộ các máy chủ.')
+            .addStringOption(option =>
+              option
+                .setName('title')
+                .setDescription('Tiêu đề của thông báo truyền âm.')
+                .setRequired(true)
+            )
+            .addStringOption(option =>
+              option
+                .setName('message')
+                .setDescription('Nội dung chi tiết thông báo (hỗ trợ \\n để xuống dòng).')
+                .setRequired(true)
+            )
+            .addStringOption(option =>
+              option
+                .setName('color')
+                .setDescription('Màu sắc của viền embed (Ví dụ: #ff0000 hoặc #00ff00).')
+                .setRequired(false)
+            )
+            .addStringOption(option =>
+              option
+                .setName('image')
+                .setDescription('URL ảnh đính kèm (nếu có).')
+                .setRequired(false)
+            )
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('rollback')
+            .setDescription('[Owner Only] Khôi phục cơ sở dữ liệu về thời điểm trước đó.')
+            .addIntegerOption(option =>
+              option
+                .setName('hours')
+                .setDescription('Số giờ trước đó.')
+                .setRequired(true)
+                .setMinValue(0)
+                .setMaxValue(72)
+            )
+            .addIntegerOption(option =>
+              option
+                .setName('minutes')
+                .setDescription('Số phút trước đó.')
+                .setRequired(false)
+                .setMinValue(0)
+                .setMaxValue(59)
+            )
         )
     );
   }
@@ -341,6 +461,290 @@ export default class AdminCommand extends Command {
       await interaction.reply({ embeds: [embed], components, ephemeral: true });
       return;
     }
+
+    if (subcommand === 'ban') {
+      const targetUser = interaction.options.getUser('tuser', true);
+      const reason = interaction.options.getString('reason') || 'Trục xuất khỏi tam giới (Banned by Admin)';
+
+      db.prepare(`
+        INSERT INTO banned_users (user_id, reason, banned_by, created_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET reason = excluded.reason, banned_by = excluded.banned_by, created_at = excluded.created_at
+      `).run(targetUser.id, reason, userId, Math.floor(Date.now() / 1000));
+
+      systemConfigService.writeAuditLog(userId, 'admin_ban', {
+        targetUserId: targetUser.id,
+        targetTag: targetUser.tag,
+        reason
+      });
+
+      await interaction.reply({
+        content: `🔒 **Thiên Đạo Trừng Phạt:** Đã phong ấn linh hồn tu sĩ <@${targetUser.id}> khỏi tam giới!\n📝 **Lý do:** *${reason}*`,
+        ephemeral: true
+      });
+      return;
+    }
+
+    if (subcommand === 'unban') {
+      const targetUserId = interaction.options.getString('user_id', true).trim();
+
+      const exists = db.prepare('SELECT 1 FROM banned_users WHERE user_id = ?').get(targetUserId);
+      if (!exists) {
+        await interaction.reply({
+          content: `❌ Linh hồn tu sĩ có ID \`${targetUserId}\` không ở trạng thái bị phong ấn.`,
+          ephemeral: true
+        });
+        return;
+      }
+
+      db.prepare('DELETE FROM banned_users WHERE user_id = ?').run(targetUserId);
+
+      systemConfigService.writeAuditLog(userId, 'admin_unban', {
+        targetUserId
+      });
+
+      await interaction.reply({
+        content: `🔓 **Thiên Đạo Xá Tội:** Đã hóa giải phong ấn, cho phép tu sĩ có ID \`${targetUserId}\` (<@${targetUserId}>) quay trở lại tu luyện!`,
+        ephemeral: true
+      });
+      return;
+    }
+
+    if (subcommand === 'givestamina') {
+      const targetUser = interaction.options.getUser('tuser', true);
+      const amount = interaction.options.getInteger('amount', true);
+
+      const targetProfile = userRepository.get(targetUser.id);
+      if (!targetProfile) {
+        await interaction.reply({
+          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật trong hệ thống.`,
+          ephemeral: true
+        });
+        return;
+      }
+
+      const currentStamina = targetProfile.stamina;
+      const newStamina = Math.min(500, Math.max(0, currentStamina + amount));
+
+      userRepository.update(targetUser.id, {
+        stamina: newStamina
+      });
+
+      systemConfigService.writeAuditLog(userId, 'admin_givestamina', {
+        targetUserId: targetUser.id,
+        targetName: targetProfile.name,
+        amount,
+        oldStamina: currentStamina,
+        newStamina
+      });
+
+      await interaction.reply({
+        content: `🔋 **Thiên Phú Linh Thể:** Đã điều chỉnh thể lực cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>):\n📈 **Thay đổi:** \`${amount >= 0 ? '+' : ''}${amount}\` thể lực.\n⚡ **Thể lực hiện tại:** **${newStamina}/500**`,
+        ephemeral: true
+      });
+      return;
+    }
+
+    if (subcommand === 'logs') {
+      const targetUser = interaction.options.getUser('tuser');
+      const filterAction = interaction.options.getString('action');
+      const limit = interaction.options.getInteger('limit') || 10;
+
+      let query = 'SELECT * FROM audit_logs';
+      const conditions: string[] = [];
+      const params: any[] = [];
+
+      if (targetUser) {
+        conditions.push('user_id = ?');
+        params.push(targetUser.id);
+      }
+      if (filterAction) {
+        conditions.push('action = ?');
+        params.push(filterAction);
+      }
+
+      if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
+      }
+
+      query += ' ORDER BY id DESC LIMIT ?';
+      params.push(limit);
+
+      const logs = db.prepare(query).all(...params) as any[];
+
+      const embed = new EmbedBuilder()
+        .setTitle('📜 NHẬT KÝ AUDIT THIÊN ĐẠO')
+        .setColor('#e67e22')
+        .setDescription(
+          logs.length === 0
+            ? 'Không tìm thấy nhật ký audit tương ứng với điều kiện lọc.'
+            : logs
+                .map(l => {
+                  const time = new Date(l.created_at * 1000).toLocaleString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    day: '2-digit',
+                    month: '2-digit'
+                  });
+                  let detailsText = l.details || '';
+                  if (detailsText.length > 80) {
+                    detailsText = detailsText.substring(0, 77) + '...';
+                  }
+                  return `[\`${time}\`] **${l.action}** (Bởi: <@${l.user_id}>)\n └ *${detailsText}*`;
+                })
+                .join('\n')
+        )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed], ephemeral: true });
+      return;
+    }
+
+    if (subcommand === 'broadcast') {
+      const title = interaction.options.getString('title', true);
+      const message = interaction.options.getString('message', true).replace(/\\n/g, '\n');
+      const colorInput = interaction.options.getString('color');
+      const imageUrl = interaction.options.getString('image');
+
+      const color = (colorInput && /^#[0-9A-F]{6}$/i.test(colorInput)) ? colorInput : '#f1c40f';
+
+      await interaction.deferReply({ ephemeral: true });
+
+      const guilds = db.prepare('SELECT * FROM guild_configs').all() as any[];
+      let successCount = 0;
+      let failCount = 0;
+      const sentChannels = new Set<string>();
+
+      // Gửi tại chỗ dùng panel đầu tiên
+      const currentChannelId = interaction.channelId;
+      if (currentChannelId && /^\d{17,20}$/.test(currentChannelId)) {
+        try {
+          const channel = await client.channels.fetch(currentChannelId) as any;
+          if (channel && channel.isTextBased()) {
+            const embed = new EmbedBuilder()
+              .setTitle(title)
+              .setDescription(message)
+              .setColor(color as any)
+              .setFooter({ text: '📢 THIÊN ĐẠO TRUYỀN ÂM (Hệ Thống Thông Báo)' })
+              .setTimestamp();
+            if (imageUrl) embed.setImage(imageUrl);
+
+            await channel.send({ embeds: [embed] });
+            successCount++;
+            sentChannels.add(currentChannelId);
+          }
+        } catch (err) {
+          console.error(`Broadcast failed for current channel ${currentChannelId}:`, err);
+        }
+      }
+
+      for (const config of guilds) {
+        const channelId = config.chat_channel_id || config.event_channel_id || config.tuluyen_channel_id;
+        if (!channelId || sentChannels.has(channelId)) continue;
+        if (!/^\d{17,20}$/.test(channelId)) {
+          console.warn(`Skipping invalid snowflake channelId: ${channelId}`);
+          continue;
+        }
+
+        try {
+          const channel = await client.channels.fetch(channelId) as any;
+          if (channel && channel.isTextBased()) {
+            const embed = new EmbedBuilder()
+              .setTitle(title)
+              .setDescription(message)
+              .setColor(color as any)
+              .setFooter({ text: '📢 THIÊN ĐẠO TRUYỀN ÂM (Hệ Thống Thông Báo)' })
+              .setTimestamp();
+            if (imageUrl) embed.setImage(imageUrl);
+
+            await channel.send({ embeds: [embed] });
+            successCount++;
+            sentChannels.add(channelId);
+          } else {
+            failCount++;
+          }
+        } catch (err) {
+          console.error(`Broadcast failed for channel ${channelId}:`, err);
+          failCount++;
+        }
+      }
+
+      systemConfigService.writeAuditLog(userId, 'admin_broadcast', {
+        title,
+        message,
+        guildCount: guilds.length,
+        successCount,
+        failCount
+      });
+
+      await interaction.editReply({
+        content: `📢 **Thiên Đạo Truyền Âm Hoàn Tất:**\n✅ Gửi thành công: **${successCount}** kênh.\n❌ Thất bại/Bỏ qua: **${failCount}** kênh.`
+      });
+      return;
+    }
+
+    if (subcommand === 'rollback') {
+      const hours = interaction.options.getInteger('hours', true);
+      const minutes = interaction.options.getInteger('minutes') || 0;
+      const targetAgeMinutes = hours * 60 + minutes;
+
+      const { backupService } = require('../../services/BackupService');
+      const backups = backupService.listBackups();
+
+      if (backups.length === 0) {
+        await interaction.reply({
+          content: '❌ Không tìm thấy bản sao lưu (backup) nào trong hệ thống.',
+          ephemeral: true
+        });
+        return;
+      }
+
+      // Tìm bản sao lưu gần nhất với khoảng thời gian mong muốn
+      let closestBackup = backups[0];
+      let minDiff = Math.abs(closestBackup.ageMinutes - targetAgeMinutes);
+
+      for (const b of backups) {
+        const diff = Math.abs(b.ageMinutes - targetAgeMinutes);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestBackup = b;
+        }
+      }
+
+      // Xác nhận khôi phục
+      const embed = new EmbedBuilder()
+        .setTitle('⚠️ THIÊN ĐẠO HỒI QUY — XÁC NHẬN KHÔI PHỤC')
+        .setColor('#e74c3c')
+        .setDescription(
+          `Đạo hữu đang yêu cầu khôi phục tam giới về thời điểm **${hours} giờ ${minutes} phút trước**.\n\n` +
+          `📂 **Bản sao lưu phù hợp nhất tìm thấy:**\n` +
+          `• Tên tệp: \`${closestBackup.filename}\`\n` +
+          `• Được tạo cách đây: **${closestBackup.ageMinutes} phút** (${closestBackup.createdAt.toLocaleString('vi-VN')})\n` +
+          `• Kích thước: **${(closestBackup.size / 1024 / 1024).toFixed(2)} MB**\n\n` +
+          `⚠️ **LƯU Ý QUAN TRỌNG:**\n` +
+          `- Tiến trình, giao dịch và dữ liệu phát sinh **sau thời điểm trên** sẽ bị xoá bỏ hoàn toàn.\n` +
+          `- Bot sẽ tự động khởi động lại ngay sau khi khôi phục đè tệp cơ sở dữ liệu.\n` +
+          `- Vui lòng chỉ thực hiện khi phát hiện lỗi nghiêm trọng.`
+        )
+        .setFooter({ text: `Yêu cầu bởi Thiên Đạo Chủ • ID: ${userId}` })
+        .setTimestamp();
+
+      const confirmButton = new ButtonBuilder()
+        .setCustomId(`adminpanel_confirmrestore_${closestBackup.filename}_${userId}`)
+        .setLabel('✔️ Xác Nhận Rollback')
+        .setStyle(ButtonStyle.Danger);
+
+      const cancelButton = new ButtonBuilder()
+        .setCustomId(`adminuser_back_null_${userId}`)
+        .setLabel('❌ Hủy Bỏ')
+        .setStyle(ButtonStyle.Secondary);
+
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton, cancelButton);
+
+      await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+      return;
+    }
   }
 
   public static async getPanelEmbed(client: TuTienClient): Promise<EmbedBuilder> {
@@ -430,7 +834,22 @@ export default class AdminCommand extends Command {
         .setStyle(ButtonStyle.Danger)
     );
 
-    return [row1, row2];
+    const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`adminpanel_auditlog_${adminId}`)
+        .setLabel('📜 Nhật Ký Audit')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(`adminpanel_broadcast_${adminId}`)
+        .setLabel('📢 Phát Thông Báo')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`adminpanel_backupmgr_${adminId}`)
+        .setLabel('🗄️ Quản Lý Backup')
+        .setStyle(ButtonStyle.Danger)
+    );
+
+    return [row1, row2, row3];
   }
 
   public static getUserPanelEmbed(targetUserId: string): EmbedBuilder {
@@ -446,14 +865,22 @@ export default class AdminCommand extends Command {
     const deployedPet = db.prepare('SELECT name, level, rarity FROM pets WHERE user_id = ? AND is_deployed = 1').get(targetUserId) as any;
     const petText = deployedPet ? `🐾 **${deployedPet.name}** (Cấp ${deployedPet.level} [${deployedPet.rarity.toUpperCase()}])` : '💤 Không có';
 
+    // Lấy thông tin cấm
+    const banInfo = db.prepare('SELECT reason, created_at FROM banned_users WHERE user_id = ?').get(targetUserId) as { reason: string, created_at: number } | undefined;
+    const statusText = banInfo 
+      ? `🔴 **BỊ PHONG ẤN** (Lý do: *${banInfo.reason}* - ngày ${new Date(banInfo.created_at * 1000).toLocaleString('vi-VN')})` 
+      : '🟢 **ĐANG HOẠT ĐỘNG**';
+
     return new EmbedBuilder()
       .setTitle(`👤 HỒ SƠ TU SĨ — ĐẠO HỮU: ${user.name}`)
-      .setColor('#3498db')
+      .setColor(banInfo ? '#e74c3c' : '#3498db')
       .setDescription(
         `Đang xem thông tin quản trị của tu sĩ <@${targetUserId}> (ID: \`${targetUserId}\`):\n\n` +
+        `⚠️ **Trạng thái:** ${statusText}\n\n` +
         `🌟 **Thông Tin Cảnh Giới:**\n` +
         `• Cảnh Giới: **${user.title}** (Cấp ${user.level})\n` +
-        `• Tu Vi: **${user.tu_vi} / ${user.exp_needed}**\n\n` +
+        `• Tu Vi: **${user.tu_vi} / ${user.exp_needed}**\n` +
+        `• Thể Lực: **${user.stamina} / 500**\n\n` +
         `💰 **Tài Sản & Rương Đồ:**\n` +
         `• Linh Thạch Hạ Phẩm: **${user.coin_ha_pham.toLocaleString()}** LT\n` +
         `• KNB: **${user.knb.toLocaleString()}** KNB\n` +
@@ -470,6 +897,8 @@ export default class AdminCommand extends Command {
   }
 
   public static getUserPanelComponents(targetUserId: string, adminId: string): any[] {
+    const isBanned = db.prepare('SELECT 1 FROM banned_users WHERE user_id = ?').get(targetUserId);
+
     const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`adminuser_givecoin_${targetUserId}_${adminId}`)
@@ -490,6 +919,14 @@ export default class AdminCommand extends Command {
     );
 
     const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`adminuser_stamina_${targetUserId}_${adminId}`)
+        .setLabel('🔋 Sửa Thể Lực')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(isBanned ? `adminuser_unban_${targetUserId}_${adminId}` : `adminuser_ban_${targetUserId}_${adminId}`)
+        .setLabel(isBanned ? '🔓 Giải Phong' : '🔒 Phong Ấn')
+        .setStyle(isBanned ? ButtonStyle.Success : ButtonStyle.Danger),
       new ButtonBuilder()
         .setCustomId(`adminuser_back_${targetUserId}_${adminId}`)
         .setLabel('🔙 Quay Lại Panel')
@@ -672,6 +1109,231 @@ export default class AdminCommand extends Command {
           components
         });
       }
+      
+      else if (subAction === 'auditlog') {
+        const logs = db.prepare('SELECT * FROM audit_logs ORDER BY id DESC LIMIT 10').all() as any[];
+        const embed = new EmbedBuilder()
+          .setTitle('📜 NHẬT KÝ AUDIT THIÊN ĐẠO')
+          .setColor('#e67e22')
+          .setDescription(
+            logs.length === 0
+              ? 'Không có lịch sử nhật ký vận hành.'
+              : logs.map(l => {
+                  const time = new Date(l.created_at * 1000).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit' });
+                  let detailsText = l.details || '';
+                  if (detailsText.length > 80) {
+                    detailsText = detailsText.substring(0, 77) + '...';
+                  }
+                  return `[\`${time}\`] **${l.action}** (Bởi: <@${l.user_id}>) \n └ *${detailsText}*`;
+                }).join('\n')
+          )
+          .setTimestamp();
+
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`adminuser_back_null_${adminId}`)
+            .setLabel('🔙 Quay Lại Panel')
+            .setStyle(ButtonStyle.Secondary)
+        );
+        await interaction.update({ content: '', embeds: [embed], components: [row] });
+      }
+
+      else if (subAction === 'broadcast') {
+        const modal = new ModalBuilder()
+          .setCustomId(`adminmodal_${adminId}_broadcast`)
+          .setTitle('Thiên Đạo Truyền Âm');
+
+        const titleInput = new TextInputBuilder()
+          .setCustomId('bc_title')
+          .setLabel('Tiêu đề thông báo')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Ví dụ: CẬP NHẬT PHIÊN BẢN MỚI')
+          .setRequired(true);
+
+        const msgInput = new TextInputBuilder()
+          .setCustomId('bc_msg')
+          .setLabel('Nội dung truyền âm')
+          .setStyle(TextInputStyle.Paragraph)
+          .setPlaceholder('Nhập nội dung... (Dùng \\n để xuống dòng)')
+          .setRequired(true);
+
+        const colorInput = new TextInputBuilder()
+          .setCustomId('bc_color')
+          .setLabel('Màu viền (Hex)')
+          .setStyle(TextInputStyle.Short)
+          .setValue('#f1c40f')
+          .setRequired(false);
+
+        const imgInput = new TextInputBuilder()
+          .setCustomId('bc_image')
+          .setLabel('Link ảnh đính kèm (URL)')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(false);
+
+        modal.addComponents(
+          new ActionRowBuilder<TextInputBuilder>().addComponents(titleInput),
+          new ActionRowBuilder<TextInputBuilder>().addComponents(msgInput),
+          new ActionRowBuilder<TextInputBuilder>().addComponents(colorInput),
+          new ActionRowBuilder<TextInputBuilder>().addComponents(imgInput)
+        );
+        await interaction.showModal(modal);
+      }
+
+      else if (subAction === 'backupmgr') {
+        const { backupService } = require('../../services/BackupService');
+        const backups = backupService.listBackups();
+        const configPath = config.dbPath;
+        const fs = require('fs');
+        let dbSize = 0;
+        try { dbSize = fs.statSync(configPath).size; } catch (e) {}
+
+        const embed = new EmbedBuilder()
+          .setTitle('🗄️ QUẢN TRỊ SAO LƯU & PHỤC HỒI HỆ THỐNG')
+          .setColor('#c0392b')
+          .setDescription(
+            `Trung tâm quản lý các bản sao lưu SQLite Database. Đạo hữu có thể khôi phục (rollback) dữ liệu tu sĩ tại đây.\n\n` +
+            `📂 **Cơ Sở Dữ Liệu Hiện Tại:**\n` +
+            `• Đường dẫn: \`${configPath}\`\n` +
+            `• Kích thước: **${(dbSize / 1024 / 1024).toFixed(2)} MB**\n` +
+            `• Tổng số bản sao lưu: **${backups.length}** / 48 bản ghi\n\n` +
+            `📋 **10 Bản Sao Lưu Gần Nhất:**\n` +
+            (backups.length === 0
+              ? '*Chưa có bản sao lưu nào được tạo.*'
+              : backups.slice(0, 10).map((b: any, i: number) => `${i + 1}. \`${b.filename}\` (${b.ageMinutes} phút trước | ${(b.size / 1024 / 1024).toFixed(2)} MB)`).join('\n'))
+          )
+          .setFooter({ text: 'Chọn tệp sao lưu bên dưới để khôi phục hoặc tạo sao lưu mới.' })
+          .setTimestamp();
+
+        const selectOptions = backups.slice(0, 25).map((b: any) => ({
+          label: b.filename.substring(0, 100),
+          description: `Cách đây ${b.ageMinutes} phút (${(b.size / 1024 / 1024).toFixed(2)} MB)`,
+          value: b.filename
+        }));
+
+        const rows = [];
+        if (selectOptions.length > 0) {
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId(`adminpanel_restoreselect_${adminId}`)
+            .setPlaceholder('Chọn bản sao lưu muốn khôi phục')
+            .addOptions(selectOptions);
+          rows.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu));
+        }
+
+        const buttonsRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`adminpanel_createbackup_${adminId}`)
+            .setLabel('➕ Tạo Sao Lưu Mới')
+            .setStyle(ButtonStyle.Success),
+          new ButtonBuilder()
+            .setCustomId(`adminuser_back_null_${adminId}`)
+            .setLabel('🔙 Quay Lại Panel')
+            .setStyle(ButtonStyle.Secondary)
+        );
+        rows.push(buttonsRow);
+
+        await interaction.update({ content: '', embeds: [embed], components: rows });
+      }
+
+      else if (subAction === 'createbackup') {
+        const { backupService } = require('../../services/BackupService');
+        await backupService.createBackup('manual');
+
+        systemConfigService.writeAuditLog(adminId, 'admin_backup_create_manual', {});
+
+        const backups = backupService.listBackups();
+        const configPath = config.dbPath;
+        const fs = require('fs');
+        let dbSize = 0;
+        try { dbSize = fs.statSync(configPath).size; } catch (e) {}
+
+        const embed = new EmbedBuilder()
+          .setTitle('🗄️ QUẢN TRỊ SAO LƯU & PHỤC HỒI HỆ THỐNG')
+          .setColor('#c0392b')
+          .setDescription(
+            `✅ **Đã tạo sao lưu thủ công thành công!**\n\n` +
+            `📂 **Cơ Sở Dữ Liệu Hiện Tại:**\n` +
+            `• Đường dẫn: \`${configPath}\`\n` +
+            `• Kích thước: **${(dbSize / 1024 / 1024).toFixed(2)} MB**\n` +
+            `• Tổng số bản sao lưu: **${backups.length}** / 48 bản ghi\n\n` +
+            `📋 **10 Bản Sao Lưu Gần Nhất:**\n` +
+            backups.slice(0, 10).map((b: any, i: number) => `${i + 1}. \`${b.filename}\` (${b.ageMinutes} phút trước | ${(b.size / 1024 / 1024).toFixed(2)} MB)`).join('\n')
+          )
+          .setTimestamp();
+
+        const selectOptions = backups.slice(0, 25).map((b: any) => ({
+          label: b.filename.substring(0, 100),
+          description: `Cách đây ${b.ageMinutes} phút (${(b.size / 1024 / 1024).toFixed(2)} MB)`,
+          value: b.filename
+        }));
+
+        const rows = [];
+        if (selectOptions.length > 0) {
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId(`adminpanel_restoreselect_${adminId}`)
+            .setPlaceholder('Chọn bản sao lưu muốn khôi phục')
+            .addOptions(selectOptions);
+          rows.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu));
+        }
+
+        const buttonsRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`adminpanel_createbackup_${adminId}`)
+            .setLabel('➕ Tạo Sao Lưu Mới')
+            .setStyle(ButtonStyle.Success),
+          new ButtonBuilder()
+            .setCustomId(`adminuser_back_null_${adminId}`)
+            .setLabel('🔙 Quay Lại Panel')
+            .setStyle(ButtonStyle.Secondary)
+        );
+        rows.push(buttonsRow);
+
+        await interaction.update({ content: '', embeds: [embed], components: rows });
+      }
+
+      else if (subAction === 'restoreselect' && interaction.isStringSelectMenu()) {
+        const selectedBackup = interaction.values[0];
+
+        const embed = new EmbedBuilder()
+          .setTitle('⚠️ THIÊN ĐẠO HỒI QUY — XÁC NHẬN KHÔI PHỤC')
+          .setColor('#e74c3c')
+          .setDescription(
+            `Đạo hữu đang yêu cầu khôi phục toàn bộ tam giới về phiên bản sao lưu:\n\n` +
+            `📂 **Tên tệp:** \`${selectedBackup}\`\n\n` +
+            `⚠️ **LƯU Ý QUAN TRỌNG:**\n` +
+            `- Tiến trình, giao dịch và dữ liệu phát sinh **sau thời điểm trên** sẽ bị xoá bỏ hoàn toàn.\n` +
+            `- Bot sẽ tự động đóng kết nối cơ sở dữ liệu hiện tại, ghi đè tệp sao lưu và khởi động lại tiến trình ngay lập tức.\n` +
+            `- Vui lòng chỉ thực hiện khi phát hiện lỗi nghiêm trọng.`
+          )
+          .setFooter({ text: 'Cân nhắc kỹ trước khi xác nhận!' })
+          .setTimestamp();
+
+        const confirmButton = new ButtonBuilder()
+          .setCustomId(`adminpanel_confirmrestore_${selectedBackup}_${adminId}`)
+          .setLabel('✔️ Xác Nhận Rollback')
+          .setStyle(ButtonStyle.Danger);
+
+        const cancelButton = new ButtonBuilder()
+          .setCustomId(`adminpanel_backupmgr_${adminId}`)
+          .setLabel('❌ Hủy Bỏ')
+          .setStyle(ButtonStyle.Secondary);
+
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton, cancelButton);
+
+        await interaction.update({ content: '', embeds: [embed], components: [row] });
+      }
+
+      else if (subAction === 'confirmrestore') {
+        const backupFilename = parts.slice(2, -1).join('_');
+
+        await interaction.update({
+          content: `🔄 **Đang thực hiện khôi phục dữ liệu từ: \`${backupFilename}\`...**\nBot sẽ tự động khởi động lại trong giây lát!`,
+          embeds: [],
+          components: []
+        });
+
+        const { backupService } = require('../../services/BackupService');
+        await backupService.rollbackToBackup(backupFilename, adminId);
+      }
     }
     
     else if (action === 'adminuser') {
@@ -760,6 +1422,54 @@ export default class AdminCommand extends Command {
 
         modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(lcInput));
         await interaction.showModal(modal);
+      }
+
+      else if (subAction === 'stamina') {
+        const modal = new ModalBuilder()
+          .setCustomId(`adminmodal_${adminId}_stamina_${targetUserId}`)
+          .setTitle('Sửa Thể Lực Tu Sĩ');
+
+        const amountInput = new TextInputBuilder()
+          .setCustomId('stamina_amount')
+          .setLabel('Số lượng thể lực')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Ví dụ: 100 hoặc -50 để trừ')
+          .setRequired(true);
+
+        modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(amountInput));
+        await interaction.showModal(modal);
+      }
+
+      else if (subAction === 'ban') {
+        const modal = new ModalBuilder()
+          .setCustomId(`adminmodal_${adminId}_ban_${targetUserId}`)
+          .setTitle('Phong Ấn Linh Hồn (Ban)');
+
+        const reasonInput = new TextInputBuilder()
+          .setCustomId('ban_reason')
+          .setLabel('Lý do phong ấn')
+          .setStyle(TextInputStyle.Paragraph)
+          .setPlaceholder('Nhập lý do phong ấn tu sĩ...')
+          .setRequired(true);
+
+        modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(reasonInput));
+        await interaction.showModal(modal);
+      }
+
+      else if (subAction === 'unban') {
+        db.prepare('DELETE FROM banned_users WHERE user_id = ?').run(targetUserId);
+
+        systemConfigService.writeAuditLog(adminId, 'admin_unban_panel', {
+          targetUserId
+        });
+
+        const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
+        const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
+        await interaction.update({
+          content: `🔓 Đã giải phóng phong ấn cho tu sĩ <@${targetUserId}> thành công!`,
+          embeds: [userEmbed],
+          components: userComponents
+        });
       }
     }
   }
@@ -989,6 +1699,160 @@ export default class AdminCommand extends Command {
       const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
       await interaction.update({
         content: `🧬 Đã cập nhật Linh Căn cho tu sĩ **${targetProfile.name}** thành công!`,
+        embeds: [userEmbed],
+        components: userComponents
+      });
+    }
+
+    else if (subAction === 'broadcast') {
+      const title = interaction.fields.getTextInputValue('bc_title');
+      const message = interaction.fields.getTextInputValue('bc_msg').replace(/\\n/g, '\n');
+      const colorInput = interaction.fields.getTextInputValue('bc_color');
+      const imageUrl = interaction.fields.getTextInputValue('bc_image');
+
+      const color = (colorInput && /^#[0-9A-F]{6}$/i.test(colorInput)) ? colorInput : '#f1c40f';
+
+      await interaction.deferReply({ ephemeral: true });
+
+      const guilds = db.prepare('SELECT * FROM guild_configs').all() as any[];
+      let successCount = 0;
+      let failCount = 0;
+      const sentChannels = new Set<string>();
+
+      // Gửi tại chỗ dùng panel đầu tiên
+      const currentChannelId = interaction.channelId;
+      if (currentChannelId && /^\d{17,20}$/.test(currentChannelId)) {
+        try {
+          const channel = await client.channels.fetch(currentChannelId) as any;
+          if (channel && channel.isTextBased()) {
+            const embed = new EmbedBuilder()
+              .setTitle(title)
+              .setDescription(message)
+              .setColor(color as any)
+              .setFooter({ text: '📢 THIÊN ĐẠO TRUYỀN ÂM (Hệ Thống Thông Báo)' })
+              .setTimestamp();
+            if (imageUrl) embed.setImage(imageUrl);
+
+            await channel.send({ embeds: [embed] });
+            successCount++;
+            sentChannels.add(currentChannelId);
+          }
+        } catch (err) {
+          console.error(`Broadcast failed for current channel ${currentChannelId}:`, err);
+        }
+      }
+
+      for (const config of guilds) {
+        const channelId = config.chat_channel_id || config.event_channel_id || config.tuluyen_channel_id;
+        if (!channelId || sentChannels.has(channelId)) continue;
+        if (!/^\d{17,20}$/.test(channelId)) {
+          console.warn(`Skipping invalid snowflake channelId: ${channelId}`);
+          continue;
+        }
+
+        try {
+          const channel = await client.channels.fetch(channelId) as any;
+          if (channel && channel.isTextBased()) {
+            const embed = new EmbedBuilder()
+              .setTitle(title)
+              .setDescription(message)
+              .setColor(color as any)
+              .setFooter({ text: '📢 THIÊN ĐẠO TRUYỀN ÂM (Hệ Thống Thông Báo)' })
+              .setTimestamp();
+            if (imageUrl) embed.setImage(imageUrl);
+
+            await channel.send({ embeds: [embed] });
+            successCount++;
+            sentChannels.add(channelId);
+          } else {
+            failCount++;
+          }
+        } catch (err) {
+          console.error(`Broadcast failed for channel ${channelId}:`, err);
+          failCount++;
+        }
+      }
+
+      systemConfigService.writeAuditLog(adminId, 'admin_broadcast_panel', {
+        title,
+        message,
+        guildCount: guilds.length,
+        successCount,
+        failCount
+      });
+
+      await interaction.followUp({
+        content: `📢 **Thiên Đạo Truyền Âm Hoàn Tất:**\n✅ Gửi thành công: **${successCount}** kênh.\n❌ Thất bại/Bỏ qua: **${failCount}** kênh.`,
+        ephemeral: true
+      });
+    }
+
+    else if (subAction === 'stamina') {
+      const targetUserId = parts[3];
+      const amountStr = interaction.fields.getTextInputValue('stamina_amount');
+      const amount = parseInt(amountStr, 10);
+
+      const targetProfile = userRepository.get(targetUserId);
+      if (!targetProfile) {
+        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        return;
+      }
+
+      if (isNaN(amount)) {
+        await interaction.reply({ content: '❌ Lượng thể lực không hợp lệ.', ephemeral: true });
+        return;
+      }
+
+      const currentStamina = targetProfile.stamina;
+      const newStamina = Math.min(500, Math.max(0, currentStamina + amount));
+
+      userRepository.update(targetUserId, {
+        stamina: newStamina
+      });
+
+      systemConfigService.writeAuditLog(adminId, 'admin_stamina_panel', {
+        targetUserId,
+        targetName: targetProfile.name,
+        amount,
+        oldStamina: currentStamina,
+        newStamina
+      });
+
+      const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
+      const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
+      await interaction.update({
+        content: `🔋 Đã điều chỉnh thể lực cho tu sĩ **${targetProfile.name}**:\n📈 Thay đổi: \`${amount >= 0 ? '+' : ''}${amount}\` thể lực (Mới: **${newStamina}/500**).`,
+        embeds: [userEmbed],
+        components: userComponents
+      });
+    }
+
+    else if (subAction === 'ban') {
+      const targetUserId = parts[3];
+      const reason = interaction.fields.getTextInputValue('ban_reason');
+
+      const targetProfile = userRepository.get(targetUserId);
+      if (!targetProfile) {
+        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        return;
+      }
+
+      db.prepare(`
+        INSERT INTO banned_users (user_id, reason, banned_by, created_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET reason = excluded.reason, banned_by = excluded.banned_by, created_at = excluded.created_at
+      `).run(targetUserId, reason, adminId, Math.floor(Date.now() / 1000));
+
+      systemConfigService.writeAuditLog(adminId, 'admin_ban_panel', {
+        targetUserId,
+        targetName: targetProfile.name,
+        reason
+      });
+
+      const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
+      const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
+      await interaction.update({
+        content: `🔒 Đã trục xuất linh hồn tu sĩ **${targetProfile.name}** khỏi tam giới!\n📝 Lý do: *${reason}*`,
         embeds: [userEmbed],
         components: userComponents
       });

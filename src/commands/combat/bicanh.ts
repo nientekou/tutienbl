@@ -13,10 +13,11 @@ export const COOP_DUNGEONS = [
     name: 'Huyết Uyên Cốc',
     description: 'Nơi Huyết Ma Lão Tổ từng bế quan. Âm khí nặng nề, quái vật khát máu.',
     minLevel: 10,
+    maxDailyEntries: 3,
     bossName: 'Huyết Ma Phân Thân',
-    bossHp: 10000,
-    bossAtk: 300,
-    bossDef: 150,
+    bossHp: 12500,
+    bossAtk: 375,
+    bossDef: 188,
     bossCrit: 0.15,
     bossCritRes: 0.05,
     bossSpeed: 120,
@@ -28,10 +29,11 @@ export const COOP_DUNGEONS = [
     name: 'Lôi Âm Tự (Phế Tích)',
     description: 'Ngôi chùa cổ bị sấm sét hủy diệt. Tồn tại Lôi Kiếp Chi Linh cực kỳ nguy hiểm.',
     minLevel: 25,
+    maxDailyEntries: 3,
     bossName: 'Lôi Kiếp Chi Linh',
-    bossHp: 30000,
-    bossAtk: 800,
-    bossDef: 400,
+    bossHp: 37500,
+    bossAtk: 1000,
+    bossDef: 500,
     bossCrit: 0.2,
     bossCritRes: 0.1,
     bossSpeed: 150,
@@ -244,10 +246,11 @@ export default class BiCanhCommand extends Command {
     const subcmd = interaction.options.getSubcommand(true);
 
     if (subcmd === 'solo') {
+      await interaction.deferReply();
       const embed = getDungeonEmbed(userId);
       const row = getDungeonComponents(userId);
 
-      await interaction.reply({
+      await interaction.editReply({
         embeds: [embed],
         components: [row]
       });
@@ -265,6 +268,27 @@ export default class BiCanhCommand extends Command {
         return;
       }
 
+      // Kiểm tra giới hạn lượt đi hàng ngày cho Co-op Dungeon
+      const cd = db.prepare('SELECT daily_entries, last_entry_at FROM dungeon_cooldowns WHERE user_id = ? AND dungeon_id = ?')
+        .get(userId, dungeonId) as { daily_entries: number; last_entry_at: number } | undefined;
+      
+      let entriesToday = 0;
+      if (cd) {
+        const cdDate = new Date(cd.last_entry_at * 1000).toDateString();
+        if (cdDate === new Date().toDateString()) {
+          entriesToday = cd.daily_entries;
+        }
+      }
+
+      if (entriesToday >= dungeon.maxDailyEntries) {
+        await interaction.reply({
+          content: `❌ Đạo hữu đã cạn kiệt linh lực khiêu chiến Bí Cảnh này hôm nay! (Giới hạn: **${dungeon.maxDailyEntries}/${dungeon.maxDailyEntries}** lượt/ngày)`,
+          ephemeral: true
+        });
+        return;
+      }
+
+      await interaction.deferReply();
       // Tạo party
       const party = partyService.createParty(userId, dungeonId, dungeon.maxMembers);
       const embed = buildCoopPartyEmbed(party.id);
@@ -275,9 +299,10 @@ export default class BiCanhCommand extends Command {
         new ButtonBuilder().setCustomId(`leaveparty_${party.id}`).setLabel('🚪 Rời Khỏi/Hủy').setStyle(ButtonStyle.Danger)
       );
 
-      await interaction.reply({ embeds: [embed], components: [row] });
+      await interaction.editReply({ embeds: [embed], components: [row] });
     }
     else if (subcmd === 'bangxephang') {
+      await interaction.deferReply();
       const topPlayers = db.prepare(`
         SELECT name, dungeon_clears, level 
         FROM users 
@@ -287,7 +312,7 @@ export default class BiCanhCommand extends Command {
       `).all() as any[];
 
       if (topPlayers.length === 0) {
-        await interaction.reply({ content: '📭 Hiện chưa có cường giả nào vượt qua được Bí Cảnh.', ephemeral: true });
+        await interaction.editReply({ content: '📭 Hiện chưa có cường giả nào vượt qua được Bí Cảnh.' });
         return;
       }
 
@@ -299,7 +324,7 @@ export default class BiCanhCommand extends Command {
         )
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
   }
 }

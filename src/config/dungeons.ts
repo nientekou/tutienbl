@@ -40,10 +40,10 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
     monster: {
       name: 'U Minh Khuyển',
       element: 'Thổ',
-      hp: 150,
-      maxHp: 150,
-      atk: 18,
-      def: 8,
+      hp: 188,
+      maxHp: 188,
+      atk: 23,
+      def: 10,
       crit: 0.05,
       critRes: 0.0,
     },
@@ -68,10 +68,10 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
     monster: {
       name: 'Huyết Ma Binh',
       element: 'Hỏa',
-      hp: 1500,
-      maxHp: 1500,
-      atk: 140,
-      def: 90,
+      hp: 1875,
+      maxHp: 1875,
+      atk: 175,
+      def: 113,
       crit: 0.08,
       critRes: 0.02,
     },
@@ -97,10 +97,10 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
     monster: {
       name: 'Kiếm Hồn Lão Tổ',
       element: 'Kim',
-      hp: 8000,
-      maxHp: 8000,
-      atk: 500,
-      def: 320,
+      hp: 10000,
+      maxHp: 10000,
+      atk: 625,
+      def: 400,
       crit: 0.12,
       critRes: 0.05,
     },
@@ -110,7 +110,7 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
       coinMax: 600,
       loots: [
         { itemId: 'weapon_sword_3', rate: 0.20, quantity: 1 },   // 20% Thiên Cổ Phán Quyết (Epic)
-        { itemId: 'armor_robe_3', rate: 0.20, quantity: 1 },     // 20% Thần Quang Huyền Giáp (Epic)
+        { itemId: 'armor_robe_3', rate: 0.20, quantity: 1 },     // 20% Thăng Quang Huyền Giáp (Epic)
         { itemId: 'pill_break_1', rate: 0.40, quantity: 2 },     // 40% x2 trúc cơ đan
         { itemId: 'talisman_speed_1', rate: 0.50, quantity: 2 }, // 50% x2 Thần Hành Phù
       ]

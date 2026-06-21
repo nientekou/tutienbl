@@ -23,10 +23,10 @@ export default class DoiTienCommand extends Command {
               { name: '🟡 Thượng Phẩm ➡️ ⚪ Trung Phẩm (1:100)', value: 'thuong_sang_trung' },
               { name: '🟤 Hạ Phẩm ➡️ 🟡 Thượng Phẩm (10k:1)', value: 'ha_sang_thuong' },
               { name: '🟡 Thượng Phẩm ➡️ 🟤 Hạ Phẩm (1:10k)', value: 'thuong_sang_ha' },
-              { name: '💎 KNB ➡️ 🟡 Thượng Phẩm (1:1)', value: 'knb_sang_thuong' },
-              { name: '🟡 Thượng Phẩm ➡️ 💎 KNB (1:1)', value: 'thuong_sang_knb' },
-              { name: '💎 KNB ➡️ 🟤 Hạ Phẩm (1:10k)', value: 'knb_sang_ha' },
-              { name: '🟤 Hạ Phẩm ➡️ 💎 KNB (10k:1)', value: 'ha_sang_knb' }
+              { name: '💎 KNB ➡️ 🟡 Thượng Phẩm (1:5)', value: 'knb_sang_thuong' },
+              { name: '🟡 Thượng Phẩm ➡️ 💎 KNB (5:1)', value: 'thuong_sang_knb' },
+              { name: '💎 KNB ➡️ 🟤 Hạ Phẩm (1:50k)', value: 'knb_sang_ha' },
+              { name: '🟤 Hạ Phẩm ➡️ 💎 KNB (50k:1)', value: 'ha_sang_knb' }
             )
         )
         .addIntegerOption(opt =>
@@ -99,24 +99,24 @@ export default class DoiTienCommand extends Command {
         sourceName = 'Kim Nguyên Bảo (KNB)';
         targetName = 'Thượng Phẩm Linh Thạch';
         sourceCost = 1 * qty;
-        targetGain = 1 * qty;
+        targetGain = 5 * qty;
         break;
       case 'thuong_sang_knb':
         sourceName = 'Thượng Phẩm Linh Thạch';
         targetName = 'Kim Nguyên Bảo (KNB)';
-        sourceCost = 1 * qty;
+        sourceCost = 5 * qty;
         targetGain = 1 * qty;
         break;
       case 'knb_sang_ha':
         sourceName = 'Kim Nguyên Bảo (KNB)';
         targetName = 'Hạ Phẩm Linh Thạch';
         sourceCost = 1 * qty;
-        targetGain = 10000 * qty;
+        targetGain = 50000 * qty;
         break;
       case 'ha_sang_knb':
         sourceName = 'Hạ Phẩm Linh Thạch';
         targetName = 'Kim Nguyên Bảo (KNB)';
-        sourceCost = 10000 * qty;
+        sourceCost = 50000 * qty;
         targetGain = 1 * qty;
         break;
       default:
@@ -267,10 +267,10 @@ export function getDoiTienEmbed(userId: string): EmbedBuilder {
           `• 🟡 Thượng Phẩm ➡️ ⚪ Trung Phẩm: **1:100**`,
           `• 🟤 Hạ Phẩm ➡️ 🟡 Thượng Phẩm: **10.000:1**`,
           `• 🟡 Thượng Phẩm ➡️ 🟤 Hạ Phẩm: **1:10.000**`,
-          `• 💎 KNB ➡️ 🟡 Thượng Phẩm: **1:1**`,
-          `• 🟡 Thượng Phẩm ➡️ 💎 KNB: **1:1**`,
-          `• 💎 KNB ➡️ 🟤 Hạ Phẩm: **1:10.000**`,
-          `• 🟤 Hạ Phẩm ➡️ 💎 KNB: **10.000:1**`
+          `• 💎 KNB ➡️ 🟡 Thượng Phẩm: **1:5**`,
+          `• 🟡 Thượng Phẩm ➡️ 💎 KNB: **5:1**`,
+          `• 💎 KNB ➡️ 🟤 Hạ Phẩm: **1:50.000**`,
+          `• 🟤 Hạ Phẩm ➡️ 💎 KNB: **50.000:1**`
         ].join('\n')
       }
     )
@@ -288,10 +288,10 @@ export function getDoiTienComponents(userId: string): ActionRowBuilder<StringSel
       { label: '🟡 Thượng Phẩm ➡️ ⚪ Trung Phẩm (1:100)', value: 'thuong_sang_trung' },
       { label: '🟤 Hạ Phẩm ➡️ 🟡 Thượng Phẩm (10k:1)', value: 'ha_sang_thuong' },
       { label: '🟡 Thượng Phẩm ➡️ 🟤 Hạ Phẩm (1:10k)', value: 'thuong_sang_ha' },
-      { label: '💎 KNB ➡️ 🟡 Thượng Phẩm (1:1)', value: 'knb_sang_thuong' },
-      { label: '🟡 Thượng Phẩm ➡️ 💎 KNB (1:1)', value: 'thuong_sang_knb' },
-      { label: '💎 KNB ➡️ 🟤 Hạ Phẩm (1:10k)', value: 'knb_sang_ha' },
-      { label: '🟤 Hạ Phẩm ➡️ 💎 KNB (10k:1)', value: 'ha_sang_knb' }
+      { label: '💎 KNB ➡️ 🟡 Thượng Phẩm (1:5)', value: 'knb_sang_thuong' },
+      { label: '🟡 Thượng Phẩm ➡️ 💎 KNB (5:1)', value: 'thuong_sang_knb' },
+      { label: '💎 KNB ➡️ 🟤 Hạ Phẩm (1:50k)', value: 'knb_sang_ha' },
+      { label: '🟤 Hạ Phẩm ➡️ 💎 KNB (50k:1)', value: 'ha_sang_knb' }
     );
 
   return [new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu)];

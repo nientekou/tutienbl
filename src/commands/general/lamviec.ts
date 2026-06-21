@@ -26,6 +26,16 @@ export function performWork(
     return { success: false, message: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh `/taonhanvat`!' };
   }
 
+  const nowTime = Math.floor(Date.now() / 1000);
+  if (user.injury_end_time && user.injury_end_time > nowTime) {
+    const remain = user.injury_end_time - nowTime;
+    const minutes = Math.ceil(remain / 60);
+    return {
+      success: false,
+      message: `❌ Đạo hữu đang bị **Trọng Thương**! Kinh mạch tổn hại, không thể làm việc. Cần tĩnh dưỡng thêm **${minutes} phút** nữa.`
+    };
+  }
+
   const baseStaminaCost = (workType === 'adventure' || workType === 'archaeology') ? 15 : 10;
 
   // Kiểm tra Thể Lực
@@ -61,68 +71,92 @@ export function performWork(
   const rewardItemChance = 0.20; // 20% rơi ra vật phẩm phụ trợ
   let actionDescription = '';
 
-  if (workType === 'mining') {
-    earnedCoins = Math.floor(Math.random() * 21) + 10; // 10 -> 30
-    actionDescription = 'Đạo hữu vác cuốc sắt vào linh cốc khai sơn phá quặng, đào sâu vách đá hấp thu linh thạch thô...';
-    if (Math.random() < rewardItemChance) {
-      rewardItem = { id: 'material_iron_1', name: 'Huyền Thiết Sa' };
-    }
-  } else if (workType === 'gathering') {
-    earnedCoins = Math.floor(Math.random() * 11) + 15; // 15 -> 25
-    
-    let sectBonusMultiplier = 1.0;
-    if (user.sect_id) {
-      const sect = db.prepare('SELECT buildings FROM sects WHERE id = ?').get(user.sect_id) as any;
-      if (sect) {
-        try {
-          const b = JSON.parse(sect.buildings || '{}');
-          if (b.linhdien) sectBonusMultiplier += b.linhdien * 0.05; // +5% mỗi cấp
-        } catch(e){}
-      }
-    }
-    earnedCoins = Math.round(earnedCoins * sectBonusMultiplier);
+  const accidentRates = {
+    mining: 0.05,
+    gathering: 0.05,
+    patrolling: 0.08,
+    adventure: 0.12,
+    archaeology: 0.15
+  };
 
-    actionDescription = 'Đạo hữu leo núi lội rừng tìm linh lung thảo, cẩn thận hái lượm linh dược...';
-    if (Math.random() < rewardItemChance) {
-      rewardItem = { id: 'seed_linh_thao_1', name: 'Hạt Giống Linh Thảo' };
+  const isAccident = Math.random() < accidentRates[workType];
+
+  if (isAccident) {
+    if (workType === 'mining') {
+      actionDescription = '💥 **Tai Nạn Lao Động:** Trong lúc đào khoáng, hầm lò đột ngột sụp đổ! Đạo hữu bị đá đè chấn thương nặng...';
+    } else if (workType === 'gathering') {
+      actionDescription = '💥 **Tai Nạn Lao Động:** Đạo hữu vô tình chạm phải độc trùng linh dược, độc khí công tâm...';
+    } else if (workType === 'patrolling') {
+      actionDescription = '💥 **Tai Nạn Lao Động:** Phát hiện bóng đen tà tu đột kích tông môn, đạo hữu cự địch bị trọng thương...';
+    } else if (workType === 'adventure') {
+      actionDescription = '💥 **Tai Nạn Lao Động:** Ngự kiếm phi hành quá tốc độ bị khí lưu bạo loạn quấn lấy, điên đảo kinh mạch...';
+    } else if (workType === 'archaeology') {
+      actionDescription = '💥 **Tai Nạn Lao Động:** Kích hoạt nhầm cấm chế cổ mộ viễn cổ, bị tà khí âm phong trùng kích nhục thân...';
     }
-  } else if (workType === 'patrolling') {
-    earnedCoins = 20; // Cố định
-    actionDescription = 'Đạo hữu khoác đao tuần hành canh gác nội môn tông thành, bảo đảm yên ổn sơn các...';
-    if (Math.random() < 0.10) {
-      rewardItem = { id: 'pill_tu_vi_low', name: 'Sơ Cấp Tụ Khí Đan' };
-    }
-  } else if (workType === 'adventure') {
-    earnedCoins = Math.floor(Math.random() * 21) + 30; // 30 -> 50
-    actionDescription = 'Đạo hữu triển khai ngự kiếm phi hành, thám hiểm tiên tích bản đồ hoang dã...';
-    if (Math.random() < 0.25) {
-      const rand = Math.random();
-      if (rand < 0.5) {
-        const seeds = [
-          { id: 'seed_tuyet_lien', name: 'Thiên Sơn Tuyết Liên Hạt' },
-          { id: 'seed_lingzhi', name: 'Cửu Diệp Linh Chi Hạt' },
-          { id: 'seed_ngodong', name: 'Ngô Đồng Quả Hạt' }
-        ];
-        rewardItem = seeds[Math.floor(Math.random() * seeds.length)];
-      } else {
-        rewardItem = { id: 'lucky_chest', name: 'Rương May Mắn' };
-      }
-    }
-  } else if (workType === 'archaeology') {
-    earnedCoins = Math.floor(Math.random() * 11) + 30; // 30 -> 40
-    actionDescription = 'Đạo hữu cầm la bàn bát quái, cẩn thận khảo cổ di tích hoang tàn cổ xưa...';
-    if (Math.random() < 0.20) {
-      if (Math.random() < 0.5) {
+  } else {
+    if (workType === 'mining') {
+      earnedCoins = Math.floor(Math.random() * 21) + 10; // 10 -> 30
+      actionDescription = 'Đạo hữu vác cuốc sắt vào linh cốc khai sơn phá quặng, đào sâu vách đá hấp thu linh thạch thô...';
+      if (Math.random() < rewardItemChance) {
         rewardItem = { id: 'material_iron_1', name: 'Huyền Thiết Sa' };
-      } else {
-        rewardItem = { id: 'mat_huyen_thiet', name: 'Huyền Thiết' };
+      }
+    } else if (workType === 'gathering') {
+      earnedCoins = Math.floor(Math.random() * 11) + 15; // 15 -> 25
+      
+      let sectBonusMultiplier = 1.0;
+      if (user.sect_id) {
+        const sect = db.prepare('SELECT buildings FROM sects WHERE id = ?').get(user.sect_id) as any;
+        if (sect) {
+          try {
+            const b = JSON.parse(sect.buildings || '{}');
+            if (b.linhdien) sectBonusMultiplier += b.linhdien * 0.05; // +5% mỗi cấp
+          } catch(e){}
+        }
+      }
+      earnedCoins = Math.round(earnedCoins * sectBonusMultiplier);
+
+      actionDescription = 'Đạo hữu leo núi lội rừng tìm linh lung thảo, cẩn thận hái lượm linh dược...';
+      if (Math.random() < rewardItemChance) {
+        rewardItem = { id: 'seed_linh_thao_1', name: 'Hạt Giống Linh Thảo' };
+      }
+    } else if (workType === 'patrolling') {
+      earnedCoins = 20; // Cố định
+      actionDescription = 'Đạo hữu khoác đao tuần hành canh gác nội môn tông thành, bảo đảm yên ổn sơn các...';
+      if (Math.random() < 0.10) {
+        rewardItem = { id: 'pill_tu_vi_low', name: 'Sơ Cấp Tụ Khí Đan' };
+      }
+    } else if (workType === 'adventure') {
+      earnedCoins = Math.floor(Math.random() * 21) + 30; // 30 -> 50
+      actionDescription = 'Đạo hữu triển khai ngự kiếm phi hành, thám hiểm tiên tích bản đồ hoang dã...';
+      if (Math.random() < 0.25) {
+        const rand = Math.random();
+        if (rand < 0.5) {
+          const seeds = [
+            { id: 'seed_tuyet_lien', name: 'Thiên Sơn Tuyết Liên Hạt' },
+            { id: 'seed_lingzhi', name: 'Cửu Diệp Linh Chi Hạt' },
+            { id: 'seed_ngodong', name: 'Ngô Đồng Quả Hạt' }
+          ];
+          rewardItem = seeds[Math.floor(Math.random() * seeds.length)];
+        } else {
+          rewardItem = { id: 'lucky_chest', name: 'Rương May Mắn' };
+        }
+      }
+    } else if (workType === 'archaeology') {
+      earnedCoins = Math.floor(Math.random() * 11) + 30; // 30 -> 40
+      actionDescription = 'Đạo hữu cầm la bàn bát quái, cẩn thận khảo cổ di tích hoang tàn cổ xưa...';
+      if (Math.random() < 0.20) {
+        if (Math.random() < 0.5) {
+          rewardItem = { id: 'material_iron_1', name: 'Huyền Thiết Sa' };
+        } else {
+          rewardItem = { id: 'mat_huyen_thiet', name: 'Huyền Thiết' };
+        }
       }
     }
-  }
 
-  // Áp dụng bonus Linh Thạch cho Chính Đạo (+5%)
-  if (user.alignment === 'orthodox') {
-    earnedCoins = Math.round(earnedCoins * 1.05);
+    // Áp dụng bonus Linh Thạch cho Chính Đạo (+5%)
+    if (user.alignment === 'orthodox') {
+      earnedCoins = Math.round(earnedCoins * 1.05);
+    }
   }
 
   // Nhận Tu Vi offline trước để tránh bị reset mất khi thực hiện các update khác
@@ -132,55 +166,76 @@ export function performWork(
   const freshUser = userRepository.get(discordId)!;
   const staminaCost = Math.round(baseStaminaCost * (1 - staminaSave));
 
-  userRepository.update(discordId, {
-    coin_ha_pham: freshUser.coin_ha_pham + earnedCoins,
-    stamina: Math.max(0, freshUser.stamina - staminaCost)
-  });
+  if (isAccident) {
+    userRepository.update(discordId, {
+      stamina: Math.max(0, freshUser.stamina - staminaCost),
+      injury_end_time: Math.floor(Date.now() / 1000) + 900 // 15 phút trọng thương
+    });
+  } else {
+    userRepository.update(discordId, {
+      coin_ha_pham: freshUser.coin_ha_pham + earnedCoins,
+      stamina: Math.max(0, freshUser.stamina - staminaCost)
+    });
+  }
 
-  if (rewardItem) {
+  if (rewardItem && !isAccident) {
     inventoryRepository.addItem(discordId, rewardItem.id, 1);
   }
 
-  // Kiểm tra thành tựu làm việc (đếm từ audit_logs)
-  const totalWork = db.prepare(
-    "SELECT COUNT(*) as c FROM audit_logs WHERE user_id = ? AND action = 'work'"
-  ).get(discordId) as { c: number };
+  // Ghi log (chỉ ghi log khi làm việc thành công hoặc tai nạn)
   const now2 = Math.floor(Date.now() / 1000);
   db.prepare(
     "INSERT INTO audit_logs (user_id, action, details, created_at) VALUES (?, 'work', ?, ?)"
-  ).run(discordId, JSON.stringify({ type: workType }), now2);
-  const newWorkCount = totalWork.c + 1;
-  achievementService.setProgress(discordId, 'sh_14', newWorkCount);
-  achievementService.setProgress(discordId, 'sh_15', newWorkCount);
+  ).run(discordId, JSON.stringify({ type: workType, accident: isAccident }), now2);
 
-  // Thêm năng lượng cho linh mạch Tu Luyện
-  leylineService.addEnergy(discordId, 'tuluyen', 10);
+  if (!isAccident) {
+    const totalWork = db.prepare(
+      "SELECT COUNT(*) as c FROM audit_logs WHERE user_id = ? AND action = 'work' AND json_extract(details, '$.accident') IS NOT 1"
+    ).get(discordId) as { c: number };
+    const newWorkCount = totalWork.c;
+    achievementService.setProgress(discordId, 'sh_14', newWorkCount);
+    achievementService.setProgress(discordId, 'sh_15', newWorkCount);
+
+    // Thêm năng lượng cho linh mạch Tu Luyện
+    leylineService.addEnergy(discordId, 'tuluyen', 10);
+  }
 
   // Xử lý Sư Đồ
-  const { mentorshipService } = require('../../services/MentorshipService');
-  const mentResult = mentorshipService.handleApprenticeWork(discordId, earnedCoins);
+  let apprenticeBonusExp = 0;
+  let mentorGainedExp = 0;
+  let mentorGainedCoins = 0;
+  if (!isAccident) {
+    const { mentorshipService } = require('../../services/MentorshipService');
+    const mentResult = mentorshipService.handleApprenticeWork(discordId, earnedCoins);
+    apprenticeBonusExp = mentResult.apprenticeBonusExp;
+    mentorGainedExp = mentResult.mentorGainedExp;
+    mentorGainedCoins = mentResult.mentorGainedCoins;
+  }
 
   const updatedUser = userRepository.get(discordId)!;
-
   const staminaBar = getProgressBar(updatedUser.stamina, 500, 8);
 
   const embed = new EmbedBuilder()
-    .setTitle('⚒️ Kết Quả Lao Động Tu Hành')
-    .setColor('#27ae60')
+    .setTitle(isAccident ? '💥 Tai Nạn Lao Động' : '⚒️ Kết Quả Lao Động Tu Hành')
+    .setColor(isAccident ? '#c0392b' : '#27ae60')
     .setDescription(actionDescription)
     .addFields(
-      { name: '🪙 Linh Thạch Kiếm Được', value: `🟤 **+${earnedCoins}** Hạ Phẩm Linh Thạch`, inline: true }
+      { name: '🪙 Linh Thạch Kiếm Được', value: isAccident ? '🟤 **+0** (Lao động thất bại)' : `🟤 **+${earnedCoins}** Hạ Phẩm Linh Thạch`, inline: true }
     )
     .setTimestamp();
 
-  if (rewardItem) {
+  if (isAccident) {
+    embed.addFields({ name: '💔 Trạng Thái Thương Tích', value: '🚨 **Trọng Thương trong 15 phút** (không thể thiền định, làm việc, rèn đúc...)', inline: true });
+  }
+
+  if (rewardItem && !isAccident) {
     embed.addFields({ name: '🎁 Cơ Duyên Rơi Đồ', value: `Nhận được **1x ${rewardItem.name}**!`, inline: true });
   }
 
-  if (mentResult.apprenticeBonusExp > 0) {
+  if (apprenticeBonusExp > 0) {
     embed.addFields({
       name: '👨‍🏫 Sư Đồ Giáo Hóa',
-      value: `• Nhận **+${mentResult.apprenticeBonusExp}** Tu Vi (+5% Sư đồ bonus)\n• Sư phụ nhận **+${mentResult.mentorGainedExp}** Tu Vi & **+${mentResult.mentorGainedCoins}** Linh Thạch`,
+      value: `• Nhận **+${apprenticeBonusExp}** Tu Vi (+5% Sư đồ bonus)\n• Sư phụ nhận **+${mentorGainedExp}** Tu Vi & **+${mentorGainedCoins}** Linh Thạch`,
       inline: false
     });
   }
@@ -190,13 +245,16 @@ export function performWork(
     { name: '💼 Số Dư Hiện Tại', value: `🟤 **${updatedUser.coin_ha_pham}** Hạ Phẩm Linh Thạch`, inline: false }
   );
 
-  // Kiểm tra Kỳ Ngộ (15%)
-  const encounter = encounterService.rollEncounter('lamviec');
-  if (encounter) {
-    embed.addFields({
-      name: `🌟 Kỳ Ngộ: ${encounter.title}`,
-      value: `${encounter.description}\n\n**Lựa chọn:**\n${encounter.choices.map((c, i) => `**${i + 1}.** ${c.text} (${Math.round(c.successRate * 100)}% thành công)`).join('\n')}`,
-    });
+  // Kiểm tra Kỳ Ngộ (15%) - Chỉ roll nếu không có tai nạn
+  let encounter = null;
+  if (!isAccident) {
+    encounter = encounterService.rollEncounter('lamviec');
+    if (encounter) {
+      embed.addFields({
+        name: `🌟 Kỳ Ngộ: ${encounter.title}`,
+        value: `${encounter.description}\n\n**Lựa chọn:**\n${encounter.choices.map((c, i) => `**${i + 1}.** ${c.text} (${Math.round(c.successRate * 100)}% thành công)`).join('\n')}`,
+      });
+    }
   }
 
   return { success: true, embed, encounter };

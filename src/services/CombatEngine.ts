@@ -118,7 +118,31 @@ export class CombatEngine {
       }
     }
 
+    let strongestElement = 'Vô';
+    let maxPct = 0;
+    for (const [el, pct] of Object.entries(elements)) {
+      if (pct > maxPct) {
+        maxPct = pct;
+        strongestElement = el;
+      }
+    }
+
+    let isPlayerCountered = false;
+    if (enemy.element && enemy.element !== 'Vô') {
+      const ee = enemy.element;
+      const pe = strongestElement;
+      isPlayerCountered = 
+        (ee === 'Kim' && pe === 'Mộc') ||
+        (ee === 'Mộc' && pe === 'Thổ') ||
+        (ee === 'Thổ' && pe === 'Thủy') ||
+        (ee === 'Thủy' && pe === 'Hỏa') ||
+        (ee === 'Hỏa' && pe === 'Kim');
+    }
+
     log.push(`⚔️ **Trận chiến bắt đầu!** **${player.name}** (Tốc độ: **${player.speed ?? 100}**, Né tránh: **${((player.dodge ?? 0.05) * 100).toFixed(0)}%**) đối đầu **${enemy.name}** (Tốc độ: **${enemy.speed ?? 100}**, Né tránh: **${((enemy.dodge ?? 0.05) * 100).toFixed(0)}%**).`);
+    if (isPlayerCountered) {
+      log.push(`⚠️ **[Ngũ Hành Khắc Chế]** Linh căn **${strongestElement}** của đạo hữu bị thuộc tính **${enemy.element}** của đối thủ khắc chế! Nhận thêm **+30% sát thương** và giảm **20% chính xác**!`);
+    }
     if (pet) {
       log.push(`🐾 Sủng thú **${pet.name}** xuất chiến hỗ trợ đạo hữu!`);
       
@@ -447,7 +471,9 @@ export class CombatEngine {
 
         // Đòn đánh chính của Người chơi (kiểm tra quái vật né tránh)
         if (enemyHp > 0) {
-          const isEnemyDodge = Math.random() < (enemy.dodge ?? 0.05);
+          const baseDodge = enemy.dodge ?? 0.05;
+          const dodgeChance = isPlayerCountered ? baseDodge + 0.20 : baseDodge;
+          const isEnemyDodge = Math.random() < dodgeChance;
 
           if (isEnemyDodge) {
             log.push(`🌀 **${enemy.name}** di chuyển cực nhanh, **Né Tránh** hoàn toàn đòn công kích từ **${player.name}**!`);
@@ -602,8 +628,15 @@ export class CombatEngine {
             let monsterDmg = Math.max(1, enemyAtk - playerDef);
             monsterDmg = Math.round(monsterDmg * (0.9 + Math.random() * 0.2));
 
+            if (isPlayerCountered) {
+              monsterDmg = Math.round(monsterDmg * 1.3);
+            }
+
             // Tính toán sát thương tăng thêm từ Tâm Pháp hệ của enemy (PvP)
             let enemyElementText = '';
+            if (isPlayerCountered) {
+              enemyElementText += ` ⚠️ *(Khắc Chế: +30% Sát thương)*`;
+            }
             if (enemy.element && enemy.element !== 'Vô') {
               const vnToEngElement: Record<string, string> = {
                 'Kim': 'metal',

@@ -24,7 +24,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 100,
     staminaCost: 10,
     requiredAlchemyLevel: 1,
-    baseSuccessRate: 0.80,
+    baseSuccessRate: 0.65, // giảm từ 0.80
     expGained: 10
   },
   {
@@ -39,7 +39,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 400,
     staminaCost: 15,
     requiredAlchemyLevel: 2,
-    baseSuccessRate: 0.65,
+    baseSuccessRate: 0.50, // giảm từ 0.65
     expGained: 35
   },
   {
@@ -53,7 +53,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 250,
     staminaCost: 15,
     requiredAlchemyLevel: 2,
-    baseSuccessRate: 0.70,
+    baseSuccessRate: 0.55, // giảm từ 0.70
     expGained: 25
   },
   {
@@ -68,7 +68,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 500,
     staminaCost: 20,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.60,
+    baseSuccessRate: 0.45, // giảm từ 0.60
     expGained: 50
   },
   {
@@ -82,7 +82,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 100,
     staminaCost: 10,
     requiredAlchemyLevel: 1,
-    baseSuccessRate: 0.85,
+    baseSuccessRate: 0.70, // giảm từ 0.85
     expGained: 15
   },
   {
@@ -96,7 +96,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 200,
     staminaCost: 15,
     requiredAlchemyLevel: 2,
-    baseSuccessRate: 0.70,
+    baseSuccessRate: 0.55, // giảm từ 0.70
     expGained: 30
   },
   {
@@ -111,7 +111,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 400,
     staminaCost: 20,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.60,
+    baseSuccessRate: 0.45, // giảm từ 0.60
     expGained: 60
   },
   {
@@ -125,7 +125,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 1000,
     staminaCost: 25,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.50,
+    baseSuccessRate: 0.35, // giảm từ 0.50
     expGained: 100
   },
   {
@@ -139,7 +139,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 800,
     staminaCost: 20,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.50,
+    baseSuccessRate: 0.35, // giảm từ 0.50
     expGained: 80
   },
   {
@@ -153,7 +153,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 800,
     staminaCost: 20,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.50,
+    baseSuccessRate: 0.35, // giảm từ 0.50
     expGained: 80
   },
   {
@@ -167,7 +167,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 1500,
     staminaCost: 25,
     requiredAlchemyLevel: 4,
-    baseSuccessRate: 0.45,
+    baseSuccessRate: 0.30, // giảm từ 0.45
     expGained: 150
   },
   {
@@ -181,7 +181,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 2000,
     staminaCost: 30,
     requiredAlchemyLevel: 4,
-    baseSuccessRate: 0.40,
+    baseSuccessRate: 0.25, // giảm từ 0.40
     expGained: 200
   },
   {
@@ -195,7 +195,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 1800,
     staminaCost: 25,
     requiredAlchemyLevel: 4,
-    baseSuccessRate: 0.42,
+    baseSuccessRate: 0.27, // giảm từ 0.42
     expGained: 180
   }
 ];
@@ -398,18 +398,28 @@ export class AlchemyService {
       return { success: true, message: responseMsg, isLevelUp, evolved: evolvedCount > 0 };
     } else {
       // Thất bại hoàn toàn -> Nổ lò!
-      const injuryEnd = now + 900;
+      // Trọng thương tỷ lệ thuận với cấp độ yêu cầu của công thức (15, 30, 45, 60 phút)
+      const injuryMinutes = recipe.requiredAlchemyLevel * 15;
+      const injuryDuration = injuryMinutes * 60;
+      const injuryEnd = now + injuryDuration;
       userRepository.update(userId, { injury_end_time: injuryEnd });
 
       let cauldronDestructionMsg = '';
-      if (cauldronItem && cauldronItem.item_id === 'cauldron_low' && Math.random() < 0.10) {
-        inventoryRepository.removeItemById(cauldronItem.id, 1);
-        cauldronDestructionMsg = `\n🔥 Do luồng hỏa linh lực quá hung hãn, chiếc **${cauldronItem.name}** của đạo hữu đã bị nứt vỡ thành tro bụi!`;
+      if (cauldronItem) {
+        let breakChance = 0;
+        if (cauldronItem.item_id === 'cauldron_low') breakChance = 0.25;
+        else if (cauldronItem.item_id === 'cauldron_mid') breakChance = 0.10;
+        else if (cauldronItem.item_id === 'cauldron_high') breakChance = 0.05;
+
+        if (Math.random() < breakChance) {
+          inventoryRepository.removeItemById(cauldronItem.id, 1);
+          cauldronDestructionMsg = `\n🔥 Do linh hỏa phản phệ dữ dội, chiếc **${cauldronItem.name}** của đạo hữu đã bị nứt vỡ thành tro bụi!`;
+        }
       }
 
       return {
         success: false,
-        message: `💥 **Nổ lò!** Độc hỏa và linh khí bạo tẩu giăng đầy luyện đan phòng! Đạo hữu luyện chế x${quantity} thất bại hoàn toàn, tiêu hao toàn bộ nguyên liệu, bị phế thương kinh mạch (Trọng thương **15 phút**).${cauldronDestructionMsg}`
+        message: `💥 **Nổ lò!** Độc hỏa và linh khí bạo tẩu giăng đầy luyện đan phòng! Đạo hữu luyện chế x${quantity} thất bại hoàn toàn, tiêu hao toàn bộ nguyên liệu, bị phế thương kinh mạch (Trọng thương **${injuryMinutes} phút**).${cauldronDestructionMsg}`
       };
     }
   }

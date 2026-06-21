@@ -371,6 +371,16 @@ export function initDatabase() {
     );
   `);
 
+  // Bảng Banned Users
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS banned_users (
+      user_id TEXT PRIMARY KEY,
+      reason TEXT,
+      banned_by TEXT,
+      created_at INTEGER NOT NULL
+    );
+  `);
+
   // Bảng Lịch Sử Quyết Đấu (Duel History)
   db.exec(`
     CREATE TABLE IF NOT EXISTS duel_history (
@@ -541,6 +551,12 @@ export function initDatabase() {
   if (!guildConfigNames.includes('market_channel_id')) {
     db.exec("ALTER TABLE guild_configs ADD COLUMN market_channel_id TEXT");
   }
+  if (!guildConfigNames.includes('interaction_count')) {
+    db.exec("ALTER TABLE guild_configs ADD COLUMN interaction_count INTEGER DEFAULT 0");
+  }
+  if (!guildConfigNames.includes('last_interaction_at')) {
+    db.exec("ALTER TABLE guild_configs ADD COLUMN last_interaction_at INTEGER DEFAULT 0");
+  }
   if (!guildConfigNames.includes('combat_channel_id')) {
     db.exec("ALTER TABLE guild_configs ADD COLUMN combat_channel_id TEXT");
   }
@@ -616,6 +632,29 @@ export function initDatabase() {
     );
     CREATE INDEX IF NOT EXISTS idx_user_titles_user ON user_titles(user_id);
   `);
+
+  // Bảng Độ Kiếp đang hoạt động (Active Tribulations)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS active_tribulations (
+      user_id TEXT PRIMARY KEY,
+      username TEXT NOT NULL,
+      current_hp INTEGER NOT NULL,
+      max_hp INTEGER NOT NULL,
+      current_mp INTEGER NOT NULL,
+      max_mp INTEGER NOT NULL,
+      total_bolts INTEGER NOT NULL,
+      current_bolt INTEGER NOT NULL,
+      damage_per_bolt INTEGER NOT NULL,
+      has_antiloi_pill INTEGER NOT NULL DEFAULT 0,
+      has_element_pill INTEGER NOT NULL DEFAULT 0,
+      history TEXT NOT NULL, -- JSON array
+      element TEXT NOT NULL,
+      required_pill_id TEXT,
+      required_pill_name TEXT,
+      current_mutation TEXT -- 'Cuồng Lôi' | 'Hỗn Loạn Lôi' | 'Tâm Ma Kiếp' | 'Tử Tiêu Thần Lôi' | null
+    );
+  `);
+
 
   // Thêm các cấu hình mặc định nếu chưa có
   const checkMaintenance = db.prepare("SELECT key FROM system_config WHERE key = 'maintenance_mode'").get();
@@ -2028,6 +2067,17 @@ function seedItems() {
       description: 'Mảnh vỡ tinh chế từ trang bị tu chân. Dùng để nâng sao trang bị hoặc ghép thành trang bị hiếm.',
       stats: '{}',
       value_ha_pham: 10,
+      usable: 0,
+      equipable: 0
+    },
+    {
+      id: 'manh_vo_vu_khi',
+      name: 'Mảnh Vỡ Vũ Khí',
+      type: 'material',
+      rarity: 'rare',
+      description: 'Mảnh vỡ vũ khí cổ xưa, chứa tàn dư linh khí. Dùng để rèn ghép vũ khí thần binh.',
+      stats: '{}',
+      value_ha_pham: 20,
       usable: 0,
       equipable: 0
     },

@@ -236,11 +236,22 @@ export class TravelerService {
    * Cronjob kiểm tra spawn ngẫu nhiên
    */
   public checkRandomSpawn(client: Client) {
-    const guilds = db.prepare('SELECT guild_id, event_channel_id FROM guild_configs WHERE event_channel_id IS NOT NULL').all() as any[];
+    const guilds = db.prepare('SELECT guild_id, event_channel_id, tuluyen_channel_id, interaction_count FROM guild_configs').all() as any[];
     for (const g of guilds) {
-      if (Math.random() < 0.05) { // 5% mỗi giờ
-        this.spawnTraveler(client, g.event_channel_id);
+      const targetChannelId = g.event_channel_id || g.tuluyen_channel_id;
+      if (!targetChannelId) continue;
+
+      const activity = g.interaction_count || 0;
+      // Tỷ lệ xuất hiện cơ bản 2%, mỗi lượt tương tác tăng thêm 1% cơ hội, tối đa 50%
+      const chance = Math.min(0.50, 0.02 + activity * 0.01);
+      
+      if (Math.random() < chance) {
+        this.spawnTraveler(client, targetChannelId);
       }
+
+      // Khấu hao (decay) điểm hoạt động 50% mỗi giờ để sự kiện phụ thuộc vào độ hoạt động gần đây
+      const newActivity = Math.floor(activity * 0.5);
+      db.prepare('UPDATE guild_configs SET interaction_count = ? WHERE guild_id = ?').run(newActivity, g.guild_id);
     }
   }
 }

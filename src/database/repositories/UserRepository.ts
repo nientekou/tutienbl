@@ -198,12 +198,16 @@ export class UserRepository {
     );
   }
 
-  /**
-   * Cập nhật thông tin nhân vật tu sĩ
-   */
   public update(discordId: string, updates: Partial<UserEntity>): void {
     const keys = Object.keys(updates);
     if (keys.length === 0) return;
+
+    // Tự động kiểm tra và thông báo khi tu vi đạt cực hạn
+    const user = this.get(discordId);
+    if (user && updates.tu_vi !== undefined && user.tu_vi < user.exp_needed && updates.tu_vi >= user.exp_needed) {
+      const { notifyExpFull } = require('../../utils/constants');
+      notifyExpFull(discordId).catch(() => null);
+    }
 
     updates.updated_at = Math.floor(Date.now() / 1000);
     const updatedKeys = Object.keys(updates);

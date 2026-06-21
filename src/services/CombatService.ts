@@ -477,8 +477,77 @@ export class CombatService {
       };
     }
 
-    // Thua cuộc - cũng giảm độ bền nhưng nhẹ hơn
+    // Giảm độ bền trang bị sau khi thất bại
     this.reduceDurabilityAfterCombat(userId, Math.max(1, Math.round(combatResult.rounds * 0.5)));
+
+    if (combatResult.playerEndingHp <= 0) {
+      // Đạo hữu đã tử vong thực sự (HP = 0)
+      const expLoss = Math.min(user.tu_vi, Math.round(user.exp_needed * 0.15));
+      const coinLoss = Math.min(user.coin_ha_pham, Math.round(user.coin_ha_pham * 0.10));
+      const thuongPhamLoss = Math.ceil((user.coin_thuong_pham || 0) * 0.05);
+      
+      let levelDropped = false;
+      let newLevel = user.level;
+      let nextExpNeeded = user.exp_needed;
+      
+      if ((dungeonId.includes('truc_co') || dungeonId.includes('kim_dan')) && Math.random() < 0.05 && user.level > 1) {
+        newLevel = user.level - 1;
+        const { cultivationService } = require('./CultivationService');
+        nextExpNeeded = cultivationService.calculateNextExp(newLevel);
+        levelDropped = true;
+      }
+      
+      const newStamina = Math.max(0, user.stamina - 100);
+      const injuryEnd = now + 2700; // 45 phút trọng thương
+      
+      if (levelDropped) {
+        const { cultivationService } = require('./CultivationService');
+        const newStats = cultivationService.calculateStatsForLevel(newLevel, user.linh_can);
+        userRepository.update(userId, {
+          level: newLevel,
+          tu_vi: 0,
+          exp_needed: nextExpNeeded,
+          coin_ha_pham: Math.max(0, user.coin_ha_pham - coinLoss),
+          coin_thuong_pham: Math.max(0, (user.coin_thuong_pham || 0) - thuongPhamLoss),
+          stamina: newStamina,
+          injury_end_time: injuryEnd,
+          base_hp: newStats.hp,
+          base_mp: newStats.mp,
+          base_atk: newStats.atk,
+          base_def: newStats.def,
+          base_crit: newStats.crit,
+          base_crit_res: newStats.critRes
+        });
+      } else {
+        userRepository.update(userId, {
+          tu_vi: Math.max(0, user.tu_vi - expLoss),
+          coin_ha_pham: Math.max(0, user.coin_ha_pham - coinLoss),
+          coin_thuong_pham: Math.max(0, (user.coin_thuong_pham || 0) - thuongPhamLoss),
+          stamina: newStamina,
+          injury_end_time: injuryEnd
+        });
+      }
+      
+      let artifactMsg = levelDropped ? `Cảnh giới rớt xuống Cấp ${newLevel}! ` : '';
+      if (thuongPhamLoss > 0) {
+        artifactMsg += `Bị rơi mất ${thuongPhamLoss} Linh Thạch Thượng Phẩm! `;
+      }
+      artifactMsg += `Bị Trọng Thương trong 45 phút!`;
+
+      return {
+        success: true,
+        message: 'Tử Vong',
+        combatResult,
+        dailyEntriesLeft,
+        rewards: {
+          exp: levelDropped ? user.tu_vi : expLoss,
+          coins: coinLoss,
+          loots: []
+        },
+        artifactMessage: artifactMsg
+      };
+    }
+
     return {
       success: true,
       message: 'Bại Trận',
@@ -496,6 +565,18 @@ export class CombatService {
       return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật! Hãy dùng `/taonhanvat`.' };
     }
 
+    const now = Math.floor(Date.now() / 1000);
+    if (user.injury_end_time && user.injury_end_time > now) {
+      const remain = user.injury_end_time - now;
+      const minutes = Math.ceil(remain / 60);
+      return {
+        success: false,
+        message: `❌ Đạo hữu đang bị **Trọng Thương**! Kinh mạch tổn hại, không thể khiêu chiến World Boss. Cần tĩnh dưỡng thêm **${minutes} phút**.`
+      };
+    }
+
+
+
     // Lấy thông tin boss và kiểm tra trạng thái hồi sinh
     this.getCurrentBoss(); // Trigger tự động hồi sinh nếu đủ thời gian
     const boss = db.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get() as WorldBossEntity;
@@ -509,7 +590,6 @@ export class CombatService {
     }
 
     // Kiểm tra cooldown cá nhân (10 phút = 600 giây)
-    const now = Math.floor(Date.now() / 1000);
     const contrib = db.prepare("SELECT last_attack_at, attacks FROM world_boss_contributions WHERE user_id = ? AND boss_id = 'world_boss_current'")
       .get(userId) as { last_attack_at: number; attacks: number } | undefined;
 
@@ -667,6 +747,27 @@ export class CombatService {
     this.recordBossAttack(userId, boss.level, damageDealt);
     if (isDefeated) {
       this.recordBossKill(userId, boss.level);
+    }
+
+    // Cập nhật Chấn Thương
+    const updates: any = {};
+    
+    const reflectDmg = Math.round(damageDealt * 0.05 + boss.atk * 0.1);
+    const injuryChance = activeStats.hp < (boss.atk * 5) ? 0.25 : 0.08;
+    const isInjured = Math.random() < injuryChance;
+
+    if (isInjured) {
+      updates.injury_end_time = now + 900; // 15 phút trọng thương
+    }
+
+    if (Object.keys(updates).length > 0) {
+      userRepository.update(userId, updates);
+    }
+
+    // Thêm feedback vào logs của combat
+    combatResult.log.push(`\n⚡ **Phản Phệ:** Đạo hữu chịu **-${reflectDmg}** sát thương phản chấn từ Boss thế giới!`);
+    if (isInjured) {
+      combatResult.log.push(`🚨 **Chấn Thương:** Đạo hữu bị **Trọng Thương trong 15 phút** do sinh lực cạn kiệt!`);
     }
 
     return {

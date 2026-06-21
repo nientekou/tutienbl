@@ -177,8 +177,8 @@ export class LeylineService {
       // Nếu buff đang chạy, không bị decay
       if (l.buff_active_until > nowSec) continue;
 
-      // Decay sau 24h không đầy
-      if (nowSec - l.last_decay_at >= 24 * 3600) {
+      // Decay sau 12h không đầy (tăng gấp đôi tốc độ decay từ 24h xuống 12h)
+      if (nowSec - l.last_decay_at >= 12 * 3600) {
         const decayAmount = Math.floor(l.max_energy * 0.2);
         db.prepare('UPDATE leylines SET current_energy = MAX(0, current_energy - ?), last_decay_at = ? WHERE id = ?')
           .run(decayAmount, nowSec, l.id);

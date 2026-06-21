@@ -29,6 +29,11 @@ export default class TrangBiCommand extends Command {
         )
         .addSubcommand(sub =>
           sub
+            .setName('giamdinhhangloat')
+            .setDescription('Giám định toàn bộ phôi trong hành trang (phí 50 Linh thạch/phôi).')
+        )
+        .addSubcommand(sub =>
+          sub
             .setName('phangiai')
             .setDescription('Phân giải trang bị không dùng để lấy Mảnh Trang Bị.')
             .addIntegerOption(opt =>
@@ -36,6 +41,12 @@ export default class TrangBiCommand extends Command {
                 .setName('inventory_id')
                 .setDescription('Mã hành trang của trang bị cần phân giải.')
                 .setRequired(true)
+            )
+            .addIntegerOption(opt =>
+              opt
+                .setName('soluong')
+                .setDescription('Số lượng trang bị muốn phân giải (mặc định là 1).')
+                .setRequired(false)
             )
         )
         .addSubcommand(sub =>
@@ -110,9 +121,21 @@ export default class TrangBiCommand extends Command {
       return;
     }
 
+    if (sub === 'giamdinhhangloat') {
+      const res = equipmentService.appraisePhoiBulk(userId);
+
+      if (res.success) {
+        await interaction.reply({ content: res.message });
+      } else {
+        await interaction.reply({ content: `❌ Thất bại: ${res.message}`, ephemeral: true });
+      }
+      return;
+    }
+
     if (sub === 'phangiai') {
       const invId = interaction.options.getInteger('inventory_id', true);
-      const res = equipmentService.salvageEquipment(userId, invId);
+      const qty = interaction.options.getInteger('soluong') || 1;
+      const res = equipmentService.salvageEquipment(userId, invId, qty);
 
       if (res.success) {
         await interaction.reply({ content: res.message });

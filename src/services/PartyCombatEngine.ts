@@ -60,6 +60,9 @@ export class PartyCombatEngine {
     const bossMaxHp = boss.maxHp;
     const aliveMembers = members.filter(m => m.isAlive);
     const damageByPlayer = new Map<string, number>();
+    for (const m of members) {
+      damageByPlayer.set(m.userId, 0);
+    }
     const log: string[] = [];
 
     // Sắp xếp thành viên theo Speed giảm dần
@@ -271,11 +274,18 @@ export class PartyCombatEngine {
     const baseExp = result.victory ? 2000 + bossLevel * 500 : 500 + bossLevel * 100;
     const baseCoins = result.victory ? 500 + bossLevel * 200 : 100 + bossLevel * 50;
 
+    const memberCount = result.damageByPlayer.size || 1;
+    const equalExp = Math.round((baseExp * 0.7) / memberCount);
+    const equalCoins = Math.round((baseCoins * 0.7) / memberCount);
+
     for (const [userId, damage] of result.damageByPlayer) {
       const share = damage / totalDamage;
+      const contributionExp = Math.round(baseExp * 0.3 * share);
+      const contributionCoins = Math.round(baseCoins * 0.3 * share);
+
       rewards.set(userId, {
-        exp: Math.round(baseExp * share),
-        coins: Math.round(baseCoins * share)
+        exp: equalExp + contributionExp,
+        coins: equalCoins + contributionCoins
       });
     }
 

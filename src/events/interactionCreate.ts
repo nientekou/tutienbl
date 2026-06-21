@@ -73,6 +73,32 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
   public async execute(client: TuTienClient, interaction: Interaction): Promise<void> {
     const userId = interaction.user.id;
 
+    // Kiểm tra xem người dùng có bị phong ấn (ban) hay không
+    const banCheck = db.prepare('SELECT reason FROM banned_users WHERE user_id = ?').get(userId) as { reason: string } | undefined;
+    if (banCheck) {
+      if (interaction.isRepliable()) {
+        await interaction.reply({
+          content: `🔒 **Trục Xuất Tam Giới:**\n\nLinh hồn của đạo hữu đã bị Thiên Đạo phong ấn (Ban).\n📝 **Lý do:** *${banCheck.reason || 'Không rõ lý do'}*\n\n*Ngươi không thể can thiệp hay thực hiện bất kỳ hành động nào trong tam giới.*`,
+          ephemeral: true
+        });
+      }
+      return;
+    }
+
+    // Cập nhật điểm hoạt động của server (Guild Activity Tracking)
+    if (interaction.guildId) {
+      const now = Math.floor(Date.now() / 1000);
+      try {
+        db.prepare(`
+          INSERT INTO guild_configs (guild_id, interaction_count, last_interaction_at)
+          VALUES (?, 1, ?)
+          ON CONFLICT(guild_id) DO UPDATE SET interaction_count = interaction_count + 1, last_interaction_at = ?
+        `).run(interaction.guildId, now, now);
+      } catch (err) {
+        console.error('[Activity] Lỗi khi cập nhật điểm hoạt động guild:', err);
+      }
+    }
+
     // Các button được quản lý bởi awaitMessageComponent collector (taonhanvat flow, daolu, setup)
     // Phải bỏ qua hoàn toàn ở đây để collector có thể xử lý độc quyền, tránh race condition
     if (interaction.isButton() && (
@@ -269,8 +295,22 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             return;
           }
 
+          const user = userRepository.get(interaction.user.id);
+          if (!user) {
+            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!', ephemeral: true });
+            return;
+          }
+
           // Kiểm tra Cooldown cho đòn đánh (áp dụng cho cả Global button)
           const now = Math.floor(Date.now() / 1000);
+
+          if (user.injury_end_time && user.injury_end_time > now) {
+            const remain = user.injury_end_time - now;
+            const minutes = Math.ceil(remain / 60);
+            await interaction.reply({ content: `❌ Đạo hữu đang bị **Trọng Thương**! Cần tĩnh dưỡng thêm **${minutes} phút** mới có thể tiếp tục khiêu chiến World Boss.`, ephemeral: true });
+            return;
+          }
+
           const contrib = db.prepare("SELECT last_attack_at FROM world_boss_contributions WHERE user_id = ? AND boss_id = 'world_boss_current'")
             .get(interaction.user.id) as { last_attack_at: number } | undefined;
             
@@ -327,9 +367,23 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             `).run(interaction.user.id, totalDmg, now);
           }
 
-          // Tăng 3 ngộ tính cho người chơi khi tấn công Boss thế giới
+          // Tính toán chấn thương và phản phệ
+          const reflectDmg = Math.round(totalDmg * 0.05 + boss.atk * 0.1);
+          // HP thấp (dưới boss.atk * 5) -> 25% tỷ lệ chấn thương, ngược lại 8%
+          const injuryChance = activeStats.hp < (boss.atk * 5) ? 0.25 : 0.08;
+          const isInjured = Math.random() < injuryChance;
+
           const updatedUser = userRepository.get(interaction.user.id)!;
-          userRepository.update(interaction.user.id, { ngotinh: updatedUser.ngotinh + 3 });
+          
+          const updates: any = {
+            ngotinh: updatedUser.ngotinh + 3
+          };
+
+          if (isInjured) {
+            updates.injury_end_time = now + 900; // 15 phút trọng thương
+          }
+
+          userRepository.update(interaction.user.id, updates);
 
           // Cập nhật tiến trình nhiệm vụ hàng ngày
           dailyQuestService.updateProgress(interaction.user.id, 'daily_worldboss', 1);
@@ -344,21 +398,26 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const currentBoss = db.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get() as any;
           await bossSpawnService.updateBossEmbeds(client, currentBoss);
 
-          // Trả lời đòn đánh thành công
-          const petText = pet ? ` (Sủng thú **${pet.name}** phụ trợ +${petDmg})` : '';
-          const critText = isCrit ? ' **[BẠO KÍCH]** 💥' : '';
-          
-          await interaction.reply({
-            content: `💥 Đạo hữu **${updatedUser.name}** vung đòn tấn công Boss thế giới, gây **-${totalDmg}** sát thương lên Boss${critText}!${petText}\n🧘 Nhận được **+3** Điểm Ngộ Tính!`,
-            ephemeral: false
-          });
-
           // Nếu boss bị tiêu diệt -> phân phát phần thưởng và thông báo phong thần
+          let rewardsText = '';
           if (isDefeated) {
             const rewardsLogs = combatService.distributeWorldBossRewards(boss.level, interaction.user.id);
             await bossSpawnService.broadcastBossDefeatedLogs(client, currentBoss, rewardsLogs);
+            
+            rewardsText = `\n\n🏆 **BẢNG PHONG THẦN THẢO PHẠT BOSS (LEVEL ${boss.level}):**\n` + 
+                          (rewardsLogs.length > 0 ? rewardsLogs.join('\n') : '*Không có phần thưởng.*');
           }
-          return;
+
+          // Trả lời đòn đánh thành công
+          const petText = pet ? ` (Sủng thú **${pet.name}** phụ trợ +${petDmg})` : '';
+          const critText = isCrit ? ' **[BẠO KÍCH]** 💥' : '';
+          const reflectText = `\n⚡ **Phản Phệ:** Đạo hữu chịu **-${reflectDmg}** sát thương phản chấn từ Boss thế giới!`;
+          const injuryText = isInjured ? `\n🚨 **Chấn Thương:** Đạo hữu sinh lực cạn kiệt, chấn động kinh mạch, bị **Trọng Thương trong 15 phút**!` : '';
+          
+          await interaction.reply({
+            content: `💥 Đạo hữu **${updatedUser.name}** vung đòn tấn công Boss thế giới, gây **-${totalDmg}** sát thương lên Boss${critText}!${petText}${reflectText}${injuryText}\n🧘 Nhận được **+3** Điểm Ngộ Tính!${rewardsText}`,
+            ephemeral: false
+          });
           return;
         }
 
@@ -850,6 +909,23 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               `📦 **Chiến Lợi Phẩm:**\n${lootsText}\n\n` +
               `*Lượt khiêu chiến phó bản này hôm nay còn lại: **${result.dailyEntriesLeft}** lượt.*`
             );
+          } else if (result.message === 'Tử Vong') {
+            const expLost = result.rewards?.exp || 0;
+            const coinsLost = result.rewards?.coins || 0;
+            const dropText = result.artifactMessage ? `\n⚠️ **Kiếp Nạn:** ${result.artifactMessage}` : '';
+
+            embed.setTitle('💀 HỒN PHI PHÁCH TÁN 💀')
+              .setColor('#7f8c8d')
+              .setDescription(
+                `${reactionFeedback}\n\n` +
+                `☠️ Đạo hữu quá yếu ớt, đã bị **${monsterName}** tung chiêu chí mạng đánh **Tử Vong** sau **${combatResult.rounds}** hiệp đấu!\n\n` +
+                `💔 **Tổn Thất Đại Nạn:**\n` +
+                `• Hao hụt Tu Vi: **-${expLost}** XP\n` +
+                `• Thất thoát Linh Thạch: **-${coinsLost}** Hạ Phẩm Linh Thạch\n` +
+                `• Thương tích nặng nề: **-100** Thể Lực\n` +
+                `• Trạng thái: **Trọng Thương trong 45 phút**${dropText}\n\n` +
+                `💡 *Đại nạn không chết ắt có hậu phúc. Hãy tĩnh dưỡng, chế tạo pháp bảo hộ thân trước khi khiêu chiến lại.*`
+              );
           } else {
             embed.setDescription(
               `${reactionFeedback}\n\n` +
@@ -2104,14 +2180,46 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         else if (action === 'joinparty') {
           const partyId = parts.slice(1).join('_');
           const { partyService } = require('../services/PartyService');
+          
+          const party = partyService.getParty(partyId);
+          if (!party) {
+            await interaction.reply({ content: '❌ Tổ đội không tồn tại hoặc đã bị giải tán!', ephemeral: true });
+            return;
+          }
+
+          const { COOP_DUNGEONS } = require('../commands/combat/bicanh');
+          const dungeon = COOP_DUNGEONS.find((d: any) => d.id === party.dungeonId);
+          if (dungeon) {
+            // Kiểm tra giới hạn lượt đi hàng ngày
+            const maxCoopEntries = dungeon.maxDailyEntries || 3;
+            const cd = db.prepare('SELECT daily_entries, last_entry_at FROM dungeon_cooldowns WHERE user_id = ? AND dungeon_id = ?')
+              .get(userId, dungeon.id) as { daily_entries: number; last_entry_at: number } | undefined;
+            
+            let entriesToday = 0;
+            if (cd) {
+              const cdDate = new Date(cd.last_entry_at * 1000).toDateString();
+              if (cdDate === new Date().toDateString()) {
+                entriesToday = cd.daily_entries;
+              }
+            }
+
+            if (entriesToday >= maxCoopEntries) {
+              await interaction.reply({
+                content: `❌ Đạo hữu đã cạn kiệt linh lực khiêu chiến Bí Cảnh này hôm nay! (Giới hạn: **${maxCoopEntries}/${maxCoopEntries}** lượt/ngày)`,
+                ephemeral: true
+              });
+              return;
+            }
+          }
+
           const res = partyService.joinParty(partyId, userId);
           if (!res.success) {
             await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
             return;
           }
           
-          const party = partyService.getParty(partyId);
-          if (party) {
+          const updatedParty = partyService.getParty(partyId);
+          if (updatedParty) {
             const { buildCoopPartyEmbed } = require('../commands/combat/bicanh');
             const embed = buildCoopPartyEmbed(partyId);
             await interaction.update({ embeds: [embed] });
@@ -2141,22 +2249,71 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         else if (action === 'startparty') {
           const partyId = parts.slice(1).join('_');
           const { partyService } = require('../services/PartyService');
+          const partyObj = partyService.getParty(partyId);
+          if (!partyObj) {
+            await interaction.reply({ content: '❌ Tổ đội không tồn tại!', ephemeral: true });
+            return;
+          }
+
+          const { COOP_DUNGEONS } = require('../commands/combat/bicanh');
+          const dungeon = COOP_DUNGEONS.find((d: any) => d.id === partyObj.dungeonId);
+          if (!dungeon) {
+            await interaction.reply({ content: '❌ Bí cảnh không hợp lệ!', ephemeral: true });
+            return;
+          }
+
+          // Kiểm tra giới hạn lượt đi hàng ngày của TẤT CẢ thành viên trước khi bắt đầu
+          const maxCoopEntries = dungeon.maxDailyEntries || 3;
+          for (const mId of partyObj.members) {
+            const cd = db.prepare('SELECT daily_entries, last_entry_at FROM dungeon_cooldowns WHERE user_id = ? AND dungeon_id = ?')
+              .get(mId, dungeon.id) as { daily_entries: number; last_entry_at: number } | undefined;
+            
+            let entriesToday = 0;
+            if (cd) {
+              const cdDate = new Date(cd.last_entry_at * 1000).toDateString();
+              if (cdDate === new Date().toDateString()) {
+                entriesToday = cd.daily_entries;
+              }
+            }
+
+            if (entriesToday >= maxCoopEntries) {
+              const u = userRepository.get(mId);
+              await interaction.reply({
+                content: `❌ Không thể xuất phát! Tu sĩ **${u ? u.name : mId}** (<@${mId}>) đã hết lượt khiêu chiến Bí Cảnh này hôm nay! (Tối đa: ${maxCoopEntries} lượt/ngày).`,
+                ephemeral: true
+              });
+              return;
+            }
+          }
+
           const res = partyService.startParty(partyId, userId);
-          
           if (!res.success) {
             await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
             return;
           }
 
           const party = res.party!;
-          const { COOP_DUNGEONS } = require('../commands/combat/bicanh');
           const { PartyCombatEngine } = require('../services/PartyCombatEngine');
-          
-          const dungeon = COOP_DUNGEONS.find((d: any) => d.id === party.dungeonId);
-          if (!dungeon) {
-            await interaction.update({ content: '❌ Bí cảnh không hợp lệ, tổ đội đã bị giải tán!', embeds: [], components: [] });
-            partyService.endParty(partyId);
-            return;
+
+          // Ghi nhận lượt đi hàng ngày cho tất cả thành viên trong tổ đội
+          const now = Math.floor(Date.now() / 1000);
+          for (const mId of party.members) {
+            const cd = db.prepare('SELECT daily_entries, last_entry_at FROM dungeon_cooldowns WHERE user_id = ? AND dungeon_id = ?')
+              .get(mId, dungeon.id) as { daily_entries: number; last_entry_at: number } | undefined;
+            
+            let entriesToday = 0;
+            if (cd) {
+              const cdDate = new Date(cd.last_entry_at * 1000).toDateString();
+              if (cdDate === new Date().toDateString()) {
+                entriesToday = cd.daily_entries;
+              }
+            }
+
+            db.prepare(`
+              INSERT INTO dungeon_cooldowns (user_id, dungeon_id, daily_entries, last_entry_at)
+              VALUES (?, ?, ?, ?)
+              ON CONFLICT(user_id, dungeon_id) DO UPDATE SET daily_entries = excluded.daily_entries, last_entry_at = excluded.last_entry_at
+            `).run(mId, dungeon.id, entriesToday + 1, now);
           }
 
           await interaction.update({ content: '⚔️ **ĐANG CHUẨN BỊ TRẬN CHIẾN...**', embeds: [], components: [] });
@@ -2217,7 +2374,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const result = PartyCombatEngine.run(partyMembers, bossConfig);
           const rewardsMap = PartyCombatEngine.distributeRewards(result, Math.floor(dungeon.minLevel));
 
-          // Trả thưởng
+          // Trả thưởng / Phạt
           let rewardsText = '';
           if (result.victory) {
             rewardsText = '\n\n🎁 **PHẦN THƯỞNG CHIẾN THẮNG:**\n';
@@ -2240,6 +2397,27 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
                 }
               }
             }
+          } else {
+            rewardsText = '\n\n💀 **HÌNH PHẠT THẤT BẠI (Đồng loạt giảm 8% Tu Vi, 5% Linh Thạch, 5% Linh Thạch Thượng Phẩm, 50 Thể Lực, 45 phút Trọng Thương):**\n';
+            const nowSec = Math.floor(Date.now() / 1000);
+            for (const mId of party.members) {
+              const u = userRepository.get(mId);
+              if (u) {
+                const expLoss = Math.min(u.tu_vi, Math.round(u.exp_needed * 0.08));
+                const coinLoss = Math.min(u.coin_ha_pham, Math.round(u.coin_ha_pham * 0.05));
+                const thuongPhamLoss = Math.ceil((u.coin_thuong_pham || 0) * 0.05);
+                const newStamina = Math.max(0, u.stamina - 50);
+
+                userRepository.update(mId, {
+                  tu_vi: Math.max(0, u.tu_vi - expLoss),
+                  coin_ha_pham: Math.max(0, u.coin_ha_pham - coinLoss),
+                  coin_thuong_pham: Math.max(0, (u.coin_thuong_pham || 0) - thuongPhamLoss),
+                  stamina: newStamina,
+                  injury_end_time: nowSec + 2700
+                });
+                rewardsText += `• **${u.name}**: -${expLoss} Tu Vi, -${coinLoss} Linh Thạch, -${thuongPhamLoss} LT Thượng Phẩm, -50 Thể Lực, 45p Trọng Thương.\n`;
+              }
+            }
           }
 
           partyService.endParty(partyId);
@@ -2252,7 +2430,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               `**Boss:** ${bossConfig.name} (${result.victory ? 0 : result.bossHpRemaining}/${bossConfig.maxHp} HP)\n\n` +
               `**Thống Kê Tổ Đội:**\n` +
               partyMembers.map((m: any) => `• ${m.name}: ${result.damageByPlayer.get(m.userId) || 0} DMG (${m.isAlive ? 'Còn sống' : 'Đã chết'})`).join('\n') +
-              (result.victory ? rewardsText : '\n\n💀 *Thất bại nên không nhận được phần thưởng.*')
+              rewardsText
             )
             .setTimestamp();
 

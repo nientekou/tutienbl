@@ -115,6 +115,16 @@ export default class ReadyEvent extends Event<'ready'> {
       console.error(chalk.red('[System] Lỗi Traveler Service:'), error);
     }
 
+    // 10.5. Khởi động Backup Service
+    try {
+      const { backupService } = require('../services/BackupService');
+      backupService.startScheduler();
+      table.push(['Backup Service', chalk.green('✔ Running')]);
+    } catch (error) {
+      table.push(['Backup Service', chalk.red('❌ LỖI')]);
+      console.error(chalk.red('[System] Lỗi Backup Service:'), error);
+    }
+
     // 11. Khởi động Arena Scheduler
     try {
       const { arenaService } = require('../services/ArenaService');

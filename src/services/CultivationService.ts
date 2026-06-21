@@ -319,12 +319,11 @@ export class CultivationService {
       };
     }
 
-    // Giới hạn không cho tích lũy tu vi quá mức khi chưa đột phá cảnh giới lớn
-    const { minorLevel } = getRealmDetails(user.level);
-    if (minorLevel === 38 && user.tu_vi >= user.exp_needed) {
+    // Giới hạn không cho tích lũy tu vi quá mức khi chưa đột phá cảnh giới lớn/tầng nhỏ
+    if (user.tu_vi >= user.exp_needed) {
       return { 
         success: false, 
-        message: 'Tu vi của đạo hữu đã đạt tới **Cực Hạn Đại Viên Mãn** của cảnh giới hiện tại. Cần **Đột Phá** để tiếp tục tu hành!' 
+        message: 'Tu vi của đạo hữu đã đạt tới **Cực Hạn Đại Viên Mãn** của cảnh giới hiện tại. Cần thực hiện lệnh \`/dotpha\` để tiếp tục tu hành!' 
       };
     }
 
@@ -373,6 +372,26 @@ export class CultivationService {
     }
 
     const gained = Math.round(baseGained * speedMultiplier * leylineExpBuff * eventMultiplier * heartLawExpBuff * alignmentSpeedMultiplier);
+
+    // Tỷ lệ tẩu hỏa nhập ma
+    let deviationChance = 0.03;
+    if (user.alignment === 'demonic') deviationChance += 0.02;
+    if (user.stamina < 100) deviationChance += 0.02;
+
+    if (Math.random() < deviationChance) {
+      const deviationEndTime = now + 900; // 15 phút
+      userRepository.update(discordId, { qi_deviation_until: deviationEndTime });
+      
+      // Ghi log tẩu hỏa nhập ma
+      db.prepare(
+        "INSERT INTO audit_logs (user_id, action, details, created_at) VALUES (?, 'qi_deviation', ?, ?)"
+      ).run(discordId, JSON.stringify({ reason: 'practice' }), now);
+
+      return {
+        success: false,
+        message: `❌ **TẨU HỎA NHẬP MA!** Trong lúc đạo hữu đang vận hành linh khí chu thiên, một luồng ma niệm bất chợt xâm lấn thần trí, kinh mạch điên đảo, linh lực bạo tẩu! Đạo hữu bị rơi vào trạng thái Tẩu Hỏa Nhập Ma trong **15 phút** (hiệu suất tu luyện nhàn rỗi giảm 50% và không thể thiền định chủ động trong thời gian này)!`
+      };
+    }
 
     const newTuVi = Math.min(user.tu_vi + gained, user.exp_needed); // Không vượt quá exp_needed ở tầng 38
     
@@ -444,9 +463,8 @@ export class CultivationService {
     const isMajor = minorLevel === 38; // Là đột phá Cảnh Giới lớn (ví dụ Luyện Khí sang Trúc Cơ)
 
     if (!isMajor) {
-      // Đột phá tầng nhỏ (Minor) -> Tính toán tỷ lệ thành công
-      // Luyện Khí (majorIndex 0) = 90%, Trúc Cơ (1) = 80%, Kim Đan (2) = 70%...
-      const baseRate = Math.max(90 - majorIndex * 10, 10);
+      // Đột phá tầng nhỏ (Minor) -> Tính toán tỷ lệ thành công (Đã tăng độ khó)
+      const baseRate = Math.max(70 - majorIndex * 15, 10);
       const luckBonus = user.base_luck * 0.002; // Mỗi điểm may mắn +0.2% tỷ lệ
       
       let pillBonus = 0;
@@ -560,10 +578,11 @@ export class CultivationService {
         let qiDeviationMsg = '';
         const updates: Partial<UserEntity> = { tu_vi: newTuVi };
 
-        if (qiDeviationDisturbance) {
+        // 25% cơ hội tẩu hỏa nhập ma khi thất bại tự nhiên, 100% nếu có quấy nhiễu
+        if (qiDeviationDisturbance || Math.random() < 0.25) {
           const now = Math.floor(Date.now() / 1000);
           updates.qi_deviation_until = now + 1800; // 30 phút tẩu hỏa nhập ma
-          qiDeviationMsg = '\n⚠️ **TẨU HỎA NHẬP MA!** Do đạo tâm lung lay lại cưỡng ép trùng kích thất bại, kinh mạch của đạo hữu bị đảo lộn, rơi vào trạng thái Tẩu Hỏa Nhập Ma trong **30 phút**! (Giảm 50% hiệu suất tu vi nhàn rỗi và không thể thiền định chủ động trong thời gian này).';
+          qiDeviationMsg = '\n⚠️ **TẨU HỎA NHẬP MA!** Đột phá thất bại dẫn đến linh khí chu thiên nghịch chuyển, rơi vào trạng thái Tẩu Hỏa Nhập Ma trong **30 phút**! (Giảm 50% hiệu suất tu vi nhàn rỗi và không thể thiền định chủ động trong thời gian này).';
         }
 
         userRepository.update(discordId, updates);
@@ -580,9 +599,8 @@ export class CultivationService {
         };
       }
     } else {
-      // Đột phá Đại Cảnh Giới (Major) -> Có tỷ lệ thành công và rủi ro
-      // Tỷ lệ thành công cơ sở giảm dần theo cảnh giới lớn (Luyện Khí 80%, Trúc Cơ 70%, Kim Đan 60%...)
-      const baseRate = Math.max(80 - majorIndex * 10, 10); // Tối thiểu 10%
+      // Đột phá Đại Cảnh Giới (Major) -> Có tỷ lệ thành công và rủi ro (Đã tăng độ khó)
+      const baseRate = Math.max(60 - majorIndex * 15, 10); // Tối thiểu 10%
       const luckBonus = user.base_luck * 0.002; // Mỗi điểm may mắn +0.2% tỷ lệ
       
       let pillBonus = 0;
@@ -695,19 +713,23 @@ export class CultivationService {
           user: updatedUser
         };
       } else {
-        // ĐỘT PHÁ THẤT BẠI
-        // Phạt: Mất 30% tu vi tích lũy hiện tại (giảm bớt tu vi)
+        // ĐỘT PHÁ THẤT BẠI - Bị phạt mất 30% tu vi và Trọng thương 1 giờ
+        const now = Math.floor(Date.now() / 1000);
         const lossAmount = Math.round(user.tu_vi * 0.3);
         const newTuVi = Math.max(user.tu_vi - lossAmount, 0);
+        const injuryEndTime = now + 3600; // 1 giờ
 
-        userRepository.update(discordId, { tu_vi: newTuVi });
+        userRepository.update(discordId, { 
+          tu_vi: newTuVi,
+          injury_end_time: injuryEndTime
+        });
         const updatedUser = userRepository.get(discordId)!;
         const pillText = hasPill ? ' Mặc dù đã dùng **Trúc Cơ Đan** nhưng vận khí kém,' : '';
 
         return {
           success: false,
           isMajor: true,
-          message: `❌ **CẢNH GIỚI PHẢN PHỆ!** Đạo hữu đột phá thất bại, tâm ma phản phệ kinh mạch, tổn hao **-${lossAmount}** Tu Vi! Hãy chuẩn bị đan dược phụ trợ (Trúc Cơ Đan...) cho lần sau.`,
+          message: `❌ **CẢNH GIỚI PHẢN PHỆ TÀN KHỐC!** Đạo hữu đột phá thất bại!${pillText} Linh khí bạo tẩu phá hủy kinh mạch, tổn hao **-${lossAmount}** Tu Vi và rơi vào trạng thái **Trọng Thương trong 1 giờ** (không thể làm việc, đi bí cảnh hay luyện đan)!`,
           rolled,
           rate: totalRate,
           user: updatedUser

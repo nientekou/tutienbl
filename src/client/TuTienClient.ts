@@ -5,6 +5,8 @@ import { EventHandler } from '../handlers/EventHandler';
 import path from 'path';
 
 export class TuTienClient extends Client {
+  public static instance: TuTienClient;
+
   // Collection chứa danh sách lệnh Slash Command
   public readonly commands = new Collection<string, Command>();
   
@@ -19,6 +21,7 @@ export class TuTienClient extends Client {
         GatewayIntentBits.GuildVoiceStates
       ]
     });
+    TuTienClient.instance = this;
   }
 
 

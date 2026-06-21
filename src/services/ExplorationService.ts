@@ -52,10 +52,10 @@ export const EXPLORATION_LOCATIONS: Record<string, ExplorationLocation> = {
     name: 'Vạn Thú Sơn',
     emoji: '🏔️',
     description: 'Rừng núi hoang vu nơi yêu thú tụ cư đông đúc, nguy hiểm nhưng phong phú tài nguyên.',
-    travelTime: 1800,  // 30 phút
+    travelTime: 2700,  // 45 phút, tăng từ 1800
     staminaCost: 20,
     minLevel: 1,
-    dangerRate: 0.3,
+    dangerRate: 0.45,  // tăng từ 0.3
     rewardPool: [
       { type: 'item', itemId: 'material_linh_thao_1', amount: 2, weight: 40 },
       { type: 'item', itemId: 'item_fragment', amount: 1, weight: 20 },
@@ -69,10 +69,10 @@ export const EXPLORATION_LOCATIONS: Record<string, ExplorationLocation> = {
     name: 'Đông Hải Long Cung',
     emoji: '🌊',
     description: 'Đại dương bí ẩn nơi thủy tộc ngự trị, chứa đựng vô số trân châu dị bảo và phôi trang bị.',
-    travelTime: 3600,  // 60 phút
+    travelTime: 5400,  // 90 phút, tăng từ 3600
     staminaCost: 35,
     minLevel: 15,
-    dangerRate: 0.4,
+    dangerRate: 0.55,  // tăng từ 0.4
     rewardPool: [
       { type: 'item', itemId: 'phoi_weapon_c', amount: 1, weight: 15 },
       { type: 'item', itemId: 'phoi_armor_c', amount: 1, weight: 15 },
@@ -86,10 +86,10 @@ export const EXPLORATION_LOCATIONS: Record<string, ExplorationLocation> = {
     name: 'Cực Bắc Băng Nguyên',
     emoji: '❄️',
     description: 'Vùng tuyết lãnh vĩnh cửu phía bắc, nơi ẩn chứa tinh thạch băng cổ và linh dược tuyết sơn hiếm có.',
-    travelTime: 5400,  // 90 phút
+    travelTime: 8100,  // 135 phút, tăng từ 5400
     staminaCost: 50,
     minLevel: 30,
-    dangerRate: 0.5,
+    dangerRate: 0.65,  // tăng từ 0.5
     rewardPool: [
       { type: 'item', itemId: 'phoi_weapon_b', amount: 1, weight: 20 },
       { type: 'item', itemId: 'phoi_armor_b', amount: 1, weight: 20 },
@@ -103,10 +103,10 @@ export const EXPLORATION_LOCATIONS: Record<string, ExplorationLocation> = {
     name: 'Huyền Mộc Nguyên Lâm',
     emoji: '🌲',
     description: 'Rừng cây ngàn năm che phủ, linh khí dày đặc nơi ẩn cư của các ẩn sĩ và linh vật thảo mộc.',
-    travelTime: 2700,  // 45 phút
+    travelTime: 4050,  // 67.5 phút, tăng từ 2700
     staminaCost: 25,
     minLevel: 8,
-    dangerRate: 0.2,
+    dangerRate: 0.35,  // tăng từ 0.2
     rewardPool: [
       { type: 'item', itemId: 'material_linh_thao_1', amount: 3, weight: 35 },
       { type: 'item', itemId: 'material_nhan_sam_1', amount: 1, weight: 20 },
@@ -120,10 +120,10 @@ export const EXPLORATION_LOCATIONS: Record<string, ExplorationLocation> = {
     name: 'Tẫn Thạch Linh Mạch',
     emoji: '⛏️',
     description: 'Mỏ linh thạch cổ đại phong phú khoáng sản linh thiên đặc biệt, rủi ro sập hầm cao.',
-    travelTime: 3000,  // 50 phút
+    travelTime: 4500,  // 75 phút, tăng từ 3000
     staminaCost: 30,
     minLevel: 20,
-    dangerRate: 0.45,
+    dangerRate: 0.60,  // tăng từ 0.45
     rewardPool: [
       { type: 'item', itemId: 'material_iron_1', amount: 5, weight: 30 },
       { type: 'item', itemId: 'phoi_weapon_d', amount: 1, weight: 20 },
@@ -149,7 +149,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         failMsg: '❌ Trận pháp bùng nổ! Đạo hữu bị chấn thương mất Stamina.',
         successRate: 0.6,
         successReward: { type: 'ngotinh', amount: 15, weight: 100 },
-        failPenalty: { stamina: 30 }
+        failPenalty: { stamina: 60 }
       },
       {
         id: 'skip',
@@ -174,7 +174,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         failMsg: '❌ Linh thú phẫn nộ! Bị cắn xé mất Stamina và Linh Thạch.',
         successRate: 0.45,
         successReward: { type: 'item', itemId: 'item_fragment', amount: 2, weight: 100 },
-        failPenalty: { stamina: 20, coin: 100 }
+        failPenalty: { stamina: 40, coin: 200 }
       },
       {
         id: 'loot',
@@ -183,7 +183,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         failMsg: '❌ Mãnh thú tỉnh dậy phản công! Đạo hữu tổn thương nặng.',
         successRate: 0.7,
         successReward: { type: 'coin', amount: 200, weight: 100 },
-        failPenalty: { stamina: 40 }
+        failPenalty: { stamina: 80 }
       }
     ]
   },
@@ -200,7 +200,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         failMsg: '❌ Lão nhân phẫn nộ vì bị quấy phá, trực tiếp chưởng đẩy đi!',
         successRate: 0.55,
         successReward: { type: 'ngotinh', amount: 25, weight: 100 },
-        failPenalty: { stamina: 50 }
+        failPenalty: { stamina: 100 }
       },
       {
         id: 'observe',
@@ -225,7 +225,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         failMsg: '❌ Trận pháp bùng nổ, đạo hữu tổn hao nghiêm trọng!',
         successRate: 0.5,
         successReward: { type: 'coin', amount: 500, weight: 100 },
-        failPenalty: { stamina: 60, coin: 200 }
+        failPenalty: { stamina: 120, coin: 400 }
       },
       {
         id: 'mark',
@@ -250,7 +250,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         failMsg: '❌ Linh tuyền đã bị ô nhiễm bởi ma khí! Bị trúng độc mất Stamina.',
         successRate: 0.75,
         successReward: { type: 'tuvi', amount: 800, weight: 100 },
-        failPenalty: { stamina: 30 }
+        failPenalty: { stamina: 60 }
       },
       {
         id: 'collect',
@@ -275,7 +275,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         failMsg: '❌ Xung quanh hài cốt có trận pháp bảo vệ! Đạo hữu bị thương nặng.',
         successRate: 0.5,
         successReward: { type: 'item', itemId: 'tang_bao_do', amount: 1, weight: 100 },
-        failPenalty: { stamina: 50, coin: 200 }
+        failPenalty: { stamina: 100, coin: 400 }
       },
       {
         id: 'bury',
@@ -284,7 +284,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         failMsg: '❌ Vừa chạm vào, tà khí xâm nhập cơ thể!',
         successRate: 0.8,
         successReward: { type: 'item', itemId: 'tang_bao_do', amount: 1, weight: 100 },
-        failPenalty: { stamina: 20 }
+        failPenalty: { stamina: 40 }
       }
     ]
   },
@@ -301,7 +301,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         failMsg: '❌ Tàn hồn quá mạnh! Đạo hữu bị đánh trọng thương, phải bỏ chạy trối chết.',
         successRate: 0.35,
         successReward: { type: 'item', itemId: 'phoi_weapon_b', amount: 1, weight: 100 },
-        failPenalty: { stamina: 80, coin: 300 }
+        failPenalty: { stamina: 120, coin: 500 }
       },
       {
         id: 'flee',
@@ -310,7 +310,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         failMsg: '❌ Không chạy kịp! Bị dư âm công kích đánh trúng!',
         successRate: 0.8,
         successReward: { type: 'nothing', weight: 100 },
-        failPenalty: { stamina: 30, coin: 50 }
+        failPenalty: { stamina: 60, coin: 100 }
       }
     ]
   },
@@ -352,7 +352,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         failMsg: '❌ Bọn cướp đông và mạnh hơn dự kiến! Đạo hữu bị đánh cướp trắng trợn.',
         successRate: 0.5,
         successReward: { type: 'coin', amount: 800, weight: 100 },
-        failPenalty: { stamina: 50, coin: 1000 }
+        failPenalty: { stamina: 100, coin: 2000 }
       },
       {
         id: 'pay',
@@ -362,7 +362,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         successRate: 0.9,
         successReward: { type: 'nothing', weight: 100 },
         cost: { coin: 500 },
-        failPenalty: { coin: 500 }
+        failPenalty: { coin: 1000 }
       }
     ]
   }
@@ -567,10 +567,20 @@ class ExplorationService {
         
         // Refresh user obj sau khi trừ cost
         const freshUser = userRepository.get(userId)!;
-        if (penalty.stamina) updates.stamina = Math.max(0, (freshUser.stamina || 0) - penalty.stamina);
-        if (penalty.coin) updates.coin_ha_pham = Math.max(0, freshUser.coin_ha_pham - penalty.coin);
+        if (penalty.stamina) {
+          const currentStamina = freshUser.stamina || 0;
+          const nextStamina = Math.max(0, currentStamina - penalty.stamina);
+          updates.stamina = nextStamina;
+          if (nextStamina <= 0 && currentStamina > 0) {
+            // Cạn kiệt thể lực: bị lạc đường, phạt linh thạch và bị chấn thương
+            const nowSec = Math.floor(Date.now() / 1000);
+            updates.coin_ha_pham = Math.max(0, freshUser.coin_ha_pham - 200);
+            updates.injury_end_time = nowSec + 1800; // 30 phút trọng thương
+            rewardText = `\\n⚠️ **CẠN KIỆT THỂ LỰC:** Đạo hữu kiệt sức ngã quỵ giữa hoang dã, bị thất lạc **200 Linh Thạch** và bị **Trọng Thương trong 30 phút** mới gượng dậy bò về được!`;
+          }
+        }
+        if (penalty.coin && !updates.coin_ha_pham) updates.coin_ha_pham = Math.max(0, freshUser.coin_ha_pham - penalty.coin);
         if (Object.keys(updates).length > 0) userRepository.update(userId, updates);
-        rewardText = '';
       }
       // Sau biến cố -> phân phát thưởng địa điểm bình thường luôn
       const locationRewardText = this.distributeReward(userId, exp.location_id);

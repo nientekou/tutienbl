@@ -184,23 +184,22 @@ export default class DungCommand extends Command {
       } 
       
       else if (chestId === 'chest_1tr5') {
-        // Rương 1.5M tôn quý
-        const ssRate = 0.10;
-        const sssRate = 0.05;
+        // Rương 1.5M tôn quý (Sát tỷ lệ: SSS: 10%, SS: 20%, S: 35%, A: 35%, loại bỏ hoàn toàn phẩm B)
+        const sssRate = 0.10;
+        const ssRate = 0.20;
+        const sRate = 0.35;
 
         const rand = Math.random();
-        let grade = 'b';
+        let grade = 'a';
 
         if (rand < sssRate) {
           grade = 'sss';
         } else if (rand < sssRate + ssRate) {
           grade = 'ss';
-        } else if (rand < sssRate + ssRate + 0.25) {
+        } else if (rand < sssRate + ssRate + sRate) {
           grade = 's';
-        } else if (rand < sssRate + ssRate + 0.25 + 0.30) {
-          grade = 'a';
         } else {
-          grade = 'b';
+          grade = 'a';
         }
 
         const isWeapon = Math.random() < 0.5;

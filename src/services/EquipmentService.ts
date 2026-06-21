@@ -95,7 +95,7 @@ export class EquipmentService {
   /**
    * Phân Giải Trang Bị Nhận Mảnh
    */
-  public salvageEquipment(userId: string, inventoryId: number): { success: boolean; message: string; fragmentsGained?: number } {
+  public salvageEquipment(userId: string, inventoryId: number, qty: number = 1): { success: boolean; message: string; fragmentsGained?: number } {
     const item = inventoryRepository.get(inventoryId);
     if (!item || item.user_id !== userId) {
       return { success: false, message: 'Vật phẩm không tồn tại.' };
@@ -109,21 +109,28 @@ export class EquipmentService {
       return { success: false, message: 'Trang bị đang đeo trên người, tháo ra trước khi phân giải!' };
     }
 
-    // Tính toán mảnh nhận được theo phẩm chất
-    let fragmentsGained = 1;
-    if (item.item_id.endsWith('_ex')) {
-      fragmentsGained = 500;
-    } else if (item.rarity === 'common') {
-      fragmentsGained = 1;
-    } else if (item.rarity === 'uncommon') {
-      fragmentsGained = 3;
-    } else if (item.rarity === 'rare') {
-      fragmentsGained = 10;
-    } else if (item.rarity === 'epic') {
-      fragmentsGained = 35;
-    } else if (item.rarity === 'legendary') {
-      fragmentsGained = 120;
+    const actualQty = Math.min(qty, item.quantity);
+    if (actualQty <= 0) {
+      return { success: false, message: 'Số lượng phân giải không hợp lệ.' };
     }
+
+    // Tính toán mảnh nhận được theo phẩm chất
+    let baseFragments = 1;
+    if (item.item_id.endsWith('_ex')) {
+      baseFragments = 500;
+    } else if (item.rarity === 'common') {
+      baseFragments = 1;
+    } else if (item.rarity === 'uncommon') {
+      baseFragments = 3;
+    } else if (item.rarity === 'rare') {
+      baseFragments = 10;
+    } else if (item.rarity === 'epic') {
+      baseFragments = 35;
+    } else if (item.rarity === 'legendary') {
+      baseFragments = 120;
+    }
+
+    let fragmentsGained = baseFragments * actualQty;
 
     // Cộng thêm mảnh dựa trên số sao đã nâng
     if (item.stars > 0) {
@@ -132,11 +139,11 @@ export class EquipmentService {
       for (let i = 0; i < item.stars; i++) {
         investment += starCosts[i];
       }
-      fragmentsGained += Math.round(investment * 0.7); // Hoàn trả 70% mảnh nâng sao
+      fragmentsGained += Math.round(investment * 0.7) * actualQty; // Hoàn trả 70% mảnh nâng sao
     }
 
     const salvageTx = db.transaction(() => {
-      inventoryRepository.removeItemById(inventoryId, 1);
+      inventoryRepository.removeItemById(inventoryId, actualQty);
       inventoryRepository.addItem(userId, 'item_fragment', fragmentsGained);
     });
 
@@ -144,7 +151,7 @@ export class EquipmentService {
 
     return {
       success: true,
-      message: `⚙️ **Phân giải thành công!** Đạo hữu nghiền nát **${item.name}** thành bột cát linh khí, thu hoạch được **+${fragmentsGained}** Mảnh Trang Bị!`,
+      message: `⚙️ **Phân giải thành công!** Đạo hữu nghiền nát x${actualQty} **${item.name}** thành bột cát linh khí, thu hoạch được **+${fragmentsGained}** Mảnh Trang Bị!`,
       fragmentsGained
     };
   }
@@ -390,6 +397,89 @@ export class EquipmentService {
     }
 
     return stats;
+  }
+
+  /**
+   * Giám Định Hàng Loạt Toàn Bộ Phôi
+   */
+  public appraisePhoiBulk(userId: string): { success: boolean; message: string; count?: number } {
+    const user = userRepository.get(userId);
+    if (!user) {
+      return { success: false, message: 'Đạo hữu chưa tạo nhân vật!' };
+    }
+
+    const allItems = inventoryRepository.getUserInventory(userId);
+    const phois = allItems.filter(item => item.type === 'phoi' && item.quantity > 0);
+
+    if (phois.length === 0) {
+      return { success: false, message: 'Không tìm thấy Phôi Trang Bị nào trong hành trang!' };
+    }
+
+    let totalQty = 0;
+    for (const p of phois) {
+      totalQty += p.quantity;
+    }
+
+    const cost = 50 * totalQty;
+    if (user.coin_ha_pham < cost) {
+      return { success: false, message: `Không đủ Linh Thạch để giám định hàng loạt! (Yêu cầu: **${cost}** Linh Thạch cho ${totalQty} phôi, đạo hữu hiện có: **${user.coin_ha_pham}**).` };
+    }
+
+    const itemsToAdd: Array<{ userId: string; itemId: string; quantity: number; customStats: string | null }> = [];
+
+    for (const p of phois) {
+      const parts = p.item_id.split('_');
+      const phoiType = parts[1]; // 'weapon', 'armor', 'accessory', 'mount'
+      const phoiGrade = parts[2]; // grade
+
+      for (let i = 0; i < p.quantity; i++) {
+        let targetItemId = '';
+        if (phoiType === 'weapon') {
+          targetItemId = `weapon_sword_${phoiGrade}`;
+        } else if (phoiType === 'armor') {
+          targetItemId = `armor_robe_${phoiGrade}`;
+        } else if (phoiType === 'accessory') {
+          const rand = Math.random();
+          if (rand < 0.33) targetItemId = 'ring_1';
+          else if (rand < 0.66) targetItemId = 'necklace_1';
+          else targetItemId = 'amulet_1';
+        } else if (phoiType === 'mount') {
+          const rand = Math.random();
+          if (rand < 0.5) targetItemId = 'mount_sword_1';
+          else targetItemId = 'mount_beast_1';
+        }
+
+        const customStats = this.generateCustomStats(phoiGrade);
+        itemsToAdd.push({
+          userId,
+          itemId: targetItemId,
+          quantity: 1,
+          customStats: customStats ? JSON.stringify(customStats) : null
+        });
+      }
+    }
+
+    // Run transaction
+    const appraiseTx = db.transaction(() => {
+      // Trừ Linh thạch
+      db.prepare('UPDATE users SET coin_ha_pham = coin_ha_pham - ? WHERE discord_id = ?').run(cost, userId);
+      
+      // Xóa tất cả phôi
+      for (const p of phois) {
+        inventoryRepository.removeItemById(p.id, p.quantity);
+      }
+      
+      // Thêm thành phẩm
+      inventoryRepository.addMultipleItems(itemsToAdd);
+    });
+
+    appraiseTx();
+
+    return {
+      success: true,
+      message: `🔮 **Giám định hàng loạt thành công!** Đạo hữu tiêu tốn **${cost}** Linh Thạch, giám định thành công **${totalQty}** phôi trang bị các loại!`,
+      count: totalQty
+    };
   }
 }
 
