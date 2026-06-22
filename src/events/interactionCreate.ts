@@ -869,15 +869,15 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()
-              .setCustomId(`bicanhreact_${dungeonId}_${difficulty}_${monsterAction}_atk_${targetUserId}`)
+              .setCustomId(`bicanhreact_${dungeonId}:${difficulty}:${monsterAction}:atk_${targetUserId}`)
               .setLabel('⚔️ Tấn Công')
               .setStyle(ButtonStyle.Primary),
             new ButtonBuilder()
-              .setCustomId(`bicanhreact_${dungeonId}_${difficulty}_${monsterAction}_spell_${targetUserId}`)
+              .setCustomId(`bicanhreact_${dungeonId}:${difficulty}:${monsterAction}:spell_${targetUserId}`)
               .setLabel('📜 Thi Pháp')
               .setStyle(ButtonStyle.Success),
             new ButtonBuilder()
-              .setCustomId(`bicanhreact_${dungeonId}_${difficulty}_${monsterAction}_def_${targetUserId}`)
+              .setCustomId(`bicanhreact_${dungeonId}:${difficulty}:${monsterAction}:def_${targetUserId}`)
               .setLabel('🛡️ Phòng Thủ')
               .setStyle(ButtonStyle.Danger)
           );
@@ -887,12 +887,15 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
         // --- Nút: PHẢN ỨNG RA CHIÊU BÍ CẢNH (Thực chiến quyết định) ---
         else if (action === 'bicanhreact') {
-          // userId ở cuối cùng, 3 phần tử cuối: difficulty, monsterAction, playerChoice, userId
-          // Mọi thứ ở giữa là dungeonId (ghép lại vì có underscore)
-          const dungeonId = parts.slice(1, -4).join('_');
-          const difficulty = parts[parts.length - 4];
-          const monsterAction = parts[parts.length - 3];
-          const playerChoice = parts[parts.length - 2]; // 'atk', 'spell', 'def'
+          const firstUnderscoreIdx = customId.indexOf('_');
+          const lastUnderscoreIdx = customId.lastIndexOf('_');
+          const middle = customId.substring(firstUnderscoreIdx + 1, lastUnderscoreIdx);
+          const middleParts = middle.split(':');
+
+          const dungeonId = middleParts[0];
+          const difficulty = middleParts[1];
+          const monsterAction = middleParts[2];
+          const playerChoice = middleParts[3]; // 'atk', 'spell', 'def'
 
           let correct = false;
           if (playerChoice === 'atk' && monsterAction === 'shield') correct = true;
@@ -3095,7 +3098,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const cleanName = item.name.replace(/^[\s\p{Emoji}\p{Symbol}]+/gu, '').replace(/^[- :]+/g, '').trim().substring(0, 30);
 
         const modal = new ModalBuilder()
-          .setCustomId(`shopbuymodal_${targetUserId}_${itemId}_${activeCategory}_${pageNum}`)
+          .setCustomId(`shopbuymodal_${targetUserId}_${itemId}:${activeCategory}:${pageNum}`)
           .setTitle(`Mua ${cleanName}`);
 
         const qtyInput = new TextInputBuilder()
@@ -3216,9 +3219,11 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
       // --- Modal: MUA NHANH VẬT PHẨM CỬA HÀNG ---
       else if (action === 'shopbuymodal') {
-        const itemId = parts[2];
-        const activeCategory = parts[3];
-        const pageNum = parseInt(parts[4], 10) || 1;
+        const rest = parts.slice(2).join('_');
+        const subParts = rest.split(':');
+        const itemId = subParts[0];
+        const activeCategory = subParts[1];
+        const pageNum = parseInt(subParts[2], 10) || 1;
         const qtyStr = interaction.fields.getTextInputValue('buy_qty');
         const qty = parseInt(qtyStr, 10);
 
