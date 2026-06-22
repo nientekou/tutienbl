@@ -3090,69 +3090,27 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           return;
         }
 
-        if (item.currency === 'knb') {
-          if (buyer.knb < item.price) {
-            await interaction.reply({
-              content: `❌ Đạo hữu không đủ KNB! (Giá: **${item.price}** KNB, hiện có: **${buyer.knb}** KNB).`,
-              ephemeral: true
-            });
-            return;
-          }
+        const activeCategory = parts[1];
+        const pageNum = parts[2];
+        const cleanName = item.name.replace(/^[\s\p{Emoji}\p{Symbol}]+/gu, '').replace(/^[- :]+/g, '').trim().substring(0, 30);
 
-          let realItemId = item.id;
-          if (item.id === 'item_nhan_dinh_hon_knb') realItemId = 'item_nhan_dinh_hon';
-          if (item.id === 'item_bloodline_pill_knb') realItemId = 'item_bloodline_pill';
+        const modal = new ModalBuilder()
+          .setCustomId(`shopbuymodal_${targetUserId}_${itemId}_${activeCategory}_${pageNum}`)
+          .setTitle(`Mua ${cleanName}`);
 
-          const tx = db.transaction(() => {
-            checkAndUpdateWeeklyLimit(targetUserId, item.id, 1);
-            userRepository.update(targetUserId, { knb: buyer.knb - item.price });
-            inventoryRepository.addItem(targetUserId, realItemId, 1);
-          });
+        const qtyInput = new TextInputBuilder()
+          .setCustomId('buy_qty')
+          .setLabel('Số lượng muốn mua')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('Nhập số lượng lớn hơn 0 (ví dụ: 1)')
+          .setValue('1')
+          .setRequired(true);
 
-          try {
-            tx();
-          } catch (error: any) {
-            await interaction.reply({ content: `❌ Mua nhanh thất bại: ${error.message}`, ephemeral: true });
-            return;
-          }
+        modal.addComponents(
+          new ActionRowBuilder<TextInputBuilder>().addComponents(qtyInput)
+        );
 
-          const primaryId = parts[1];
-          const pageNum = parseInt(parts[2], 10) || 1;
-          const embed = getShopEmbed(targetUserId, primaryId, undefined, pageNum);
-          const shopComps = getShopComponents(targetUserId, primaryId, undefined, pageNum);
-          const rowsArr = Array.isArray(shopComps) ? shopComps : [shopComps];
-          await interaction.update({ embeds: [embed], components: rowsArr });
-          await interaction.followUp({ content: `🛒 Mua thành công **1x ${item.name}** (−${item.price} KNB)!`, ephemeral: true });
-        } else {
-          if (buyer.coin_ha_pham < item.price) {
-            await interaction.reply({
-              content: `❌ Đạo hữu không đủ Linh Thạch! (Giá: **${item.price}**, hiện có: **${buyer.coin_ha_pham}**).`,
-              ephemeral: true
-            });
-            return;
-          }
-
-          const tx = db.transaction(() => {
-            checkAndUpdateWeeklyLimit(targetUserId, item.id, 1);
-            userRepository.update(targetUserId, { coin_ha_pham: buyer.coin_ha_pham - item.price });
-            inventoryRepository.addItem(targetUserId, item.id, 1);
-          });
-
-          try {
-            tx();
-          } catch (error: any) {
-            await interaction.reply({ content: `❌ Mua nhanh thất bại: ${error.message}`, ephemeral: true });
-            return;
-          }
-
-          const primaryId = parts[1];
-          const pageNum = parseInt(parts[2], 10) || 1;
-          const embed = getShopEmbed(targetUserId, primaryId, undefined, pageNum);
-          const shopComps = getShopComponents(targetUserId, primaryId, undefined, pageNum);
-          const rowsArr = Array.isArray(shopComps) ? shopComps : [shopComps];
-          await interaction.update({ embeds: [embed], components: rowsArr });
-          await interaction.followUp({ content: `🛒 Mua thành công **1x ${item.name}** (−${item.price} Linh Thạch)!`, ephemeral: true });
-        }
+        await interaction.showModal(modal);
       }
 
       // --- Menu: THỈNH NHANH BÍ TỌH KỸ NĂNG (từ /hoso) ---
@@ -3253,6 +3211,100 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           await interaction.followUp({ content: `✅ Quy đổi thành công! ${res.message}`, ephemeral: true });
         } else {
           await interaction.reply({ content: `✅ Quy đổi thành công! ${res.message}`, ephemeral: true });
+        }
+      }
+
+      // --- Modal: MUA NHANH VẬT PHẨM CỬA HÀNG ---
+      else if (action === 'shopbuymodal') {
+        const itemId = parts[2];
+        const activeCategory = parts[3];
+        const pageNum = parseInt(parts[4], 10) || 1;
+        const qtyStr = interaction.fields.getTextInputValue('buy_qty');
+        const qty = parseInt(qtyStr, 10);
+
+        if (isNaN(qty) || qty <= 0) {
+          await interaction.reply({ content: '❌ Số lượng mua phải là số nguyên lớn hơn 0!', ephemeral: true });
+          return;
+        }
+
+        const item = SHOP_ITEMS.find(i => i.id === itemId);
+        const buyer = userRepository.get(targetUserId);
+
+        if (!item || !buyer) {
+          await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', ephemeral: true });
+          return;
+        }
+
+        const totalCost = item.price * qty;
+
+        if (item.currency === 'knb') {
+          if (buyer.knb < totalCost) {
+            await interaction.reply({
+              content: `❌ Đạo hữu không đủ KNB! (Tổng chi phí: **${totalCost}** KNB, hiện có: **${buyer.knb}** KNB).`,
+              ephemeral: true
+            });
+            return;
+          }
+
+          let realItemId = item.id;
+          if (item.id === 'item_nhan_dinh_hon_knb') realItemId = 'item_nhan_dinh_hon';
+          if (item.id === 'item_bloodline_pill_knb') realItemId = 'item_bloodline_pill';
+
+          const tx = db.transaction(() => {
+            checkAndUpdateWeeklyLimit(targetUserId, item.id, qty);
+            userRepository.update(targetUserId, { knb: buyer.knb - totalCost });
+            inventoryRepository.addItem(targetUserId, realItemId, qty);
+          });
+
+          try {
+            tx();
+          } catch (error: any) {
+            await interaction.reply({ content: `❌ Mua nhanh thất bại: ${error.message}`, ephemeral: true });
+            return;
+          }
+
+          const embed = getShopEmbed(targetUserId, activeCategory, undefined, pageNum);
+          const shopComps = getShopComponents(targetUserId, activeCategory, undefined, pageNum);
+          const rowsArr = Array.isArray(shopComps) ? shopComps : [shopComps];
+
+          if ((interaction as any).update) {
+            await (interaction as any).update({ embeds: [embed], components: rowsArr });
+            await interaction.followUp({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} KNB)!`, ephemeral: true });
+          } else {
+            await interaction.reply({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} KNB)!`, ephemeral: true });
+          }
+        } else {
+          if (buyer.coin_ha_pham < totalCost) {
+            await interaction.reply({
+              content: `❌ Đạo hữu không đủ Linh Thạch! (Tổng chi phí: **${totalCost}** Linh Thạch, hiện có: **${buyer.coin_ha_pham}**).`,
+              ephemeral: true
+            });
+            return;
+          }
+
+          const tx = db.transaction(() => {
+            checkAndUpdateWeeklyLimit(targetUserId, item.id, qty);
+            userRepository.update(targetUserId, { coin_ha_pham: buyer.coin_ha_pham - totalCost });
+            inventoryRepository.addItem(targetUserId, item.id, qty);
+          });
+
+          try {
+            tx();
+          } catch (error: any) {
+            await interaction.reply({ content: `❌ Mua nhanh thất bại: ${error.message}`, ephemeral: true });
+            return;
+          }
+
+          const embed = getShopEmbed(targetUserId, activeCategory, undefined, pageNum);
+          const shopComps = getShopComponents(targetUserId, activeCategory, undefined, pageNum);
+          const rowsArr = Array.isArray(shopComps) ? shopComps : [shopComps];
+
+          if ((interaction as any).update) {
+            await (interaction as any).update({ embeds: [embed], components: rowsArr });
+            await interaction.followUp({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} Linh Thạch)!`, ephemeral: true });
+          } else {
+            await interaction.reply({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} Linh Thạch)!`, ephemeral: true });
+          }
         }
       }
 
