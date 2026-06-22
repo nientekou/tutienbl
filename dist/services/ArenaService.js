@@ -309,13 +309,14 @@ class ArenaService {
     initScheduler() {
         setInterval(() => {
             const now = new Date();
+            const vnTime = new Date(now.getTime() + 7 * 3600000);
             // Nếu là Thứ 2 (day === 1) và giờ là 00:00 (hoặc trong khoảng 0-5 phút)
-            if (now.getDay() === 1 && now.getHours() === 0 && now.getMinutes() < 60) {
+            if (vnTime.getUTCDay() === 1 && vnTime.getUTCHours() === 0 && vnTime.getUTCMinutes() < 60) {
                 // Chỉ chạy 1 lần mỗi 2 tuần, kiểm tra cờ (flag) trong database để tránh chạy lặp
                 const db = require('../database/database').default;
                 const currentSeason = db.prepare("SELECT value FROM system_config WHERE key = 'arena_season_id'").get();
-                const biWeekNum = Math.ceil(this.getWeekNumber(now) / 2);
-                const expectedSeason = `season_${now.getFullYear()}_BiW${biWeekNum}`;
+                const biWeekNum = Math.ceil(this.getWeekNumber(vnTime) / 2);
+                const expectedSeason = `season_${vnTime.getUTCFullYear()}_BiW${biWeekNum}`;
                 if (!currentSeason || currentSeason.value !== expectedSeason) {
                     this.processSeasonEnd(expectedSeason);
                     db.prepare("INSERT OR REPLACE INTO system_config (key, value) VALUES ('arena_season_id', ?)").run(expectedSeason);
@@ -325,10 +326,10 @@ class ArenaService {
         }, 60 * 60 * 1000); // Kiểm tra mỗi giờ
     }
     getWeekNumber(d) {
-        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-        var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        var weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+        const utcDate = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+        utcDate.setUTCDate(utcDate.getUTCDate() + 4 - (utcDate.getUTCDay() || 7));
+        var yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+        var weekNo = Math.ceil((((utcDate.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
         return weekNo;
     }
 }

@@ -33,7 +33,9 @@ const SLOT_EMOJI = {
     weapon: '⚔️', armor: '🛡️', ring: '💍', necklace: '📿', amulet: '🔮', mount: '🐎', treasure: '🏺',
 };
 function getDayGreeting() {
-    const h = new Date().getHours();
+    const now = new Date();
+    const vnTime = new Date(now.getTime() + 7 * 3600000);
+    const h = vnTime.getUTCHours();
     if (h < 6)
         return '🌙 Khuya rồi mà vẫn tu luyện sao?';
     if (h < 12)

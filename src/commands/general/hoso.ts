@@ -29,7 +29,9 @@ const SLOT_EMOJI: Record<string, string> = {
 };
 
 function getDayGreeting(): string {
-  const h = new Date().getHours();
+  const now = new Date();
+  const vnTime = new Date(now.getTime() + 7 * 3600000);
+  const h = vnTime.getUTCHours();
   if (h < 6) return '🌙 Khuya rồi mà vẫn tu luyện sao?';
   if (h < 12) return '🌅 Sớm mai an lành, chúc đạo hữu tu tiên tấn tới!';
   if (h < 18) return '☀️ Trời đẹp, đạo hữu nên đi khám phá dã ngoại!';

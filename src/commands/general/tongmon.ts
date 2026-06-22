@@ -342,14 +342,15 @@ export default class TongMonCommand extends Command {
 
       // Weekly bonus: Sunday 23:00-23:59
       const now = new Date();
-      const nowUnix = Math.floor(Date.now() / 1000);
-      const dayOfWeek = now.getDay();
-      const hours = now.getHours();
+      const nowUnix = Math.floor(now.getTime() / 1000);
+      const vnTime = new Date(now.getTime() + 7 * 3600000);
+      const dayOfWeek = vnTime.getUTCDay();
+      const hours = vnTime.getUTCHours();
       const isBonusTime = dayOfWeek === 0 && hours === 23;
 
       let bonusMsg = '';
       if (isBonusTime) {
-        const weekStart = nowUnix - (dayOfWeek * 86400 + hours * 3600 + now.getMinutes() * 60 + now.getSeconds());
+        const weekStart = nowUnix - (dayOfWeek * 86400 + hours * 3600 + vnTime.getUTCMinutes() * 60 + vnTime.getUTCSeconds());
         if (!sect.last_weekly_bonus_at || sect.last_weekly_bonus_at < weekStart) {
           const top3 = db.prepare(`
             SELECT discord_id, name, sect_contribution

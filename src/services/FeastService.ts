@@ -25,7 +25,9 @@ export class FeastService {
     } catch (e) {}
 
     const now = new Date();
-    const hour = now.getHours();
+    // Offset +7 hours to get VN time
+    const vnTime = new Date(now.getTime() + 7 * 3600000);
+    const hour = vnTime.getUTCHours();
 
     if (hour !== 12 && hour !== 18) {
       return {
@@ -36,9 +38,9 @@ export class FeastService {
       };
     }
 
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
+    const year = vnTime.getUTCFullYear();
+    const month = String(vnTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(vnTime.getUTCDate()).padStart(2, '0');
     const slotKey = `${year}-${month}-${day}-${hour}`;
 
     let yCanhMap: Record<string, any> = {};
