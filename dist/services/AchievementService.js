@@ -121,7 +121,7 @@ class AchievementService {
             return;
         // Thưởng EXP (Tu Vi)
         if (achievement.reward_exp > 0) {
-            const newTuVi = Math.min(user.tu_vi + achievement.reward_exp, user.exp_needed);
+            const newTuVi = user.tu_vi + achievement.reward_exp;
             UserRepository_1.userRepository.update(userId, { tu_vi: newTuVi });
         }
         // Thưởng coins

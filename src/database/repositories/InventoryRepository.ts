@@ -90,6 +90,22 @@ export class InventoryRepository {
   }
 
   /**
+   * Lấy thông tin vật phẩm trong túi đồ bằng user_id + item_id
+   */
+  public getByUserIdAndItemId(userId: string, itemId: string): InventoryItem | null {
+    const stmt = db.prepare(`
+      SELECT 
+        i.id, i.user_id, i.item_id, i.quantity, i.is_equipped, i.equipment_slot, i.custom_stats, i.stars, i.durability, i.max_durability, i.enhance_level, i.is_life_bound, i.bound_exp, i.bound_level, i.created_at,
+        t.name, t.type, t.rarity, t.description, t.stats as base_stats, t.value_ha_pham, t.usable, t.equipable
+      FROM inventories i
+      JOIN items t ON i.item_id = t.id
+      WHERE i.user_id = ? AND i.item_id = ?
+    `);
+    
+    return (stmt.get(userId, itemId) as InventoryItem) || null;
+  }
+
+  /**
    * Thêm vật phẩm vào túi đồ của người chơi
    */
   public addItem(userId: string, itemId: string, quantity: number = 1, customStats: string | null = null): void {

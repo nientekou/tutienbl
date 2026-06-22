@@ -211,7 +211,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           interaction.customId.startsWith('pb_') ||
           interaction.customId.startsWith('bptselect_') ||
           interaction.customId.startsWith('adminpanel_') ||
-          interaction.customId.startsWith('adminuser_')
+          interaction.customId.startsWith('adminuser_') ||
+          interaction.customId.startsWith('adminfixpets_')
         ))
       ) {
         let customId = interaction.customId;
@@ -237,7 +238,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           'dungkynang_select',
           'dungkynang_cancel',
           'adminpanel',
-          'adminuser'
+          'adminuser',
+          'adminfixpets'
         ];
 
         let action = '';
@@ -253,7 +255,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           action = parts[0];
         }
 
-        if (action === 'adminpanel' || action === 'adminuser') {
+        if (action === 'adminpanel' || action === 'adminuser' || action === 'adminfixpets') {
           const AdminCommand = require('../commands/general/admin').default;
           await AdminCommand.handleInteraction(client, interaction, action, parts);
           return;
@@ -1329,13 +1331,15 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const cmd = new LuyenDanCommand();
           const embed = cmd.getAlchemyEmbed(targetUserId);
           const row = cmd.getAlchemyComponents(targetUserId);
-          const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-              .setCustomId(`hosoback_${targetUserId}`)
-              .setLabel('🔙 Quay Lại Hồ Sơ')
-              .setStyle(ButtonStyle.Secondary)
-          );
-          await interaction.update({ embeds: [embed], components: [...row, backRow] });
+          if (row.length > 0 && row[0].components.length < 5) {
+            row[0].addComponents(
+              new ButtonBuilder()
+                .setCustomId(`hosoback_${targetUserId}`)
+                .setLabel('🔙 Quay Lại Hồ Sơ')
+                .setStyle(ButtonStyle.Secondary)
+            );
+          }
+          await interaction.update({ embeds: [embed], components: row });
         }
 
         // --- Nút: ĐI ĐẾN TÔNG MÔN (từ hồ sơ) ---
@@ -2064,7 +2068,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
         // --- Nút: BẮT ĐẦU CHUỖI NHIỆM VỤ ---
         else if (action === 'chainstart') {
-          const chainId = parts[1];
+          const chainId = parts.slice(1, -1).join('_');
           const result = questChainService.startChain(targetUserId, chainId);
 
           const embed = getQuestChainEmbed(targetUserId);
@@ -2077,7 +2081,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
         // --- Nút: NHẬN THƯỞNG BƯỚC CHUỖI NHIỆM VỤ ---
         else if (action === 'chainclaim') {
-          const chainId = parts[1];
+          const chainId = parts.slice(1, -1).join('_');
           const result = questChainService.claimStepReward(targetUserId);
 
           const embed = getQuestChainEmbed(targetUserId);
@@ -2911,24 +2915,25 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
       }
 
       if (actionType === 'invselect') {
-        const selectedValue = interaction.values[0]; // Cú pháp: "action_inventoryId" (vd: "equip_1")
-        const [itemAction, idStr] = selectedValue.split('_');
-        const inventoryId = parseInt(idStr, 10);
+        const selectedValue = interaction.values[0]; // Cú pháp: "action_itemId" (vd: "equip_lucky_chest")
+        const firstUnderscore = selectedValue.indexOf('_');
+        const itemAction = selectedValue.substring(0, firstUnderscore);
+        const itemId = selectedValue.substring(firstUnderscore + 1);
 
         let resultMessage = '';
         let success = false;
 
         // Thực thi các hành động sử dụng / trang bị
         if (itemAction === 'equip') {
-          const res = inventoryService.equipItem(targetUserId, inventoryId);
+          const res = inventoryService.equipItemByItemId(targetUserId, itemId);
           success = res.success;
           resultMessage = res.message;
         } else if (itemAction === 'unequip') {
-          const res = inventoryService.unequipItem(targetUserId, inventoryId);
+          const res = inventoryService.unequipItemByItemId(targetUserId, itemId);
           success = res.success;
           resultMessage = res.message;
         } else if (itemAction === 'use') {
-          const res = inventoryService.useItem(targetUserId, inventoryId);
+          const res = inventoryService.useItemByItemId(targetUserId, itemId);
           success = res.success;
           resultMessage = res.message;
         }

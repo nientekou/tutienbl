@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from '
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
+import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { equipmentService } from '../../services/EquipmentService';
 
 export default class TrangBiCommand extends Command {
@@ -14,10 +15,10 @@ export default class TrangBiCommand extends Command {
           sub
             .setName('giamdinh')
             .setDescription('Giám định phôi rèn đúc thành trang bị thực tế (phí 50 Linh thạch).')
-            .addIntegerOption(opt =>
+            .addStringOption(opt =>
               opt
-                .setName('inventory_id')
-                .setDescription('Mã hành trang của phôi trang bị cần giám định (xem trong /tuido).')
+                .setName('item_id')
+                .setDescription('Mã vật phẩm cần giám định (xem trong /tuido).')
                 .setRequired(true)
             )
             .addIntegerOption(opt =>
@@ -36,10 +37,10 @@ export default class TrangBiCommand extends Command {
           sub
             .setName('phangiai')
             .setDescription('Phân giải trang bị không dùng để lấy Mảnh Trang Bị.')
-            .addIntegerOption(opt =>
+            .addStringOption(opt =>
               opt
-                .setName('inventory_id')
-                .setDescription('Mã hành trang của trang bị cần phân giải.')
+                .setName('item_id')
+                .setDescription('Mã vật phẩm cần phân giải.')
                 .setRequired(true)
             )
             .addIntegerOption(opt =>
@@ -53,10 +54,10 @@ export default class TrangBiCommand extends Command {
           sub
             .setName('nangsao')
             .setDescription('Sử dụng Mảnh Trang Bị để nâng cấp sao cho trang bị (+20% chỉ số mỗi sao, max 5 sao).')
-            .addIntegerOption(opt =>
+            .addStringOption(opt =>
               opt
-                .setName('inventory_id')
-                .setDescription('Mã hành trang của trang bị muốn nâng sao.')
+                .setName('item_id')
+                .setDescription('Mã vật phẩm muốn nâng sao.')
                 .setRequired(true)
             )
         )
@@ -109,9 +110,14 @@ export default class TrangBiCommand extends Command {
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'giamdinh') {
-      const invId = interaction.options.getInteger('inventory_id', true);
+      const itemId = interaction.options.getString('item_id', true);
       const qty = interaction.options.getInteger('soluong') || 1;
-      const res = equipmentService.appraisePhoi(userId, invId, qty);
+      const invItem = inventoryRepository.getByUserIdAndItemId(userId, itemId);
+      if (!invItem) {
+        await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
+        return;
+      }
+      const res = equipmentService.appraisePhoi(userId, invItem.id, qty);
       
       if (res.success) {
         await interaction.reply({ content: res.message });
@@ -133,9 +139,14 @@ export default class TrangBiCommand extends Command {
     }
 
     if (sub === 'phangiai') {
-      const invId = interaction.options.getInteger('inventory_id', true);
+      const itemId = interaction.options.getString('item_id', true);
       const qty = interaction.options.getInteger('soluong') || 1;
-      const res = equipmentService.salvageEquipment(userId, invId, qty);
+      const invItem = inventoryRepository.getByUserIdAndItemId(userId, itemId);
+      if (!invItem) {
+        await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
+        return;
+      }
+      const res = equipmentService.salvageEquipment(userId, invItem.id, qty);
 
       if (res.success) {
         await interaction.reply({ content: res.message });
@@ -146,8 +157,13 @@ export default class TrangBiCommand extends Command {
     }
 
     if (sub === 'nangsao') {
-      const invId = interaction.options.getInteger('inventory_id', true);
-      const res = equipmentService.upgradeStars(userId, invId);
+      const itemId = interaction.options.getString('item_id', true);
+      const invItem = inventoryRepository.getByUserIdAndItemId(userId, itemId);
+      if (!invItem) {
+        await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
+        return;
+      }
+      const res = equipmentService.upgradeStars(userId, invItem.id);
 
       if (res.success) {
         await interaction.reply({ content: res.message });

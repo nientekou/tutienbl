@@ -23,10 +23,10 @@ export default class SuaChuaCommand extends Command {
           sub
             .setName('trangbi')
             .setDescription('Sửa chữa một trang bị cụ thể bằng Linh Thạch.')
-             .addIntegerOption(opt =>
+             .addStringOption(opt =>
               opt
-                .setName('inventory_id')
-                .setDescription('Mã hành trang của trang bị cần sửa (xem trong /tuido).')
+                .setName('item_id')
+                .setDescription('Mã vật phẩm cần sửa (xem trong /tuido).')
                 .setRequired(true)
             )
         )
@@ -61,10 +61,10 @@ export default class SuaChuaCommand extends Command {
     }
 
     if (sub === 'trangbi') {
-      const invId = interaction.options.getInteger('inventory_id', true);
-      const item = inventory.find(i => i.id === invId);
+      const itemId = interaction.options.getString('item_id', true);
+      const item = inventory.find(i => i.item_id === itemId);
       if (!item) {
-        await interaction.reply({ content: '❌ Vật phẩm không tồn tại trong túi đồ!', ephemeral: true });
+        await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
         return;
       }
 
@@ -92,7 +92,7 @@ export default class SuaChuaCommand extends Command {
       .setTitle('🛡️ DANH SÁCH TRANG BỊ - ĐỘ BỀN 🛡️')
       .setColor('#3498db')
       .setDescription('Kiểm tra tình trạng pháp bảo của đạo hữu. Trang bị hết độ bền chỉ còn **50%** chỉ số!')
-      .setFooter({ text: 'Dùng /suachua trangbi inventory_id: <Mã> hoặc /suachua tatca để sửa chữa.' })
+      .setFooter({ text: 'Dùng /suachua trangbi item_id: <mã> hoặc /suachua tatca để sửa chữa.' })
       .setTimestamp();
 
     if (equippedItems.length === 0) {

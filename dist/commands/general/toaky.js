@@ -23,7 +23,7 @@ class ToaKyCommand extends Command_1.Command {
             .addSubcommand(sub => sub.setName('nuoiduong')
             .setDescription('Nuôi dưỡng/Thuần hóa tọa kỵ bằng nguyên liệu')
             .addIntegerOption(opt => opt.setName('id').setDescription('ID tọa kỵ').setRequired(true))
-            .addStringOption(opt => opt.setName('nguyenlieu').setDescription('ID nguyên liệu (ví dụ: material_iron_1)').setRequired(true))
+            .addStringOption(opt => opt.setName('nguyenlieu').setDescription('Nguyên liệu (gõ tên để gợi ý)').setAutocomplete(true))
             .addIntegerOption(opt => opt.setName('soluong').setDescription('Số lượng muốn cho ăn').setRequired(false))));
     }
     async execute(client, interaction) {
@@ -128,7 +128,11 @@ class ToaKyCommand extends Command_1.Command {
         }
         if (sub === 'nuoiduong') {
             const mountId = interaction.options.getInteger('id', true);
-            const material = interaction.options.getString('nguyenlieu', true);
+            const material = interaction.options.getString('nguyenlieu');
+            if (!material) {
+                await interaction.reply({ content: '❌ Vui lòng chọn nguyên liệu muốn cho tọa kỵ ăn!', ephemeral: true });
+                return;
+            }
             const qty = interaction.options.getInteger('soluong') || 1;
             const result = MountService_1.mountService.feedMount(userId, mountId, material, qty);
             await interaction.reply({ content: result.message, ephemeral: !result.success });
@@ -138,6 +142,26 @@ class ToaKyCommand extends Command_1.Command {
             const result = MountService_1.mountService.captureMount(userId, 'thung_bat_thu');
             await interaction.reply({ content: result.message, ephemeral: !result.success });
             return;
+        }
+    }
+    async autocomplete(client, interaction) {
+        const focusedOption = interaction.options.getFocused(true);
+        if (focusedOption.name === 'nguyenlieu') {
+            const userId = interaction.user.id;
+            const query = focusedOption.value;
+            const items = database_1.default.prepare(`
+        SELECT i.item_id, item.name, item.rarity, i.quantity
+        FROM inventories i
+        JOIN items item ON i.item_id = item.id
+        WHERE i.user_id = ? AND (item.type = 'material' OR item.type = 'pill')
+        AND (item.name LIKE ? OR i.item_id LIKE ?)
+        ORDER BY i.quantity DESC
+        LIMIT 25
+      `).all(userId, `%${query}%`, `%${query}%`);
+            await interaction.respond(items.map(item => ({
+                name: `${item.name} [${item.rarity}] (x${item.quantity}) - ID: ${item.item_id}`,
+                value: item.item_id
+            })));
         }
     }
 }

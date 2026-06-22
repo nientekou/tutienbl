@@ -617,14 +617,14 @@ function getInventoryEmbed(userId, page) {
                 }
                 catch (e) { }
             }
-            description += `**${idx}.** \`[Mã: ${item.id}]\` ${rarityTag}**${item.name}${enhanceText}** x${item.quantity}${starText}${equippedText}${itemStats}\n*└ ${item.description}*\n\n`;
+            description += `**${idx}.** ${rarityTag}**${item.name}${enhanceText}** x${item.quantity}${starText}${equippedText}${itemStats}\n*└ Mã dùng: \`${item.item_id}\` | Mã hành trang: \`${item.id}\`*\n\n`;
         });
     }
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`💼 HÀNH TRANG (Trang ${cappedPage}/${totalPages})`)
         .setColor('#f1c40f')
         .setDescription(description)
-        .setFooter({ text: 'Chọn Menu thả xuống hoặc dùng [Mã] cho các lệnh /trangbi, /vanbaolau ban, /suachua trangbi...' })
+        .setFooter({ text: '/dung dùng Mã Vật Phẩm | /trangbi, /suachua, /vanbaolau dùng Mã Hành Trang' })
         .setTimestamp();
     return { embed, totalPages, itemsOnPage };
 }

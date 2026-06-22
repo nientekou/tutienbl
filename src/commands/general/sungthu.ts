@@ -77,7 +77,12 @@ export function getSungThuEmbed(userId: string): EmbedBuilder {
         }
       } catch {}
 
-      const currentSkills: string[] = JSON.parse(pet.skills || '[]');
+      let currentSkills: string[] = [];
+      try {
+        currentSkills = JSON.parse(pet.skills || '[]');
+      } catch {
+        currentSkills = [];
+      }
       const allSkillEntries = Object.entries(PET_SKILLS).sort(([, a], [, b]) => a.minLevel - b.minLevel);
       const lockedSkills = allSkillEntries.filter(([id]) => !currentSkills.includes(id));
       let evolutionHint: string;
@@ -345,6 +350,11 @@ export default class SungThuCommand extends Command {
       }
 
       const currentSkills: string[] = JSON.parse(pet.skills || '[]');
+
+      if (currentSkills.length >= 2) {
+        await interaction.reply({ content: `❌ **${pet.name}** đã có đủ **2 kỹ năng** rồi, không thể thức tỉnh thêm! Dùng \`/sungthu hocky\` nếu muốn thay đổi kỹ năng.`, ephemeral: true });
+        return;
+      }
 
       // Tìm kỹ năng chưa được mở khoá nhưng đủ cấp
       const availableSkill = Object.entries(PET_SKILLS).find(([id, sk]) => {

@@ -194,7 +194,8 @@ class InteractionCreateEvent extends Event_1.Event {
                     interaction.customId.startsWith('pb_') ||
                     interaction.customId.startsWith('bptselect_') ||
                     interaction.customId.startsWith('adminpanel_') ||
-                    interaction.customId.startsWith('adminuser_')))) {
+                    interaction.customId.startsWith('adminuser_') ||
+                    interaction.customId.startsWith('adminfixpets_')))) {
                 let customId = interaction.customId;
                 if (interaction.isStringSelectMenu() && (customId.startsWith('hosoaction_') || customId.startsWith('hosoaction1_') || customId.startsWith('hosoaction2_'))) {
                     customId = `${interaction.values[0]}_${customId.split('_')[1]}`;
@@ -217,7 +218,8 @@ class InteractionCreateEvent extends Event_1.Event {
                     'dungkynang_select',
                     'dungkynang_cancel',
                     'adminpanel',
-                    'adminuser'
+                    'adminuser',
+                    'adminfixpets'
                 ];
                 let action = '';
                 let parts = [];
@@ -231,7 +233,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     parts = customId.split('_');
                     action = parts[0];
                 }
-                if (action === 'adminpanel' || action === 'adminuser') {
+                if (action === 'adminpanel' || action === 'adminuser' || action === 'adminfixpets') {
                     const AdminCommand = require('../commands/general/admin').default;
                     await AdminCommand.handleInteraction(client, interaction, action, parts);
                     return;
@@ -1176,11 +1178,13 @@ class InteractionCreateEvent extends Event_1.Event {
                         const cmd = new luyendan_1.default();
                         const embed = cmd.getAlchemyEmbed(targetUserId);
                         const row = cmd.getAlchemyComponents(targetUserId);
-                        const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
-                            .setCustomId(`hosoback_${targetUserId}`)
-                            .setLabel('🔙 Quay Lại Hồ Sơ')
-                            .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [...row, backRow] });
+                        if (row.length > 0 && row[0].components.length < 5) {
+                            row[0].addComponents(new discord_js_1.ButtonBuilder()
+                                .setCustomId(`hosoback_${targetUserId}`)
+                                .setLabel('🔙 Quay Lại Hồ Sơ')
+                                .setStyle(discord_js_1.ButtonStyle.Secondary));
+                        }
+                        await interaction.update({ embeds: [embed], components: row });
                     }
                     // --- Nút: ĐI ĐẾN TÔNG MÔN (từ hồ sơ) ---
                     else if (action === 'tonmonnav') {
@@ -1763,7 +1767,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     }
                     // --- Nút: BẮT ĐẦU CHUỖI NHIỆM VỤ ---
                     else if (action === 'chainstart') {
-                        const chainId = parts[1];
+                        const chainId = parts.slice(1, -1).join('_');
                         const result = QuestChainService_1.questChainService.startChain(targetUserId, chainId);
                         const embed = (0, nhiemvu_1.getQuestChainEmbed)(targetUserId);
                         const rows = (0, nhiemvu_1.getQuestChainComponents)(targetUserId);
@@ -1774,7 +1778,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     }
                     // --- Nút: NHẬN THƯỞNG BƯỚC CHUỖI NHIỆM VỤ ---
                     else if (action === 'chainclaim') {
-                        const chainId = parts[1];
+                        const chainId = parts.slice(1, -1).join('_');
                         const result = QuestChainService_1.questChainService.claimStepReward(targetUserId);
                         const embed = (0, nhiemvu_1.getQuestChainEmbed)(targetUserId);
                         const rows = (0, nhiemvu_1.getQuestChainComponents)(targetUserId);

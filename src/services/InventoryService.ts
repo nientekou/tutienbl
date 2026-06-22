@@ -471,6 +471,39 @@ export class InventoryService {
   }
 
   /**
+   * Trang bị vật phẩm bằng item_id (string)
+   */
+  public equipItemByItemId(userId: string, itemId: string): { success: boolean; message: string } {
+    const item = invRepo.getByUserIdAndItemId(userId, itemId);
+    if (!item) {
+      return { success: false, message: 'Vật phẩm không tồn tại trong túi đồ của đạo hữu.' };
+    }
+    return this.equipItem(userId, item.id);
+  }
+
+  /**
+   * Tháo trang bị bằng item_id (string)
+   */
+  public unequipItemByItemId(userId: string, itemId: string): { success: boolean; message: string } {
+    const item = invRepo.getByUserIdAndItemId(userId, itemId);
+    if (!item) {
+      return { success: false, message: 'Vật phẩm không tồn tại.' };
+    }
+    return this.unequipItem(userId, item.id);
+  }
+
+  /**
+   * Sử dụng vật phẩm bằng item_id (string)
+   */
+  public useItemByItemId(userId: string, itemId: string): { success: boolean; message: string } {
+    const item = invRepo.getByUserIdAndItemId(userId, itemId);
+    if (!item) {
+      return { success: false, message: 'Vật phẩm không tồn tại trong túi đồ.' };
+    }
+    return this.useItem(userId, item.id);
+  }
+
+  /**
    * Sử dụng vật phẩm đan dược hoặc phù lục từ túi đồ
    */
   public useItem(userId: string, inventoryId: number): { success: boolean; message: string } {

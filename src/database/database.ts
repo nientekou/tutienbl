@@ -1399,6 +1399,31 @@ export function initDatabase() {
   // Seed achievements
   seedAchievements();
 
+  // Retroactive fix: Grant rewards for achievements completed but missing completed_at
+  try {
+    const brokenAchievements = db.prepare(
+      "SELECT ua.user_id, ua.achievement_id, a.reward_exp, a.reward_coins FROM user_achievements ua JOIN achievements a ON ua.achievement_id = a.id WHERE ua.is_completed = 1 AND ua.completed_at IS NULL"
+    ).all() as { user_id: string; achievement_id: string; reward_exp: number; reward_coins: number }[];
+
+    if (brokenAchievements.length > 0) {
+      const now = Math.floor(Date.now() / 1000);
+      const fixStmt = db.prepare(
+        'UPDATE user_achievements SET completed_at = ? WHERE user_id = ? AND achievement_id = ?'
+      );
+      const awardExpStmt = db.prepare('UPDATE users SET tu_vi = tu_vi + ? WHERE discord_id = ?');
+      const awardCoinsStmt = db.prepare('UPDATE users SET coin_ha_pham = coin_ha_pham + ? WHERE discord_id = ?');
+
+      for (const row of brokenAchievements) {
+        fixStmt.run(now, row.user_id, row.achievement_id);
+        if (row.reward_exp > 0) awardExpStmt.run(row.reward_exp, row.user_id);
+        if (row.reward_coins > 0) awardCoinsStmt.run(row.reward_coins, row.user_id);
+      }
+      console.log(`🔧 Retroactive fix: đã cấp thưởng cho ${brokenAchievements.length} thành tựu chưa nhận.`);
+    }
+  } catch (e) {
+    // Table may not exist yet
+  }
+
   // Thực hiện Nạp dữ liệu mẫu
   seedItems();
 

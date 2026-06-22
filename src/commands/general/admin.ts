@@ -247,6 +247,11 @@ export default class AdminCommand extends Command {
                 .setMaxValue(59)
             )
         )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('fixpets')
+            .setDescription('[Owner Only] Tự động sửa data linh thú lỗi (xoá skill thừa, thú lỗi).')
+        )
     );
   }
 
@@ -795,6 +800,131 @@ export default class AdminCommand extends Command {
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton, cancelButton);
 
       await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+      return;
+    }
+
+    if (subcommand === 'fixpets') {
+      await interaction.deferReply({ ephemeral: true });
+
+      // Quét linh thú có nhiều hơn 2 skill
+      const overSkilledPets = db.prepare(
+        "SELECT p.*, u.name as owner_name FROM pets p LEFT JOIN users u ON p.user_id = u.discord_id WHERE json_array_length(p.skills) > 2"
+      ).all() as any[];
+
+      // Quét linh thú có data lỗi
+      const brokenPets = db.prepare(
+        "SELECT p.*, u.name as owner_name FROM pets p LEFT JOIN users u ON p.user_id = u.discord_id WHERE p.name IS NULL OR p.name = '' OR p.rarity NOT IN ('common','uncommon','rare','epic','legendary') OR p.level < 0"
+      ).all() as any[];
+
+      // Quét linh thú orphan (user_id không tồn tại)
+      const orphanPets = db.prepare(`
+        SELECT p.* FROM pets p
+        LEFT JOIN users u ON p.user_id = u.discord_id
+        WHERE u.discord_id IS NULL
+      `).all() as any[];
+
+      const totalAnomalies = overSkilledPets.length + brokenPets.length + orphanPets.length;
+
+      if (totalAnomalies === 0) {
+        const embed = new EmbedBuilder()
+          .setTitle('✅ FIX PETS — KHÔNG CÓ LỖI')
+          .setColor('#2ecc71')
+          .setDescription('Hệ thống không phát hiện bất thường nào với dữ liệu linh thú.')
+          .setTimestamp();
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
+
+      // Chi tiết skill thừa
+      let skillDetails = '';
+      if (overSkilledPets.length > 0) {
+        skillDetails = overSkilledPets.slice(0, 10).map(p => {
+          const skills: string[] = JSON.parse(p.skills || '[]');
+          return `• **${p.name || '???'}** (ID: ${p.id}) — \`${p.owner_name || p.user_id}\` — **${skills.length} skill**: ${skills.join(', ')}`;
+        }).join('\n');
+        if (overSkilledPets.length > 10) skillDetails += `\n*... và ${overSkilledPets.length - 10} thú nữa*`;
+      }
+
+      // Chi tiết thú lỗi
+      let brokenDetails = '';
+      if (brokenPets.length > 0) {
+        brokenDetails = brokenPets.slice(0, 10).map(p => {
+          const issues: string[] = [];
+          if (!p.name || p.name === '') issues.push('tên rỗng');
+          if (!['common','uncommon','rare','epic','legendary'].includes(p.rarity)) issues.push(`rarity: "${p.rarity}"`);
+          if (p.level < 0) issues.push(`level: ${p.level}`);
+          return `• **ID: ${p.id}** — \`${p.owner_name || p.user_id}\` — Lỗi: ${issues.join(', ')}`;
+        }).join('\n');
+        if (brokenPets.length > 10) brokenDetails += `\n*... và ${brokenPets.length - 10} thú nữa*`;
+      }
+
+      // Chi tiết orphan
+      let orphanDetails = '';
+      if (orphanPets.length > 0) {
+        orphanDetails = orphanPets.slice(0, 10).map(p => {
+          return `• **${p.name || '???'}** (ID: ${p.id}) — owner: \`${p.user_id}\` (không tồn tại)`;
+        }).join('\n');
+        if (orphanPets.length > 10) orphanDetails += `\n*... và ${orphanPets.length - 10} thú nữa*`;
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🔍 FIX PETS — PHÁT HIỆN ${totalAnomalies} BẤT THƯỜNG`)
+        .setColor('#f39c12')
+        .setDescription('Đây là kết quả quét tự động. Chọn hành động bên dưới để xử lý.')
+        .setTimestamp();
+
+      if (overSkilledPets.length > 0) {
+        embed.addFields({
+          name: `🛠️ Skill Thừa (>2): ${overSkilledPets.length} thú`,
+          value: skillDetails + '\n*→ Hành động: Cắt về 2 skill (giữ 2 cái đầu)*'
+        });
+      }
+      if (brokenPets.length > 0) {
+        embed.addFields({
+          name: `🗑️ Thú Data Lỗi: ${brokenPets.length} thú`,
+          value: brokenDetails + '\n*→ Hành động: Xoá toàn bộ*'
+        });
+      }
+      if (orphanPets.length > 0) {
+        embed.addFields({
+          name: `👻 Thú Orphan: ${orphanPets.length} thú`,
+          value: orphanDetails + '\n*→ Hành động: Xoá toàn bộ*'
+        });
+      }
+
+      const components: ActionRowBuilder<ButtonBuilder>[] = [];
+
+      if (overSkilledPets.length > 0) {
+        const fixSkillsRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`adminfixpets_skill_${userId}`)
+            .setLabel(`🛠️ Sửa ${overSkilledPets.length} thú skill thừa`)
+            .setStyle(ButtonStyle.Primary),
+        );
+        components.push(fixSkillsRow);
+      }
+
+      if (brokenPets.length > 0 || orphanPets.length > 0) {
+        const deleteRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`adminfixpets_delete_${userId}`)
+            .setLabel(`🗑️ Xoá ${brokenPets.length + orphanPets.length} thú lỗi/orphan`)
+            .setStyle(ButtonStyle.Danger),
+        );
+        components.push(deleteRow);
+      }
+
+      if (components.length > 0) {
+        const cancelRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`adminfixpets_cancel_${userId}`)
+            .setLabel('❌ Không xử lý')
+            .setStyle(ButtonStyle.Secondary),
+        );
+        components.push(cancelRow);
+      }
+
+      await interaction.editReply({ embeds: [embed], components });
       return;
     }
   }
@@ -1444,6 +1574,70 @@ export default class AdminCommand extends Command {
 
         const { backupService } = require('../../services/BackupService');
         await backupService.rollbackToBackup(backupFilename, adminId);
+      }
+    }
+    
+    else if (action === 'adminfixpets') {
+      if (subAction === 'skill') {
+        const overSkilledPets = db.prepare(
+          "SELECT * FROM pets WHERE json_array_length(skills) > 2"
+        ).all() as any[];
+
+        let fixedCount = 0;
+        for (const pet of overSkilledPets) {
+          try {
+            const skills: string[] = JSON.parse(pet.skills || '[]');
+            if (skills.length > 2) {
+              db.prepare('UPDATE pets SET skills = ? WHERE id = ?').run(JSON.stringify(skills.slice(0, 2)), pet.id);
+              fixedCount++;
+            }
+          } catch {
+            db.prepare("UPDATE pets SET skills = '[]' WHERE id = ?").run(pet.id);
+            fixedCount++;
+          }
+        }
+
+        await interaction.update({
+          content: `✅ Đã sửa **${fixedCount}** linh thú có skill thừa (>2 skill).`,
+          embeds: [],
+          components: []
+        });
+      }
+
+      else if (subAction === 'delete') {
+        const brokenPets = db.prepare(
+          "SELECT * FROM pets WHERE name IS NULL OR name = '' OR rarity NOT IN ('common','uncommon','rare','epic','legendary') OR level < 0"
+        ).all() as any[];
+
+        const orphanPets = db.prepare(`
+          SELECT p.id FROM pets p
+          LEFT JOIN users u ON p.user_id = u.discord_id
+          WHERE u.discord_id IS NULL
+        `).all() as any[];
+
+        let deletedCount = 0;
+        for (const pet of brokenPets) {
+          db.prepare('DELETE FROM pets WHERE id = ?').run(pet.id);
+          deletedCount++;
+        }
+        for (const orphan of orphanPets) {
+          db.prepare('DELETE FROM pets WHERE id = ?').run(orphan.id);
+          deletedCount++;
+        }
+
+        await interaction.update({
+          content: `✅ Đã xoá **${deletedCount}** linh thú lỗi/orphan (${brokenPets.length} lỗi data + ${orphanPets.length} orphan).`,
+          embeds: [],
+          components: []
+        });
+      }
+
+      else if (subAction === 'cancel') {
+        await interaction.update({
+          content: '❌ Đã huỷ thao tác fix pets.',
+          embeds: [],
+          components: []
+        });
       }
     }
     

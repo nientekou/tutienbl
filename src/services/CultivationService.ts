@@ -837,7 +837,6 @@ export class CultivationService {
     }
     // Kiểm tra tổng level ý cảnh (cả 3 đều cấp 10)
     try {
-      const yCanhMap: Record<string, number> = JSON.parse(user.y_canh || '{}');
       const totalYCLevels = Object.values(yCanhMap).reduce((a: number, b: number) => a + b, 0);
       const unlocked = achievementService.setProgress(discordId, 'tl_18', totalYCLevels);
       newlyUnlocked.push(...unlocked);

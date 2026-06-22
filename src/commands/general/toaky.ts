@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, AutocompleteInteraction } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
@@ -35,7 +35,7 @@ export default class ToaKyCommand extends Command {
               opt.setName('id').setDescription('ID tọa kỵ').setRequired(true)
             )
             .addStringOption(opt =>
-              opt.setName('nguyenlieu').setDescription('ID nguyên liệu (ví dụ: material_iron_1)').setRequired(true)
+              opt.setName('nguyenlieu').setDescription('Nguyên liệu (gõ tên để gợi ý)').setAutocomplete(true)
             )
             .addIntegerOption(opt =>
               opt.setName('soluong').setDescription('Số lượng muốn cho ăn').setRequired(false)
@@ -169,7 +169,11 @@ export default class ToaKyCommand extends Command {
 
     if (sub === 'nuoiduong') {
       const mountId = interaction.options.getInteger('id', true);
-      const material = interaction.options.getString('nguyenlieu', true);
+      const material = interaction.options.getString('nguyenlieu');
+      if (!material) {
+        await interaction.reply({ content: '❌ Vui lòng chọn nguyên liệu muốn cho tọa kỵ ăn!', ephemeral: true });
+        return;
+      }
       const qty = interaction.options.getInteger('soluong') || 1;
       const result = mountService.feedMount(userId, mountId, material, qty);
       await interaction.reply({ content: result.message, ephemeral: !result.success });
@@ -180,6 +184,30 @@ export default class ToaKyCommand extends Command {
       const result = mountService.captureMount(userId, 'thung_bat_thu');
       await interaction.reply({ content: result.message, ephemeral: !result.success });
       return;
+    }
+  }
+
+  public async autocomplete(client: TuTienClient, interaction: AutocompleteInteraction): Promise<void> {
+    const focusedOption = interaction.options.getFocused(true);
+    if (focusedOption.name === 'nguyenlieu') {
+      const userId = interaction.user.id;
+      const query = focusedOption.value;
+      const items = db.prepare(`
+        SELECT i.item_id, item.name, item.rarity, i.quantity
+        FROM inventories i
+        JOIN items item ON i.item_id = item.id
+        WHERE i.user_id = ? AND (item.type = 'material' OR item.type = 'pill')
+        AND (item.name LIKE ? OR i.item_id LIKE ?)
+        ORDER BY i.quantity DESC
+        LIMIT 25
+      `).all(userId, `%${query}%`, `%${query}%`) as { item_id: string; name: string; rarity: string; quantity: number }[];
+
+      await interaction.respond(
+        items.map(item => ({
+          name: `${item.name} [${item.rarity}] (x${item.quantity}) - ID: ${item.item_id}`,
+          value: item.item_id
+        }))
+      );
     }
   }
 }

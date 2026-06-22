@@ -708,7 +708,7 @@ export function getInventoryEmbed(userId: string, page: number): { embed: EmbedB
         } catch (e) {}
       }
 
-      description += `**${idx}.** \`[Mã: ${item.id}]\` ${rarityTag}**${item.name}${enhanceText}** x${item.quantity}${starText}${equippedText}${itemStats}\n*└ ${item.description}*\n\n`;
+      description += `**${idx}.** ${rarityTag}**${item.name}${enhanceText}** x${item.quantity}${starText}${equippedText}${itemStats}\n*└ Mã: \`${item.item_id}\`*\n\n`;
     });
   }
 
@@ -716,7 +716,7 @@ export function getInventoryEmbed(userId: string, page: number): { embed: EmbedB
     .setTitle(`💼 HÀNH TRANG (Trang ${cappedPage}/${totalPages})`)
     .setColor('#f1c40f')
     .setDescription(description)
-    .setFooter({ text: 'Chọn Menu thả xuống hoặc dùng [Mã] cho các lệnh /trangbi, /vanbaolau ban, /suachua trangbi...' })
+    .setFooter({ text: 'Dùng Mã vật phẩm cho tất cả lệnh: /dung, /trangbi, /suachua, /vanbaolau' })
     .setTimestamp();
 
   return { embed, totalPages, itemsOnPage };
@@ -756,13 +756,13 @@ export function getInventoryComponents(userId: string, page: number, totalPages:
 
       if (item.is_equipped === 1) {
         actionLabel = `Tháo: ${item.name}`;
-        value = `unequip_${item.id}`;
+        value = `unequip_${item.item_id}`;
       } else if (item.equipable === 1) {
         actionLabel = `Mặc: ${item.name}`;
-        value = `equip_${item.id}`;
+        value = `equip_${item.item_id}`;
       } else if (item.usable === 1) {
         actionLabel = `Dùng: ${item.name} (SL: ${item.quantity})`;
-        value = `use_${item.id}`;
+        value = `use_${item.item_id}`;
       }
 
       selectMenu.addOptions(
