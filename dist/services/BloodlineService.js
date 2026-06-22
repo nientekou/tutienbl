@@ -7,6 +7,7 @@ exports.bloodlineService = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
+const AchievementService_1 = require("./AchievementService");
 class BloodlineService {
     getAllBloodlines() {
         return database_1.default.prepare('SELECT * FROM bloodlines').all();
@@ -49,6 +50,8 @@ class BloodlineService {
         VALUES (?, ?, 1, 0, ?, 0)
       `).run(userId, bloodlineId, now);
         })();
+        // Kiểm tra thành tựu Thiên Mệnh Chi Tử
+        AchievementService_1.achievementService.setProgress(userId, 'tl_19', 1);
         return { success: true, message: `🩸 Chúc mừng! Đạo hữu đã giác tỉnh thành công **${bloodline.name}**!` };
     }
     changeBloodline(userId, newBloodlineId) {
@@ -81,6 +84,8 @@ class BloodlineService {
         WHERE user_id = ?
       `).run(newBloodlineId, now, userId);
         })();
+        // Kiểm tra thành tựu Thiên Mệnh Chi Tử
+        AchievementService_1.achievementService.setProgress(userId, 'tl_19', 1);
         return { success: true, message: `🩸 Đạo hữu đã chuyển đổi thành công sang **${bloodline.name}**. Huyết mạch tu vi quay về cấp 1!` };
     }
     addExp(userId, expAmount) {

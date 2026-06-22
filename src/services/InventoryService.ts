@@ -689,6 +689,39 @@ export class InventoryService {
         };
       }
 
+      // 3.6. Linh Tuyền Phù (no daily limit)
+      if (item.item_id === 'pill_linh_tuyen') {
+        const restoreAmount = stats.restore_stamina || 200;
+        const newStamina = Math.min(500, user.stamina + restoreAmount);
+
+        db.transaction(() => {
+          userRepository.update(userId, { stamina: newStamina });
+          invRepo.removeItemById(inventoryId, 1);
+        })();
+
+        return {
+          success: true,
+          message: `💊 Đạo hữu sử dụng **${item.name}**, linh khí thanh tịnh tràn đầy thân thể, hồi phục **+${restoreAmount}** Thể Lực! (Thể lực hiện có: **${newStamina}/500**)`
+        };
+      }
+
+      // 3.7. Nhàn Tu Đan (no offline decay for 24h)
+      if (item.item_id === 'pill_nhan_tu') {
+        const now = Math.floor(Date.now() / 1000);
+        const yCanhData = JSON.parse(user.y_canh || '{}');
+        yCanhData.idle_no_decay_until = now + 86400;
+
+        db.transaction(() => {
+          userRepository.update(userId, { y_canh: JSON.stringify(yCanhData) });
+          invRepo.removeItemById(inventoryId, 1);
+        })();
+
+        return {
+          success: true,
+          message: `💊 Đạo hữu sử dụng **${item.name}**, tâm trí an định như nước, tu luyện ngoại tuyến sẽ không bị suy giảm hiệu suất trong **24 giờ**!`
+        };
+      }
+
       // --- Tẩy Tủy Đan ---
       if (item.item_id === 'pill_tay_tuy') {
         const { cultivationService } = require('./CultivationService');

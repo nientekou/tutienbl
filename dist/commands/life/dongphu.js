@@ -55,7 +55,11 @@ function buildCaveEmbed(userId) {
     const cost = CaveService_1.caveService.getUpgradeCost(cave.level);
     if (cost) {
         const inv = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-        let upgradeReqText = `• Chi phí: **${cost.lt}** Linh Thạch Hạ Phẩm (Đang có: **${user.coin_ha_pham}**)\n`;
+        let upgradeReqText = '';
+        if (cost.lt > 0)
+            upgradeReqText += `• Chi phí: **${cost.lt}** Linh Thạch Hạ Phẩm (Đang có: **${user.coin_ha_pham}**)\n`;
+        if (cost.knb > 0)
+            upgradeReqText += `• Chi phí: **${cost.knb}** KNB (Đang có: **${user.knb}**)\n`;
         if (cost.reqItems.length > 0) {
             upgradeReqText += `• Nguyên liệu yêu cầu:\n`;
             cost.reqItems.forEach(req => {

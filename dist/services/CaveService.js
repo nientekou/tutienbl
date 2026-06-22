@@ -37,13 +37,13 @@ class CaveService {
     }
     getUpgradeCost(level) {
         if (level === 1)
-            return { lt: 1000, reqItems: [] };
+            return { lt: 1000, knb: 0, reqItems: [] };
         if (level === 2)
-            return { lt: 5000, reqItems: [{ id: 'material_iron_1', quantity: 10 }] };
+            return { lt: 5000, knb: 0, reqItems: [{ id: 'material_iron_1', quantity: 10 }] };
         if (level === 3)
-            return { lt: 20000, reqItems: [{ id: 'material_herb_1', quantity: 20 }] };
+            return { lt: 20000, knb: 0, reqItems: [{ id: 'material_herb_1', quantity: 20 }] };
         if (level === 4)
-            return { lt: 100000, reqItems: [] }; // Giả định KNB = LT (hoặc cần KNB thật, ta dùng LT tạm)
+            return { lt: 0, knb: 50, reqItems: [] };
         return null;
     }
     collectSpring(userId) {

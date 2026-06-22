@@ -64,13 +64,47 @@ export class InventoryRepository {
         i.id, i.user_id, i.item_id, i.quantity, i.is_equipped, i.equipment_slot, i.custom_stats, i.stars, i.durability, i.max_durability, i.enhance_level, i.is_life_bound, i.bound_exp, i.bound_level, i.created_at,
         t.name, t.type, t.rarity, t.description, t.stats as base_stats, t.value_ha_pham, t.usable, t.equipable
       FROM inventories i
-      JOIN items t ON i.item_id = t.id
+      LEFT JOIN items t ON i.item_id = t.id
       WHERE i.user_id = ?
       ORDER BY i.is_equipped DESC, t.type ASC, t.rarity DESC
       LIMIT ? OFFSET ?
     `);
     
     return (stmt.all(userId, limit, offset) as InventoryItem[]) || [];
+  }
+
+  /**
+   * Tự động xoá vật phẩm bất thường (orphan items) của một user
+   * @returns Số lượng vật phẩm đã xoá
+   */
+  public cleanupOrphanItems(userId: string): number {
+    // Xoá item không tồn tại trong bảng items
+    const orphanItems = db.prepare(`
+      SELECT i.id FROM inventories i
+      LEFT JOIN items t ON i.item_id = t.id
+      WHERE i.user_id = ? AND t.id IS NULL
+    `).all(userId) as { id: number }[];
+
+    // Xoá item có quantity <= 0
+    const invalidQty = db.prepare(`
+      SELECT id FROM inventories WHERE user_id = ? AND (quantity <= 0 OR quantity IS NULL)
+    `).all(userId) as { id: number }[];
+
+    let deletedCount = 0;
+    for (const item of orphanItems) {
+      db.prepare('DELETE FROM inventories WHERE id = ?').run(item.id);
+      deletedCount++;
+    }
+    for (const item of invalidQty) {
+      db.prepare('DELETE FROM inventories WHERE id = ?').run(item.id);
+      deletedCount++;
+    }
+
+    if (deletedCount > 0) {
+      console.log(`[InventoryCleanup] Đã xoá ${deletedCount} vật phẩm bất thường cho user ${userId}`);
+    }
+
+    return deletedCount;
   }
 
   /**

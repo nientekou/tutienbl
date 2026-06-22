@@ -177,8 +177,75 @@ class AchievementService {
         return database_1.default.prepare('SELECT title, source, unlocked_at FROM user_titles WHERE user_id = ? ORDER BY unlocked_at DESC').all(userId);
     }
     /**
+     * Tính lại tiến trình thành tựu Ý Cảnh tổng (dùng khi xem thành tựu)
+     */
+    recalculateYCanhAchievement(userId) {
+        const user = UserRepository_1.userRepository.get(userId);
+        if (!user)
+            return [];
+        let yCanhMap = {};
+        try {
+            yCanhMap = JSON.parse(user.y_canh || '{}');
+        }
+        catch (e) { }
+        const totalYCLevels = Object.values(yCanhMap).reduce((a, b) => a + b, 0);
+        return this.setProgress(userId, 'tl_18', totalYCLevels);
+    }
+    /**
+     * Kiểm tra và fix các thành tựu bị kẹt (đủ điều kiện nhưng progress = 0)
+     * @returns Danh sách thành tựu vừa được fix
+     */
+    fixStuckAchievements(userId) {
+        const user = UserRepository_1.userRepository.get(userId);
+        if (!user)
+            return [];
+        const fixed = [];
+        // 1. Level achievements (tl_1 to tl_8)
+        const levelAchievements = [
+            { id: 'tl_1', req: 10 }, { id: 'tl_2', req: 25 }, { id: 'tl_3', req: 50 },
+            { id: 'tl_4', req: 100 }, { id: 'tl_5', req: 150 }, { id: 'tl_6', req: 200 },
+            { id: 'tl_7', req: 300 }, { id: 'tl_8', req: 380 },
+        ];
+        for (const la of levelAchievements) {
+            if (user.level >= la.req) {
+                const result = this.setProgress(userId, la.id, la.req);
+                fixed.push(...result);
+            }
+        }
+        // 2. Y Canh achievement (tl_18)
+        const ycResult = this.recalculateYCanhAchievement(userId);
+        fixed.push(...ycResult);
+        // 3. Bloodline achievement (tl_19)
+        const { bloodlineService } = require('./BloodlineService');
+        const bloodline = bloodlineService.getUserBloodline(userId);
+        if (bloodline) {
+            const result = this.setProgress(userId, 'tl_19', 1);
+            fixed.push(...result);
+        }
+        // 4. Sect achievement
+        if (user.sect_id) {
+            const result = this.setProgress(userId, 'sh_1', 1);
+            fixed.push(...result);
+        }
+        // 5. PvP achievements
+        if (user.pvp_wins >= 1) {
+            const result = this.setProgress(userId, 'pvp_1', user.pvp_wins);
+            fixed.push(...result);
+        }
+        if (user.pvp_wins >= 10) {
+            const result = this.setProgress(userId, 'pvp_2', user.pvp_wins);
+            fixed.push(...result);
+        }
+        // 6. Reincarnation achievement
+        if (user.luan_hoi_count > 0) {
+            const result = this.setProgress(userId, 'tl_9', user.luan_hoi_count);
+            fixed.push(...result);
+        }
+        return fixed;
+    }
+    /**
      * Kiểm tra nhiều thành tựu cùng lúc (dùng khi cần check bulk)
-     * @returns Các thành tựu vừa mở khóa
+     * @returns Các thành tựu vừa được mở khóa
      */
     updateMultipleProgress(userId, updates) {
         const allNewlyUnlocked = [];

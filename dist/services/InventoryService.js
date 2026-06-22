@@ -466,6 +466,36 @@ class InventoryService {
         return { success: true, message: `Đạo hữu đã tháo **${item.name}** ra khỏi người.` };
     }
     /**
+     * Trang bị vật phẩm bằng item_id (string)
+     */
+    equipItemByItemId(userId, itemId) {
+        const item = InventoryRepository_1.inventoryRepository.getByUserIdAndItemId(userId, itemId);
+        if (!item) {
+            return { success: false, message: 'Vật phẩm không tồn tại trong túi đồ của đạo hữu.' };
+        }
+        return this.equipItem(userId, item.id);
+    }
+    /**
+     * Tháo trang bị bằng item_id (string)
+     */
+    unequipItemByItemId(userId, itemId) {
+        const item = InventoryRepository_1.inventoryRepository.getByUserIdAndItemId(userId, itemId);
+        if (!item) {
+            return { success: false, message: 'Vật phẩm không tồn tại.' };
+        }
+        return this.unequipItem(userId, item.id);
+    }
+    /**
+     * Sử dụng vật phẩm bằng item_id (string)
+     */
+    useItemByItemId(userId, itemId) {
+        const item = InventoryRepository_1.inventoryRepository.getByUserIdAndItemId(userId, itemId);
+        if (!item) {
+            return { success: false, message: 'Vật phẩm không tồn tại trong túi đồ.' };
+        }
+        return this.useItem(userId, item.id);
+    }
+    /**
      * Sử dụng vật phẩm đan dược hoặc phù lục từ túi đồ
      */
     useItem(userId, inventoryId) {
@@ -639,6 +669,33 @@ class InventoryService {
                 return {
                     success: true,
                     message: `💊 Đạo hữu uống **${item.name}**, cảm nhận dòng năng lượng thanh khiết bộc phát khắp tứ chi, hồi phục **+${restoreAmount}** Thể Lực! (Thể lực hiện có: **${newStamina}/500**)`
+                };
+            }
+            // 3.6. Linh Tuyền Phù (no daily limit)
+            if (item.item_id === 'pill_linh_tuyen') {
+                const restoreAmount = stats.restore_stamina || 200;
+                const newStamina = Math.min(500, user.stamina + restoreAmount);
+                database_1.default.transaction(() => {
+                    UserRepository_1.userRepository.update(userId, { stamina: newStamina });
+                    InventoryRepository_1.inventoryRepository.removeItemById(inventoryId, 1);
+                })();
+                return {
+                    success: true,
+                    message: `💊 Đạo hữu sử dụng **${item.name}**, linh khí thanh tịnh tràn đầy thân thể, hồi phục **+${restoreAmount}** Thể Lực! (Thể lực hiện có: **${newStamina}/500**)`
+                };
+            }
+            // 3.7. Nhàn Tu Đan (no offline decay for 24h)
+            if (item.item_id === 'pill_nhan_tu') {
+                const now = Math.floor(Date.now() / 1000);
+                const yCanhData = JSON.parse(user.y_canh || '{}');
+                yCanhData.idle_no_decay_until = now + 86400;
+                database_1.default.transaction(() => {
+                    UserRepository_1.userRepository.update(userId, { y_canh: JSON.stringify(yCanhData) });
+                    InventoryRepository_1.inventoryRepository.removeItemById(inventoryId, 1);
+                })();
+                return {
+                    success: true,
+                    message: `💊 Đạo hữu sử dụng **${item.name}**, tâm trí an định như nước, tu luyện ngoại tuyến sẽ không bị suy giảm hiệu suất trong **24 giờ**!`
                 };
             }
             // --- Tẩy Tủy Đan ---

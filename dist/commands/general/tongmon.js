@@ -48,7 +48,11 @@ class TongMonCommand extends Command_1.Command {
             .addSubcommand(sub => sub.setName('huy').setDescription('Phá vỡ liên minh hiện tại'))
             .addSubcommand(sub => sub.setName('thongtin').setDescription('Xem thông tin liên minh của Tông Môn'))
             .addSubcommand(sub => sub.setName('tuyen-chien').setDescription('Tuyên chiến với liên minh khác')
-            .addStringOption(opt => opt.setName('ten').setDescription('Tên Tông Môn trong liên minh muốn tấn công').setRequired(true)))));
+            .addStringOption(opt => opt.setName('ten').setDescription('Tên Tông Môn trong liên minh muốn tấn công').setRequired(true)))
+            .addSubcommand(sub => sub.setName('phophu').setDescription('[Tông Chủ] Chỉ định Phó Tông Chủ')
+            .addUserOption(opt => opt.setName('thanhvien').setDescription('Thành viên muốn chỉ định làm Phó Tông Chủ').setRequired(true)))
+            .addSubcommand(sub => sub.setName('truyenngoi').setDescription('[Tông Chủ] Truyền ngôi Tông Chủ cho thành viên khác')
+            .addUserOption(opt => opt.setName('thanhvien').setDescription('Thành viên muốn truyền ngôi').setRequired(true)))));
     }
     async execute(client, interaction) {
         const userId = interaction.user.id;
@@ -107,11 +111,31 @@ class TongMonCommand extends Command_1.Command {
                 return;
             }
             if (user.sect_role === 'master') {
-                await interaction.reply({ content: '❌ Tông Chủ không thể rời Tông Môn! (Tính năng truyền ngôi đang phát triển, tạm thời không thể rời)', ephemeral: true });
+                await interaction.reply({ content: '❌ Tông Chủ không thể rời Tông Môn! Hãy dùng `/tongmon truyenngoi` để truyền ngôi trước.', ephemeral: true });
                 return;
             }
             UserRepository_1.userRepository.update(userId, { sect_id: null, sect_role: 'member', sect_contribution: 0 });
             await interaction.reply({ content: `👋 Đạo hữu đã rời khỏi Tông Môn, bôn tẩu giang hồ làm một tán tu tự do.` });
+            return;
+        }
+        if (sub === 'phophu') {
+            if (!user.sect_id || user.sect_role !== 'master') {
+                await interaction.reply({ content: '❌ Chỉ Tông Chủ mới có thể chỉ định Phó Tông Chủ!', ephemeral: true });
+                return;
+            }
+            const target = interaction.options.getUser('thanhvien', true);
+            const result = SectService_1.sectService.assignDeputy(userId, target.id);
+            await interaction.reply({ content: result.message, ephemeral: !result.success });
+            return;
+        }
+        if (sub === 'truyenngoi') {
+            if (!user.sect_id || user.sect_role !== 'master') {
+                await interaction.reply({ content: '❌ Chỉ Tông Chủ mới có thể truyền ngôi!', ephemeral: true });
+                return;
+            }
+            const target = interaction.options.getUser('thanhvien', true);
+            const result = SectService_1.sectService.transferLeadership(userId, target.id);
+            await interaction.reply({ content: result.message, ephemeral: !result.success });
             return;
         }
         if (sub === 'thongtin') {

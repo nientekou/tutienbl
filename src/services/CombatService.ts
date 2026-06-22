@@ -843,20 +843,35 @@ export class CombatService {
 
     const rewardLevelFactor = Math.min(bossLevel, 20);
 
+    // Tính tổng damage để tính % đóng góp
+    const totalDamage = participants.reduce((sum, p) => sum + p.damage, 0);
+
     for (let i = 0; i < participants.length; i++) {
       const p = participants[i];
-      const pUser = userRepository.get(p.user_id);
+      let pUser;
+      try {
+        pUser = userRepository.get(p.user_id);
+      } catch (e) {
+        console.error('[BossReward] Lỗi lấy user:', p.user_id, e);
+        continue;
+      }
       if (!pUser) continue;
 
-      let gainedExp = 150 * rewardLevelFactor;
-      let gainedCoins = 50 * rewardLevelFactor;
+      // Thưởng cơ bản cho tất cả người tham gia
+      let gainedExp = 300 * rewardLevelFactor;
+      let gainedCoins = 100 * rewardLevelFactor;
       let gainedKnb = 0;
       const itemsGained: string[] = [];
 
+      // Bonus theo % đóng góp (từ 0% đến 100% của base)
+      const dmgPercent = totalDamage > 0 ? p.damage / totalDamage : 0;
+      gainedExp += Math.round(200 * rewardLevelFactor * dmgPercent);
+      gainedCoins += Math.round(100 * rewardLevelFactor * dmgPercent);
+
       // Phân chia theo hạng đóng góp
       if (i === 0) { // Top 1
-        gainedExp += 1000 * rewardLevelFactor;
-        gainedCoins += 500 * rewardLevelFactor;
+        gainedExp += 800 * rewardLevelFactor;
+        gainedCoins += 400 * rewardLevelFactor;
         gainedKnb = Math.min(5 + Math.floor(rewardLevelFactor / 2), 15);
 
         itemsToAdd.push({ userId: p.user_id, itemId: 'server_raid_chest', quantity: 1 });
@@ -864,24 +879,41 @@ export class CombatService {
         itemsToAdd.push({ userId: p.user_id, itemId: 'pill_break_1', quantity: 2 });
         itemsGained.push('1x Rương Boss Thế Giới', '1x Rương Cơ Duyên', '2x Trúc Cơ Đan');
       } else if (i === 1) { // Top 2
-        gainedExp += 500 * rewardLevelFactor;
-        gainedCoins += 250 * rewardLevelFactor;
+        gainedExp += 400 * rewardLevelFactor;
+        gainedCoins += 200 * rewardLevelFactor;
         gainedKnb = Math.min(3 + Math.floor(rewardLevelFactor / 4), 8);
 
         itemsToAdd.push({ userId: p.user_id, itemId: 'lucky_chest', quantity: 1 });
         itemsToAdd.push({ userId: p.user_id, itemId: 'pill_break_1', quantity: 1 });
         itemsGained.push('1x Rương Cơ Duyên', '1x Trúc Cơ Đan');
       } else if (i === 2) { // Top 3
-        gainedExp += 250 * rewardLevelFactor;
+        gainedExp += 200 * rewardLevelFactor;
         gainedCoins += 100 * rewardLevelFactor;
         gainedKnb = Math.min(1 + Math.floor(rewardLevelFactor / 6), 4);
 
         itemsToAdd.push({ userId: p.user_id, itemId: 'lucky_chest', quantity: 1 });
         itemsToAdd.push({ userId: p.user_id, itemId: 'pill_break_1', quantity: 1 });
         itemsGained.push('1x Rương Cơ Duyên', '1x Trúc Cơ Đan');
+      } else if (i <= 5) { // Top 4-5
+        gainedExp += 100 * rewardLevelFactor;
+        gainedCoins += 50 * rewardLevelFactor;
+        gainedKnb = 1;
+
+        if (Math.random() < 0.4) {
+          itemsToAdd.push({ userId: p.user_id, itemId: 'lucky_chest', quantity: 1 });
+          itemsGained.push('1x Rương Cơ Duyên');
+        }
+      } else if (i <= 10) { // Top 6-10
+        gainedExp += 50 * rewardLevelFactor;
+        gainedCoins += 25 * rewardLevelFactor;
+
+        if (Math.random() < 0.25) {
+          itemsToAdd.push({ userId: p.user_id, itemId: 'lucky_chest', quantity: 1 });
+          itemsGained.push('1x Rương Cơ Duyên');
+        }
       } else {
-        // Hạng khác: 20% cơ hội nhận Rương Cơ Duyên
-        if (Math.random() < 0.2) {
+        // Top 11+: vẫn nhận reward cơ bản + 15% rương
+        if (Math.random() < 0.15) {
           itemsToAdd.push({ userId: p.user_id, itemId: 'lucky_chest', quantity: 1 });
           itemsGained.push('1x Rương Cơ Duyên');
         }
@@ -898,16 +930,20 @@ export class CombatService {
       }
 
       // Cập nhật tu vi, coin và KNB
-      const cappedTuVi = Math.min(pUser.tu_vi + gainedExp, pUser.exp_needed);
-      userRepository.update(p.user_id, {
-        tu_vi: cappedTuVi,
-        coin_ha_pham: pUser.coin_ha_pham + gainedCoins,
-        knb: pUser.knb + gainedKnb
-      });
+      try {
+        const cappedTuVi = Math.min(pUser.tu_vi + gainedExp, pUser.exp_needed);
+        userRepository.update(p.user_id, {
+          tu_vi: cappedTuVi,
+          coin_ha_pham: pUser.coin_ha_pham + gainedCoins,
+          knb: pUser.knb + gainedKnb
+        });
 
-      const actualGainedExp = cappedTuVi - pUser.tu_vi;
-      if (actualGainedExp > 0) {
-        bloodlineService.addExp(p.user_id, Math.floor(actualGainedExp * 0.05));
+        const actualGainedExp = cappedTuVi - pUser.tu_vi;
+        if (actualGainedExp > 0) {
+          bloodlineService.addExp(p.user_id, Math.floor(actualGainedExp * 0.05));
+        }
+      } catch (e) {
+        console.error('[BossReward] Lỗi cập nhật reward cho:', p.user_id, e);
       }
 
       const itemsText = itemsGained.length > 0 ? ` + 🎁 [${itemsGained.join(', ')}]` : '';
@@ -918,7 +954,11 @@ export class CombatService {
     }
 
     if (itemsToAdd.length > 0) {
-      inventoryRepository.addMultipleItems(itemsToAdd);
+      try {
+        inventoryRepository.addMultipleItems(itemsToAdd);
+      } catch (e) {
+        console.error('[BossReward] Lỗi add items:', e);
+      }
     }
 
     return rewardsLogs;

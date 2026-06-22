@@ -274,10 +274,19 @@ class CultivationService {
             isQiDeviated = true;
         }
         // Hồi phục offline có decay: >6h (21600s) hiệu suất giảm 50%
-        const normalSeconds = Math.min(diffSeconds, 21600);
-        const decaySeconds = Math.max(0, diffSeconds - 21600);
+        // Kiểm tra Nhàn Tu Đan buff
+        let idleNoDecay = false;
+        try {
+            const yCanhData = JSON.parse(user.y_canh || '{}');
+            if (yCanhData.idle_no_decay_until && yCanhData.idle_no_decay_until > now) {
+                idleNoDecay = true;
+            }
+        }
+        catch (e) { }
+        const normalSeconds = idleNoDecay ? diffSeconds : Math.min(diffSeconds, 21600);
+        const decaySeconds = idleNoDecay ? 0 : Math.max(0, diffSeconds - 21600);
         const normalGained = normalSeconds * baseSpeed * speedMultiplier * leylineExpBuff * eventMultiplier * heartLawExpBuff * alignmentSpeedMultiplier;
-        const decayGained = decaySeconds * baseSpeed * speedMultiplier * leylineExpBuff * eventMultiplier * heartLawExpBuff * 0.5 * alignmentSpeedMultiplier;
+        const decayGained = decaySeconds * baseSpeed * speedMultiplier * leylineExpBuff * eventMultiplier * heartLawExpBuff * 0.4 * alignmentSpeedMultiplier;
         const idleGained = Math.floor(normalGained + decayGained);
         if (idleGained <= 0) {
             return { gained: 0, message: '', user };
@@ -292,7 +301,10 @@ class CultivationService {
         const updatedUser = UserRepository_1.userRepository.get(discordId);
         let message = '';
         if (actualGained > 0) {
-            let decayNote = diffSeconds > 21600 ? ' *(Hiệu suất thiền định giảm 50% sau 6 giờ ngoại tuyến)*' : '';
+            let decayNote = diffSeconds > 21600 && !idleNoDecay ? ' *(Hiệu suất thiền định giảm 50% sau 6 giờ ngoại tuyến)*' : '';
+            if (idleNoDecay) {
+                decayNote = ' *(Nhàn Tu Đan: không giảm hiệu suất ngoại tuyến)*';
+            }
             if (isQiDeviated) {
                 decayNote += ' ⚠️ *(Hiệu suất tu luyện giảm 50% do đang bị Tẩu Hỏa Nhập Ma)*';
             }
@@ -452,8 +464,8 @@ class CultivationService {
         const { minorLevel, fullName, majorIndex } = (0, constants_1.getRealmDetails)(user.level);
         const isMajor = minorLevel === 38; // Là đột phá Cảnh Giới lớn (ví dụ Luyện Khí sang Trúc Cơ)
         if (!isMajor) {
-            // Đột phá tầng nhỏ (Minor) -> Tính toán tỷ lệ thành công (Đã tăng độ khó)
-            const baseRate = Math.max(70 - majorIndex * 15, 10);
+            // Đột phá tầng nhỏ (Minor) -> Tính toán tỷ lệ thành công
+            const baseRate = Math.max(65 - majorIndex * 12, 8);
             const luckBonus = user.base_luck * 0.002; // Mỗi điểm may mắn +0.2% tỷ lệ
             let pillBonus = 0;
             let usedPillName = '';
@@ -565,8 +577,8 @@ class CultivationService {
                 };
             }
             else {
-                // THẤT BẠI TẦNG NHỎ -> Phạt mất 15% Tu Vi
-                const lossAmount = Math.round(user.tu_vi * 0.15);
+                // THẤT BẠI TẦNH NHỎ -> Phạt mất Tu Vi
+                const lossAmount = Math.round(user.tu_vi * 0.20);
                 const newTuVi = Math.max(user.tu_vi - lossAmount, 0);
                 let qiDeviationMsg = '';
                 const updates = { tu_vi: newTuVi };
@@ -590,8 +602,8 @@ class CultivationService {
             }
         }
         else {
-            // Đột phá Đại Cảnh Giới (Major) -> Có tỷ lệ thành công và rủi ro (Đã tăng độ khó)
-            const baseRate = Math.max(60 - majorIndex * 15, 10); // Tối thiểu 10%
+            // Đột phá Đại Cảnh Giới (Major) -> Có tỷ lệ thành công và rủi ro
+            const baseRate = Math.max(55 - majorIndex * 12, 8); // Tối thiểu 8%
             const luckBonus = user.base_luck * 0.002; // Mỗi điểm may mắn +0.2% tỷ lệ
             let pillBonus = 0;
             let hasPill = false;
@@ -655,7 +667,8 @@ class CultivationService {
                     base_def: newStats.def,
                     base_crit: newStats.crit,
                     base_crit_res: newStats.critRes,
-                    base_luck: user.base_luck
+                    base_luck: user.base_luck,
+                    consecutive_fails: 0
                 });
                 const updatedUser = UserRepository_1.userRepository.get(discordId);
                 const pillText = usePill === 'bequan' ? ' bằng cách Bế Quan quy mô lớn' : (hasPill ? ' nhờ sử dụng **Trúc Cơ Đan** hỗ trợ' : '');
@@ -699,9 +712,9 @@ class CultivationService {
                 };
             }
             else {
-                // ĐỘT PHÁ THẤT BẠI - Bị phạt mất 30% tu vi và Trọng thương 1 giờ
+                // ĐỘT PHÁ THẤT BẠI - Bị phạt nặng
                 const now = Math.floor(Date.now() / 1000);
-                const lossAmount = Math.round(user.tu_vi * 0.3);
+                const lossAmount = Math.round(user.tu_vi * 0.35);
                 const newTuVi = Math.max(user.tu_vi - lossAmount, 0);
                 const injuryEndTime = now + 3600; // 1 giờ
                 UserRepository_1.userRepository.update(discordId, {

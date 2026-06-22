@@ -15,20 +15,20 @@ export class EnhanceService {
   // Cấu hình cường hóa đã tăng độ khó
   private config: Record<number, EnhanceConfig> = {
     0: { level: 0, successRate: 1.00, costLinhThach: 100, costShards: 1, dropOnFail: false },
-    1: { level: 1, successRate: 1.00, costLinhThach: 200, costShards: 1, dropOnFail: false },
-    2: { level: 2, successRate: 1.00, costLinhThach: 400, costShards: 2, dropOnFail: false },
-    3: { level: 3, successRate: 1.00, costLinhThach: 800, costShards: 2, dropOnFail: false },
-    4: { level: 4, successRate: 1.00, costLinhThach: 1600, costShards: 3, dropOnFail: false },
-    5: { level: 5, successRate: 0.35, costLinhThach: 3200, costShards: 3, dropOnFail: false },
-    6: { level: 6, successRate: 0.35, costLinhThach: 6400, costShards: 4, dropOnFail: false },
-    7: { level: 7, successRate: 0.35, costLinhThach: 12800, costShards: 4, dropOnFail: false },
-    8: { level: 8, successRate: 0.35, costLinhThach: 25600, costShards: 5, dropOnFail: false },
-    9: { level: 9, successRate: 0.35, costLinhThach: 50000, costShards: 5, dropOnFail: false },
-    10: { level: 10, successRate: 0.15, costLinhThach: 100000, costShards: 6, dropOnFail: true },
-    11: { level: 11, successRate: 0.15, costLinhThach: 200000, costShards: 7, dropOnFail: true },
-    12: { level: 12, successRate: 0.15, costLinhThach: 500000, costShards: 8, dropOnFail: true },
-    13: { level: 13, successRate: 0.15, costLinhThach: 1000000, costShards: 9, dropOnFail: true },
-    14: { level: 14, successRate: 0.05, costLinhThach: 2000000, costShards: 10, dropOnFail: true }
+    1: { level: 1, successRate: 1.00, costLinhThach: 250, costShards: 1, dropOnFail: false },
+    2: { level: 2, successRate: 1.00, costLinhThach: 500, costShards: 2, dropOnFail: false },
+    3: { level: 3, successRate: 1.00, costLinhThach: 1000, costShards: 2, dropOnFail: false },
+    4: { level: 4, successRate: 1.00, costLinhThach: 2000, costShards: 3, dropOnFail: false },
+    5: { level: 5, successRate: 0.30, costLinhThach: 4000, costShards: 4, dropOnFail: false },
+    6: { level: 6, successRate: 0.30, costLinhThach: 8000, costShards: 5, dropOnFail: false },
+    7: { level: 7, successRate: 0.30, costLinhThach: 16000, costShards: 5, dropOnFail: false },
+    8: { level: 8, successRate: 0.30, costLinhThach: 32000, costShards: 6, dropOnFail: false },
+    9: { level: 9, successRate: 0.30, costLinhThach: 65000, costShards: 7, dropOnFail: false },
+    10: { level: 10, successRate: 0.12, costLinhThach: 150000, costShards: 8, dropOnFail: true },
+    11: { level: 11, successRate: 0.12, costLinhThach: 300000, costShards: 9, dropOnFail: true },
+    12: { level: 12, successRate: 0.12, costLinhThach: 600000, costShards: 10, dropOnFail: true },
+    13: { level: 13, successRate: 0.10, costLinhThach: 1200000, costShards: 12, dropOnFail: true },
+    14: { level: 14, successRate: 0.05, costLinhThach: 2500000, costShards: 15, dropOnFail: true }
   };
 
   /**

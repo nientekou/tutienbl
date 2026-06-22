@@ -304,9 +304,10 @@ export class ArenaService {
   /**
    * Xử lý kết thúc mùa giải Arena
    */
-  public processSeasonEnd(newSeasonId: string): void {
+  public processSeasonEnd(newSeasonId: string): { totalRewarded: number; topPlayers: { userId: string; rank: number; reward: string }[] } {
     // Lấy tất cả user đã tham gia ít nhất 1 trận
     const players = db.prepare(`SELECT * FROM arena_profiles WHERE wins > 0 OR losses > 0 ORDER BY elo DESC`).all() as ArenaProfile[];
+    const topPlayers: { userId: string; rank: number; reward: string }[] = [];
     
     db.transaction(() => {
       players.forEach((p, index) => {
@@ -320,16 +321,45 @@ export class ArenaService {
           WHERE user_id = ?
         `).run(resetElo, rank, newSeasonId, p.user_id);
 
-        // Có thể trao phần thưởng trực tiếp tại đây cho Top 1-10 nếu cần
+        // Trao phần thưởng theo tier
+        const user = userRepository.get(p.user_id);
+        if (!user) return;
+
+        let rewardLT = 0;
+        let rewardKNB = 0;
+        let rewardTitle = '';
+        let tier = '';
+
+        if (rank === 1) {
+          rewardLT = 100000; rewardKNB = 50; rewardTitle = 'Vô Địch Thiên Hạ'; tier = 'Kim';
+        } else if (rank <= 3) {
+          rewardLT = 60000; rewardKNB = 20; rewardTitle = 'Top 3 Arena'; tier = 'Kim';
+        } else if (rank <= 10) {
+          rewardLT = 30000; rewardKNB = 10; rewardTitle = 'Kỳ Tài'; tier = 'Bạc';
+        } else if (rank <= 50) {
+          rewardLT = 10000; rewardKNB = 3; tier = 'Đồng';
+        } else if (rank <= 200) {
+          rewardLT = 3000; tier = 'Tham Gia';
+        }
+
+        if (rewardLT > 0 || rewardKNB > 0) {
+          const updates: any = { coin_ha_pham: user.coin_ha_pham + rewardLT };
+          if (rewardKNB > 0) updates.knb = user.knb + rewardKNB;
+          userRepository.update(p.user_id, updates);
+        }
+
+        if (rewardTitle) {
+          db.prepare('INSERT OR IGNORE INTO user_titles (user_id, title, source, unlocked_at) VALUES (?, ?, ?, ?)')
+            .run(p.user_id, rewardTitle, 'arena_season', Math.floor(Date.now() / 1000));
+        }
+
         if (rank <= 10) {
-          const rewardLT = 100000 - (rank * 5000); // Ví dụ top 1 được 95k LT
-          const user = userRepository.get(p.user_id);
-          if (user) {
-            userRepository.update(p.user_id, { coin_ha_pham: user.coin_ha_pham + rewardLT });
-          }
+          topPlayers.push({ userId: p.user_id, rank, reward: `${rewardLT} LT, ${rewardKNB} KNB` });
         }
       });
     })();
+
+    return { totalRewarded: players.length, topPlayers };
   }
 
   /**

@@ -252,6 +252,11 @@ export default class AdminCommand extends Command {
             .setName('fixpets')
             .setDescription('[Owner Only] Tự động sửa data linh thú lỗi (xoá skill thừa, thú lỗi).')
         )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('checkorphan')
+            .setDescription('[Owner Only] Kiểm tra vật phẩm bất thường (orphan items) trong túi đồ người chơi.')
+        )
     );
   }
 
@@ -922,6 +927,113 @@ export default class AdminCommand extends Command {
             .setStyle(ButtonStyle.Secondary),
         );
         components.push(cancelRow);
+      }
+
+      await interaction.editReply({ embeds: [embed], components });
+      return;
+    }
+
+    // ─── KIỂM TRA VẬT PHẨM BẤT THƯỜNG (ORPHAN ITEMS) ──────────
+    if (subcommand === 'checkorphan') {
+      await interaction.deferReply({ ephemeral: true });
+
+      // Quét inventory có item_id không tồn tại trong bảng items
+      const orphanItems = db.prepare(`
+        SELECT i.*, u.name as owner_name, u.level as owner_level
+        FROM inventories i
+        LEFT JOIN items t ON i.item_id = t.id
+        LEFT JOIN users u ON i.user_id = u.discord_id
+        WHERE t.id IS NULL
+        ORDER BY u.name ASC
+      `).all() as any[];
+
+      // Quét inventory có user_id không tồn tại
+      const orphanByUser = db.prepare(`
+        SELECT i.*, t.name as item_name
+        FROM inventories i
+        LEFT JOIN users u ON i.user_id = u.discord_id
+        LEFT JOIN items t ON i.item_id = t.id
+        WHERE u.discord_id IS NULL
+      `).all() as any[];
+
+      // Quét inventory có quantity <= 0 hoặc null
+      const invalidQty = db.prepare(`
+        SELECT i.*, u.name as owner_name, t.name as item_name
+        FROM inventories i
+        LEFT JOIN users u ON i.user_id = u.discord_id
+        LEFT JOIN items t ON i.item_id = t.id
+        WHERE i.quantity <= 0 OR i.quantity IS NULL
+      `).all() as any[];
+
+      const totalAnomalies = orphanItems.length + orphanByUser.length + invalidQty.length;
+
+      if (totalAnomalies === 0) {
+        const embed = new EmbedBuilder()
+          .setTitle('✅ CHECK ORPHAN ITEMS — KHÔNG CÓ LỖI')
+          .setColor('#2ecc71')
+          .setDescription('Hệ thống không phát hiện bất thường nào với dữ liệu vật phẩm trong túi đồ.')
+          .setTimestamp();
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🔍 CHECK ORPHAN ITEMS — PHÁT HIỆN ${totalAnomalies} BẤT THƯỜNG`)
+        .setColor('#f39c12')
+        .setDescription('Đây là kết quả quét tự động. Chọn hành động bên dưới để xử lý.')
+        .setTimestamp();
+
+      // Chi tiết item không tồn tại trong bảng items
+      if (orphanItems.length > 0) {
+        const details = orphanItems.slice(0, 15).map(i => {
+          return `• **${i.owner_name || '???'}** (Lv.${i.owner_level || '?'}) — item_id: \`${i.item_id}\` — SL: ${i.quantity}`;
+        }).join('\n');
+        const extra = orphanItems.length > 15 ? `\n*... và ${orphanItems.length - 15} vật phẩm nữa*` : '';
+        embed.addFields({
+          name: `👻 Item Không Tồn Tại: ${orphanItems.length} chiếc`,
+          value: details + extra + '\n*→ Hành động: Xoá toàn bộ*'
+        });
+      }
+
+      // Chi tiết inventory của user không tồn tại
+      if (orphanByUser.length > 0) {
+        const details = orphanByUser.slice(0, 15).map(i => {
+          return `• user_id: \`${i.user_id}\` — item: **${i.item_name || i.item_id}** — SL: ${i.quantity}`;
+        }).join('\n');
+        const extra = orphanByUser.length > 15 ? `\n*... và ${orphanByUser.length - 15} vật phẩm nữa*` : '';
+        embed.addFields({
+          name: `👤 User Không Tồn Tại: ${orphanByUser.length} chiếc`,
+          value: details + extra + '\n*→ Hành động: Xoá toàn bộ*'
+        });
+      }
+
+      // Chi tiết quantity bất thường
+      if (invalidQty.length > 0) {
+        const details = invalidQty.slice(0, 15).map(i => {
+          return `• **${i.owner_name || '???'}** — item: **${i.item_name || i.item_id}** — SL: ${i.quantity}`;
+        }).join('\n');
+        const extra = invalidQty.length > 15 ? `\n*... và ${invalidQty.length - 15} vật phẩm nữa*` : '';
+        embed.addFields({
+          name: `⚠️ Quantity Bất Thường: ${invalidQty.length} chiếc`,
+          value: details + extra + '\n*→ Hành động: Xoá toàn bộ*'
+        });
+      }
+
+      // Buttons
+      const components: ActionRowBuilder<ButtonBuilder>[] = [];
+
+      if (totalAnomalies > 0) {
+        const deleteRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`admincheckorphan_delete_${userId}`)
+            .setLabel(`🗑️ Xoá ${totalAnomalies} vật phẩm bất thường`)
+            .setStyle(ButtonStyle.Danger),
+          new ButtonBuilder()
+            .setCustomId(`admincheckorphan_cancel_${userId}`)
+            .setLabel('❌ Không xử lý')
+            .setStyle(ButtonStyle.Secondary),
+        );
+        components.push(deleteRow);
       }
 
       await interaction.editReply({ embeds: [embed], components });
@@ -1635,6 +1747,66 @@ export default class AdminCommand extends Command {
       else if (subAction === 'cancel') {
         await interaction.update({
           content: '❌ Đã huỷ thao tác fix pets.',
+          embeds: [],
+          components: []
+        });
+      }
+    }
+
+    // ─── XỬ LÝ BUTTON CHECK ORPHAN ITEMS ──────────────────────
+    else if (action === 'admincheckorphan') {
+      if (subAction === 'delete') {
+        // Xoá item không tồn tại trong bảng items
+        const orphanItems = db.prepare(`
+          SELECT i.id FROM inventories i
+          LEFT JOIN items t ON i.item_id = t.id
+          WHERE t.id IS NULL
+        `).all() as { id: number }[];
+
+        // Xoá inventory của user không tồn tại
+        const orphanByUser = db.prepare(`
+          SELECT i.id FROM inventories i
+          LEFT JOIN users u ON i.user_id = u.discord_id
+          WHERE u.discord_id IS NULL
+        `).all() as { id: number }[];
+
+        // Xoá quantity bất thường
+        const invalidQty = db.prepare(`
+          SELECT i.id FROM inventories i
+          WHERE i.quantity <= 0 OR i.quantity IS NULL
+        `).all() as { id: number }[];
+
+        let deletedCount = 0;
+        for (const item of orphanItems) {
+          db.prepare('DELETE FROM inventories WHERE id = ?').run(item.id);
+          deletedCount++;
+        }
+        for (const item of orphanByUser) {
+          db.prepare('DELETE FROM inventories WHERE id = ?').run(item.id);
+          deletedCount++;
+        }
+        for (const item of invalidQty) {
+          db.prepare('DELETE FROM inventories WHERE id = ?').run(item.id);
+          deletedCount++;
+        }
+
+        systemConfigService.writeAuditLog(adminId, 'admin_checkorphan_delete', {
+          orphanItems: orphanItems.length,
+          orphanByUser: orphanByUser.length,
+          invalidQty: invalidQty.length,
+          total: deletedCount
+        });
+
+        await interaction.update({
+          content: `✅ Đã xoá **${deletedCount}** vật phẩm bất thường (${orphanItems.length} item không tồn tại + ${orphanByUser.length} user không tồn tại + ${invalidQty.length} quantity lỗi).`,
+          embeds: [],
+          components: []
+        });
+      }
+
+      else if (subAction === 'cancel') {
+        await interaction.update({
+          content: '❌ Đã huỷ thao tác check orphan items.',
           embeds: [],
           components: []
         });

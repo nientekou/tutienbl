@@ -115,6 +115,36 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     expGained: 60
   },
   {
+    id: 'recipe_linh_tuyen',
+    name: 'Linh Tuyền Phù',
+    targetPillId: 'pill_linh_tuyen',
+    requiredMaterials: [
+      { itemId: 'material_linh_thao_1', quantity: 15 },
+      { itemId: 'material_nhan_sam_1', quantity: 10 },
+      { itemId: 'material_blood_flower', quantity: 3 }
+    ],
+    costCoin: 1500,
+    staminaCost: 30,
+    requiredAlchemyLevel: 5,
+    baseSuccessRate: 0.35,
+    expGained: 100
+  },
+  {
+    id: 'recipe_nhan_tu',
+    name: 'Nhàn Tu Đan',
+    targetPillId: 'pill_nhan_tu',
+    requiredMaterials: [
+      { itemId: 'material_linh_thao_1', quantity: 20 },
+      { itemId: 'material_nhan_sam_1', quantity: 15 },
+      { itemId: 'material_blood_flower', quantity: 5 }
+    ],
+    costCoin: 3000,
+    staminaCost: 40,
+    requiredAlchemyLevel: 8,
+    baseSuccessRate: 0.25,
+    expGained: 150
+  },
+  {
     id: 'recipe_hp_max_perm',
     name: 'Huyết Nguyên Đan',
     targetPillId: 'pill_hp_max_perm',

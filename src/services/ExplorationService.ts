@@ -57,8 +57,9 @@ export const EXPLORATION_LOCATIONS: Record<string, ExplorationLocation> = {
     minLevel: 1,
     dangerRate: 0.45,  // tăng từ 0.3
     rewardPool: [
-      { type: 'item', itemId: 'material_linh_thao_1', amount: 2, weight: 40 },
-      { type: 'item', itemId: 'item_fragment', amount: 1, weight: 20 },
+      { type: 'item', itemId: 'material_linh_thao_1', amount: 2, weight: 35 },
+      { type: 'item', itemId: 'item_fragment', amount: 1, weight: 15 },
+      { type: 'item', itemId: 'map_fragment', amount: 1, weight: 10 },
       { type: 'coin', amount: 50, weight: 25 },
       { type: 'tuvi', amount: 200, weight: 10 },
       { type: 'nothing', weight: 5 },

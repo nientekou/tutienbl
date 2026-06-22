@@ -142,7 +142,7 @@ function performWork(discordId, workType) {
             actionDescription = 'Đạo hữu triển khai ngự kiếm phi hành, thám hiểm tiên tích bản đồ hoang dã...';
             if (Math.random() < 0.25) {
                 const rand = Math.random();
-                if (rand < 0.5) {
+                if (rand < 0.4) {
                     const seeds = [
                         { id: 'seed_tuyet_lien', name: 'Thiên Sơn Tuyết Liên Hạt' },
                         { id: 'seed_lingzhi', name: 'Cửu Diệp Linh Chi Hạt' },
@@ -150,8 +150,11 @@ function performWork(discordId, workType) {
                     ];
                     rewardItem = seeds[Math.floor(Math.random() * seeds.length)];
                 }
-                else {
+                else if (rand < 0.7) {
                     rewardItem = { id: 'lucky_chest', name: 'Rương May Mắn' };
+                }
+                else {
+                    rewardItem = { id: 'map_fragment', name: 'Mảnh Bản Đồ' };
                 }
             }
         }

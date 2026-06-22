@@ -53,6 +53,7 @@ export interface UserEntity {
   claimed_starting_bonus: number;
   alignment: string;
   qi_deviation_until: number;
+  consecutive_fails: number;
   created_at: number;
   updated_at: number;
 }

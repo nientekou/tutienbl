@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
+const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const MarketService_1 = require("../../services/MarketService");
 const LeylineService_1 = require("../../services/LeylineService");
 const database_1 = __importDefault(require("../../database/database"));
@@ -18,7 +19,7 @@ class VanBaoLauCommand extends Command_1.Command {
             .setDescription('Xem tất cả vật phẩm đang bán trên thị trường.'))
             .addSubcommand(sub => sub.setName('ban')
             .setDescription('Treo bán vật phẩm (giá cố định).')
-            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('Mã hành trang của vật phẩm (xem trong /tuido)').setRequired(true))
+            .addStringOption(opt => opt.setName('item_id').setDescription('Mã vật phẩm (xem trong /tuido)').setRequired(true))
             .addIntegerOption(opt => opt.setName('gia').setDescription('Giá Linh Thạch').setRequired(true))
             .addIntegerOption(opt => opt.setName('soluong').setDescription('Số lượng (mặc định 1)').setRequired(false)))
             .addSubcommand(sub => sub.setName('mua')
@@ -29,7 +30,7 @@ class VanBaoLauCommand extends Command_1.Command {
             .addIntegerOption(opt => opt.setName('listing_id').setDescription('Mã tin bán').setRequired(true)))
             .addSubcommand(sub => sub.setName('daugia')
             .setDescription('Tạo đấu giá với thời gian đếm ngược (5 phút).')
-            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('Mã hành trang của vật phẩm (xem trong /tuido)').setRequired(true))
+            .addStringOption(opt => opt.setName('item_id').setDescription('Mã vật phẩm (xem trong /tuido)').setRequired(true))
             .addIntegerOption(opt => opt.setName('gia_khoi_diem').setDescription('Giá khởi điểm').setRequired(true))
             .addIntegerOption(opt => opt.setName('soluong').setDescription('Số lượng (mặc định 1)').setRequired(false)))
             .addSubcommand(sub => sub.setName('datgia')
@@ -170,7 +171,7 @@ class VanBaoLauCommand extends Command_1.Command {
         await interaction.reply({ embeds: [embed] });
     }
     async handleBan(interaction, userId, user) {
-        const invId = interaction.options.getInteger('inventory_id', true);
+        const itemId = interaction.options.getString('item_id', true);
         const price = interaction.options.getInteger('gia', true);
         const qty = interaction.options.getInteger('soluong') || 1;
         if (price <= 0) {
@@ -181,7 +182,12 @@ class VanBaoLauCommand extends Command_1.Command {
             await interaction.reply({ content: '❌ Số lượng phải > 0!', ephemeral: true });
             return;
         }
-        const result = MarketService_1.marketService.createFixedListing(userId, invId, price, qty);
+        const invItem = InventoryRepository_1.inventoryRepository.getByUserIdAndItemId(userId, itemId);
+        if (!invItem) {
+            await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
+            return;
+        }
+        const result = MarketService_1.marketService.createFixedListing(userId, invItem.id, price, qty);
         if (result.success)
             LeylineService_1.leylineService.addEnergy(userId, 'kinhte', 5);
         await interaction.reply({ content: result.success ? result.message : `❌ ${result.message}`, ephemeral: !result.success });

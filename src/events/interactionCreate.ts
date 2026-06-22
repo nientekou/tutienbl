@@ -168,6 +168,22 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
       }
 
       acquired = true;
+
+      // Auto-claim daily login reward on first interaction of the day
+      try {
+        const today = new Date().toLocaleDateString('en-CA');
+        const loginRecord = db.prepare('SELECT last_login_date FROM user_daily_logins WHERE user_id = ?').get(interaction.user.id) as any;
+        if (!loginRecord || loginRecord.last_login_date !== today) {
+          const { dailyLoginService } = require('../services/DailyLoginService');
+          const loginResult = dailyLoginService.claimLogin(interaction.user.id);
+          if (loginResult.success && loginResult.message) {
+            setTimeout(() => {
+              interaction.user.send({ content: loginResult.message }).catch(() => {});
+            }, 1000);
+          }
+        }
+      } catch (e) {}
+
       // 1. Xử lý Slash Command (Chat Input Command)
       if (interaction.isChatInputCommand()) {
         const command = client.commands.get(interaction.commandName);
@@ -239,7 +255,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           'dungkynang_cancel',
           'adminpanel',
           'adminuser',
-          'adminfixpets'
+          'adminfixpets',
+          'titleswitch'
         ];
 
         let action = '';
@@ -255,7 +272,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           action = parts[0];
         }
 
-        if (action === 'adminpanel' || action === 'adminuser' || action === 'adminfixpets') {
+        if (action === 'adminpanel' || action === 'adminuser' || action === 'adminfixpets' || action === 'admincheckorphan') {
           const AdminCommand = require('../commands/general/admin').default;
           await AdminCommand.handleInteraction(client, interaction, action, parts);
           return;
@@ -267,7 +284,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
       // Phân tách tham số nút tùy biến
       // QUY TẮC: userId luôn là PHẦN TỬ CUỐI CÙNG trong parts (trừ các nút public)
       if (action === 'invprev' || action === 'invnext') {
-        pageNum = parseInt(parts[1], 10) || 1;
+        pageNum = Math.max(1, parseInt(parts[1], 10) || 1);
         targetUserId = parts[parts.length - 1];
       } else if (action === 'loi') {
         targetUserId = parts[parts.length - 1];
@@ -425,11 +442,19 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           // Nếu boss bị tiêu diệt -> phân phát phần thưởng và thông báo phong thần
           let rewardsText = '';
           if (isDefeated) {
-            const rewardsLogs = combatService.distributeWorldBossRewards(boss.level, interaction.user.id);
-            await bossSpawnService.broadcastBossDefeatedLogs(client, currentBoss, rewardsLogs);
-            
-            rewardsText = `\n\n🏆 **BẢNG PHONG THẦN THẢO PHẠT BOSS (LEVEL ${boss.level}):**\n` + 
-                          (rewardsLogs.length > 0 ? rewardsLogs.join('\n') : '*Không có phần thưởng.*');
+            try {
+              const rewardsLogs = combatService.distributeWorldBossRewards(boss.level, interaction.user.id);
+              rewardsText = `\n\n🏆 **BẢNG PHONG THẦN THẢO PHẠT BOSS (LEVEL ${boss.level}):**\n` + 
+                            (rewardsLogs.length > 0 ? rewardsLogs.join('\n') : '*Không có phần thưởng.*');
+              try {
+                await bossSpawnService.broadcastBossDefeatedLogs(client, currentBoss, rewardsLogs);
+              } catch (broadcastErr) {
+                console.error('[WorldBoss] Lỗi broadcast:', broadcastErr);
+              }
+            } catch (rewardErr) {
+              console.error('[WorldBoss] Lỗi phân phát thưởng:', rewardErr);
+              rewardsText = `\n\n🏆 **BOSS ĐÃ BỊ TIÊU DIỆT!** (Lỗi hiển thị phần thưởng)`;
+            }
           }
 
           // Trả lời đòn đánh thành công
@@ -681,6 +706,20 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           return;
         }
 
+        // --- ĐỔI DANH HIỆU (TITLE SWITCH) ---
+        else if (action === 'titleswitch') {
+          const { achievementService } = require('../services/AchievementService');
+          const titleName = parts.slice(1).join('_').replace(/_/g, ' ');
+          
+          const result = achievementService.setTitle(targetUserId, titleName);
+          if (result.success) {
+            await interaction.reply({ content: result.message, ephemeral: true });
+          } else {
+            await interaction.reply({ content: result.message, ephemeral: true });
+          }
+          return;
+        }
+
         // --- Nút: QUYẾT ĐẤU (TAM HỒI LINH CHIẾN) ---
         else if (['duelaccept', 'duelrefuse', 'duelchoose', 'dueluseitem', 'duellichsu'].includes(action)) {
           const { DuelInteractionHandler } = require('../handlers/interactions/DuelInteractionHandler');
@@ -783,16 +822,26 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
         // --- Nút: MỞ TÚI ĐỒ ---
         else if (action === 'tuido') {
-          const { embed, totalPages, itemsOnPage } = getInventoryEmbed(targetUserId, 1);
-          const components = getInventoryComponents(targetUserId, 1, totalPages, itemsOnPage);
-          await interaction.update({ embeds: [embed], components: components });
+          try {
+            await interaction.deferUpdate();
+            const { embed, totalPages, itemsOnPage } = getInventoryEmbed(targetUserId, 1);
+            const components = getInventoryComponents(targetUserId, 1, totalPages, itemsOnPage);
+            await interaction.editReply({ embeds: [embed], components: components });
+          } catch (e: any) {
+            console.error('[tuido] Lỗi mở túi đồ:', e?.message || e);
+          }
         }
 
         // --- Nút: PHÂN TRANG TÚI ĐỒ (Lùi / Tiến) ---
         else if (action === 'invprev' || action === 'invnext') {
-          const { embed, totalPages, itemsOnPage } = getInventoryEmbed(targetUserId, pageNum);
-          const components = getInventoryComponents(targetUserId, pageNum, totalPages, itemsOnPage);
-          await interaction.update({ embeds: [embed], components: components });
+          try {
+            await interaction.deferUpdate();
+            const { embed, totalPages, itemsOnPage } = getInventoryEmbed(targetUserId, pageNum);
+            const components = getInventoryComponents(targetUserId, pageNum, totalPages, itemsOnPage);
+            await interaction.editReply({ embeds: [embed], components: components });
+          } catch (e: any) {
+            console.error('[invpage] Lỗi phân trang túi đồ:', e?.message || e);
+          }
         }
 
         // --- Nút: QUAY LẠI HỒ SƠ ---
@@ -1005,34 +1054,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
         // --- Nút: XEM NHẬT KÝ CHIẾN ĐẤU BÍ CẢNH ---
         else if (action === 'bicanhlogs') {
-          const logs = combatLogsCache.get(targetUserId);
-          if (!logs || logs.length === 0) {
-            await interaction.reply({ content: '❌ Không tìm thấy nhật ký trận đấu này.', ephemeral: true });
-            return;
-          }
-
-          const logText = logs.join('\n');
-          if (logText.length <= 2000) {
-            await interaction.reply({ content: `📖 **Chi tiết nhật ký trận đấu:**\n${logText}`, ephemeral: true });
-          } else {
-            const chunks: string[] = [];
-            let current = '📖 **Chi tiết nhật ký trận đấu (Tiếp theo):**\n';
-
-            for (const line of logs) {
-              if ((current + line).length > 1900) {
-                chunks.push(current);
-                current = line + '\n';
-              } else {
-                current += line + '\n';
-              }
-            }
-            if (current) chunks.push(current);
-
-            await interaction.reply({ content: chunks[0], ephemeral: true });
-            for (let i = 1; i < chunks.length; i++) {
-              await interaction.followUp({ content: chunks[i], ephemeral: true });
-            }
-          }
+          const { renderCombatLog } = require('../utils/combatLogUtils');
+          await renderCombatLog(interaction, combatLogsCache.get(targetUserId), 'Chi tiết nhật ký trận đấu');
         }
 
         // --- Nút: QUAY LẠI BÍ CẢNH ---
@@ -1047,66 +1070,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
         // --- Nút: XEM NHẬT KÝ CHIẾN ĐẤU WORLD BOSS ---
         else if (action === 'worldbosslogs') {
-          const logs = combatLogsCache.get(targetUserId);
-          if (!logs || logs.length === 0) {
-            await interaction.reply({ content: '❌ Không tìm thấy nhật ký trận đấu này.', ephemeral: true });
-            return;
-          }
-
-          const logText = logs.join('\n');
-          if (logText.length <= 2000) {
-            await interaction.reply({ content: `📖 **Chi tiết trận đấu World Boss:**\n${logText}`, ephemeral: true });
-          } else {
-            const chunks: string[] = [];
-            let current = '📖 **Chi tiết trận đấu World Boss (Tiếp theo):**\n';
-
-            for (const line of logs) {
-              if ((current + line).length > 1900) {
-                chunks.push(current);
-                current = line + '\n';
-              } else {
-                current += line + '\n';
-              }
-            }
-            if (current) chunks.push(current);
-
-            await interaction.reply({ content: chunks[0], ephemeral: true });
-            for (let i = 1; i < chunks.length; i++) {
-              await interaction.followUp({ content: chunks[i], ephemeral: true });
-            }
-          }
+          const { renderCombatLog } = require('../utils/combatLogUtils');
+          await renderCombatLog(interaction, combatLogsCache.get(targetUserId), 'Chi tiết trận đấu World Boss');
         }
 
         // --- Nút: XEM NHẬT KÝ CHIẾN ĐẤU SĂN YÊU THÚ ---
         else if (action === 'sanyeuthulogs') {
-          const logs = combatLogsCache.get(targetUserId);
-          if (!logs || logs.length === 0) {
-            await interaction.reply({ content: '❌ Không tìm thấy nhật ký trận đấu này.', ephemeral: true });
-            return;
-          }
-
-          const logText = logs.join('\n');
-          if (logText.length <= 2000) {
-            await interaction.reply({ content: `📖 **Chi tiết nhật ký trận săn:**\n${logText}`, ephemeral: true });
-          } else {
-            const chunks: string[] = [];
-            let current = '📖 **Chi tiết nhật ký trận săn (Tiếp theo):**\n';
-
-            for (const line of logs) {
-              if ((current + line).length > 1900) {
-                chunks.push(current);
-                current = line + '\n';
-              } else {
-                current += line + '\n';
-              }
-            }
-            if (current) chunks.push(current);
-
-            await interaction.reply({ content: chunks[0], ephemeral: true });
-            for (let i = 1; i < chunks.length; i++) {
-              await interaction.followUp({ content: chunks[i], ephemeral: true });
-            }
-          }
+          const { renderCombatLog } = require('../utils/combatLogUtils');
+          await renderCombatLog(interaction, combatLogsCache.get(targetUserId), 'Chi tiết nhật ký trận săn');
         }
 
         // --- Nút: QUAY LẠI / LÀM MỚI WORLD BOSS ---
@@ -1192,8 +1163,12 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             return;
           }
 
-          if (user.coin_ha_pham < cost.lt) {
+          if (cost.lt > 0 && user.coin_ha_pham < cost.lt) {
             await interaction.reply({ content: `❌ Cần **${cost.lt}** Linh Thạch để nâng cấp!`, ephemeral: true });
+            return;
+          }
+          if (cost.knb > 0 && user.knb < cost.knb) {
+            await interaction.reply({ content: `❌ Cần **${cost.knb}** KNB để nâng cấp!`, ephemeral: true });
             return;
           }
 
@@ -1219,7 +1194,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           // Trừ chi phí
           db.transaction(() => {
-            userRepository.update(targetUserId, { coin_ha_pham: user.coin_ha_pham - cost.lt });
+            const updates: any = {};
+            if (cost.lt > 0) updates.coin_ha_pham = user.coin_ha_pham - cost.lt;
+            if (cost.knb > 0) updates.knb = user.knb - cost.knb;
+            userRepository.update(targetUserId, updates);
             for (const req of cost.reqItems) {
               const item = inv.find((i: any) => i.item_id === req.id);
               if (item.quantity > req.quantity) {
@@ -2915,25 +2893,30 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
       }
 
       if (actionType === 'invselect') {
-        const selectedValue = interaction.values[0]; // Cú pháp: "action_itemId" (vd: "equip_lucky_chest")
+        const selectedValue = interaction.values[0]; // Cú pháp: "action_inventoryId" (vd: "equip_123")
         const firstUnderscore = selectedValue.indexOf('_');
         const itemAction = selectedValue.substring(0, firstUnderscore);
-        const itemId = selectedValue.substring(firstUnderscore + 1);
+        const inventoryId = parseInt(selectedValue.substring(firstUnderscore + 1), 10);
+
+        if (isNaN(inventoryId)) {
+          await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', ephemeral: true });
+          return;
+        }
 
         let resultMessage = '';
         let success = false;
 
         // Thực thi các hành động sử dụng / trang bị
         if (itemAction === 'equip') {
-          const res = inventoryService.equipItemByItemId(targetUserId, itemId);
+          const res = inventoryService.equipItem(targetUserId, inventoryId);
           success = res.success;
           resultMessage = res.message;
         } else if (itemAction === 'unequip') {
-          const res = inventoryService.unequipItemByItemId(targetUserId, itemId);
+          const res = inventoryService.unequipItem(targetUserId, inventoryId);
           success = res.success;
           resultMessage = res.message;
         } else if (itemAction === 'use') {
-          const res = inventoryService.useItemByItemId(targetUserId, itemId);
+          const res = inventoryService.useItem(targetUserId, inventoryId);
           success = res.success;
           resultMessage = res.message;
         }

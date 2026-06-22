@@ -177,10 +177,14 @@ class SungThuCommand extends Command_1.Command {
             return;
         }
         const sub = interaction.options.getSubcommand();
+        // Defer reply cho các subcommand nặng (tránh interaction timeout)
+        if (sub === 'danhsach' || sub === 'thuctinhkynang' || sub === 'laitao' || sub === 'thonphe' || sub === 'hocky') {
+            await interaction.deferReply();
+        }
         if (sub === 'danhsach') {
             const embed = getSungThuEmbed(userId);
             const components = getSungThuComponents(userId);
-            await interaction.reply({ embeds: [embed], components });
+            await interaction.editReply({ embeds: [embed], components });
             return;
         }
         if (sub === 'xuatchien') {
@@ -267,12 +271,12 @@ class SungThuCommand extends Command_1.Command {
             const petId = interaction.options.getInteger('pet_id', true);
             const pet = database_1.default.prepare('SELECT * FROM pets WHERE id = ? AND user_id = ?').get(petId, userId);
             if (!pet) {
-                await interaction.reply({ content: '❌ Linh thú không tồn tại!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Linh thú không tồn tại!' });
                 return;
             }
             const currentSkills = JSON.parse(pet.skills || '[]');
             if (currentSkills.length >= 2) {
-                await interaction.reply({ content: `❌ **${pet.name}** đã có đủ **2 kỹ năng** rồi, không thể thức tỉnh thêm! Dùng \`/sungthu hocky\` nếu muốn thay đổi kỹ năng.`, ephemeral: true });
+                await interaction.editReply({ content: `❌ **${pet.name}** đã có đủ **2 kỹ năng** rồi, không thể thức tỉnh thêm! Dùng \`/sungthu hocky\` nếu muốn thay đổi kỹ năng.` });
                 return;
             }
             // Tìm kỹ năng chưa được mở khoá nhưng đủ cấp
@@ -286,9 +290,8 @@ class SungThuCommand extends Command_1.Command {
                 const hint = nextSkill
                     ? `\n*Linh thú cần đạt cấp **${nextSkill[1].minLevel}** mới mở khoá kỹ năng tiếp theo: **${nextSkill[1].name}**.*`
                     : '\n*Linh thú đã mở hết toàn bộ kỹ năng tiềm năng!*';
-                await interaction.reply({
-                    content: `❌ **${pet.name}** chưa đủ cấp để thức tỉnh kỹ năng nào mới (Hiện cấp **${pet.level}**).${hint}`,
-                    ephemeral: true
+                await interaction.editReply({
+                    content: `❌ **${pet.name}** chưa đủ cấp để thức tỉnh kỹ năng nào mới (Hiện cấp **${pet.level}**).${hint}`
                 });
                 return;
             }
@@ -300,7 +303,7 @@ class SungThuCommand extends Command_1.Command {
             const now = Math.floor(Date.now() / 1000);
             database_1.default.prepare("INSERT INTO audit_logs (user_id, action, details, created_at) VALUES (?, 'pet_skill_awaken', ?, ?)").run(userId, JSON.stringify({ petId, skillId, petName: pet.name }), now);
             AchievementService_1.achievementService.setProgress(userId, 'st_10', totalSkillAwakens.c + 1);
-            await interaction.reply({
+            await interaction.editReply({
                 content: `✨ **THỨC TỈNH THÀNH CÔNG!**\n\n🐉 Linh thú **${pet.name}** đã đạt đến cấp **${pet.level}**, mở ra kỹ năng tiềm năng!\n\n${skillDef.emoji} **${skillDef.name}** được thức tỉnh!\n*${skillDef.description}*`
             });
             return;
@@ -310,32 +313,32 @@ class SungThuCommand extends Command_1.Command {
             const pet1Id = interaction.options.getInteger('pet1_id', true);
             const pet2Id = interaction.options.getInteger('pet2_id', true);
             if (pet1Id === pet2Id) {
-                await interaction.reply({ content: '❌ Không thể lai tạo một linh thú với chính nó!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Không thể lai tạo một linh thú với chính nó!' });
                 return;
             }
             const pet1 = database_1.default.prepare('SELECT * FROM pets WHERE id = ? AND user_id = ?').get(pet1Id, userId);
             const pet2 = database_1.default.prepare('SELECT * FROM pets WHERE id = ? AND user_id = ?').get(pet2Id, userId);
             if (!pet1 || !pet2) {
-                await interaction.reply({ content: '❌ Một trong hai linh thú không tồn tại trong sủng thú của đạo hữu!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Một trong hai linh thú không tồn tại trong sủng thú của đạo hữu!' });
                 return;
             }
             if (pet1.is_deployed === 1 || pet2.is_deployed === 1) {
-                await interaction.reply({ content: '❌ Không thể lai tạo linh thú đang xuất chiến! Hãy thu hồi về trước.', ephemeral: true });
+                await interaction.editReply({ content: '❌ Không thể lai tạo linh thú đang xuất chiến! Hãy thu hồi về trước.' });
                 return;
             }
             if (pet1.gender === pet2.gender) {
-                await interaction.reply({ content: '❌ Hai linh thú phải khác giới tính (một Đực, một Cái) mới có thể lai tạo!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Hai linh thú phải khác giới tính (một Đực, một Cái) mới có thể lai tạo!' });
                 return;
             }
             if (user.coin_ha_pham < 100000) {
-                await interaction.reply({ content: '❌ Đạo hữu không đủ 100,000 Hạ Phẩm Linh Thạch để tiến hành lai tạo!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Đạo hữu không đủ 100,000 Hạ Phẩm Linh Thạch để tiến hành lai tạo!' });
                 return;
             }
             const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
             const r1 = rarityOrder.indexOf(pet1.rarity);
             const r2 = rarityOrder.indexOf(pet2.rarity);
             if (r1 !== r2) {
-                await interaction.reply({ content: `❌ Hai linh thú phải cùng phẩm chất (Cấp độ hiện tại: **${pet1.rarity.toUpperCase()}** vs **${pet2.rarity.toUpperCase()}**)!`, ephemeral: true });
+                await interaction.editReply({ content: `❌ Hai linh thú phải cùng phẩm chất (Cấp độ hiện tại: **${pet1.rarity.toUpperCase()}** vs **${pet2.rarity.toUpperCase()}**)!` });
                 return;
             }
             // Phẩm chất con = phẩm chất cha mẹ + có 15% cơ hội dị biến lên phẩm cao hơn
@@ -379,7 +382,7 @@ class SungThuCommand extends Command_1.Command {
                 ? `
 🌟 **Dị Biến Xảy Ra!** Phẩm chất vượt trội: **${childRarity.toUpperCase()}** (tăng từ ${pet1.rarity.toUpperCase()})!`
                 : '';
-            await interaction.reply({
+            await interaction.editReply({
                 content: [
                     `🐉 **LAI TẠO THÀNH CÔNG!** (-100,000 LT)`,
                     ``,
@@ -399,17 +402,17 @@ class SungThuCommand extends Command_1.Command {
             const mainId = interaction.options.getInteger('main_id', true);
             const foodId = interaction.options.getInteger('food_id', true);
             if (mainId === foodId) {
-                await interaction.reply({ content: '❌ Không thể thôn phệ chính mình!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Không thể thôn phệ chính mình!' });
                 return;
             }
             const mainPet = database_1.default.prepare('SELECT * FROM pets WHERE id = ? AND user_id = ?').get(mainId, userId);
             const foodPet = database_1.default.prepare('SELECT * FROM pets WHERE id = ? AND user_id = ?').get(foodId, userId);
             if (!mainPet || !foodPet) {
-                await interaction.reply({ content: '❌ Không tìm thấy sủng thú tương ứng!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Không tìm thấy sủng thú tương ứng!' });
                 return;
             }
             if (foodPet.is_deployed === 1) {
-                await interaction.reply({ content: '❌ Linh thú bị thôn phệ đang xuất chiến, hãy thu hồi về trước.', ephemeral: true });
+                await interaction.editReply({ content: '❌ Linh thú bị thôn phệ đang xuất chiến, hãy thu hồi về trước.' });
                 return;
             }
             // Update mutations
@@ -419,14 +422,14 @@ class SungThuCommand extends Command_1.Command {
             }
             catch (e) { }
             if (mutations.stars >= 5) {
-                await interaction.reply({ content: '❌ Linh thú này đã đạt tối đa Tinh Túc (5 Sao)! Không thể thôn phệ thêm.', ephemeral: true });
+                await interaction.editReply({ content: '❌ Linh thú này đã đạt tối đa Tinh Túc (5 Sao)! Không thể thôn phệ thêm.' });
                 return;
             }
             const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
             const rMain = rarityOrder.indexOf(mainPet.rarity);
             const rFood = rarityOrder.indexOf(foodPet.rarity);
             if (rFood < rMain) {
-                await interaction.reply({ content: '❌ Thức ăn thôn phệ phải có phẩm chất BẰNG HOẶC CAO HƠN chủ thú!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Thức ăn thôn phệ phải có phẩm chất BẰNG HOẶC CAO HƠN chủ thú!' });
                 return;
             }
             const addedAtk = Math.round(foodPet.base_atk * 0.2);
@@ -440,7 +443,7 @@ class SungThuCommand extends Command_1.Command {
                 database_1.default.prepare('DELETE FROM pets WHERE id = ?').run(foodId);
                 database_1.default.prepare('UPDATE pets SET mutations = ? WHERE id = ?').run(JSON.stringify(mutations), mainId);
             })();
-            await interaction.reply({
+            await interaction.editReply({
                 content: `🌀 **THÔN PHỆ THÀNH CÔNG!**\n\nLinh thú **${mainPet.name}** đã cắn nuốt **${foodPet.name}** và ngưng tụ thêm 1 Tinh Túc!\n\n⭐ **Cảnh Giới Tinh Túc:** ${mutations.stars} Sao\n⚔️ **Chỉ Số Đột Phá:** +${addedAtk} ATK | +${addedDef} DEF | +${addedHp} HP`
             });
             return;
@@ -477,25 +480,25 @@ class SungThuCommand extends Command_1.Command {
             const petId = interaction.options.getInteger('pet_id', true);
             const pet = database_1.default.prepare('SELECT * FROM pets WHERE id = ? AND user_id = ?').get(petId, userId);
             if (!pet) {
-                await interaction.reply({ content: '❌ Linh thú không tồn tại!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Linh thú không tồn tại!' });
                 return;
             }
             if (pet.level < 70) {
-                await interaction.reply({ content: `❌ **${pet.name}** chưa đạt cấp 70 để học kỹ năng mới! (Hiện cấp **${pet.level}**)`, ephemeral: true });
+                await interaction.editReply({ content: `❌ **${pet.name}** chưa đạt cấp 70 để học kỹ năng mới! (Hiện cấp **${pet.level}**)` });
                 return;
             }
             const currentSkills = JSON.parse(pet.skills || '[]');
             if (currentSkills.length >= 2) {
-                await interaction.reply({ content: `❌ **${pet.name}** đã có 2 kỹ năng, không thể học thêm!`, ephemeral: true });
+                await interaction.editReply({ content: `❌ **${pet.name}** đã có 2 kỹ năng, không thể học thêm!` });
                 return;
             }
             if (user.coin_ha_pham < 5000) {
-                await interaction.reply({ content: '❌ Đạo hữu không đủ 5,000 Linh Thạch để học kỹ năng!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Đạo hữu không đủ 5,000 Linh Thạch để học kỹ năng!' });
                 return;
             }
             const availableSkills = Object.keys(exports.PET_SKILLS).filter(s => !currentSkills.includes(s));
             if (availableSkills.length === 0) {
-                await interaction.reply({ content: '❌ Linh thú đã học hết các kỹ năng hiện có!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Linh thú đã học hết các kỹ năng hiện có!' });
                 return;
             }
             const randomSkill = availableSkills[Math.floor(Math.random() * availableSkills.length)];
@@ -505,7 +508,7 @@ class SungThuCommand extends Command_1.Command {
                 database_1.default.prepare('UPDATE pets SET skills = ? WHERE id = ?').run(JSON.stringify(currentSkills), petId);
                 UserRepository_1.userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - 5000 });
             })();
-            await interaction.reply({
+            await interaction.editReply({
                 content: `📚 **HỌC KỸ NĂNG THÀNH CÔNG!** (-5,000 LT)\n\n🐉 Linh thú **${pet.name}** đã lĩnh hội kỹ năng mới!\n\n${skillDef.emoji} **${skillDef.name}**: ${skillDef.description}`
             });
             return;

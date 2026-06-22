@@ -136,6 +136,9 @@ export function initDatabase() {
   if (!userColNames.includes('qi_deviation_until')) {
     db.exec("ALTER TABLE users ADD COLUMN qi_deviation_until INTEGER DEFAULT 0");
   }
+  if (!userColNames.includes('consecutive_fails')) {
+    db.exec("ALTER TABLE users ADD COLUMN consecutive_fails INTEGER DEFAULT 0");
+  }
 
   // Migration: thêm cột mới cho inventories
   try {
@@ -809,6 +812,9 @@ export function initDatabase() {
   if (!sectColumnNames.includes('last_weekly_bonus_at')) {
     db.exec("ALTER TABLE sects ADD COLUMN last_weekly_bonus_at INTEGER DEFAULT 0");
   }
+  if (!sectColumnNames.includes('deputy_id')) {
+    db.exec("ALTER TABLE sects ADD COLUMN deputy_id TEXT DEFAULT NULL");
+  }
 
   // Cập nhật cấu trúc bảng inventories nếu thiếu cột stars, durability
   const invColumns = db.prepare("PRAGMA table_info(inventories)").all() as any[];
@@ -1419,6 +1425,28 @@ export function initDatabase() {
         if (row.reward_coins > 0) awardCoinsStmt.run(row.reward_coins, row.user_id);
       }
       console.log(`🔧 Retroactive fix: đã cấp thưởng cho ${brokenAchievements.length} thành tựu chưa nhận.`);
+    }
+  } catch (e) {
+    // Table may not exist yet
+  }
+
+  // Retroactive fix: Thiên Mệnh Chi Tử (tl_19) — user có bloodline nhưng chưa nhận thành tựu
+  try {
+    const bloodlineUsers = db.prepare(`
+      SELECT ub.user_id FROM user_bloodlines ub
+      LEFT JOIN user_achievements ua ON ua.user_id = ub.user_id AND ua.achievement_id = 'tl_19'
+      WHERE ua.id IS NULL OR ua.is_completed = 0
+    `).all() as { user_id: string }[];
+
+    if (bloodlineUsers.length > 0) {
+      const now = Math.floor(Date.now() / 1000);
+      const insertStmt = db.prepare(`INSERT OR IGNORE INTO user_achievements (user_id, achievement_id, progress, is_completed, completed_at) VALUES (?, 'tl_19', 1, 1, ?)`);
+      const updateStmt = db.prepare(`UPDATE user_achievements SET progress = 1, is_completed = 1, completed_at = ? WHERE user_id = ? AND achievement_id = 'tl_19'`);
+      for (const row of bloodlineUsers) {
+        insertStmt.run(row.user_id, now);
+        updateStmt.run(now, row.user_id);
+      }
+      console.log(`🔧 Retroactive fix: đã cập nhật thành tựu Thiên Mệnh Chi Tử cho ${bloodlineUsers.length} user.`);
     }
   } catch (e) {
     // Table may not exist yet
@@ -2653,6 +2681,28 @@ function seedItems() {
       description: 'Cực phẩm đan dược bồi bổ khí lực, khôi phục +200 Thể Lực (Stamina). Limit: 3 viên/ngày.',
       stats: JSON.stringify({ restore_stamina: 200 }),
       value_ha_pham: 3000,
+      usable: 1,
+      equipable: 0
+    },
+    {
+      id: 'pill_linh_tuyen',
+      name: 'Linh Tuyền Phù',
+      type: 'pill',
+      rarity: 'legendary',
+      description: 'Phù lục kết tinh linh khí thiên địa, phục hồi tức thì +200 Thể Lực mà không có giới hạn sử dụng.',
+      stats: JSON.stringify({ restore_stamina: 200 }),
+      value_ha_pham: 5000,
+      usable: 1,
+      equipable: 0
+    },
+    {
+      id: 'pill_nhan_tu',
+      name: 'Nhàn Tu Đan',
+      type: 'pill',
+      rarity: 'legendary',
+      description: 'Đan dược cổ truyền giúp tâm trí an định, tu luyện ngoại tuyến không bị suy giảm hiệu suất trong 24 giờ.',
+      stats: JSON.stringify({ idle_no_decay: 86400 }),
+      value_ha_pham: 8000,
       usable: 1,
       equipable: 0
     },

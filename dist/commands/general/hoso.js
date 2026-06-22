@@ -578,15 +578,42 @@ function getHoSoAllComponents(userId, activeTab = 'chiso') {
     }
     return components;
 }
+const cleanedUsers = new Set();
 function getInventoryEmbed(userId, page) {
     const ITEMS_PER_PAGE = 5;
-    const totalItemsCount = InventoryRepository_1.inventoryRepository.getUserInventoryCount(userId);
+    // Tự động xoá vật phẩm bất thường (chỉ chạy 1 lần mỗi session bot)
+    if (!cleanedUsers.has(userId)) {
+        cleanedUsers.add(userId);
+        try {
+            InventoryRepository_1.inventoryRepository.cleanupOrphanItems(userId);
+        }
+        catch (e) {
+            console.error('[getInventoryEmbed] Lỗi cleanup orphan:', e);
+        }
+    }
+    let totalItemsCount = 0;
+    try {
+        totalItemsCount = InventoryRepository_1.inventoryRepository.getUserInventoryCount(userId);
+    }
+    catch (e) {
+        console.error('[getInventoryEmbed] Lỗi đếm inventory:', e);
+        totalItemsCount = 0;
+    }
     const totalPages = Math.max(Math.ceil(totalItemsCount / ITEMS_PER_PAGE), 1);
     const cappedPage = Math.min(Math.max(page, 1), totalPages);
     const offset = (cappedPage - 1) * ITEMS_PER_PAGE;
-    const itemsOnPage = InventoryRepository_1.inventoryRepository.getUserInventoryPaginated(userId, ITEMS_PER_PAGE, offset);
+    let itemsOnPage = [];
+    try {
+        itemsOnPage = InventoryRepository_1.inventoryRepository.getUserInventoryPaginated(userId, ITEMS_PER_PAGE, offset);
+    }
+    catch (e) {
+        console.error('[getInventoryEmbed] Lỗi lấy inventory:', e);
+        itemsOnPage = [];
+    }
+    // Filter out items with null name (orphan items that slipped through)
+    itemsOnPage = itemsOnPage.filter(item => item && item.item_id);
     let description = `*Hành trang chứa đựng thiên tài địa bảo, trang bị và linh dược mà đạo hữu đã tích lũy trên đường tu tiên.*\n\n`;
-    if (totalItemsCount === 0) {
+    if (totalItemsCount === 0 || itemsOnPage.length === 0) {
         description += `*Hiện tại trống trơn. Hãy chăm chỉ dùng \`/lamviec\` hoặc chinh phục Bí Cảnh để tích lũy!*`;
     }
     else {
@@ -617,14 +644,15 @@ function getInventoryEmbed(userId, page) {
                 }
                 catch (e) { }
             }
-            description += `**${idx}.** ${rarityTag}**${item.name}${enhanceText}** x${item.quantity}${starText}${equippedText}${itemStats}\n*└ Mã dùng: \`${item.item_id}\` | Mã hành trang: \`${item.id}\`*\n\n`;
+            const itemName = item.name || item.item_id || 'Vật phẩm lạ';
+            description += `**${idx}.** ${rarityTag}**${itemName}${enhanceText}** x${item.quantity}${starText}${equippedText}${itemStats}\n*└ Mã: \`${item.item_id}\`*\n\n`;
         });
     }
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`💼 HÀNH TRANG (Trang ${cappedPage}/${totalPages})`)
         .setColor('#f1c40f')
         .setDescription(description)
-        .setFooter({ text: '/dung dùng Mã Vật Phẩm | /trangbi, /suachua, /vanbaolau dùng Mã Hành Trang' })
+        .setFooter({ text: 'Dùng Mã vật phẩm cho tất cả lệnh: /dung, /trangbi, /suachua, /vanbaolau' })
         .setTimestamp();
     return { embed, totalPages, itemsOnPage };
 }
@@ -648,28 +676,36 @@ function getInventoryComponents(userId, page, totalPages, itemsOnPage) {
         const selectMenu = new discord_js_1.StringSelectMenuBuilder()
             .setCustomId(`invselect_${page}_${userId}`)
             .setPlaceholder('⚡ Nhấp chọn vật phẩm: Sử Dụng / Trang Bị / Tháo');
-        for (const item of interactiveItems) {
+        let optionCount = 0;
+        const seenValues = new Set();
+        for (const item of interactiveItems.slice(0, 25)) {
             let actionLabel = '';
             let value = '';
             if (item.is_equipped === 1) {
-                actionLabel = `Tháo: ${item.name}`;
+                actionLabel = `Tháo: ${item.name || 'Vật phẩm'}`;
                 value = `unequip_${item.id}`;
             }
             else if (item.equipable === 1) {
-                actionLabel = `Mặc: ${item.name}`;
+                actionLabel = `Mặc: ${item.name || 'Vật phẩm'}`;
                 value = `equip_${item.id}`;
             }
             else if (item.usable === 1) {
-                actionLabel = `Dùng: ${item.name} (SL: ${item.quantity})`;
+                actionLabel = `Dùng: ${item.name || 'Vật phẩm'} (SL: ${item.quantity})`;
                 value = `use_${item.id}`;
             }
+            if (!actionLabel || !value || seenValues.has(value))
+                continue;
+            seenValues.add(value);
             selectMenu.addOptions(new discord_js_1.StringSelectMenuOptionBuilder()
                 .setLabel(actionLabel.substring(0, 100))
-                .setDescription(item.description.substring(0, 100))
+                .setDescription((item.description || 'Không có mô tả').substring(0, 100))
                 .setValue(value));
+            optionCount++;
         }
-        const selectRow = new discord_js_1.ActionRowBuilder().addComponents(selectMenu);
-        rows.push(selectRow);
+        if (optionCount > 0) {
+            const selectRow = new discord_js_1.ActionRowBuilder().addComponents(selectMenu);
+            rows.push(selectRow);
+        }
     }
     return rows;
 }

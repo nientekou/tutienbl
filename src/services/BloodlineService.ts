@@ -1,6 +1,7 @@
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
+import { achievementService } from './AchievementService';
 
 export interface Bloodline {
   id: string;
@@ -64,6 +65,9 @@ class BloodlineService {
       `).run(userId, bloodlineId, now);
     })();
 
+    // Kiểm tra thành tựu Thiên Mệnh Chi Tử
+    achievementService.setProgress(userId, 'tl_19', 1);
+
     return { success: true, message: `🩸 Chúc mừng! Đạo hữu đã giác tỉnh thành công **${bloodline.name}**!` };
   }
 
@@ -99,6 +103,9 @@ class BloodlineService {
         WHERE user_id = ?
       `).run(newBloodlineId, now, userId);
     })();
+
+    // Kiểm tra thành tựu Thiên Mệnh Chi Tử
+    achievementService.setProgress(userId, 'tl_19', 1);
 
     return { success: true, message: `🩸 Đạo hữu đã chuyển đổi thành công sang **${bloodline.name}**. Huyết mạch tu vi quay về cấp 1!` };
   }

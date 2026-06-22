@@ -24,7 +24,9 @@ class ThanhTuuCommand extends Command_1.Command {
             .addSubcommand(sub => sub.setName('danhsach')
             .setDescription('Xem tổng quan tất cả thành tựu đã đạt được.'))
             .addSubcommand(sub => sub.setName('danhhieu')
-            .setDescription('Xem danh sách danh hiệu đã mở khóa.')));
+            .setDescription('Xem danh sách danh hiệu đã mở khóa.'))
+            .addSubcommand(sub => sub.setName('fix')
+            .setDescription('Kiểm tra và fix thành tựu bị kẹt (đủ điều kiện nhưng chưa hoàn thành).')));
     }
     async execute(client, interaction) {
         const userId = interaction.user.id;
@@ -34,6 +36,8 @@ class ThanhTuuCommand extends Command_1.Command {
             return;
         }
         const sub = interaction.options.getSubcommand();
+        // Tính lại thành tựu Ý Cảnh khi xem (fix progress không update)
+        AchievementService_1.achievementService.recalculateYCanhAchievement(userId);
         if (sub === 'xem') {
             await this.handleXem(interaction, userId);
         }
@@ -42,6 +46,9 @@ class ThanhTuuCommand extends Command_1.Command {
         }
         else if (sub === 'danhhieu') {
             await this.handleDanhHieu(interaction, userId);
+        }
+        else if (sub === 'fix') {
+            await this.handleFix(interaction, userId);
         }
     }
     /**
@@ -192,8 +199,53 @@ class ThanhTuuCommand extends Command_1.Command {
             }
             embed.addFields({ name: '🔒 Chưa mở khóa', value: lockedText, inline: false });
         }
-        embed.setFooter({ text: 'Hoàn thành thêm thành tựu để mở khóa danh hiệu mới!' });
-        await interaction.reply({ embeds: [embed] });
+        embed.setFooter({ text: 'Nhấn nút bên dưới để đổi danh hiệu!' });
+        const components = [];
+        if (titles.length > 0) {
+            const rows = [];
+            let currentRow = new discord_js_1.ActionRowBuilder();
+            for (let i = 0; i < Math.min(titles.length, 25); i++) {
+                const t = titles[i];
+                const isActive = t.title === user.title;
+                const btn = new discord_js_1.ButtonBuilder()
+                    .setCustomId(`titleswitch_${t.title.replace(/\s/g, '_')}`)
+                    .setLabel(isActive ? `⭐ ${t.title}` : t.title)
+                    .setStyle(isActive ? discord_js_1.ButtonStyle.Success : discord_js_1.ButtonStyle.Secondary);
+                currentRow.addComponents(btn);
+                if (currentRow.components.length === 5) {
+                    rows.push(currentRow);
+                    currentRow = new discord_js_1.ActionRowBuilder();
+                }
+            }
+            if (currentRow.components.length > 0) {
+                rows.push(currentRow);
+            }
+            components.push(...rows);
+        }
+        await interaction.reply({ embeds: [embed], components });
+    }
+    /**
+     * Fix thành tựu bị kẹt
+     */
+    async handleFix(interaction, userId) {
+        await interaction.deferReply({ ephemeral: true });
+        const fixed = AchievementService_1.achievementService.fixStuckAchievements(userId);
+        if (fixed.length === 0) {
+            await interaction.editReply({ content: '✅ Không có thành tựu nào bị kẹt. Tất cả thành tựu đều đã được cập nhật đúng!' });
+            return;
+        }
+        let msg = `🔧 **ĐÃ FIX ${fixed.length} THÀNH TỰU:**\n\n`;
+        for (const a of fixed) {
+            const rewardDetails = [];
+            if (a.reward_exp > 0)
+                rewardDetails.push(`+${a.reward_exp} Tu Vi`);
+            if (a.reward_coins > 0)
+                rewardDetails.push(`+${a.reward_coins} LT`);
+            if (a.reward_title)
+                rewardDetails.push(`Danh hiệu: ${a.reward_title}`);
+            msg += `${a.icon} **${a.name}** — ${rewardDetails.length > 0 ? rewardDetails.join(', ') : 'Đã hoàn thành'}\n`;
+        }
+        await interaction.editReply({ content: msg });
     }
     /**
      * Xây dựng thanh tiến trình cho danh mục

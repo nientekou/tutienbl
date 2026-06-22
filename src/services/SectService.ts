@@ -661,7 +661,7 @@ export class SectService {
       SELECT s.*, 
         (SELECT COUNT(*) FROM users u WHERE u.sect_id = s.id) as member_count,
         (SELECT name FROM users u WHERE u.discord_id = s.master_id) as master_name
-      FROM sects s
+      from sects s
       ORDER BY s.level DESC, s.exp DESC
       LIMIT 10
     `).all() as any[];
@@ -674,6 +674,51 @@ export class SectService {
       member_limit: item.level * 5,
       master_name: item.master_name || 'Vô danh'
     }));
+  }
+
+  /**
+   * Chỉ định Phó Tông Chủ
+   */
+  public assignDeputy(masterId: string, deputyId: string): { success: boolean; message: string } {
+    const master = userRepository.get(masterId);
+    if (!master || !master.sect_id) return { success: false, message: 'Đạo hữu không có Tông Môn!' };
+
+    const sect = db.prepare('SELECT * FROM sects WHERE id = ?').get(master.sect_id) as any;
+    if (!sect || sect.master_id !== masterId) {
+      return { success: false, message: 'Chỉ Tông Chủ mới có thể chỉ định Phó Tông Chủ!' };
+    }
+
+    const deputy = userRepository.get(deputyId);
+    if (!deputy || deputy.sect_id !== master.sect_id) {
+      return { success: false, message: 'Người được chỉ định phải là thành viên cùng Tông Môn!' };
+    }
+
+    db.prepare('UPDATE sects SET deputy_id = ? WHERE id = ?').run(deputyId, master.sect_id);
+    return { success: true, message: `✅ Đã chỉ định **${deputy.name}** làm Phó Tông Chủ!` };
+  }
+
+  /**
+   * Truyền ngôi Tông Môn
+   */
+  public transferLeadership(masterId: string, targetId: string): { success: boolean; message: string } {
+    const master = userRepository.get(masterId);
+    if (!master || !master.sect_id) return { success: false, message: 'Đạo hữu không có Tông Môn!' };
+
+    const sect = db.prepare('SELECT * FROM sects WHERE id = ?').get(master.sect_id) as any;
+    if (!sect || sect.master_id !== masterId) {
+      return { success: false, message: 'Chỉ Tông Chủ mới có thể truyền ngôi!' };
+    }
+
+    const target = userRepository.get(targetId);
+    if (!target || target.sect_id !== master.sect_id) {
+      return { success: false, message: 'Người nhận ngôi phải là thành viên cùng Tông Môn!' };
+    }
+
+    db.prepare('UPDATE sects SET master_id = ?, deputy_id = NULL WHERE id = ?').run(targetId, master.sect_id);
+    userRepository.update(masterId, { sect_role: 'elder' });
+    userRepository.update(targetId, { sect_role: 'master' });
+
+    return { success: true, message: `👑 Đã truyền ngôi Tông Chủ cho **${target.name}**! Đạo hữu giờ là Trưởng Lão của tông môn.` };
   }
 }
 

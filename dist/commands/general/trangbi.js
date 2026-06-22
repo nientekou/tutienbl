@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
+const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const EquipmentService_1 = require("../../services/EquipmentService");
 class TrangBiCommand extends Command_1.Command {
     constructor() {
@@ -12,9 +13,9 @@ class TrangBiCommand extends Command_1.Command {
             .addSubcommand(sub => sub
             .setName('giamdinh')
             .setDescription('Giám định phôi rèn đúc thành trang bị thực tế (phí 50 Linh thạch).')
-            .addIntegerOption(opt => opt
-            .setName('inventory_id')
-            .setDescription('Mã hành trang của phôi trang bị cần giám định (xem trong /tuido).')
+            .addStringOption(opt => opt
+            .setName('item_id')
+            .setDescription('Mã vật phẩm cần giám định (xem trong /tuido).')
             .setRequired(true))
             .addIntegerOption(opt => opt
             .setName('soluong')
@@ -26,9 +27,9 @@ class TrangBiCommand extends Command_1.Command {
             .addSubcommand(sub => sub
             .setName('phangiai')
             .setDescription('Phân giải trang bị không dùng để lấy Mảnh Trang Bị.')
-            .addIntegerOption(opt => opt
-            .setName('inventory_id')
-            .setDescription('Mã hành trang của trang bị cần phân giải.')
+            .addStringOption(opt => opt
+            .setName('item_id')
+            .setDescription('Mã vật phẩm cần phân giải.')
             .setRequired(true))
             .addIntegerOption(opt => opt
             .setName('soluong')
@@ -37,9 +38,9 @@ class TrangBiCommand extends Command_1.Command {
             .addSubcommand(sub => sub
             .setName('nangsao')
             .setDescription('Sử dụng Mảnh Trang Bị để nâng cấp sao cho trang bị (+20% chỉ số mỗi sao, max 5 sao).')
-            .addIntegerOption(opt => opt
-            .setName('inventory_id')
-            .setDescription('Mã hành trang của trang bị muốn nâng sao.')
+            .addStringOption(opt => opt
+            .setName('item_id')
+            .setDescription('Mã vật phẩm muốn nâng sao.')
             .setRequired(true)))
             .addSubcommand(sub => sub
             .setName('ghep')
@@ -67,9 +68,14 @@ class TrangBiCommand extends Command_1.Command {
         }
         const sub = interaction.options.getSubcommand();
         if (sub === 'giamdinh') {
-            const invId = interaction.options.getInteger('inventory_id', true);
+            const itemId = interaction.options.getString('item_id', true);
             const qty = interaction.options.getInteger('soluong') || 1;
-            const res = EquipmentService_1.equipmentService.appraisePhoi(userId, invId, qty);
+            const invItem = InventoryRepository_1.inventoryRepository.getByUserIdAndItemId(userId, itemId);
+            if (!invItem) {
+                await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
+                return;
+            }
+            const res = EquipmentService_1.equipmentService.appraisePhoi(userId, invItem.id, qty);
             if (res.success) {
                 await interaction.reply({ content: res.message });
             }
@@ -89,9 +95,14 @@ class TrangBiCommand extends Command_1.Command {
             return;
         }
         if (sub === 'phangiai') {
-            const invId = interaction.options.getInteger('inventory_id', true);
+            const itemId = interaction.options.getString('item_id', true);
             const qty = interaction.options.getInteger('soluong') || 1;
-            const res = EquipmentService_1.equipmentService.salvageEquipment(userId, invId, qty);
+            const invItem = InventoryRepository_1.inventoryRepository.getByUserIdAndItemId(userId, itemId);
+            if (!invItem) {
+                await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
+                return;
+            }
+            const res = EquipmentService_1.equipmentService.salvageEquipment(userId, invItem.id, qty);
             if (res.success) {
                 await interaction.reply({ content: res.message });
             }
@@ -101,8 +112,13 @@ class TrangBiCommand extends Command_1.Command {
             return;
         }
         if (sub === 'nangsao') {
-            const invId = interaction.options.getInteger('inventory_id', true);
-            const res = EquipmentService_1.equipmentService.upgradeStars(userId, invId);
+            const itemId = interaction.options.getString('item_id', true);
+            const invItem = InventoryRepository_1.inventoryRepository.getByUserIdAndItemId(userId, itemId);
+            if (!invItem) {
+                await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
+                return;
+            }
+            const res = EquipmentService_1.equipmentService.upgradeStars(userId, invItem.id);
             if (res.success) {
                 await interaction.reply({ content: res.message });
             }
