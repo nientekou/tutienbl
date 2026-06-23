@@ -1,6 +1,7 @@
 import { coupleRepository, Couple } from '../database/repositories/CoupleRepository';
 import { userRepository } from '../database/repositories/UserRepository';
 import db from '../database/database';
+import { ITEMS } from '../config/itemConstants';
 
 class CoupleService {
   // Thực hiện song tu
@@ -65,7 +66,7 @@ class CoupleService {
       if (!u1 || !u2) continue;
 
       let yCanh1: any = {};
-      try { yCanh1 = JSON.parse(u1.y_canh || '{}'); } catch (e) {}
+      try { yCanh1 = JSON.parse(u1.y_canh || '{}'); } catch (e) { console.warn('[CoupleService] Failed to parse y_canh for user1 anniversary:', e); }
       const msKey = `anniversary_${ms.days}`;
       if (yCanh1[msKey]) continue; // Đã nhận rồi
 
@@ -79,7 +80,7 @@ class CoupleService {
           coin_ha_pham: u1.coin_ha_pham + ms.reward,
           knb: u1.knb + ms.knb
         });
-        inventoryRepository.addItem(u1.discord_id, 'pill_alchemy_tuvi', 5);
+        inventoryRepository.addItem(u1.discord_id, ITEMS.PILL_ALCHEMY_TUVI, 5);
         db.prepare("INSERT OR IGNORE INTO user_titles (user_id, title, source, unlocked_at) VALUES (?, ?, 'anniversary', ?)").run(u1.discord_id, ms.title, nowTs);
 
         // User 2
@@ -87,14 +88,14 @@ class CoupleService {
           coin_ha_pham: u2.coin_ha_pham + ms.reward,
           knb: u2.knb + ms.knb
         });
-        inventoryRepository.addItem(u2.discord_id, 'pill_alchemy_tuvi', 5);
+        inventoryRepository.addItem(u2.discord_id, ITEMS.PILL_ALCHEMY_TUVI, 5);
         db.prepare("INSERT OR IGNORE INTO user_titles (user_id, title, source, unlocked_at) VALUES (?, ?, 'anniversary', ?)").run(u2.discord_id, ms.title, nowTs);
 
         // Đánh dấu đã nhận trong y_canh của cả hai
         yCanh1[msKey] = true;
         userRepository.update(u1.discord_id, { y_canh: JSON.stringify(yCanh1) });
         let yCanh2: any = {};
-        try { yCanh2 = JSON.parse(u2.y_canh || '{}'); } catch (e) {}
+        try { yCanh2 = JSON.parse(u2.y_canh || '{}'); } catch (e) { console.warn('[CoupleService] Failed to parse y_canh for user2 anniversary:', e); }
         yCanh2[msKey] = true;
         userRepository.update(u2.discord_id, { y_canh: JSON.stringify(yCanh2) });
       })();

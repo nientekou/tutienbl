@@ -3,6 +3,14 @@ import { config } from './config';
 import chalk from 'chalk';
 import Table from 'cli-table3';
 
+// Global exception handlers
+process.on('unhandledRejection', (reason, promise) => {
+  console.error(chalk.red('[UNHANDLED REJECTION]'), reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error(chalk.red('[UNCAUGHT EXCEPTION]'), err);
+});
+
 console.clear();
 console.log(chalk.cyan.bold('\n============================================='));
 console.log(chalk.cyan.bold('          HỆ THỐNG TU TIÊN BOT V7.0         '));

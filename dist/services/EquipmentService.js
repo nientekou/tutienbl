@@ -7,6 +7,7 @@ exports.equipmentService = exports.EquipmentService = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
+const itemConstants_1 = require("../config/itemConstants");
 class EquipmentService {
     /**
      * Giám Định Phôi Trang Bị
@@ -40,26 +41,26 @@ class EquipmentService {
         for (let i = 0; i < actualQty; i++) {
             let targetItemId = '';
             if (phoiType === 'weapon') {
-                targetItemId = `weapon_sword_${phoiGrade}`;
+                targetItemId = (0, itemConstants_1.getWeaponByGrade)(phoiGrade);
             }
             else if (phoiType === 'armor') {
-                targetItemId = `armor_robe_${phoiGrade}`;
+                targetItemId = (0, itemConstants_1.getArmorByGrade)(phoiGrade);
             }
             else if (phoiType === 'accessory') {
                 const rand = Math.random();
                 if (rand < 0.33)
-                    targetItemId = 'ring_1';
+                    targetItemId = itemConstants_1.ITEMS.RING_1;
                 else if (rand < 0.66)
-                    targetItemId = 'necklace_1';
+                    targetItemId = itemConstants_1.ITEMS.NECKLACE_1;
                 else
-                    targetItemId = 'amulet_1';
+                    targetItemId = itemConstants_1.ITEMS.AMULET_1;
             }
             else if (phoiType === 'mount') {
                 const rand = Math.random();
                 if (rand < 0.5)
-                    targetItemId = 'mount_sword_1';
+                    targetItemId = itemConstants_1.ITEMS.MOUNT_SWORD_1;
                 else
-                    targetItemId = 'mount_beast_1';
+                    targetItemId = itemConstants_1.ITEMS.MOUNT_BEAST_1;
             }
             const staticItem = database_1.default.prepare('SELECT name, rarity FROM items WHERE id = ?').get(targetItemId);
             if (!staticItem) {
@@ -140,7 +141,7 @@ class EquipmentService {
         }
         const salvageTx = database_1.default.transaction(() => {
             InventoryRepository_1.inventoryRepository.removeItemById(inventoryId, actualQty);
-            InventoryRepository_1.inventoryRepository.addItem(userId, 'item_fragment', fragmentsGained);
+            InventoryRepository_1.inventoryRepository.addItem(userId, itemConstants_1.ITEMS.ITEM_FRAGMENT, fragmentsGained);
         });
         salvageTx();
         return {
@@ -219,7 +220,7 @@ class EquipmentService {
                     InventoryRepository_1.inventoryRepository.removeItemById(invId, it.quantity);
                 }
             }
-            InventoryRepository_1.inventoryRepository.addItem(userId, 'item_fragment', totalFragmentsGained);
+            InventoryRepository_1.inventoryRepository.addItem(userId, itemConstants_1.ITEMS.ITEM_FRAGMENT, totalFragmentsGained);
         });
         salvageTx();
         return {
@@ -247,13 +248,13 @@ class EquipmentService {
         const cost = starCosts[currentStars];
         // Đếm số mảnh hiện có
         const userInventory = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-        const fragments = userInventory.find(i => i.item_id === 'item_fragment');
+        const fragments = userInventory.find(i => i.item_id === itemConstants_1.ITEMS.ITEM_FRAGMENT);
         if (!fragments || fragments.quantity < cost) {
             return { success: false, message: `Không đủ Mảnh Trang Bị để nâng sao! (Yêu cầu: **${cost}**, Đạo hữu hiện có: **${fragments ? fragments.quantity : 0}** mảnh).` };
         }
         const nextStars = currentStars + 1;
         const upgradeTx = database_1.default.transaction(() => {
-            InventoryRepository_1.inventoryRepository.removeItem(userId, 'item_fragment', cost);
+            InventoryRepository_1.inventoryRepository.removeItem(userId, itemConstants_1.ITEMS.ITEM_FRAGMENT, cost);
             InventoryRepository_1.inventoryRepository.updateStars(inventoryId, nextStars);
         });
         upgradeTx();
@@ -277,21 +278,21 @@ class EquipmentService {
         if (rarity === 'SSS')
             cost = 1000;
         const userInventory = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-        const fragments = userInventory.find(i => i.item_id === 'item_fragment');
+        const fragments = userInventory.find(i => i.item_id === itemConstants_1.ITEMS.ITEM_FRAGMENT);
         if (!fragments || fragments.quantity < cost) {
             return { success: false, message: `Không đủ Mảnh Trang Bị để ghép! (Yêu cầu: **${cost}**, Hiện có: **${fragments ? fragments.quantity : 0}** mảnh).` };
         }
         // Chọn ngẫu nhiên loại trang bị và rèn
         const phoiGrade = rarity.toLowerCase(); // 's', 'ss', 'sss'
         const isWeapon = Math.random() < 0.5;
-        const targetItemId = isWeapon ? `weapon_sword_${phoiGrade}` : `armor_robe_${phoiGrade}`;
+        const targetItemId = isWeapon ? (0, itemConstants_1.getWeaponByGrade)(phoiGrade) : (0, itemConstants_1.getArmorByGrade)(phoiGrade);
         const staticItem = database_1.default.prepare('SELECT name FROM items WHERE id = ?').get(targetItemId);
         if (!staticItem) {
             return { success: false, message: 'Công thức ghép bị thất lạc!' };
         }
         const customStats = this.generateCustomStats(phoiGrade);
         const craftTx = database_1.default.transaction(() => {
-            InventoryRepository_1.inventoryRepository.removeItem(userId, 'item_fragment', cost);
+            InventoryRepository_1.inventoryRepository.removeItem(userId, itemConstants_1.ITEMS.ITEM_FRAGMENT, cost);
             InventoryRepository_1.inventoryRepository.addItem(userId, targetItemId, 1, customStats ? JSON.stringify(customStats) : null);
         });
         craftTx();
@@ -432,26 +433,26 @@ class EquipmentService {
             for (let i = 0; i < p.quantity; i++) {
                 let targetItemId = '';
                 if (phoiType === 'weapon') {
-                    targetItemId = `weapon_sword_${phoiGrade}`;
+                    targetItemId = (0, itemConstants_1.getWeaponByGrade)(phoiGrade);
                 }
                 else if (phoiType === 'armor') {
-                    targetItemId = `armor_robe_${phoiGrade}`;
+                    targetItemId = (0, itemConstants_1.getArmorByGrade)(phoiGrade);
                 }
                 else if (phoiType === 'accessory') {
                     const rand = Math.random();
                     if (rand < 0.33)
-                        targetItemId = 'ring_1';
+                        targetItemId = itemConstants_1.ITEMS.RING_1;
                     else if (rand < 0.66)
-                        targetItemId = 'necklace_1';
+                        targetItemId = itemConstants_1.ITEMS.NECKLACE_1;
                     else
-                        targetItemId = 'amulet_1';
+                        targetItemId = itemConstants_1.ITEMS.AMULET_1;
                 }
                 else if (phoiType === 'mount') {
                     const rand = Math.random();
                     if (rand < 0.5)
-                        targetItemId = 'mount_sword_1';
+                        targetItemId = itemConstants_1.ITEMS.MOUNT_SWORD_1;
                     else
-                        targetItemId = 'mount_beast_1';
+                        targetItemId = itemConstants_1.ITEMS.MOUNT_BEAST_1;
                 }
                 const customStats = this.generateCustomStats(phoiGrade);
                 itemsToAdd.push({

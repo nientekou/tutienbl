@@ -9,7 +9,7 @@ export default class QuyetAuCommand extends Command {
   constructor() {
     super(
       new SlashCommandBuilder()
-        .setName('quyetdau')
+        .setName('quyetau')
         .setDescription('⚔️ Đấu pháp Tam Hồi Linh Chiến - Quyết đấu 3 hiệp dùng chỉ số thực tế tu sĩ!')
         .addUserOption(option =>
           option
@@ -36,6 +36,7 @@ export default class QuyetAuCommand extends Command {
   }
 
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
+    await interaction.deferReply();
     const challengerId = interaction.user.id;
     const action = interaction.options.getString('action');
 
@@ -44,9 +45,8 @@ export default class QuyetAuCommand extends Command {
       const userId = interaction.options.getUser('tuser')?.id || challengerId;
       const user = userRepository.get(userId);
       if (!user) {
-        await interaction.reply({
-          content: '❌ Nhân vật của đạo hữu không tồn tại! Hãy dùng `/taonhanvat` để bắt đầu.',
-          ephemeral: true
+        await interaction.editReply({
+          content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy dùng `/taonhanvat` để bắt đầu.'
         });
         return;
       }
@@ -54,9 +54,8 @@ export default class QuyetAuCommand extends Command {
       const history = minigameService.getDuelHistory(userId, 1);
 
       if (history.records.length === 0) {
-        await interaction.reply({
+        await interaction.editReply({
           content: `📜 **${userId === challengerId ? 'Đạo hữu' : `<@${userId}>`}** chưa có trận quyết đấu nào! Hãy dùng \`/quyetau\` để khiêu chiến một tu sĩ khác.`,
-          ephemeral: userId !== challengerId
         });
         return;
       }
@@ -64,7 +63,7 @@ export default class QuyetAuCommand extends Command {
       const embed = this.buildDuelHistoryEmbed(history.records, userId, history.currentPage, history.totalPages, history.totalRecords);
       const row = this.buildDuelHistoryPagination(userId, history.currentPage, history.totalPages);
 
-      await interaction.reply({
+      await interaction.editReply({
         embeds: [embed],
         components: row ? [row] : []
       });
@@ -76,9 +75,8 @@ export default class QuyetAuCommand extends Command {
       const leaderboard = minigameService.getDuelLeaderboard(10, challengerId);
 
       if (leaderboard.entries.length === 0) {
-        await interaction.reply({
-          content: '📊 **Chưa có dữ liệu bảng xếp hạng!** Hãy dùng `/quyetau` để bắt đầu quyết đấu và tranh hạng.',
-          ephemeral: true
+        await interaction.editReply({
+          content: '📊 **Chưa có dữ liệu bảng xếp hạng!** Hãy dùng `/quyetau` để bắt đầu quyết đấu và tranh hạng.'
         });
         return;
       }
@@ -125,7 +123,7 @@ export default class QuyetAuCommand extends Command {
         });
       }
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
@@ -136,9 +134,8 @@ export default class QuyetAuCommand extends Command {
       const user = userRepository.get(userId);
 
       if (!user) {
-        await interaction.reply({
-          content: '❌ Nhân vật của đạo hữu không tồn tại! Hãy dùng `/taonhanvat` để bắt đầu.',
-          ephemeral: true
+        await interaction.editReply({
+          content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy dùng `/taonhanvat` để bắt đầu.'
         });
         return;
       }
@@ -146,9 +143,8 @@ export default class QuyetAuCommand extends Command {
       const stats = minigameService.getDuelStats(userId);
 
       if (stats.totalMatches === 0) {
-        await interaction.reply({
+        await interaction.editReply({
           content: `📊 **${userId === challengerId ? 'Đạo hữu' : user.name}** chưa có trận quyết đấu nào để thống kê! Hãy dùng \`/quyetau\` để bắt đầu.`,
-          ephemeral: userId !== challengerId
         });
         return;
       }
@@ -226,7 +222,7 @@ export default class QuyetAuCommand extends Command {
         })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
@@ -297,7 +293,7 @@ export default class QuyetAuCommand extends Command {
         .setFooter({ text: 'Tham gia quyết đấu để leo top nhận thưởng!' });
       }
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
@@ -306,9 +302,8 @@ export default class QuyetAuCommand extends Command {
     const wager = interaction.options.getInteger('cuoc');
 
     if (!targetUser || wager === null) {
-      await interaction.reply({
-        content: '❌ Vui lòng chỉ định **đối thủ** (@tuser) và **số Linh Thạch cược** (cuoc) để khiêu chiến!\nHoặc dùng `/quyetau action: lichsu` để xem lịch sử.',
-        ephemeral: true
+      await interaction.editReply({
+        content: '❌ Vui lòng chỉ định **đối thủ** (@tuser) và **số Linh Thạch cược** (cuoc) để khiêu chiến!\nHoặc dùng `/quyetau action: lichsu` để xem lịch sử.'
       });
       return;
     }
@@ -317,26 +312,23 @@ export default class QuyetAuCommand extends Command {
     const target = userRepository.get(targetUser.id);
     
     if (!challenger) {
-      await interaction.reply({
-        content: '❌ Nhân vật của đạo hữu không tồn tại! Hãy dùng `/taonhanvat` để bắt đầu.',
-        ephemeral: true
+      await interaction.editReply({
+        content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy dùng `/taonhanvat` để bắt đầu.'
       });
       return;
     }
     
     if (!target) {
-      await interaction.reply({
-        content: '❌ Đối thủ chưa khởi tạo nhân vật tu tiên!',
-        ephemeral: true
+      await interaction.editReply({
+        content: '❌ Đối thủ chưa khởi tạo nhân vật tu tiên!'
       });
       return;
     }
 
     const levelDiff = Math.abs(challenger.level - target.level);
     if (levelDiff > 15) {
-      await interaction.reply({
-        content: `❌ **Không thể khiêu chiến:** Chênh lệch cấp độ quá lớn (**${levelDiff}** cấp). Giới hạn tối đa là **15** cấp (Đạo hữu cấp **${challenger.level}**, đối thủ cấp **${target.level}**).`,
-        ephemeral: true
+      await interaction.editReply({
+        content: `❌ **Không thể khiêu chiến:** Chênh lệch cấp độ quá lớn (**${levelDiff}** cấp). Giới hạn tối đa là **15** cấp (Đạo hữu cấp **${challenger.level}**, đối thủ cấp **${target.level}**).`
       });
       return;
     }
@@ -344,9 +336,8 @@ export default class QuyetAuCommand extends Command {
     const result = minigameService.createChallenge(challengerId, targetUser.id, wager);
 
     if (!result.success || !result.duel) {
-      await interaction.reply({
-        content: `❌ **Khiêu chiến thất bại:** ${result.message}`,
-        ephemeral: true
+      await interaction.editReply({
+        content: `❌ **Khiêu chiến thất bại:** ${result.message}`
       });
       return;
     }
@@ -384,7 +375,7 @@ export default class QuyetAuCommand extends Command {
         .setStyle(ButtonStyle.Danger)
     );
 
-    await interaction.reply({
+    await interaction.editReply({
       content: `<@${targetUser.id}>, đạo hữu nhận được một lời khiêu chiến **Tam Hồi Linh Chiến**!`,
       embeds: [embed],
       components: [row]

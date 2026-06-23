@@ -1,3 +1,4 @@
+import { ITEMS } from '../config/itemConstants';
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
@@ -36,7 +37,7 @@ export class CaveEnhancementService {
    */
   public upgradeBuilding(userId: string, type: 'spring' | 'meridian' | 'array'): { success: boolean; message: string } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
     const cave = caveService.getCave(userId) as any;
     const currentLevel = type === 'spring' ? cave.spring_level : type === 'meridian' ? cave.meridian_level : cave.array_level;
@@ -54,7 +55,7 @@ export class CaveEnhancementService {
 
     // Kiểm tra nguyên liệu (Mảnh Tinh Thạch - tinh_thach_shard)
     const userInv = inventoryRepository.getUserInventory(userId);
-    const shardItem = userInv.find(i => i.item_id === 'tinh_thach_shard');
+    const shardItem = userInv.find(i => i.item_id === ITEMS.TINH_THACH_SHARD);
     const hasShards = shardItem ? shardItem.quantity : 0;
 
     if (cost.shards > 0 && hasShards < cost.shards) {
@@ -127,7 +128,7 @@ export class CaveEnhancementService {
    */
   public claimMeridianResources(userId: string): { success: boolean; message: string } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
     const cave = caveService.getCave(userId) as any;
     const meridianLevel = cave.meridian_level || 0;

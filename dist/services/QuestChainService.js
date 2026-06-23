@@ -51,12 +51,12 @@ class QuestChainService {
             return { success: false, message: '❌ Chuỗi nhiệm vụ không tồn tại.' };
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: '❌ Nhân vật không tồn tại.' };
+            return { success: false, message: '❌ Đạo hữu chưa khởi tạo nhân vật.' };
         const existing = database_1.default.prepare('SELECT * FROM quest_chain_progress WHERE user_id = ? AND chain_id = ?').get(userId, chainId);
         if (existing) {
             if (existing.completed)
-                return { success: false, message: '❌ Bạn đã hoàn thành chuỗi nhiệm vụ này rồi.' };
-            return { success: false, message: '❌ Bạn đã bắt đầu chuỗi nhiệm vụ này rồi. Hãy tiếp tục hoàn thành các bước.' };
+                return { success: false, message: '❌ Đạo hữu đã hoàn thành chuỗi nhiệm vụ này rồi.' };
+            return { success: false, message: '❌ Đạo hữu đã bắt đầu chuỗi nhiệm vụ này rồi. Hãy tiếp tục hoàn thành các bước.' };
         }
         database_1.default.prepare(`
       INSERT INTO quest_chain_progress (user_id, chain_id, step_index, progress, completed, finished_at)
@@ -113,7 +113,7 @@ class QuestChainService {
       SELECT * FROM quest_chain_progress WHERE user_id = ? AND completed = 0 ORDER BY step_index ASC LIMIT 1
     `).get(userId);
         if (!row)
-            return { success: false, message: '❌ Bạn chưa bắt đầu chuỗi nhiệm vụ nào.' };
+            return { success: false, message: '❌ Đạo hữu chưa bắt đầu chuỗi nhiệm vụ nào.' };
         const chain = exports.QUEST_CHAINS.find(c => c.id === row.chain_id);
         if (!chain)
             return { success: false, message: '❌ Chuỗi nhiệm vụ không tồn tại.' };
@@ -125,10 +125,10 @@ class QuestChainService {
         }
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: '❌ Nhân vật không tồn tại.' };
+            return { success: false, message: '❌ Đạo hữu chưa khởi tạo nhân vật.' };
         database_1.default.transaction(() => {
             UserRepository_1.userRepository.update(userId, {
-                tu_vi: user.tu_vi + step.rewardExp,
+                tu_vi: Math.min(user.tu_vi + step.rewardExp, user.exp_needed),
                 coin_ha_pham: user.coin_ha_pham + step.rewardCoins,
             });
             if (step.rewardItems) {
@@ -139,7 +139,7 @@ class QuestChainService {
             const isLastStep = row.step_index >= chain.steps.length - 1;
             if (isLastStep) {
                 UserRepository_1.userRepository.update(userId, {
-                    tu_vi: user.tu_vi + chain.finalRewardExp,
+                    tu_vi: Math.min(user.tu_vi + chain.finalRewardExp, user.exp_needed),
                     coin_ha_pham: user.coin_ha_pham + chain.finalRewardCoins,
                 });
                 if (chain.finalRewardTitle) {

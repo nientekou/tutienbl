@@ -1,6 +1,7 @@
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
+import { ITEMS } from '../config/itemConstants';
 
 export interface Encounter {
   id: string;
@@ -151,7 +152,7 @@ const LAMVIEC_ENCOUNTERS: Encounter[] = [
         id: 'lv_tp_pha',
         text: '💥 Cưỡng ép phá trận',
         successRate: 0.4,
-        successReward: { item_id: 'tang_bao_do', item_qty: 1, ngotinh: 10 },
+        successReward: { item_id: ITEMS.TANG_BAO_DO, item_qty: 1, ngotinh: 10 },
         failPenalty: { hp: -150, coins: -500 },
       },
       {
@@ -173,7 +174,7 @@ const LAMVIEC_ENCOUNTERS: Encounter[] = [
         id: 'lv_ld_mua',
         text: '💰 Liều mình mua thử',
         successRate: 0.5,
-        successReward: { item_id: 'tang_bao_do', item_qty: 1, exp: 200 },
+        successReward: { item_id: ITEMS.TANG_BAO_DO, item_qty: 1, exp: 200 },
         failPenalty: { coins: -800, hp: -10 },
       },
       {
@@ -202,7 +203,7 @@ const LAMVIEC_ENCOUNTERS: Encounter[] = [
         id: 'lv_ldm_bao_dich',
         text: '🧪 Thu thập bảo dịch',
         successRate: 0.9,
-        successReward: { item_id: 'potion_stamina_weekly', item_qty: 1 },
+        successReward: { item_id: ITEMS.POTION_STAMINA_WEEKLY, item_qty: 1 },
         failPenalty: {},
       },
     ],
@@ -264,7 +265,7 @@ const SANYEUTHU_ENCOUNTERS: Encounter[] = [
         id: 'sy_cm_kham_pha',
         text: '🔦 Khám phá cổ mộ',
         successRate: 0.5,
-        successReward: { coins: 2000, exp: 300, item_id: 'material_tinh_thiet_1', item_qty: 2 },
+        successReward: { coins: 2000, exp: 300, item_id: ITEMS.MATERIAL_TINH_THIET_1, item_qty: 2 },
         failPenalty: { hp: -150, coins: -500 },
       },
       {
@@ -286,7 +287,7 @@ const SANYEUTHU_ENCOUNTERS: Encounter[] = [
         id: 'sy_dd_lay',
         text: '🧴 Lấy đan dược',
         successRate: 0.7,
-        successReward: { coins: 500, exp: 150, item_id: 'pill_tu_vi_low', item_qty: 3 },
+        successReward: { coins: 500, exp: 150, item_id: ITEMS.PILL_TU_VI_LOW, item_qty: 3 },
         failPenalty: { hp: -60, coins: -100 },
       },
       {
@@ -308,7 +309,7 @@ const SANYEUTHU_ENCOUNTERS: Encounter[] = [
         id: 'sy_dl_vot',
         text: '🫴 Vớt vật thể phát sáng',
         successRate: 0.45,
-        successReward: { item_id: 'tang_bao_do', item_qty: 1, exp: 500 },
+        successReward: { item_id: ITEMS.TANG_BAO_DO, item_qty: 1, exp: 500 },
         failPenalty: { hp: -200, coins: -300 },
       },
       {

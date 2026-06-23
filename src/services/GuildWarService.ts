@@ -3,6 +3,7 @@ import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
 import { inventoryService } from './InventoryService';
 import { getRealmDetails } from '../utils/constants';
+import { ITEMS } from '../config/itemConstants';
 
 export interface GuildWar {
   id: string;
@@ -76,7 +77,7 @@ class GuildWarService {
    */
   createWar(challengerUserId: string, defenderSectId: number): { success: boolean; message: string; warId?: string } {
     const challenger = userRepository.get(challengerUserId);
-    if (!challenger) return { success: false, message: 'Nhân vật không tồn tại.' };
+    if (!challenger) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
     if (!challenger.sect_id) return { success: false, message: 'Đạo hữu chưa gia nhập Tông Môn nào!' };
 
     const challengerSect = db.prepare('SELECT * FROM sects WHERE id = ?').get(challenger.sect_id) as any;
@@ -260,7 +261,7 @@ class GuildWarService {
    */
   attack(warId: string, userId: string): { success: boolean; message: string; embedData?: any } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
     const war = db.prepare("SELECT * FROM guild_wars WHERE id = ? AND status = 'active'").get(warId) as GuildWar | undefined;
     if (!war) return { success: false, message: 'Cuộc chiến không tồn tại hoặc không ở trạng thái chiến đấu!' };
@@ -465,7 +466,7 @@ class GuildWarService {
         const mvpThreshold = underdogMult > 1.0 ? 0.25 : 0.4;
         if (share >= mvpThreshold) {
           const bonusChests = underdogMult > 1.0 ? Math.floor(underdogMult) : 1;
-          inventoryRepository.addItem(p.user_id, 'lucky_chest', bonusChests);
+          inventoryRepository.addItem(p.user_id, ITEMS.LUCKY_CHEST, bonusChests);
         }
       })();
 

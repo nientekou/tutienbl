@@ -143,9 +143,8 @@ export default class DongPhuCommand extends Command {
     const user = userRepository.get(discordId);
 
     if (!user) {
-      await interaction.reply({
-        content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!',
-        ephemeral: true
+      await interaction.editReply({
+        content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!'
       });
       return;
     }
@@ -155,15 +154,15 @@ export default class DongPhuCommand extends Command {
     if (sub === 'trangthai') {
       const embed = buildDongPhuEmbed(discordId);
       const components = buildDongPhuComponents(discordId);
-      await interaction.reply({ embeds: [embed], components });
+      await interaction.editReply({ embeds: [embed], components });
     }
 
     else if (sub === 'thuhoach') {
       const result = caveEnhancementService.claimMeridianResources(discordId);
       if (result.success) {
-        await interaction.reply({ content: result.message });
+        await interaction.editReply({ content: result.message });
       } else {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}` });
       }
     }
 
@@ -171,9 +170,9 @@ export default class DongPhuCommand extends Command {
       const building = interaction.options.getString('congtrinh', true) as 'spring' | 'meridian' | 'array';
       const result = caveEnhancementService.upgradeBuilding(discordId, building);
       if (result.success) {
-        await interaction.reply({ content: result.message });
+        await interaction.editReply({ content: result.message });
       } else {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}` });
       }
     }
   }

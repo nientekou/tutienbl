@@ -10,7 +10,6 @@ class DaoKhoangCommand extends Command_1.Command {
             .setDescription('Đào khoáng (Khoáng Sư) thu thập quặng kim loại (Tốn 10 Thể Lực)'));
     }
     async execute(client, interaction) {
-        await interaction.deferReply();
         const result = (0, lamviec_1.performWork)(interaction.user.id, 'mining');
         if (!result.success) {
             await interaction.editReply({ content: result.message });

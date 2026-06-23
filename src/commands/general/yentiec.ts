@@ -22,6 +22,6 @@ export default class YenTiecCommand extends Command {
       .setDescription(result.message)
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 }

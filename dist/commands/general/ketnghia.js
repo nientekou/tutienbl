@@ -33,7 +33,7 @@ class KetNghiaCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -48,17 +48,17 @@ class KetNghiaCommand extends Command_1.Command {
                     .setDescription(`${interaction.user.username} gửi lời kết nghĩa đến **${targetUser.username}**!\n\n${result.message}`)
                     .setFooter({ text: 'Hãy dùng /ketnghia chapnhan để chấp nhận.' })
                     .setTimestamp();
-                await interaction.reply({ embeds: [embed] });
+                await interaction.editReply({ embeds: [embed] });
             }
             else {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
             }
             return;
         }
         if (sub === 'chapnhan') {
             const invite = BrotherhoodService_1.brotherhoodService.getPendingInvite(userId);
             if (!invite) {
-                await interaction.reply({ content: '❌ Không có lời mời kết nghĩa nào đang chờ!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Không có lời mời kết nghĩa nào đang chờ!' });
                 return;
             }
             const fromUser = await client.users.fetch(invite.fromUserId).catch(() => null);
@@ -70,37 +70,37 @@ class KetNghiaCommand extends Command_1.Command {
                     .setDescription(result.message)
                     .setFooter({ text: 'Huynh đệ đồng tâm, vạn sự hưng long!' })
                     .setTimestamp();
-                await interaction.reply({ embeds: [embed] });
+                await interaction.editReply({ embeds: [embed] });
             }
             else {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
             }
             return;
         }
         if (sub === 'tuche') {
             const result = BrotherhoodService_1.brotherhoodService.rejectInvite(userId);
             if (result.success) {
-                await interaction.reply({ content: `✅ ${result.message}` });
+                await interaction.editReply({ content: `✅ ${result.message}` });
             }
             else {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
             }
             return;
         }
         if (sub === 'huy') {
             const result = BrotherhoodService_1.brotherhoodService.breakBrotherhood(userId);
             if (result.success) {
-                await interaction.reply({ content: result.message });
+                await interaction.editReply({ content: result.message });
             }
             else {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
             }
             return;
         }
         if (sub === 'thongtin') {
             const bh = BrotherhoodService_1.brotherhoodService.getBrotherhood(userId);
             if (!bh) {
-                await interaction.reply({ content: '❌ Đạo hữu chưa kết nghĩa với ai!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Đạo hữu chưa kết nghĩa với ai!' });
                 return;
             }
             const partnerId = bh.user1_id === userId ? bh.user2_id : bh.user1_id;
@@ -131,7 +131,7 @@ class KetNghiaCommand extends Command_1.Command {
                 value: `• **Chia Sẻ Kinh Nghiệm:** +${(expBonus * 100).toFixed(0)}% EXP khi đi chung\n• **Tấn Công Tổ Đội:** +3% ATK khi cùng tổ đội`
             })
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
             return;
         }
     }

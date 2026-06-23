@@ -10,7 +10,6 @@ class HaiThuocCommand extends Command_1.Command {
             .setDescription('Hái thuốc (Dược Sư) thu thập linh thảo (Tốn 10 Thể Lực)'));
     }
     async execute(client, interaction) {
-        await interaction.deferReply();
         const result = (0, lamviec_1.performWork)(interaction.user.id, 'gathering');
         if (!result.success) {
             await interaction.editReply({ content: result.message });

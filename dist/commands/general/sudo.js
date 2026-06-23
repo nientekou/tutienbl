@@ -25,14 +25,14 @@ class SuDoCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
         if (sub === 'nhan') {
             const target = interaction.options.getUser('student', true);
             const result = NewbieProtectionService_1.newbieProtectionService.registerMentor(target.id, userId);
-            await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: !result.success });
+            await interaction.editReply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}` });
         }
         else if (sub === 'thongtin') {
             const embed = new discord_js_1.EmbedBuilder()
@@ -71,11 +71,11 @@ class SuDoCommand extends Command_1.Command {
                     value: studentList,
                 });
             }
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (sub === 'doan') {
             const result = NewbieProtectionService_1.newbieProtectionService.removeMentor(userId);
-            await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: !result.success });
+            await interaction.editReply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}` });
         }
         else if (sub === 'danhsach') {
             const students = NewbieProtectionService_1.newbieProtectionService.getStudents(userId);
@@ -93,7 +93,7 @@ class SuDoCommand extends Command_1.Command {
                 }).join('\n');
                 embed.setDescription(list);
             }
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }

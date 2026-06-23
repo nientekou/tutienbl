@@ -7,7 +7,7 @@ exports.initDatabase = initDatabase;
 const better_sqlite3_1 = __importDefault(require("better-sqlite3"));
 const config_1 = require("../config");
 // Khởi tạo Database với better-sqlite3
-const db = new better_sqlite3_1.default(config_1.config.dbPath, { verbose: console.log });
+const db = new better_sqlite3_1.default(config_1.config.dbPath, { verbose: process.env.NODE_ENV === 'development' ? console.log : undefined });
 // Cấu hình tối ưu hiệu năng cho SQLite
 db.pragma('journal_mode = WAL');
 db.pragma('synchronous = NORMAL');
@@ -2723,6 +2723,17 @@ function seedItems() {
             description: 'Mảnh đá chứa năng lượng tinh tú dùng để Cường Hóa trang bị.',
             stats: '{}',
             value_ha_pham: 200,
+            usable: 0,
+            equipable: 0
+        },
+        {
+            id: 'lenh_bai',
+            name: 'Lệnh Bài Bí Cảnh',
+            type: 'material',
+            rarity: 'uncommon',
+            description: 'Lệnh bài bí cảnh, dùng để tham gia các phó bản bí cảnh đặc biệt.',
+            stats: '{}',
+            value_ha_pham: 50,
             usable: 0,
             equipable: 0
         },

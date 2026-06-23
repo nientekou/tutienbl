@@ -31,7 +31,7 @@ class KhamPhaBanDoCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật! Dùng `/taonhanvat` để bắt đầu.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật! Dùng `/taonhanvat` để bắt đầu.' });
             return;
         }
         const subcmd = interaction.options.getSubcommand(false);
@@ -81,7 +81,7 @@ class KhamPhaBanDoCommand extends Command_1.Command {
                 return `**#${loc.id}** ${emoji} **${loc.location_name}** [${loc.coord_x}, ${loc.coord_y}]\n└ ⏳ Còn **${hours}g ${mins}p** | ${loc.rarity.toUpperCase()}`;
             }).join('\n');
             embed.addFields({
-                name: `📍 Kho Báu Của Bạn (${activeLocations.length})`,
+                name: `📍 Kho Báu Của Đạo Hữu (${activeLocations.length})`,
                 value: locationList,
                 inline: false,
             });
@@ -99,11 +99,11 @@ class KhamPhaBanDoCommand extends Command_1.Command {
             });
         }
         embed.setFooter({ text: 'Mảnh Bản Đồ có thể nhận được khi làm công việc Phiêu Lưu.' });
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
     }
     async handleCombine(interaction, userId) {
         const result = MapFragmentService_1.mapFragmentService.combineFragments(userId);
-        await interaction.reply({ content: result.message });
+        await interaction.editReply({ content: result.message });
     }
     async handleClaim(interaction, userId) {
         const locationId = interaction.options.getInteger('id', true);
@@ -113,7 +113,7 @@ class KhamPhaBanDoCommand extends Command_1.Command {
             .setColor(result.success ? '#f1c40f' : '#e74c3c')
             .setDescription(result.message)
             .setTimestamp();
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
     }
     async handleSteal(interaction, userId) {
         const locationId = interaction.options.getInteger('id', true);
@@ -123,7 +123,7 @@ class KhamPhaBanDoCommand extends Command_1.Command {
             .setColor(result.success ? '#e74c3c' : '#95a5a6')
             .setDescription(result.message)
             .setTimestamp();
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
     }
 }
 exports.default = KhamPhaBanDoCommand;

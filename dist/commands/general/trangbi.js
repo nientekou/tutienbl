@@ -13,9 +13,9 @@ class TrangBiCommand extends Command_1.Command {
             .addSubcommand(sub => sub
             .setName('giamdinh')
             .setDescription('Giám định phôi rèn đúc thành trang bị thực tế (phí 50 Linh thạch).')
-            .addStringOption(opt => opt
-            .setName('item_id')
-            .setDescription('Mã vật phẩm cần giám định (xem trong /tuido).')
+            .addIntegerOption(opt => opt
+            .setName('inventory_id')
+            .setDescription('ID vật phẩm trong hành trang cần giám định.')
             .setRequired(true))
             .addIntegerOption(opt => opt
             .setName('soluong')
@@ -27,9 +27,9 @@ class TrangBiCommand extends Command_1.Command {
             .addSubcommand(sub => sub
             .setName('phangiai')
             .setDescription('Phân giải trang bị không dùng để lấy Mảnh Trang Bị.')
-            .addStringOption(opt => opt
-            .setName('item_id')
-            .setDescription('Mã vật phẩm cần phân giải.')
+            .addIntegerOption(opt => opt
+            .setName('inventory_id')
+            .setDescription('ID vật phẩm trong hành trang cần phân giải.')
             .setRequired(true))
             .addIntegerOption(opt => opt
             .setName('soluong')
@@ -38,9 +38,9 @@ class TrangBiCommand extends Command_1.Command {
             .addSubcommand(sub => sub
             .setName('nangsao')
             .setDescription('Sử dụng Mảnh Trang Bị để nâng cấp sao cho trang bị (+20% chỉ số mỗi sao, max 5 sao).')
-            .addStringOption(opt => opt
-            .setName('item_id')
-            .setDescription('Mã vật phẩm muốn nâng sao.')
+            .addIntegerOption(opt => opt
+            .setName('inventory_id')
+            .setDescription('ID vật phẩm trong hành trang muốn nâng sao.')
             .setRequired(true)))
             .addSubcommand(sub => sub
             .setName('ghep')
@@ -63,67 +63,67 @@ class TrangBiCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
         if (sub === 'giamdinh') {
-            const itemId = interaction.options.getString('item_id', true);
+            const inventoryId = interaction.options.getInteger('inventory_id', true);
             const qty = interaction.options.getInteger('soluong') || 1;
-            const invItem = InventoryRepository_1.inventoryRepository.getByUserIdAndItemId(userId, itemId);
-            if (!invItem) {
-                await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
+            const invItem = InventoryRepository_1.inventoryRepository.get(inventoryId);
+            if (!invItem || invItem.user_id !== userId) {
+                await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong túi đồ!` });
                 return;
             }
             const res = EquipmentService_1.equipmentService.appraisePhoi(userId, invItem.id, qty);
             if (res.success) {
-                await interaction.reply({ content: res.message });
+                await interaction.editReply({ content: res.message });
             }
             else {
-                await interaction.reply({ content: `❌ Thất bại: ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ Thất bại: ${res.message}` });
             }
             return;
         }
         if (sub === 'giamdinhhangloat') {
             const res = EquipmentService_1.equipmentService.appraisePhoiBulk(userId);
             if (res.success) {
-                await interaction.reply({ content: res.message });
+                await interaction.editReply({ content: res.message });
             }
             else {
-                await interaction.reply({ content: `❌ Thất bại: ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ Thất bại: ${res.message}` });
             }
             return;
         }
         if (sub === 'phangiai') {
-            const itemId = interaction.options.getString('item_id', true);
+            const inventoryId = interaction.options.getInteger('inventory_id', true);
             const qty = interaction.options.getInteger('soluong') || 1;
-            const invItem = InventoryRepository_1.inventoryRepository.getByUserIdAndItemId(userId, itemId);
-            if (!invItem) {
-                await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
+            const invItem = InventoryRepository_1.inventoryRepository.get(inventoryId);
+            if (!invItem || invItem.user_id !== userId) {
+                await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong túi đồ!` });
                 return;
             }
             const res = EquipmentService_1.equipmentService.salvageEquipment(userId, invItem.id, qty);
             if (res.success) {
-                await interaction.reply({ content: res.message });
+                await interaction.editReply({ content: res.message });
             }
             else {
-                await interaction.reply({ content: `❌ Thất bại: ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ Thất bại: ${res.message}` });
             }
             return;
         }
         if (sub === 'nangsao') {
-            const itemId = interaction.options.getString('item_id', true);
-            const invItem = InventoryRepository_1.inventoryRepository.getByUserIdAndItemId(userId, itemId);
-            if (!invItem) {
-                await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
+            const inventoryId = interaction.options.getInteger('inventory_id', true);
+            const invItem = InventoryRepository_1.inventoryRepository.get(inventoryId);
+            if (!invItem || invItem.user_id !== userId) {
+                await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong túi đồ!` });
                 return;
             }
             const res = EquipmentService_1.equipmentService.upgradeStars(userId, invItem.id);
             if (res.success) {
-                await interaction.reply({ content: res.message });
+                await interaction.editReply({ content: res.message });
             }
             else {
-                await interaction.reply({ content: `❌ Thất bại: ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ Thất bại: ${res.message}` });
             }
             return;
         }
@@ -131,10 +131,10 @@ class TrangBiCommand extends Command_1.Command {
             const rarity = interaction.options.getString('rarity', true);
             const res = EquipmentService_1.equipmentService.craftEquipment(userId, rarity);
             if (res.success) {
-                await interaction.reply({ content: res.message });
+                await interaction.editReply({ content: res.message });
             }
             else {
-                await interaction.reply({ content: `❌ Thất bại: ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ Thất bại: ${res.message}` });
             }
             return;
         }
@@ -142,10 +142,10 @@ class TrangBiCommand extends Command_1.Command {
             const rarity = interaction.options.getString('rarity', true);
             const res = EquipmentService_1.equipmentService.salvageEquipmentBulk(userId, rarity);
             if (res.success) {
-                await interaction.reply({ content: res.message });
+                await interaction.editReply({ content: res.message });
             }
             else {
-                await interaction.reply({ content: `❌ Thất bại: ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ Thất bại: ${res.message}` });
             }
             return;
         }

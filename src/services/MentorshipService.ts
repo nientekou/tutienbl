@@ -68,7 +68,7 @@ class MentorshipService {
 
     // Kiểm tra xem sư phụ có đang bị cooldown hủy sư đồ không
     let yCanh: any = {};
-    try { yCanh = JSON.parse(mentor.y_canh || '{}'); } catch(e){}
+    try { yCanh = JSON.parse(mentor.y_canh || '{}'); } catch(e) { console.warn('[MentorshipService] Failed to parse mentor y_canh for cooldown check:', e); }
     const now = Math.floor(Date.now() / 1000);
     if (yCanh.mentor_cooldown_until && yCanh.mentor_cooldown_until > now) {
       const remainSec = yCanh.mentor_cooldown_until - now;
@@ -132,7 +132,7 @@ class MentorshipService {
         if (initiatorId === mentorId) {
           // Sư phụ chủ động trục xuất đệ tử -> phạt cấm nhận đệ tử mới 48h
           let yCanh: any = {};
-          try { yCanh = JSON.parse(mentor.y_canh || '{}'); } catch(e){}
+          try { yCanh = JSON.parse(mentor.y_canh || '{}'); } catch(e) { console.warn('[MentorshipService] Failed to parse mentor y_canh for expulsion penalty:', e); }
           yCanh.mentor_cooldown_until = now + 48 * 3600;
           userRepository.update(mentorId, { y_canh: JSON.stringify(yCanh) });
         } else {
@@ -181,7 +181,7 @@ class MentorshipService {
       const activePassives = heartLawService.getActivePassives(apprenticeId);
       const expBoostHL = activePassives.find((hl: any) => hl.type === 'exp_boost');
       if (expBoostHL) apprenticeExpBuff += expBoostHL.value;
-    } catch (e) {}
+    } catch (e) { console.warn('[MentorshipService] Failed to get apprentice heart law exp boost:', e); }
 
     let mentorExpBuff = 1.0;
     try {
@@ -189,7 +189,7 @@ class MentorshipService {
       const activePassives = heartLawService.getActivePassives(mentorId);
       const expBoostHL = activePassives.find((hl: any) => hl.type === 'exp_boost');
       if (expBoostHL) mentorExpBuff += expBoostHL.value;
-    } catch (e) {}
+    } catch (e) { console.warn('[MentorshipService] Failed to get mentor heart law exp boost:', e); }
 
     const apprenticeBonusExp = Math.round(baseWorkExp * 1.05 * apprenticeExpBuff); // +5% EXP
     const mentorGainedExp = Math.round(baseWorkExp * 0.10 * mentorExpBuff); // 10% EXP
@@ -335,7 +335,7 @@ class MentorshipService {
     const currentWeek = getYearWeekString();
     
     let yCanh: any = {};
-    try { yCanh = JSON.parse(mentor.y_canh || '{}'); } catch (e) {}
+    try { yCanh = JSON.parse(mentor.y_canh || '{}'); } catch (e) { console.warn('[MentorshipService] Failed to parse mentor y_canh for transmission:', e); }
 
     let transRecord = yCanh.mentorship_transmission || { week: '', amount: 0 };
     if (transRecord.week !== currentWeek) {

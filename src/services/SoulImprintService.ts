@@ -2,6 +2,7 @@ import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
 import { soulImprintRepository, SoulImprint } from '../database/repositories/SoulImprintRepository';
+import { ITEMS } from '../config/itemConstants';
 
 export class SoulImprintService {
   /**
@@ -138,7 +139,7 @@ export class SoulImprintService {
     }
 
     const userInventory = inventoryRepository.getUserInventory(userId);
-    const fragments = userInventory.find(i => i.item_id === 'item_fragment');
+    const fragments = userInventory.find(i => i.item_id === ITEMS.ITEM_FRAGMENT);
     if (!fragments || fragments.quantity < 10) {
       return { success: false, message: `Không đủ Mảnh Trang Bị để ấn ký! (Yêu cầu: **10** Mảnh, đạo hữu hiện có: **${fragments ? fragments.quantity : 0}**).` };
     }
@@ -166,7 +167,7 @@ export class SoulImprintService {
       userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - 5000 });
       
       // Trừ Mảnh Trang Bị
-      inventoryRepository.removeItem(userId, 'item_fragment', 10);
+      inventoryRepository.removeItem(userId, ITEMS.ITEM_FRAGMENT, 10);
       
       // Tiêu hủy trang bị
       inventoryRepository.removeItemById(inventoryId, 1);
@@ -199,7 +200,7 @@ export class SoulImprintService {
     const fromUser = userRepository.get(fromUserId);
     const toUser = userRepository.get(toUserId);
     if (!fromUser || !toUser) {
-      return { success: false, message: 'Nhân vật của đạo hữu hoặc đối phương không tồn tại!' };
+      return { success: false, message: 'Đạo hữu hoặc đối phương chưa khởi tạo nhân vật!' };
     }
 
     const imprint = soulImprintRepository.getImprint(imprintId);

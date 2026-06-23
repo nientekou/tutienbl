@@ -7,6 +7,7 @@ import { inventoryService } from '../../services/InventoryService';
 import { CombatEngine } from '../../services/CombatEngine';
 import { dailyQuestService } from '../../services/DailyQuestService';
 import { getProgressBar } from '../../utils/constants';
+import { ITEMS } from '../../config/itemConstants';
 import db from '../../database/database';
 
 interface RoguelikeProgress {
@@ -90,7 +91,7 @@ export default class LeoThapCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'});
       return;
     }
 
@@ -101,15 +102,14 @@ export default class LeoThapCommand extends Command {
 
     if (sub === 'trangthai') {
       const embed = getTowerEmbed(userId);
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
     // Các hành động chiến đấu/reset tiêu tốn 20 Stamina
     if (user.stamina < 20) {
-      await interaction.reply({
-        content: `❌ Đạo hữu không đủ Thể Lực! (Cần ít nhất **20** điểm, hiện có **${user.stamina}**). Hãy nghỉ ngơi tĩnh dưỡng.`,
-        ephemeral: true
+      await interaction.editReply({
+        content: `❌ Đạo hữu không đủ Thể Lực! (Cần ít nhất **20** điểm, hiện có **${user.stamina}**). Hãy nghỉ ngơi tĩnh dưỡng.`
       });
       return;
     }
@@ -135,8 +135,8 @@ export default class LeoThapCommand extends Command {
         userRepository.update(userId, { stamina: user.stamina - 20 });
       })();
 
-      await interaction.reply({
-        content: `🔄 Đạo hữu đã tốn **20 Thể Lực** để thiết lập lại trận địa Tháp Vô Hạn! Bạn đang ở **Tầng 1** với đầy đủ **3 sinh mạng**. Sử dụng \`/leothap khieu-chien\` để xung trận!`
+      await interaction.editReply({
+        content: `🔄 Đạo hữu đã tốn **20 Thể Lực** để thiết lập lại trận địa Tháp Vô Hạn! Đạo hữu đang ở **Tầng 1** với đầy đủ **3 sinh mạng**. Sử dụng \`/leothap khieu-chien\` để xung trận!`
       });
       return;
     }
@@ -152,9 +152,8 @@ export default class LeoThapCommand extends Command {
       }
 
       if (progress.lives <= 0) {
-        await interaction.reply({
-          content: '❌ Đạo hữu đã cạn kiệt sinh mạng trong run tháp này! Vui lòng dùng lệnh \`/leothap khoi-dau\` để reset bắt đầu đợt leo tháp mới.',
-          ephemeral: true
+        await interaction.editReply({
+          content: '❌ Đạo hữu đã cạn kiệt sinh mạng trong run tháp này! Vui lòng dùng lệnh \`/leothap khoi-dau\` để reset bắt đầu đợt leo tháp mới.'
         });
         return;
       }
@@ -162,7 +161,7 @@ export default class LeoThapCommand extends Command {
       // Lấy chỉ số chiến đấu thực tế
       const activeStats = inventoryService.getActiveStats(userId);
       if (!activeStats) {
-        await interaction.reply({ content: '❌ Lỗi hệ thống: Không thể tính toán thuộc tính chiến đấu.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Lỗi hệ thống: Không thể tính toán thuộc tính chiến đấu.'});
         return;
       }
 
@@ -254,7 +253,7 @@ export default class LeoThapCommand extends Command {
 
           // Cơ hội 20% rơi mảnh trang bị
           if (Math.random() < 0.20) {
-            inventoryRepository.addItem(userId, 'item_fragment', 1);
+            inventoryRepository.addItem(userId, ITEMS.ITEM_FRAGMENT, 1);
           }
         })();
 
@@ -304,7 +303,7 @@ export default class LeoThapCommand extends Command {
             `Đạo hữu tử trận tại tầng **${floor}**!\n\n` +
             `• Sát thương oán khí bạo liệt, đạo hữu hao tổn **-1 sinh mạng** (Còn lại **${newLives}/3** mạng).\n` +
             `• Trừ **-20 Thể Lực** ⚡ (Còn lại: **${user.stamina - 20}/500**).\n\n` +
-            `✨ *Linh thể tự động được tháp quy tắc tái tạo đầy 100% HP. Bạn có thể khiêu chiến lại tầng này!*`
+            `✨ *Linh thể tự động được tháp quy tắc tái tạo đầy 100% HP. Đạo hữu có thể khiêu chiến lại tầng này!*`
           );
         } else {
           embed.setDescription(
@@ -315,7 +314,7 @@ export default class LeoThapCommand extends Command {
         }
       }
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
   }
 }

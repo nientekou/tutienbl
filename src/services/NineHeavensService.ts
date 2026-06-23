@@ -126,7 +126,7 @@ class NineHeavensService {
    */
   public buyExtraAttempt(userId: string): { success: boolean; message: string; progress?: NineHeavensProgress } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
     
     const progress = this.getProgress(userId);
     
@@ -158,7 +158,7 @@ class NineHeavensService {
     rewardsLog?: string; 
   } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
     const progress = this.getProgress(userId);
     const nextFloor = progress.highest_floor + 1;
@@ -199,8 +199,8 @@ class NineHeavensService {
     if (petRaw) {
       let mutations = { stars: 0, bonus_atk: 0, bonus_def: 0, bonus_hp: 0 };
       let skillsArr: string[] = [];
-      try { mutations = JSON.parse(petRaw.mutations || '{}'); } catch(e){}
-      try { skillsArr = JSON.parse(petRaw.skills || '[]'); } catch(e){}
+      try { mutations = JSON.parse(petRaw.mutations || '{}'); } catch(e) { console.warn('[NineHeavensService] Failed to parse pet mutations:', e); }
+      try { skillsArr = JSON.parse(petRaw.skills || '[]'); } catch(e) { console.warn('[NineHeavensService] Failed to parse pet skills:', e); }
       pet = { name: petRaw.name, atk: petRaw.base_atk + (mutations.bonus_atk || 0), skills: skillsArr };
     }
 
@@ -283,7 +283,7 @@ class NineHeavensService {
         if (yCanh.KiemY) baseStats.atk += Math.round(user.base_atk * (yCanh.KiemY * 0.03));
         if (yCanh.BatDietY) baseStats.hp += Math.round(user.base_hp * (yCanh.BatDietY * 0.03));
         if (yCanh.HuyenQuyY) baseStats.def += Math.round(user.base_def * (yCanh.HuyenQuyY * 0.03));
-      } catch (e) {}
+      } catch (e) { console.warn('[NineHeavensService] Failed to parse y_canh for Y景 (Yijing) bonuses:', e); }
 
       playerCombatant.hp = baseStats.hp;
       playerCombatant.maxHp = baseStats.hp;

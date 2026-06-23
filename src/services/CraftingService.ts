@@ -22,7 +22,7 @@ export class CraftingService {
   public startCrafting(userId: string, recipeId: string): { success: boolean; message: string } {
     const user = userRepository.get(userId);
     if (!user) {
-      return { success: false, message: 'Nhân vật của đạo hữu không tồn tại.' };
+      return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
     }
 
     const recipe = RECIPES[recipeId];

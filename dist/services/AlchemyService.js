@@ -8,12 +8,13 @@ const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 const AchievementService_1 = require("./AchievementService");
+const itemConstants_1 = require("../config/itemConstants");
 exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_tuvi',
         name: 'Luyện Khí Đan',
-        targetPillId: 'pill_alchemy_tuvi',
-        requiredMaterials: [{ itemId: 'material_linh_thao_1', quantity: 5 }],
+        targetPillId: itemConstants_1.ITEMS.PILL_ALCHEMY_TUVI,
+        requiredMaterials: [{ itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 5 }],
         costCoin: 100,
         staminaCost: 10,
         requiredAlchemyLevel: 1,
@@ -23,11 +24,11 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_loi',
         name: 'Ngự Lôi Đan',
-        targetPillId: 'pill_alchemy_anti_loi',
+        targetPillId: itemConstants_1.ITEMS.PILL_ALCHEMY_ANTI_LOI,
         requiredMaterials: [
-            { itemId: 'material_linh_thao_1', quantity: 10 },
-            { itemId: 'material_nhan_sam_1', quantity: 5 },
-            { itemId: 'material_iron_1', quantity: 2 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 10 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_IRON_1, quantity: 2 }
         ],
         costCoin: 400,
         staminaCost: 15,
@@ -38,10 +39,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_break',
         name: 'Thanh Tâm Đan',
-        targetPillId: 'pill_alchemy_break',
+        targetPillId: itemConstants_1.ITEMS.PILL_ALCHEMY_BREAK,
         requiredMaterials: [
-            { itemId: 'material_nhan_sam_1', quantity: 3 },
-            { itemId: 'material_linh_thao_1', quantity: 3 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 3 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 3 }
         ],
         costCoin: 250,
         staminaCost: 15,
@@ -52,11 +53,11 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_stamina',
         name: 'Bổ Thiên Đan',
-        targetPillId: 'pill_alchemy_stamina',
+        targetPillId: itemConstants_1.ITEMS.PILL_ALCHEMY_STAMINA,
         requiredMaterials: [
-            { itemId: 'material_nhan_sam_1', quantity: 5 },
-            { itemId: 'material_linh_thao_1', quantity: 5 },
-            { itemId: 'item_fragment', quantity: 1 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.ITEM_FRAGMENT, quantity: 1 }
         ],
         costCoin: 500,
         staminaCost: 20,
@@ -67,10 +68,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_stamina_1',
         name: 'Hồi Thể Đan - Sơ Cấp',
-        targetPillId: 'pill_stamina_1',
+        targetPillId: itemConstants_1.ITEMS.PILL_STAMINA_1,
         requiredMaterials: [
-            { itemId: 'material_linh_thao_1', quantity: 3 },
-            { itemId: 'material_nhan_sam_1', quantity: 1 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 3 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 1 }
         ],
         costCoin: 100,
         staminaCost: 10,
@@ -81,10 +82,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_stamina_2',
         name: 'Hồi Thể Đan - Trung Cấp',
-        targetPillId: 'pill_stamina_2',
+        targetPillId: itemConstants_1.ITEMS.PILL_STAMINA_2,
         requiredMaterials: [
-            { itemId: 'material_linh_thao_1', quantity: 5 },
-            { itemId: 'material_nhan_sam_1', quantity: 3 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 3 }
         ],
         costCoin: 200,
         staminaCost: 15,
@@ -95,11 +96,11 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_stamina_3',
         name: 'Hồi Thể Đan - Cao Cấp',
-        targetPillId: 'pill_stamina_3',
+        targetPillId: itemConstants_1.ITEMS.PILL_STAMINA_3,
         requiredMaterials: [
-            { itemId: 'material_linh_thao_1', quantity: 10 },
-            { itemId: 'material_nhan_sam_1', quantity: 5 },
-            { itemId: 'material_blood_flower', quantity: 1 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 10 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_BLOOD_FLOWER, quantity: 1 }
         ],
         costCoin: 400,
         staminaCost: 20,
@@ -110,11 +111,11 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_linh_tuyen',
         name: 'Linh Tuyền Phù',
-        targetPillId: 'pill_linh_tuyen',
+        targetPillId: itemConstants_1.ITEMS.PILL_LINH_TUYEN,
         requiredMaterials: [
-            { itemId: 'material_linh_thao_1', quantity: 15 },
-            { itemId: 'material_nhan_sam_1', quantity: 10 },
-            { itemId: 'material_blood_flower', quantity: 3 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 15 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 10 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_BLOOD_FLOWER, quantity: 3 }
         ],
         costCoin: 1500,
         staminaCost: 30,
@@ -125,11 +126,11 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_nhan_tu',
         name: 'Nhàn Tu Đan',
-        targetPillId: 'pill_nhan_tu',
+        targetPillId: itemConstants_1.ITEMS.PILL_NHAN_TU,
         requiredMaterials: [
-            { itemId: 'material_linh_thao_1', quantity: 20 },
-            { itemId: 'material_nhan_sam_1', quantity: 15 },
-            { itemId: 'material_blood_flower', quantity: 5 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 20 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 15 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_BLOOD_FLOWER, quantity: 5 }
         ],
         costCoin: 3000,
         staminaCost: 40,
@@ -140,10 +141,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_hp_max_perm',
         name: 'Huyết Nguyên Đan',
-        targetPillId: 'pill_hp_max_perm',
+        targetPillId: itemConstants_1.ITEMS.PILL_HP_MAX_PERM,
         requiredMaterials: [
-            { itemId: 'material_blood_flower', quantity: 5 },
-            { itemId: 'material_nhan_sam_1', quantity: 5 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_BLOOD_FLOWER, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 5 }
         ],
         costCoin: 1000,
         staminaCost: 25,
@@ -154,10 +155,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_mp_50',
         name: 'Hư Không Đan',
-        targetPillId: 'pill_mp_50',
+        targetPillId: itemConstants_1.ITEMS.PILL_MP_50,
         requiredMaterials: [
-            { itemId: 'material_void_herb', quantity: 5 },
-            { itemId: 'material_linh_thao_1', quantity: 10 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_VOID_HERB, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 10 }
         ],
         costCoin: 800,
         staminaCost: 20,
@@ -168,10 +169,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_speed_buff',
         name: 'Thiên Phong Đan',
-        targetPillId: 'pill_speed_buff',
+        targetPillId: itemConstants_1.ITEMS.PILL_SPEED_BUFF,
         requiredMaterials: [
-            { itemId: 'material_wind_leaf', quantity: 5 },
-            { itemId: 'material_linh_thao_1', quantity: 10 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_WIND_LEAF, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 10 }
         ],
         costCoin: 800,
         staminaCost: 20,
@@ -182,10 +183,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_cuu_chuyen',
         name: 'Cửu Chuyển Hoàn Hồn Đan',
-        targetPillId: 'pill_cuu_chuyen',
+        targetPillId: itemConstants_1.ITEMS.PILL_CUU_CHUYEN,
         requiredMaterials: [
-            { itemId: 'material_tuyet_lien', quantity: 5 },
-            { itemId: 'material_linh_thao_1', quantity: 5 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TUYET_LIEN, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 5 }
         ],
         costCoin: 1500,
         staminaCost: 25,
@@ -196,10 +197,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_ngo_dong',
         name: 'Ngô Đồng Trường Sinh Đan',
-        targetPillId: 'pill_ngo_dong',
+        targetPillId: itemConstants_1.ITEMS.PILL_NGO_DONG,
         requiredMaterials: [
-            { itemId: 'material_ngodong', quantity: 5 },
-            { itemId: 'material_linh_thao_1', quantity: 5 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NGODONG, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 5 }
         ],
         costCoin: 2000,
         staminaCost: 30,
@@ -210,10 +211,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_huyen_am',
         name: 'Huyền Âm Kiếp Đan',
-        targetPillId: 'pill_huyen_am',
+        targetPillId: itemConstants_1.ITEMS.PILL_HUYEN_AM,
         requiredMaterials: [
-            { itemId: 'material_lingzhi', quantity: 5 },
-            { itemId: 'material_linh_thao_1', quantity: 5 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINGZHI, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 5 }
         ],
         costCoin: 1800,
         staminaCost: 25,
@@ -224,12 +225,12 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_tay_tuy',
         name: 'Tẩy Tủy Đan',
-        targetPillId: 'pill_tay_tuy',
+        targetPillId: itemConstants_1.ITEMS.PILL_TAY_TUY,
         requiredMaterials: [
-            { itemId: 'material_blood_flower', quantity: 10 },
-            { itemId: 'material_void_herb', quantity: 10 },
-            { itemId: 'material_wind_leaf', quantity: 10 },
-            { itemId: 'material_tuyet_lien', quantity: 5 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_BLOOD_FLOWER, quantity: 10 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_VOID_HERB, quantity: 10 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_WIND_LEAF, quantity: 10 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TUYET_LIEN, quantity: 5 }
         ],
         costCoin: 5000,
         staminaCost: 50,
@@ -240,10 +241,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_protect_hoa',
         name: 'Hỏa Linh Đan',
-        targetPillId: 'pill_protect_hoa',
+        targetPillId: itemConstants_1.ITEMS.PILL_PROTECT_HOA,
         requiredMaterials: [
-            { itemId: 'material_blood_flower', quantity: 3 },
-            { itemId: 'material_linh_thao_1', quantity: 5 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_BLOOD_FLOWER, quantity: 3 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 5 }
         ],
         costCoin: 800,
         staminaCost: 20,
@@ -254,10 +255,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_protect_thuy',
         name: 'Thủy Nguyên Đan',
-        targetPillId: 'pill_protect_thuy',
+        targetPillId: itemConstants_1.ITEMS.PILL_PROTECT_THUY,
         requiredMaterials: [
-            { itemId: 'material_void_herb', quantity: 3 },
-            { itemId: 'material_linh_thao_1', quantity: 5 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_VOID_HERB, quantity: 3 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 5 }
         ],
         costCoin: 800,
         staminaCost: 20,
@@ -268,10 +269,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_protect_moc',
         name: 'Mộc Linh Hoàn',
-        targetPillId: 'pill_protect_moc',
+        targetPillId: itemConstants_1.ITEMS.PILL_PROTECT_MOC,
         requiredMaterials: [
-            { itemId: 'material_tuyet_lien', quantity: 3 },
-            { itemId: 'material_linh_thao_1', quantity: 5 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TUYET_LIEN, quantity: 3 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 5 }
         ],
         costCoin: 800,
         staminaCost: 20,
@@ -282,10 +283,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_protect_kim',
         name: 'Kim Cương Đan',
-        targetPillId: 'pill_protect_kim',
+        targetPillId: itemConstants_1.ITEMS.PILL_PROTECT_KIM,
         requiredMaterials: [
-            { itemId: 'material_linh_thao_1', quantity: 8 },
-            { itemId: 'material_iron_1', quantity: 3 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 8 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_IRON_1, quantity: 3 }
         ],
         costCoin: 800,
         staminaCost: 20,
@@ -296,10 +297,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_protect_tho',
         name: 'Địa Thổ Đan',
-        targetPillId: 'pill_protect_tho',
+        targetPillId: itemConstants_1.ITEMS.PILL_PROTECT_THO,
         requiredMaterials: [
-            { itemId: 'material_linh_thao_1', quantity: 8 },
-            { itemId: 'material_nhan_sam_1', quantity: 3 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 8 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 3 }
         ],
         costCoin: 800,
         staminaCost: 20,
@@ -310,10 +311,10 @@ exports.ALCHEMY_RECIPES = [
     {
         id: 'recipe_co_duyen',
         name: 'Cơ Duyên Đơn',
-        targetPillId: 'pill_co_duyen',
+        targetPillId: itemConstants_1.ITEMS.PILL_CO_DUYEN,
         requiredMaterials: [
-            { itemId: 'material_ngodong', quantity: 5 },
-            { itemId: 'material_linh_thao_1', quantity: 10 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NGODONG, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 10 }
         ],
         costCoin: 2000,
         staminaCost: 30,
@@ -395,7 +396,7 @@ class AlchemyService {
         // Kiểm tra chế tạo x2 chỉ cho phép Linh Sư hoặc dùng Lò Luyện Đan Cao Cấp
         if (quantity === 2) {
             const isLinhSu = userAlchemyLevel >= 3;
-            const hasHighCauldron = cauldronItem && cauldronItem.item_id === 'cauldron_high';
+            const hasHighCauldron = cauldronItem && cauldronItem.item_id === itemConstants_1.ITEMS.CAULDRON_HIGH;
             if (!isLinhSu && !hasHighCauldron) {
                 return { success: false, message: '❌ Cần đạt trình độ Linh Sư (Cấp 3 Luyện Đan) hoặc sử dụng Lò Luyện Đan Thượng Phẩm để chế tác x2 cùng lúc!' };
             }
@@ -413,7 +414,9 @@ class AlchemyService {
                     sectBonus = sect.dan_duong_level * 0.02; // +2% mỗi cấp
                 }
             }
-            catch (e) { }
+            catch (e) {
+                console.warn('[AlchemyService] Failed to fetch sect dan_duong_level:', e);
+            }
         }
         // Cộng hưởng Hỏa Linh Căn (+0.1% tỷ lệ thành công / điểm Hỏa Linh Căn)
         let hoaLinhCan = 0;
@@ -421,7 +424,9 @@ class AlchemyService {
             const lc = JSON.parse(user.linh_can || '{}');
             hoaLinhCan = lc['Hỏa'] || 0;
         }
-        catch (e) { }
+        catch (e) {
+            console.warn('[AlchemyService] Failed to parse linh_can for Hoa element:', e);
+        }
         const hoaBonus = hoaLinhCan * 0.001; // +0.1% mỗi điểm Hỏa Linh Căn
         const finalSuccessRate = Math.min(0.95, recipe.baseSuccessRate + successBonus + levelBonus + sectBonus + hoaBonus);
         // Trừ Thể Lực và Linh Thạch trước
@@ -496,11 +501,11 @@ class AlchemyService {
             let cauldronDestructionMsg = '';
             if (cauldronItem) {
                 let breakChance = 0;
-                if (cauldronItem.item_id === 'cauldron_low')
+                if (cauldronItem.item_id === itemConstants_1.ITEMS.CAULDRON_LOW)
                     breakChance = 0.25;
-                else if (cauldronItem.item_id === 'cauldron_mid')
+                else if (cauldronItem.item_id === itemConstants_1.ITEMS.CAULDRON_MID)
                     breakChance = 0.10;
-                else if (cauldronItem.item_id === 'cauldron_high')
+                else if (cauldronItem.item_id === itemConstants_1.ITEMS.CAULDRON_HIGH)
                     breakChance = 0.05;
                 if (Math.random() < breakChance) {
                     InventoryRepository_1.inventoryRepository.removeItemById(cauldronItem.id, 1);

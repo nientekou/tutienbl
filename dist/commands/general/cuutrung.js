@@ -24,7 +24,7 @@ class CuuTrungCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -33,7 +33,7 @@ class CuuTrungCommand extends Command_1.Command {
             const progress = NineHeavensService_1.nineHeavensService.getProgress(userId);
             const nextFloor = progress.highest_floor + 1;
             if (nextFloor > 9) {
-                await interaction.reply({ content: '🎉 Chúc mừng đạo hữu! Đạo hữu đã chinh phục thành công cả **9 tầng Cửu Trùng Tháp** và đạt tới đỉnh cao võ học!', ephemeral: true });
+                await interaction.editReply({ content: '🎉 Chúc mừng đạo hữu! Đạo hữu đã chinh phục thành công cả **9 tầng Cửu Trùng Tháp** và đạt tới đỉnh cao võ học!' });
                 return;
             }
             const floorConfig = NineHeavensService_1.nineHeavensService.FLOORS[nextFloor];
@@ -42,16 +42,15 @@ class CuuTrungCommand extends Command_1.Command {
             if (!res.success && res.requireBuy) {
                 // Hết lượt miễn phí -> Cần xác nhận mua lượt
                 const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId('buy_and_fight_cuutrung').setLabel('Mua lượt (1,000 Linh Thạch)').setStyle(discord_js_1.ButtonStyle.Danger), new discord_js_1.ButtonBuilder().setCustomId('cancel_cuutrung').setLabel('Hủy bỏ').setStyle(discord_js_1.ButtonStyle.Secondary));
-                const msg = await interaction.reply({
+                const msg = await interaction.editReply({
                     content: `⚠️ **Hết lượt khiêu chiến miễn phí tuần này!**\n` +
                         `Đạo hữu có muốn tiêu hao **1,000 Linh Thạch** để tiếp tục khiêu chiến **Tầng ${nextFloor}** [Luật: *${floorConfig.ruleDesc}*] không?`,
-                    components: [row],
-                    fetchReply: true
+                    components: [row]
                 });
                 const collector = msg.createMessageComponentCollector({ componentType: discord_js_1.ComponentType.Button, time: 30000 });
                 collector.on('collect', async (i) => {
                     if (i.user.id !== userId) {
-                        await i.reply({ content: '❌ Bạn không phải là người gọi lệnh!', ephemeral: true });
+                        await i.reply({ content: '❌ Đạo hữu không phải là người gọi lệnh!' });
                         return;
                     }
                     if (i.customId === 'buy_and_fight_cuutrung') {
@@ -97,7 +96,7 @@ class CuuTrungCommand extends Command_1.Command {
                 return;
             }
             if (!res.success) {
-                await interaction.reply({ content: `❌ Lỗi khiêu chiến: ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ Lỗi khiêu chiến: ${res.message}` });
                 return;
             }
             // Trận đấu diễn ra thành công (dưới dạng miễn phí)
@@ -123,7 +122,7 @@ class CuuTrungCommand extends Command_1.Command {
                             ? `👑 **CỬU TRÙNG ĐỈNH!** Đạo hữu suýt chạm tới đỉnh cao nhưng đã gục ngã trước **${floorConfig.name}** ở tầng ${nextFloor}. Hãy tu luyện thêm và thử lại!`
                             : `💀 **Bại trận!** Thần thức của đạo hữu đã bị trục xuất khỏi Cửu Trùng Tháp sau **${res.combatResult.rounds}** hiệp đấu.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`);
                 }
-                await interaction.reply({
+                await interaction.editReply({
                     content: `📖 Chi tiết trận chiến đã được gửi kèm trong tệp tin dưới đây:`,
                     embeds: [embed],
                     files: [attachment]
@@ -184,7 +183,7 @@ class CuuTrungCommand extends Command_1.Command {
                 statsStr = '*Chưa vượt qua tầng nào để nhận thuộc tính vĩnh viễn.*';
             }
             embed.addFields({ name: '🌟 Chỉ Số Tẩy Tủy Nhận Được (Vĩnh viễn)', value: statsStr });
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         // ───────────────── BẢNG XẾP HẠNG LEO THÁP ─────────────────
         else if (sub === 'bangxephang') {
@@ -210,7 +209,7 @@ class CuuTrungCommand extends Command_1.Command {
                 desc = '*Chưa có đạo hữu nào ghi tên lên bia đá.*';
             }
             embed.setDescription(desc);
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }

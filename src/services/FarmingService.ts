@@ -3,6 +3,7 @@ import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
 import { achievementService } from './AchievementService';
 import { leylineService } from './LeylineService';
+import { ITEMS } from '../config/itemConstants';
 
 export interface FarmingPlot {
   id: number;
@@ -138,7 +139,7 @@ export class FarmingService {
 
     const user = userRepository.get(userId);
     if (!user) {
-      return { success: false, message: 'Nhân vật không tồn tại.' };
+      return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
     }
 
     if (user.coin_ha_pham < cost) {
@@ -303,7 +304,7 @@ export class FarmingService {
    */
   public speedupPlot(userId: string, plotIndex: number): { success: boolean; message: string } {
     const inv = inventoryRepository.getUserInventory(userId);
-    const hasTalisman = inv.some(i => i.item_id === 'talisman_speed_1' && i.quantity > 0);
+    const hasTalisman = inv.some(i => i.item_id === ITEMS.TALISMAN_SPEED_1 && i.quantity > 0);
 
     if (!hasTalisman) {
       return { success: false, message: 'Đạo hữu không có **Thần Hành Phù** trong túi đồ để sử dụng!' };
@@ -333,7 +334,7 @@ export class FarmingService {
     `).run(newGrowthTime, now, plot.id);
 
     // Trừ phù lục
-    inventoryRepository.removeItem(userId, 'talisman_speed_1', 1);
+    inventoryRepository.removeItem(userId, ITEMS.TALISMAN_SPEED_1, 1);
 
     return { success: true, message: 'Sử dụng Thần Hành Phù gia tốc thành công! Rút ngắn thời gian lớn đi **1 giờ**.' };
   }
@@ -358,7 +359,7 @@ export class FarmingService {
 
     // Lấy thông tin sản vật phẩm đầu ra
     const item = db.prepare('SELECT stats FROM items WHERE id = ?').get(plot.seed_item_id) as any;
-    let productItemId = 'material_linh_thao_1';
+    let productItemId = ITEMS.MATERIAL_LINH_THAO_1;
     
     try {
       const stats = JSON.parse(item.stats || '{}');

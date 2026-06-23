@@ -77,12 +77,12 @@ class QuestChainService {
     if (!chain) return { success: false, message: '❌ Chuỗi nhiệm vụ không tồn tại.' };
 
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: '❌ Nhân vật không tồn tại.' };
+    if (!user) return { success: false, message: '❌ Đạo hữu chưa khởi tạo nhân vật.' };
 
     const existing = db.prepare('SELECT * FROM quest_chain_progress WHERE user_id = ? AND chain_id = ?').get(userId, chainId) as ChainProgressRow | undefined;
     if (existing) {
-      if (existing.completed) return { success: false, message: '❌ Bạn đã hoàn thành chuỗi nhiệm vụ này rồi.' };
-      return { success: false, message: '❌ Bạn đã bắt đầu chuỗi nhiệm vụ này rồi. Hãy tiếp tục hoàn thành các bước.' };
+      if (existing.completed) return { success: false, message: '❌ Đạo hữu đã hoàn thành chuỗi nhiệm vụ này rồi.' };
+      return { success: false, message: '❌ Đạo hữu đã bắt đầu chuỗi nhiệm vụ này rồi. Hãy tiếp tục hoàn thành các bước.' };
     }
 
     db.prepare(`
@@ -146,7 +146,7 @@ class QuestChainService {
       SELECT * FROM quest_chain_progress WHERE user_id = ? AND completed = 0 ORDER BY step_index ASC LIMIT 1
     `).get(userId) as ChainProgressRow | undefined;
 
-    if (!row) return { success: false, message: '❌ Bạn chưa bắt đầu chuỗi nhiệm vụ nào.' };
+    if (!row) return { success: false, message: '❌ Đạo hữu chưa bắt đầu chuỗi nhiệm vụ nào.' };
 
     const chain = QUEST_CHAINS.find(c => c.id === row.chain_id);
     if (!chain) return { success: false, message: '❌ Chuỗi nhiệm vụ không tồn tại.' };
@@ -159,11 +159,11 @@ class QuestChainService {
     }
 
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: '❌ Nhân vật không tồn tại.' };
+    if (!user) return { success: false, message: '❌ Đạo hữu chưa khởi tạo nhân vật.' };
 
     db.transaction(() => {
       userRepository.update(userId, {
-        tu_vi: user.tu_vi + step.rewardExp,
+        tu_vi: Math.min(user.tu_vi + step.rewardExp, user.exp_needed),
         coin_ha_pham: user.coin_ha_pham + step.rewardCoins,
       });
 
@@ -177,7 +177,7 @@ class QuestChainService {
 
       if (isLastStep) {
         userRepository.update(userId, {
-          tu_vi: user.tu_vi + chain.finalRewardExp,
+          tu_vi: Math.min(user.tu_vi + chain.finalRewardExp, user.exp_needed),
           coin_ha_pham: user.coin_ha_pham + chain.finalRewardCoins,
         });
 

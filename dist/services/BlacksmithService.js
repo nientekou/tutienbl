@@ -74,7 +74,9 @@ class BlacksmithService {
                     if (b.loren)
                         sectBonus = b.loren * 0.02; // +2% mỗi cấp
                 }
-                catch (e) { }
+                catch (e) {
+                    console.warn('[BlacksmithService] Failed to parse sect buildings for loren bonus:', e);
+                }
             }
         }
         const levelBonus = userForgingLevel * 0.01; // +1% thành công mỗi cấp Luyện Khí Sư

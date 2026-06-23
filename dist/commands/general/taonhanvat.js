@@ -23,20 +23,18 @@ class TaoNhanVatCommand extends Command_1.Command {
         // Validate name
         const nameRegex = /^[a-zA-Z0-9À-ỹ\s]{2,20}$/;
         if (!nameRegex.test(name)) {
-            await interaction.reply({ content: '❌ Tên không hợp lệ! Chỉ chứa chữ cái, số, khoảng trắng, dài 2-20 ký tự.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Tên không hợp lệ! Chỉ chứa chữ cái, số, khoảng trắng, dài 2-20 ký tự.' });
             return;
         }
         // Check existing character
         const existingUser = UserRepository_1.userRepository.get(discordId);
         if (existingUser) {
-            await interaction.reply({
-                content: `❌ Bạn đã có nhân vật: **${existingUser.name}**. Dùng /hoso để xem.`,
-                ephemeral: true,
+            await interaction.editReply({
+                content: `❌ Đạo hữu đã có nhân vật: **${existingUser.name}**. Dùng /hoso để xem.`,
             });
             return;
         }
         // Defer reply because cinematic takes time
-        await interaction.deferReply({ ephemeral: true });
         // Step 1: Epic Prologue
         await this.stepEpicPrologue(interaction);
         // Release lock early since this command takes time and we already deferred
@@ -257,6 +255,7 @@ class TaoNhanVatCommand extends Command_1.Command {
                 base_crit: totalCrit,
                 base_crit_res: baseStats.critRes,
                 base_luck: baseStats.luck + (background.bonuses.dropRate || 0),
+                base_speed: baseStats.speed,
                 linh_can: linhCanJson,
                 coin_ha_pham: startingLt,
                 knb: startingKnb,

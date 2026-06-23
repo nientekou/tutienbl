@@ -10,6 +10,7 @@ const InventoryRepository_1 = require("../../database/repositories/InventoryRepo
 const AlchemyService_1 = require("../../services/AlchemyService");
 const constants_1 = require("../../utils/constants");
 const database_1 = __importDefault(require("../../database/database"));
+const itemConstants_1 = require("../../config/itemConstants");
 class LuyenDanCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -20,12 +21,12 @@ class LuyenDanCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const embed = this.getAlchemyEmbed(userId);
         const rows = this.getAlchemyComponents(userId);
-        await interaction.reply({ embeds: [embed], components: rows });
+        await interaction.editReply({ embeds: [embed], components: rows });
     }
     /**
      * Tạo Embed giao diện Luyện Đan
@@ -52,7 +53,7 @@ class LuyenDanCommand extends Command_1.Command {
         let bestCauldron = null;
         if (cauldrons.length > 0) {
             // Ưu tiên: cauldron_high > cauldron_mid > cauldron_low
-            const order = ['cauldron_high', 'cauldron_mid', 'cauldron_low'];
+            const order = [itemConstants_1.ITEMS.CAULDRON_HIGH, itemConstants_1.ITEMS.CAULDRON_MID, itemConstants_1.ITEMS.CAULDRON_LOW];
             for (const cid of order) {
                 bestCauldron = cauldrons.find(i => i.item_id === cid);
                 if (bestCauldron)
@@ -106,13 +107,13 @@ class LuyenDanCommand extends Command_1.Command {
             const matText = recipe.requiredMaterials.map(m => {
                 const itemInfo = InventoryRepository_1.inventoryRepository.getUserInventory(userId).find(i => i.item_id === m.itemId);
                 const nameMap = {
-                    'material_linh_thao_1': 'Linh Thảo Hạ Phẩm',
-                    'material_nhan_sam_1': 'Huyết Nhân Sâm',
-                    'material_iron_1': 'Huyền Thiết Sa',
-                    'item_fragment': 'Mảnh Trang Bị',
-                    'material_blood_flower': 'Huyết Hoa',
-                    'material_void_herb': 'Hư Không Thảo',
-                    'material_wind_leaf': 'Thiên Phong Diệp'
+                    [itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1]: 'Linh Thảo Hạ Phẩm',
+                    [itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1]: 'Huyết Nhân Sâm',
+                    [itemConstants_1.ITEMS.MATERIAL_IRON_1]: 'Huyền Thiết Sa',
+                    [itemConstants_1.ITEMS.ITEM_FRAGMENT]: 'Mảnh Trang Bị',
+                    [itemConstants_1.ITEMS.MATERIAL_BLOOD_FLOWER]: 'Huyết Hoa',
+                    [itemConstants_1.ITEMS.MATERIAL_VOID_HERB]: 'Hư Không Thảo',
+                    [itemConstants_1.ITEMS.MATERIAL_WIND_LEAF]: 'Thiên Phong Diệp'
                 };
                 const name = nameMap[m.itemId] || m.itemId;
                 const reqQty = m.quantity * craftQty;
@@ -169,25 +170,18 @@ class LuyenDanCommand extends Command_1.Command {
             .setLabel(`Chế tác: x${craftQty} mẻ ${craftQty === 2 ? '🔥' : '⏳'}`)
             .setStyle(craftQty === 2 ? discord_js_1.ButtonStyle.Success : discord_js_1.ButtonStyle.Primary));
         rows.push(rowQty);
-        // Row 2 and 3: Recipe buttons (5 buttons per row max)
-        let currentRow = new discord_js_1.ActionRowBuilder();
-        let btnCount = 0;
+        // Row 2: Recipe select menu
+        const recipeSelect = new discord_js_1.StringSelectMenuBuilder()
+            .setCustomId(`alch_select_${userId}`)
+            .setPlaceholder('📜 Chọn công thức luyện đan...');
         for (const recipe of AlchemyService_1.ALCHEMY_RECIPES) {
-            if (btnCount > 0 && btnCount % 5 === 0) {
-                rows.push(currentRow);
-                currentRow = new discord_js_1.ActionRowBuilder();
-            }
             const isLocked = alchemyLevel < recipe.requiredAlchemyLevel;
-            currentRow.addComponents(new discord_js_1.ButtonBuilder()
-                .setCustomId(`alch_craft_${recipe.id}_${userId}`)
-                .setLabel(`Nấu ${recipe.name}`)
-                .setStyle(isLocked ? discord_js_1.ButtonStyle.Secondary : discord_js_1.ButtonStyle.Success)
-                .setDisabled(isLocked));
-            btnCount++;
+            recipeSelect.addOptions(new discord_js_1.StringSelectMenuOptionBuilder()
+                .setLabel(`Nấu ${recipe.name}${isLocked ? ' 🔒' : ''}`)
+                .setDescription(`Level yêu cầu: ${recipe.requiredAlchemyLevel}`)
+                .setValue(recipe.id));
         }
-        if (currentRow.components.length > 0) {
-            rows.push(currentRow);
-        }
+        rows.push(new discord_js_1.ActionRowBuilder().addComponents(recipeSelect));
         return rows;
     }
 }

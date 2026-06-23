@@ -1,4 +1,5 @@
 import { userRepository, UserEntity } from '../database/repositories/UserRepository';
+import { ITEMS } from '../config/itemConstants';
 import { getRealmDetails } from '../utils/constants';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
 import { eventService } from './EventService';
@@ -116,6 +117,7 @@ export class CultivationService {
     let crit = 0.05 + (majorIndex * 0.01); // 5% base + 1% mỗi cảnh giới
     let critRes = 0.0 + (majorIndex * 0.005);
     const luck = 10; // May mắn cố định thô
+    let speed = 100;
 
     // Cộng hưởng từ Linh Căn
     try {
@@ -125,6 +127,7 @@ export class CultivationService {
         switch (element) {
           case 'Lôi':
             atk += Math.round(atk * 0.20 * ratio); // 100% Lôi tăng 20% công
+            speed += Math.round(20 * ratio);        // 100% Lôi tăng 20 tốc độ
             break;
           case 'Hỏa':
             atk += Math.round(atk * 0.10 * ratio); // 100% Hỏa tăng 10% công
@@ -165,7 +168,8 @@ export class CultivationService {
       def,
       crit: parseFloat(crit.toFixed(3)),
       critRes: parseFloat(critRes.toFixed(3)),
-      luck
+      luck,
+      speed
     };
   }
 
@@ -221,7 +225,7 @@ export class CultivationService {
         if (sect && sect.tu_linh_level) {
           sectLinhTratBonus = sect.tu_linh_level * 0.05; // +5% mỗi cấp
         }
-      } catch (e) {}
+      } catch (e) { console.warn('[CultivationService] Failed to fetch sect tu_linh_level:', e); }
     }
     const { caveService } = require('./CaveService');
     let caveExpBuff = 0.0;
@@ -229,7 +233,7 @@ export class CultivationService {
       const cave = caveService.getCave(discordId);
       const springLvl = cave.spring_level || 1;
       caveExpBuff = springLvl * 0.02;
-    } catch(e) {}
+    } catch (e) { console.warn('[CultivationService] Failed to fetch cave spring level:', e); }
 
     const speedMultiplier = this.getCultivationSpeedMultiplier(user.linh_can) + (user.luan_hoi_count * 0.25) + sectLinhTratBonus + caveExpBuff;
     
@@ -245,7 +249,7 @@ export class CultivationService {
         leylineExpBuff = 1.5;
         isCaveMultiplier = true;
       }
-    } catch(e) {}
+    } catch (e) { console.warn('[CultivationService] Failed to check cave-leyline interaction:', e); }
 
     // Double EXP Weekend: x2 Tu Vi nhàn rỗi
     const eventMultiplier = eventService.isDoubleExpActive() ? 2 : 1;
@@ -258,7 +262,7 @@ export class CultivationService {
       if (expBoostHL) {
         heartLawExpBuff += expBoostHL.value;
       }
-    } catch (e) {}
+    } catch (e) { console.warn('[CultivationService] Failed to get heart law exp boost:', e); }
 
     // Hiệu ứng Đạo Thống (Alignment) & Tẩu Hỏa Nhập Ma
     let alignmentSpeedMultiplier = 1.0;
@@ -280,7 +284,7 @@ export class CultivationService {
       if (yCanhData.idle_no_decay_until && yCanhData.idle_no_decay_until > now) {
         idleNoDecay = true;
       }
-    } catch (e) {}
+    } catch (e) { console.warn('[CultivationService] Failed to parse y_canh for idle_no_decay:', e); }
 
     const normalSeconds = idleNoDecay ? diffSeconds : Math.min(diffSeconds, 21600);
     const decaySeconds = idleNoDecay ? 0 : Math.max(0, diffSeconds - 21600);
@@ -358,7 +362,7 @@ export class CultivationService {
         if (sect && sect.tu_linh_level) {
           sectLinhTratBonus = sect.tu_linh_level * 0.05; // +5% mỗi cấp
         }
-      } catch (e) {}
+      } catch (e) { console.warn('[CultivationService] Failed to fetch sect tu_linh_level:', e); }
     }
     const { caveService } = require('./CaveService');
     let caveExpBuff = 0.0;
@@ -368,7 +372,7 @@ export class CultivationService {
       if (cave.level === 3) caveExpBuff = 0.04;
       if (cave.level === 4) caveExpBuff = 0.06;
       if (cave.level >= 5) caveExpBuff = 0.10;
-    } catch(e) {}
+    } catch(e) { console.warn('[CultivationService] Failed to fetch cave level for practice buff:', e); }
 
     const speedMultiplier = this.getCultivationSpeedMultiplier(user.linh_can) + (user.luan_hoi_count * 0.25) + sectLinhTratBonus + caveExpBuff;
     
@@ -387,7 +391,7 @@ export class CultivationService {
       if (expBoostHL) {
         heartLawExpBuff += expBoostHL.value;
       }
-    } catch (e) {}
+    } catch (e) { console.warn('[CultivationService] Failed to get heart law exp boost:', e); }
 
     let alignmentSpeedMultiplier = 1.0;
     if (user.alignment === 'demonic') {
@@ -514,9 +518,9 @@ export class CultivationService {
         
         if (pill) {
           inventoryRepository.removeItem(discordId, usePill, 1);
-          if (usePill === 'pill_break_minor_1') { pillBonus = 15; usedPillName = 'Tụ Khí Đan'; }
-          else if (usePill === 'pill_break_minor_2') { pillBonus = 30; usedPillName = 'Bồi Nguyên Đan'; }
-          else if (usePill === 'pill_break_minor_3') { pillBonus = 50; usedPillName = 'Tạo Hóa Đan'; }
+          if (usePill === ITEMS.PILL_BREAK_MINOR_1) { pillBonus = 15; usedPillName = 'Tụ Khí Đan'; }
+          else if (usePill === ITEMS.PILL_BREAK_MINOR_2) { pillBonus = 30; usedPillName = 'Bồi Nguyên Đan'; }
+          else if (usePill === ITEMS.PILL_BREAK_MINOR_3) { pillBonus = 50; usedPillName = 'Tạo Hóa Đan'; }
         } else {
           return {
             success: false,
@@ -556,7 +560,8 @@ export class CultivationService {
         base_def: newStats.def,
         base_crit: newStats.crit,
         base_crit_res: newStats.critRes,
-        base_luck: user.base_luck
+        base_luck: user.base_luck,
+        base_speed: newStats.speed
       });
 
       const updatedUser = userRepository.get(discordId)!;
@@ -647,11 +652,11 @@ export class CultivationService {
       } else if (usePill && !forceSuccess) {
         // Kiểm tra xem có Trúc Cơ Đan trong túi không
         const inv = inventoryRepository.getUserInventory(discordId);
-        const breakPill = inv.find(i => i.item_id === 'pill_break_1' && i.quantity > 0);
+        const breakPill = inv.find(i => i.item_id === ITEMS.PILL_BREAK_1 && i.quantity > 0);
         if (breakPill) {
           hasPill = true;
           pillBonus = 20; // Tăng thêm 20%
-          inventoryRepository.removeItem(discordId, 'pill_break_1', 1);
+          inventoryRepository.removeItem(discordId, ITEMS.PILL_BREAK_1, 1);
         } else {
           return {
             success: false,
@@ -692,6 +697,7 @@ export class CultivationService {
           base_crit: newStats.crit,
           base_crit_res: newStats.critRes,
           base_luck: user.base_luck,
+          base_speed: newStats.speed,
           consecutive_fails: 0
         });
 
@@ -912,6 +918,7 @@ export class CultivationService {
       base_crit: newStats.crit,
       base_crit_res: newStats.critRes,
       base_luck: newStats.luck,
+      base_speed: newStats.speed,
       alignment: 'neutral',
       qi_deviation_until: 0
     });
@@ -1036,7 +1043,8 @@ export class CultivationService {
         base_def: newStats.def,
         base_crit: newStats.crit,
         base_crit_res: newStats.critRes,
-        base_luck: user.base_luck
+        base_luck: user.base_luck,
+        base_speed: newStats.speed
       });
     })();
 
@@ -1048,6 +1056,12 @@ export class CultivationService {
       message: `✨ **Tôi Luyện Thành Công:** Đạo hữu tiêu hao ${deductText}, tôi luyện giúp độ tinh thuần **${targetElement}** tăng lên **${updatedUser.linh_can.includes(targetElement) ? JSON.parse(updatedUser.linh_can)[targetElement] : 0}%**!`,
       user: updatedUser
     };
+  }
+
+  public static getBreakthroughRate(majorIndex: number, luck: number): number {
+    const baseRate = Math.max(65 - majorIndex * 12, 8);
+    const luckBonus = luck * 0.002;
+    return Math.min(baseRate + luckBonus * 100, 100);
   }
 }
 export const cultivationService = new CultivationService();

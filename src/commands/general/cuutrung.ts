@@ -30,7 +30,7 @@ export default class CuuTrungCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'});
       return;
     }
 
@@ -42,7 +42,7 @@ export default class CuuTrungCommand extends Command {
       const nextFloor = progress.highest_floor + 1;
 
       if (nextFloor > 9) {
-        await interaction.reply({ content: '🎉 Chúc mừng đạo hữu! Đạo hữu đã chinh phục thành công cả **9 tầng Cửu Trùng Tháp** và đạt tới đỉnh cao võ học!', ephemeral: true });
+        await interaction.editReply({ content: '🎉 Chúc mừng đạo hữu! Đạo hữu đã chinh phục thành công cả **9 tầng Cửu Trùng Tháp** và đạt tới đỉnh cao võ học!'});
         return;
       }
 
@@ -58,17 +58,16 @@ export default class CuuTrungCommand extends Command {
           new ButtonBuilder().setCustomId('cancel_cuutrung').setLabel('Hủy bỏ').setStyle(ButtonStyle.Secondary)
         );
 
-        const msg = await interaction.reply({
+        const msg = await interaction.editReply({
           content: `⚠️ **Hết lượt khiêu chiến miễn phí tuần này!**\n` +
             `Đạo hữu có muốn tiêu hao **1,000 Linh Thạch** để tiếp tục khiêu chiến **Tầng ${nextFloor}** [Luật: *${floorConfig.ruleDesc}*] không?`,
-          components: [row],
-          fetchReply: true
+          components: [row]
         });
 
         const collector = msg.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
         collector.on('collect', async i => {
           if (i.user.id !== userId) {
-            await i.reply({ content: '❌ Bạn không phải là người gọi lệnh!', ephemeral: true });
+            await i.reply({ content: '❌ Đạo hữu không phải là người gọi lệnh!'});
             return;
           }
 
@@ -117,7 +116,7 @@ export default class CuuTrungCommand extends Command {
       }
 
       if (!res.success) {
-        await interaction.reply({ content: `❌ Lỗi khiêu chiến: ${res.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ Lỗi khiêu chiến: ${res.message}`});
         return;
       }
 
@@ -147,7 +146,7 @@ export default class CuuTrungCommand extends Command {
                   : `💀 **Bại trận!** Thần thức của đạo hữu đã bị trục xuất khỏi Cửu Trùng Tháp sau **${res.combatResult.rounds}** hiệp đấu.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`);
         }
 
-        await interaction.reply({
+        await interaction.editReply({
           content: `📖 Chi tiết trận chiến đã được gửi kèm trong tệp tin dưới đây:`,
           embeds: [embed],
           files: [attachment]
@@ -204,7 +203,7 @@ export default class CuuTrungCommand extends Command {
       }
 
       embed.addFields({ name: '🌟 Chỉ Số Tẩy Tủy Nhận Được (Vĩnh viễn)', value: statsStr });
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
 
     // ───────────────── BẢNG XẾP HẠNG LEO THÁP ─────────────────
@@ -233,7 +232,7 @@ export default class CuuTrungCommand extends Command {
       }
 
       embed.setDescription(desc);
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
   }
 }

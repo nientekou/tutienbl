@@ -17,7 +17,7 @@ class YenTiecCommand extends Command_1.Command {
             .setColor(result.success ? '#2ecc71' : '#e74c3c')
             .setDescription(result.message)
             .setTimestamp();
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
     }
 }
 exports.default = YenTiecCommand;

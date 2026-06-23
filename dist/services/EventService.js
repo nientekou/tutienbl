@@ -8,6 +8,7 @@ const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 const SystemConfigService_1 = require("./SystemConfigService");
+const itemConstants_1 = require("../config/itemConstants");
 // Định nghĩa các sự kiện mẫu
 exports.EVENT_TEMPLATES = [
     {
@@ -19,8 +20,8 @@ exports.EVENT_TEMPLATES = [
         rewards: [
             { type: 'coin', amount: 5000 },
             { type: 'tuvi', amount: 10000 },
-            { type: 'item', itemId: 'lucky_chest', amount: 3 },
-            { type: 'item', itemId: 'pill_alchemy_tuvi', amount: 5 }
+            { type: 'item', itemId: itemConstants_1.ITEMS.LUCKY_CHEST, amount: 3 },
+            { type: 'item', itemId: itemConstants_1.ITEMS.PILL_ALCHEMY_TUVI, amount: 5 }
         ],
         repeatable: 'weekly'
     },
@@ -43,7 +44,7 @@ exports.EVENT_TEMPLATES = [
         durationHours: 72, // 3 ngày
         rewards: [
             { type: 'coin', amount: 10000 },
-            { type: 'item', itemId: 'pill_alchemy_tuvi', amount: 10 },
+            { type: 'item', itemId: itemConstants_1.ITEMS.PILL_ALCHEMY_TUVI, amount: 10 },
         ],
         repeatable: 'once'
     },
@@ -56,7 +57,7 @@ exports.EVENT_TEMPLATES = [
         rewards: [
             { type: 'coin', amount: 3000 },
             { type: 'ngotinh', amount: 50 },
-            { type: 'item', itemId: 'item_fragment', amount: 20 }
+            { type: 'item', itemId: itemConstants_1.ITEMS.ITEM_FRAGMENT, amount: 20 }
         ],
         repeatable: 'monthly'
     }
@@ -201,7 +202,7 @@ class EventService {
             return { success: false, message: 'Sự kiện chưa kết thúc! Hãy chờ đến khi sự kiện kết thúc để nhận thưởng.' };
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         let rewards;
         try {
             rewards = JSON.parse(event.rewards_config || '[]');

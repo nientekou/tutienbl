@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const Event_1 = require("../structures/Event");
 const database_1 = require("../database/database");
+const LeaderboardService_1 = require("../services/LeaderboardService");
 const chalk_1 = __importDefault(require("chalk"));
 const cli_table3_1 = __importDefault(require("cli-table3"));
 class ReadyEvent extends Event_1.Event {
@@ -21,6 +22,7 @@ class ReadyEvent extends Event_1.Event {
         // 1. Tự động kết nối và khởi tạo các bảng cơ sở dữ liệu
         try {
             (0, database_1.initDatabase)();
+            LeaderboardService_1.leaderboardService.clearCache();
             table.push(['SQLite Database', chalk_1.default.green('✔ Thành công')]);
         }
         catch (error) {

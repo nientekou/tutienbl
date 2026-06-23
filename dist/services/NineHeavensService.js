@@ -107,7 +107,7 @@ class NineHeavensService {
     buyExtraAttempt(userId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         const progress = this.getProgress(userId);
         if (user.coin_ha_pham < 1000) {
             return { success: false, message: `Đạo hữu không đủ Linh thạch! Cần **1,000** Linh Thạch để mua thêm lượt khiêu chiến (Hiện có **${user.coin_ha_pham.toLocaleString()}**).` };
@@ -129,7 +129,7 @@ class NineHeavensService {
     enterFloorChallenge(userId, forceBuy = false) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         const progress = this.getProgress(userId);
         const nextFloor = progress.highest_floor + 1;
         if (nextFloor > 9) {
@@ -165,11 +165,15 @@ class NineHeavensService {
             try {
                 mutations = JSON.parse(petRaw.mutations || '{}');
             }
-            catch (e) { }
+            catch (e) {
+                console.warn('[NineHeavensService] Failed to parse pet mutations:', e);
+            }
             try {
                 skillsArr = JSON.parse(petRaw.skills || '[]');
             }
-            catch (e) { }
+            catch (e) {
+                console.warn('[NineHeavensService] Failed to parse pet skills:', e);
+            }
             pet = { name: petRaw.name, atk: petRaw.base_atk + (mutations.bonus_atk || 0), skills: skillsArr };
         }
         // Lấy các kỹ năng đang trang bị
@@ -247,7 +251,9 @@ class NineHeavensService {
                 if (yCanh.HuyenQuyY)
                     baseStats.def += Math.round(user.base_def * (yCanh.HuyenQuyY * 0.03));
             }
-            catch (e) { }
+            catch (e) {
+                console.warn('[NineHeavensService] Failed to parse y_canh for Y景 (Yijing) bonuses:', e);
+            }
             playerCombatant.hp = baseStats.hp;
             playerCombatant.maxHp = baseStats.hp;
             playerCombatant.atk = baseStats.atk;

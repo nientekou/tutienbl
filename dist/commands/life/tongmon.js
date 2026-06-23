@@ -16,7 +16,7 @@ function getSectEmbed(userId) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('❌ Lỗi')
             .setColor('#e74c3c')
-            .setDescription('Nhân vật không tồn tại.');
+            .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
     }
     // TRƯỜNG HỢP: CHƯA CÓ TÔNG MÔN
     if (!user.sect_id) {
@@ -147,15 +147,14 @@ class TongMonCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({
-                content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.',
-                ephemeral: true
+            await interaction.editReply({
+                content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.'
             });
             return;
         }
         const embed = getSectEmbed(userId);
         const components = getSectComponents(userId);
-        await interaction.reply({
+        await interaction.editReply({
             embeds: [embed],
             components: components
         });

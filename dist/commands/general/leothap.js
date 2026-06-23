@@ -13,6 +13,7 @@ const InventoryService_1 = require("../../services/InventoryService");
 const CombatEngine_1 = require("../../services/CombatEngine");
 const DailyQuestService_1 = require("../../services/DailyQuestService");
 const constants_1 = require("../../utils/constants");
+const itemConstants_1 = require("../../config/itemConstants");
 const database_1 = __importDefault(require("../../database/database"));
 // === Helper functions for button handlers ===
 function getTowerEmbed(userId) {
@@ -65,7 +66,7 @@ class LeoThapCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -73,14 +74,13 @@ class LeoThapCommand extends Command_1.Command {
         let progress = database_1.default.prepare('SELECT * FROM roguelike_progress WHERE user_id = ?').get(userId);
         if (sub === 'trangthai') {
             const embed = getTowerEmbed(userId);
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
             return;
         }
         // Các hành động chiến đấu/reset tiêu tốn 20 Stamina
         if (user.stamina < 20) {
-            await interaction.reply({
-                content: `❌ Đạo hữu không đủ Thể Lực! (Cần ít nhất **20** điểm, hiện có **${user.stamina}**). Hãy nghỉ ngơi tĩnh dưỡng.`,
-                ephemeral: true
+            await interaction.editReply({
+                content: `❌ Đạo hữu không đủ Thể Lực! (Cần ít nhất **20** điểm, hiện có **${user.stamina}**). Hãy nghỉ ngơi tĩnh dưỡng.`
             });
             return;
         }
@@ -102,8 +102,8 @@ class LeoThapCommand extends Command_1.Command {
                 // Trừ thể lực
                 UserRepository_1.userRepository.update(userId, { stamina: user.stamina - 20 });
             })();
-            await interaction.reply({
-                content: `🔄 Đạo hữu đã tốn **20 Thể Lực** để thiết lập lại trận địa Tháp Vô Hạn! Bạn đang ở **Tầng 1** với đầy đủ **3 sinh mạng**. Sử dụng \`/leothap khieu-chien\` để xung trận!`
+            await interaction.editReply({
+                content: `🔄 Đạo hữu đã tốn **20 Thể Lực** để thiết lập lại trận địa Tháp Vô Hạn! Đạo hữu đang ở **Tầng 1** với đầy đủ **3 sinh mạng**. Sử dụng \`/leothap khieu-chien\` để xung trận!`
             });
             return;
         }
@@ -117,16 +117,15 @@ class LeoThapCommand extends Command_1.Command {
                 progress = database_1.default.prepare('SELECT * FROM roguelike_progress WHERE user_id = ?').get(userId);
             }
             if (progress.lives <= 0) {
-                await interaction.reply({
-                    content: '❌ Đạo hữu đã cạn kiệt sinh mạng trong run tháp này! Vui lòng dùng lệnh \`/leothap khoi-dau\` để reset bắt đầu đợt leo tháp mới.',
-                    ephemeral: true
+                await interaction.editReply({
+                    content: '❌ Đạo hữu đã cạn kiệt sinh mạng trong run tháp này! Vui lòng dùng lệnh \`/leothap khoi-dau\` để reset bắt đầu đợt leo tháp mới.'
                 });
                 return;
             }
             // Lấy chỉ số chiến đấu thực tế
             const activeStats = InventoryService_1.inventoryService.getActiveStats(userId);
             if (!activeStats) {
-                await interaction.reply({ content: '❌ Lỗi hệ thống: Không thể tính toán thuộc tính chiến đấu.', ephemeral: true });
+                await interaction.editReply({ content: '❌ Lỗi hệ thống: Không thể tính toán thuộc tính chiến đấu.' });
                 return;
             }
             // Tính toán HP dựa trên lượng HP mang theo từ tầng trước
@@ -201,7 +200,7 @@ class LeoThapCommand extends Command_1.Command {
                     });
                     // Cơ hội 20% rơi mảnh trang bị
                     if (Math.random() < 0.20) {
-                        InventoryRepository_1.inventoryRepository.addItem(userId, 'item_fragment', 1);
+                        InventoryRepository_1.inventoryRepository.addItem(userId, itemConstants_1.ITEMS.ITEM_FRAGMENT, 1);
                     }
                 })();
                 // Cập nhật tiến trình nhiệm vụ hàng ngày
@@ -241,7 +240,7 @@ class LeoThapCommand extends Command_1.Command {
                     embed.setDescription(`Đạo hữu tử trận tại tầng **${floor}**!\n\n` +
                         `• Sát thương oán khí bạo liệt, đạo hữu hao tổn **-1 sinh mạng** (Còn lại **${newLives}/3** mạng).\n` +
                         `• Trừ **-20 Thể Lực** ⚡ (Còn lại: **${user.stamina - 20}/500**).\n\n` +
-                        `✨ *Linh thể tự động được tháp quy tắc tái tạo đầy 100% HP. Bạn có thể khiêu chiến lại tầng này!*`);
+                        `✨ *Linh thể tự động được tháp quy tắc tái tạo đầy 100% HP. Đạo hữu có thể khiêu chiến lại tầng này!*`);
                 }
                 else {
                     embed.setDescription(`Đạo hữu đã cạn kiệt sinh mạng tại tầng **${floor}**!\n\n` +
@@ -249,7 +248,7 @@ class LeoThapCommand extends Command_1.Command {
                         `💀 *Đạo hữu bị đẩy văng ra khỏi chân tháp. Hãy dùng lệnh \`/leothap khoi-dau\` để thiết lập run mới từ Tầng 1.*`);
                 }
             }
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }

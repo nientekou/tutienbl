@@ -5,6 +5,7 @@ import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { inventoryService } from '../../services/InventoryService';
 import db from '../../database/database';
+import { ITEMS, getPhoiWeaponByGrade, getPhoiArmorByGrade, getWeaponByGrade, getArmorByGrade } from '../../config/itemConstants';
 
 export default class DungCommand extends Command {
   constructor() {
@@ -12,10 +13,10 @@ export default class DungCommand extends Command {
       new SlashCommandBuilder()
         .setName('dung')
         .setDescription('Sử dụng đan dược, rương báu, hoặc phù lục từ túi đồ.')
-        .addStringOption(opt =>
+        .addIntegerOption(opt =>
           opt
-            .setName('item_id')
-            .setDescription('Mã vật phẩm cần sử dụng (ví dụ: pill_hp_1, lucky_chest,...)')
+            .setName('inventory_id')
+            .setDescription('Mã hành trang của vật phẩm (xem trong /hoso)')
             .setRequired(true)
         )
         .addIntegerOption(opt =>
@@ -29,43 +30,40 @@ export default class DungCommand extends Command {
 
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const userId = interaction.user.id;
-    const itemId = interaction.options.getString('item_id', true);
+    const inventoryId = interaction.options.getInteger('inventory_id', true);
     const qty = interaction.options.getInteger('soluong') || 1;
 
     if (qty <= 0) {
-      await interaction.reply({ content: '❌ Số lượng sử dụng phải lớn hơn 0!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Số lượng sử dụng phải lớn hơn 0!' });
       return;
     }
 
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
 
     // Lấy danh sách item trong túi đồ
     const inventory = inventoryRepository.getUserInventory(userId);
-    const userItem = inventory.find(i => i.item_id === itemId && i.is_equipped === 0);
+    const userItem = inventory.find(i => i.id === inventoryId && i.is_equipped === 0);
 
     if (!userItem || userItem.quantity < qty) {
-      await interaction.reply({
-        content: `❌ Đạo hữu không đủ vật phẩm này trong túi đồ! (Hiện có: **${userItem ? userItem.quantity : 0}**).`,
-        ephemeral: true
+      await interaction.editReply({
+        content: `❌ Đạo hữu không đủ vật phẩm này trong túi đồ! (Hiện có: **${userItem ? userItem.quantity : 0}**).`
       });
       return;
     }
+
+    const itemId = userItem.item_id;
 
     // Xử lý nếu là Sách kỹ năng -> Chuyển qua học kỹ năng
     if (userItem.type === 'book') {
-      await interaction.reply({
-        content: `💡 Để học kỹ năng từ sách cổ này, đạo hữu hãy sử dụng lệnh \`/dungkynang item_id: ${itemId}\`!`,
-        ephemeral: true
+      await interaction.editReply({
+        content: `💡 Để học kỹ năng từ sách cổ này, đạo hữu hãy sử dụng lệnh \`/dungkynang item_id: ${itemId}\`!`
       });
       return;
     }
-
-    // Defer reply for potentially heavy database updates or item loops
-    await interaction.deferReply();
 
     // Xử lý mở rương
     if (userItem.type === 'chest') {
@@ -107,7 +105,7 @@ export default class DungCommand extends Command {
     for (let i = 0; i < qty; i++) {
       // Refresh inventory item state
       const currentInv = inventoryRepository.getUserInventory(userId);
-      const activeItem = currentInv.find(item => item.item_id === itemId && item.is_equipped === 0);
+      const activeItem = currentInv.find(item => item.id === inventoryId && item.is_equipped === 0);
       if (!activeItem || activeItem.quantity <= 0) break;
 
       const res = inventoryService.useItem(userId, activeItem.id);
@@ -150,7 +148,7 @@ export default class DungCommand extends Command {
     };
 
     for (let i = 0; i < qty; i++) {
-      if (chestId === 'lucky_chest') {
+      if (chestId === ITEMS.LUCKY_CHEST) {
         // Mở ra phôi từ F tới SSS
         const rand = Math.random() * 100;
         let grade = 'f';
@@ -164,7 +162,7 @@ export default class DungCommand extends Command {
         else grade = 'sss';
 
         const isWeapon = Math.random() < 0.5;
-        const phoiId = isWeapon ? `phoi_weapon_${grade}` : `phoi_armor_${grade}`;
+        const phoiId = isWeapon ? getPhoiWeaponByGrade(grade) : getPhoiArmorByGrade(grade);
         
         // Lấy tên phôi
         const staticItem = db.prepare('SELECT name FROM items WHERE id = ?').get(phoiId) as { name: string } | undefined;
@@ -172,7 +170,7 @@ export default class DungCommand extends Command {
         addReward(phoiId, phoiName, 1);
       } 
       
-      else if (chestId === 'chest_1tr5') {
+      else if (chestId === ITEMS.CHEST_1TR5) {
         // Rương 1.5M tôn quý (Sát tỷ lệ: SSS: 10%, SS: 20%, S: 35%, A: 35%, loại bỏ hoàn toàn phẩm B)
         const sssRate = 0.10;
         const ssRate = 0.20;
@@ -192,14 +190,14 @@ export default class DungCommand extends Command {
         }
 
         const isWeapon = Math.random() < 0.5;
-        const phoiId = isWeapon ? `phoi_weapon_${grade}` : `phoi_armor_${grade}`;
+        const phoiId = isWeapon ? getPhoiWeaponByGrade(grade) : getPhoiArmorByGrade(grade);
 
         const staticItem = db.prepare('SELECT name FROM items WHERE id = ?').get(phoiId) as { name: string } | undefined;
         const phoiName = staticItem ? staticItem.name : `Phôi phẩm ${grade.toUpperCase()}`;
         addReward(phoiId, phoiName, 1);
       } 
       
-      else if (chestId === 'server_raid_chest') {
+      else if (chestId === ITEMS.SERVER_RAID_CHEST) {
         // Rương Boss Thế Giới: Cơ hội ra trang bị trực tiếp EX
         const rand = Math.random();
         let grade = 's';
@@ -214,7 +212,7 @@ export default class DungCommand extends Command {
         }
 
         const isWeapon = Math.random() < 0.5;
-        const targetItemId = isWeapon ? `weapon_sword_${grade}` : `armor_robe_${grade}`;
+        const targetItemId = isWeapon ? getWeaponByGrade(grade) : getArmorByGrade(grade);
 
         const staticItem = db.prepare('SELECT name FROM items WHERE id = ?').get(targetItemId) as { name: string } | undefined;
         const itemName = staticItem ? staticItem.name : `Trang bị phẩm ${grade.toUpperCase()}`;
@@ -226,7 +224,7 @@ export default class DungCommand extends Command {
       
       else {
         // Rương rác / mặc định rơi huyền thiết sa
-        addReward('material_iron_1', 'Huyền Thiết Sa', 1);
+        addReward(ITEMS.MATERIAL_IRON_1, 'Huyền Thiết Sa', 1);
       }
     }
 

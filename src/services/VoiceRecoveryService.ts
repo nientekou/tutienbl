@@ -234,7 +234,7 @@ export class VoiceRecoveryService {
           if (member && member.voice.channelId) {
             inVoice = true;
           }
-        } catch (e) {}
+        } catch (e) { console.warn('[VoiceRecoveryService] Failed to fetch member voice state:', e); }
 
         if (!inVoice) {
           // Người dùng đã rời voice mà bot không bắt được event -> gọi onVoiceLeave

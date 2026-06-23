@@ -1,6 +1,7 @@
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
+import { ITEMS } from '../config/itemConstants';
 
 export interface TreasureLocation {
   id: number;
@@ -32,18 +33,18 @@ const LOCATION_NAMES = [
   'Núi Băng Thiên Sơn',
 ];
 
-const COMMON_MATERIALS = ['material_linh_thao_1', 'material_iron_1'];
-const RARE_MATERIALS = ['material_nhan_sam_1', 'material_tinh_thiet_1'];
-const EPIC_MATERIALS = ['item_pet_evolve', 'material_lingzhi', 'material_tuyet_lien'];
+const COMMON_MATERIALS = [ITEMS.MATERIAL_LINH_THAO_1, ITEMS.MATERIAL_IRON_1];
+const RARE_MATERIALS = [ITEMS.MATERIAL_NHAN_SAM_1, ITEMS.MATERIAL_TINH_THIET_1];
+const EPIC_MATERIALS = [ITEMS.ITEM_PET_EVOLVE, ITEMS.MATERIAL_LINGZHI, ITEMS.MATERIAL_TUYET_LIEN];
 
 class MapFragmentService {
   public addFragment(userId: string): void {
-    inventoryRepository.addItem(userId, 'map_fragment', 1);
+    inventoryRepository.addItem(userId, ITEMS.MAP_FRAGMENT, 1);
   }
 
   public getFragmentCount(userId: string): number {
     const inv = inventoryRepository.getUserInventory(userId);
-    const frag = inv.find(i => i.item_id === 'map_fragment');
+    const frag = inv.find(i => i.item_id === ITEMS.MAP_FRAGMENT);
     return frag ? frag.quantity : 0;
   }
 
@@ -56,7 +57,7 @@ class MapFragmentService {
       return { success: false, message: `❌ Cần 5 Mảnh Bản Đồ để ghép. Hiện có: **${count}/5**.` };
     }
 
-    const removed = inventoryRepository.removeItem(userId, 'map_fragment', 5);
+    const removed = inventoryRepository.removeItem(userId, ITEMS.MAP_FRAGMENT, 5);
     if (!removed) return { success: false, message: '❌ Không thể tiêu hao Mảnh Bản Đồ.' };
 
     const now = Math.floor(Date.now() / 1000);
@@ -160,7 +161,7 @@ class MapFragmentService {
         userRepository.update(userId, { knb: (user.knb || 0) + knbAmount });
         rewardTexts.push(`💎 **${knbAmount}** KNB`);
 
-        inventoryRepository.addItem(userId, 'manh_vo_vu_khi', 1);
+        inventoryRepository.addItem(userId, ITEMS.MANH_VO_VU_KHI, 1);
         rewardTexts.push(`🗡️ **Mảnh Vỡ Vũ Khí Huyền Thoại** x1`);
         break;
       }
@@ -178,7 +179,7 @@ class MapFragmentService {
         rewardTexts.push(`🎁 Nguyên liệu Epic **x2**`);
 
         if (Math.random() < 0.2) {
-          inventoryRepository.addItem(userId, 'item_pet_evolve', 1);
+          inventoryRepository.addItem(userId, ITEMS.ITEM_PET_EVOLVE, 1);
           rewardTexts.push(`🥚 **Linh Thú Tiến Hóa Đan** (Cơ hội nhận trứng thú cưng!)`);
         }
         break;

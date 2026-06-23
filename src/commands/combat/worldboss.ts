@@ -58,8 +58,8 @@ export function getWorldBossEmbed(userId: string): EmbedBuilder {
     let cdSec = 0;
     if (contrib) {
       const elapsed = now - contrib.last_attack_at;
-      if (elapsed < 400) {
-        cdSec = 400 - elapsed;
+      if (elapsed < 200) {
+        cdSec = 200 - elapsed;
       }
     }
 
@@ -95,8 +95,8 @@ export function getWorldBossComponents(userId: string): ActionRowBuilder<ButtonB
   let cdSec = 0;
   if (contrib) {
     const elapsed = now - contrib.last_attack_at;
-    if (elapsed < 400) {
-      cdSec = 400 - elapsed;
+    if (elapsed < 200) {
+      cdSec = 200 - elapsed;
     }
   }
 
@@ -134,9 +134,8 @@ export default class WorldBossCommand extends Command {
 
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({
-        content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.',
-        ephemeral: true
+      await interaction.editReply({
+        content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.'
       });
       return;
     }
@@ -144,7 +143,7 @@ export default class WorldBossCommand extends Command {
     const embed = getWorldBossEmbed(userId);
     const row = getWorldBossComponents(userId);
 
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [embed],
       components: [row]
     });

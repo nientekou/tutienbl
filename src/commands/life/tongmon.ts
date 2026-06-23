@@ -14,7 +14,7 @@ export function getSectEmbed(userId: string): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle('❌ Lỗi')
       .setColor('#e74c3c')
-      .setDescription('Nhân vật không tồn tại.');
+      .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
   }
 
   // TRƯỜNG HỢP: CHƯA CÓ TÔNG MÔN
@@ -192,9 +192,8 @@ export default class TongMonCommand extends Command {
 
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({
-        content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.',
-        ephemeral: true
+      await interaction.editReply({
+        content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.'
       });
       return;
     }
@@ -202,7 +201,7 @@ export default class TongMonCommand extends Command {
     const embed = getSectEmbed(userId);
     const components = getSectComponents(userId);
 
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [embed],
       components: components as any[]
     });

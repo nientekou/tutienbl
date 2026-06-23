@@ -9,6 +9,7 @@ const InventoryRepository_1 = require("../../database/repositories/InventoryRepo
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const luyendan_1 = __importDefault(require("../../commands/general/luyendan"));
 const DailyQuestService_1 = require("../../services/DailyQuestService");
+const QuestChainService_1 = require("../../services/QuestChainService");
 class LifeInteractionHandler {
     static async handle(interaction, action, parts, targetUserId) {
         if (action === 'alch') {
@@ -34,7 +35,7 @@ class LifeInteractionHandler {
                 await interaction.update({ embeds: [updatedEmbed], components: updatedComponents });
                 return;
             }
-            if (subAction === 'craft') {
+            if (subAction === 'craft' || subAction === 'select') {
                 const user = UserRepository_1.userRepository.get(targetUserId);
                 if (!user)
                     return;
@@ -57,10 +58,17 @@ class LifeInteractionHandler {
                             break;
                     }
                 }
-                const recipeId = parts.slice(2, -1).join('_');
+                let recipeId;
+                if (subAction === 'select') {
+                    recipeId = interaction.values[0];
+                }
+                else {
+                    recipeId = parts.slice(2, -1).join('_');
+                }
                 const res = AlchemyService_1.alchemyService.craftPill(targetUserId, recipeId, bestCauldron?.id, activeQty);
                 if (res.success) {
                     DailyQuestService_1.dailyQuestService.updateProgress(targetUserId, 'daily_luyendan', activeQty);
+                    QuestChainService_1.questChainService.updateProgress(targetUserId, 'craft', activeQty);
                 }
                 const luyenDanCmd = new luyendan_1.default();
                 const updatedEmbed = luyenDanCmd.getAlchemyEmbed(targetUserId);

@@ -8,6 +8,7 @@ const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 const SoulImprintRepository_1 = require("../database/repositories/SoulImprintRepository");
+const itemConstants_1 = require("../config/itemConstants");
 class SoulImprintService {
     /**
      * Xác định nhóm bộ (set group) dựa trên ID vật phẩm
@@ -131,7 +132,7 @@ class SoulImprintService {
             return { success: false, message: 'Không đủ Linh Thạch để ấn ký! (Yêu cầu: **5,000** Linh Thạch).' };
         }
         const userInventory = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-        const fragments = userInventory.find(i => i.item_id === 'item_fragment');
+        const fragments = userInventory.find(i => i.item_id === itemConstants_1.ITEMS.ITEM_FRAGMENT);
         if (!fragments || fragments.quantity < 10) {
             return { success: false, message: `Không đủ Mảnh Trang Bị để ấn ký! (Yêu cầu: **10** Mảnh, đạo hữu hiện có: **${fragments ? fragments.quantity : 0}**).` };
         }
@@ -152,7 +153,7 @@ class SoulImprintService {
             // Trừ Linh Thạch
             UserRepository_1.userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - 5000 });
             // Trừ Mảnh Trang Bị
-            InventoryRepository_1.inventoryRepository.removeItem(userId, 'item_fragment', 10);
+            InventoryRepository_1.inventoryRepository.removeItem(userId, itemConstants_1.ITEMS.ITEM_FRAGMENT, 10);
             // Tiêu hủy trang bị
             InventoryRepository_1.inventoryRepository.removeItemById(inventoryId, 1);
             // Thêm vào soul_imprints
@@ -171,7 +172,7 @@ class SoulImprintService {
         const fromUser = UserRepository_1.userRepository.get(fromUserId);
         const toUser = UserRepository_1.userRepository.get(toUserId);
         if (!fromUser || !toUser) {
-            return { success: false, message: 'Nhân vật của đạo hữu hoặc đối phương không tồn tại!' };
+            return { success: false, message: 'Đạo hữu hoặc đối phương chưa khởi tạo nhân vật!' };
         }
         const imprint = SoulImprintRepository_1.soulImprintRepository.getImprint(imprintId);
         if (!imprint || imprint.user_id !== fromUserId) {

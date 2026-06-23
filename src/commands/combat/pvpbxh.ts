@@ -33,7 +33,7 @@ export default class PvPBangXepHangCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
 
@@ -73,15 +73,14 @@ export default class PvPBangXepHangCommand extends Command {
         embed.addFields({ name: '📊 Bảng Xếp Hạng', value: rankingText });
       }
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
 
     else if (sub === 'thongtin') {
       const profile = pvpService.getPlayerProfile(userId);
       if (!profile) {
-        await interaction.reply({
-          content: '❌ Không thể tải thông tin PvP của đạo hữu.',
-          ephemeral: true
+        await interaction.editReply({
+          content: '❌ Không thể tải thông tin PvP của đạo hữu.'
         });
         return;
       }
@@ -107,7 +106,7 @@ export default class PvPBangXepHangCommand extends Command {
         .setFooter({ text: `Mùa giải #${pvpService.getCurrentSeason().season_number}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
   }
 }

@@ -119,7 +119,7 @@ export default class TongMonCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
 
@@ -130,17 +130,17 @@ export default class TongMonCommand extends Command {
       const desc = interaction.options.getString('mota', true);
 
       if (user.sect_id) {
-        await interaction.reply({ content: '❌ Đạo hữu đã ở trong một Tông Môn, phải rời đi mới được tạo mới!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu đã ở trong một Tông Môn, phải rời đi mới được tạo mới!' });
         return;
       }
       if (user.coin_ha_pham < 50000) {
-        await interaction.reply({ content: '❌ Đạo hữu không đủ 50,000 Linh Thạch để lập Tông Môn!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu không đủ 50,000 Linh Thạch để lập Tông Môn!' });
         return;
       }
 
       const existing = db.prepare('SELECT id FROM sects WHERE name = ?').get(name);
       if (existing) {
-        await interaction.reply({ content: '❌ Tên Tông Môn này đã có người đăng ký!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Tên Tông Môn này đã có người đăng ký!' });
         return;
       }
 
@@ -154,7 +154,7 @@ export default class TongMonCommand extends Command {
         userRepository.update(userId, { sect_id: result.lastInsertRowid as number, sect_role: 'master', sect_contribution: 0 });
       })();
 
-      await interaction.reply({ content: `✅ **LẬP TÔNG THÀNH CÔNG!**\nĐạo hữu đã sáng lập **${name}**, trở thành Tông Chủ đời thứ nhất! Phí thủ tục 50,000 LT đã được thanh toán.` });
+      await interaction.editReply({ content: `✅ **LẬP TÔNG THÀNH CÔNG!**\nĐạo hữu đã sáng lập **${name}**, trở thành Tông Chủ đời thứ nhất! Phí thủ tục 50,000 LT đã được thanh toán.` });
       return;
     }
 
@@ -162,57 +162,57 @@ export default class TongMonCommand extends Command {
       const name = interaction.options.getString('ten', true);
 
       if (user.sect_id) {
-        await interaction.reply({ content: '❌ Đạo hữu đang có Tông Môn, không thể gia nhập nơi khác!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu đang có Tông Môn, không thể gia nhập nơi khác!' });
         return;
       }
 
       const sect = db.prepare('SELECT id FROM sects WHERE name = ?').get(name) as { id: number } | undefined;
       if (!sect) {
-        await interaction.reply({ content: '❌ Không tìm thấy Tông Môn này trên giang hồ!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Không tìm thấy Tông Môn này trên giang hồ!' });
         return;
       }
 
       // Hiện tại cho gia nhập tự do (không cần duyệt)
       userRepository.update(userId, { sect_id: sect.id, sect_role: 'member', sect_contribution: 0 });
-      await interaction.reply({ content: `✅ Đạo hữu đã gia nhập **${name}**! Hãy đóng góp xây dựng Tông Môn nhé.` });
+      await interaction.editReply({ content: `✅ Đạo hữu đã gia nhập **${name}**! Hãy đóng góp xây dựng Tông Môn nhé.` });
       return;
     }
 
     if (sub === 'roi') {
       if (!user.sect_id) {
-        await interaction.reply({ content: '❌ Đạo hữu đang là tán tu, có Tông Môn đâu mà rời?', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu đang là tán tu, có Tông Môn đâu mà rời?' });
         return;
       }
 
       if (user.sect_role === 'master') {
-        await interaction.reply({ content: '❌ Tông Chủ không thể rời Tông Môn! Hãy dùng `/tongmon truyenngoi` để truyền ngôi trước.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Tông Chủ không thể rời Tông Môn! Hãy dùng `/tongmon truyenngoi` để truyền ngôi trước.' });
         return;
       }
 
       userRepository.update(userId, { sect_id: null, sect_role: 'member', sect_contribution: 0 });
-      await interaction.reply({ content: `👋 Đạo hữu đã rời khỏi Tông Môn, bôn tẩu giang hồ làm một tán tu tự do.` });
+      await interaction.editReply({ content: `👋 Đạo hữu đã rời khỏi Tông Môn, bôn tẩu giang hồ làm một tán tu tự do.` });
       return;
     }
 
     if (sub === 'phophu') {
       if (!user.sect_id || user.sect_role !== 'master') {
-        await interaction.reply({ content: '❌ Chỉ Tông Chủ mới có thể chỉ định Phó Tông Chủ!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Chỉ Tông Chủ mới có thể chỉ định Phó Tông Chủ!' });
         return;
       }
       const target = interaction.options.getUser('thanhvien', true);
       const result = sectService.assignDeputy(userId, target.id);
-      await interaction.reply({ content: result.message, ephemeral: !result.success });
+      await interaction.editReply({ content: result.message });
       return;
     }
 
     if (sub === 'truyenngoi') {
       if (!user.sect_id || user.sect_role !== 'master') {
-        await interaction.reply({ content: '❌ Chỉ Tông Chủ mới có thể truyền ngôi!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Chỉ Tông Chủ mới có thể truyền ngôi!' });
         return;
       }
       const target = interaction.options.getUser('thanhvien', true);
       const result = sectService.transferLeadership(userId, target.id);
-      await interaction.reply({ content: result.message, ephemeral: !result.success });
+      await interaction.editReply({ content: result.message });
       return;
     }
 
@@ -227,7 +227,7 @@ export default class TongMonCommand extends Command {
       }
 
       if (!sect) {
-        await interaction.reply({ content: '❌ Không tìm thấy thông tin Tông Môn!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Không tìm thấy thông tin Tông Môn!' });
         return;
       }
 
@@ -248,26 +248,26 @@ export default class TongMonCommand extends Command {
                  `📚 **Tàng Kinh Các** (Cấp ${buildings.tangkinhcac || 0}): *${BUILDINGS_INFO.tangkinhcac.desc}*`
         });
       
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
     if (sub === 'conghien') {
       if (!user.sect_id) {
-        await interaction.reply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn!' });
         return;
       }
 
       const amount = interaction.options.getInteger('sotien', true);
       if (user.coin_ha_pham < amount) {
-        await interaction.reply({ content: '❌ Đạo hữu không có đủ Linh Thạch để quyên góp!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu không có đủ Linh Thạch để quyên góp!' });
         return;
       }
 
       // 10 LT = 1 điểm cống hiến & 1 điểm Quỹ Tông Môn
       const points = Math.floor(amount / 10);
       if (points < 1) {
-        await interaction.reply({ content: '❌ Số tiền quá ít, quy đổi không được 1 điểm cống hiến (10 LT = 1 điểm)!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Số tiền quá ít, quy đổi không được 1 điểm cống hiến (10 LT = 1 điểm)!' });
         return;
       }
 
@@ -279,13 +279,13 @@ export default class TongMonCommand extends Command {
         db.prepare('UPDATE sects SET resources = resources + ? WHERE id = ?').run(points, user.sect_id);
       })();
 
-      await interaction.reply({ content: `💰 Đạo hữu đã quyên góp **${amount} LT** vào quỹ Tông Môn.\nNhận lại **+${points}** Điểm Cống Hiến cá nhân và Quỹ Tông Môn tăng **+${points}** điểm!` });
+      await interaction.editReply({ content: `💰 Đạo hữu đã quyên góp **${amount} LT** vào quỹ Tông Môn.\nNhận lại **+${points}** Điểm Cống Hiến cá nhân và Quỹ Tông Môn tăng **+${points}** điểm!` });
       return;
     }
 
     if (sub === 'xaydung') {
       if (!user.sect_id || user.sect_role !== 'master') {
-        await interaction.reply({ content: '❌ Chỉ có Tông Chủ mới có quyền xây dựng Lãnh Địa!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Chỉ có Tông Chủ mới có quyền xây dựng Lãnh Địa!' });
         return;
       }
 
@@ -300,7 +300,7 @@ export default class TongMonCommand extends Command {
       const cost = info.cost * (bLevel + 1); // Cấp càng cao càng đắt
 
       if (sect.resources < cost) {
-        await interaction.reply({ content: `❌ Tông môn không đủ Quỹ Điểm để nâng cấp **${info.name}** lên Cấp ${bLevel + 1}!\n*Cần: **${cost}** điểm, Hiện có: **${sect.resources}** điểm.*`, ephemeral: true });
+        await interaction.editReply({ content: `❌ Tông môn không đủ Quỹ Điểm để nâng cấp **${info.name}** lên Cấp ${bLevel + 1}!\n*Cần: **${cost}** điểm, Hiện có: **${sect.resources}** điểm.*` });
         return;
       }
 
@@ -311,19 +311,19 @@ export default class TongMonCommand extends Command {
           .run(cost, JSON.stringify(buildings), sect.id);
       })();
 
-      await interaction.reply({ content: `🏗️ **NÂNG CẤP THÀNH CÔNG!**\nTông Chủ tiêu hao **${cost}** Quỹ Tông Môn để nâng cấp **${info.name}** lên Cấp **${bLevel + 1}**!` });
+      await interaction.editReply({ content: `🏗️ **NÂNG CẤP THÀNH CÔNG!**\nTông Chủ tiêu hao **${cost}** Quỹ Tông Môn để nâng cấp **${info.name}** lên Cấp **${bLevel + 1}**!` });
       return;
     }
 
     if (sub === 'thongke') {
       if (!user.sect_id) {
-        await interaction.reply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn nào!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn nào!' });
         return;
       }
 
       const sect = db.prepare('SELECT * FROM sects WHERE id = ?').get(user.sect_id) as any;
       if (!sect) {
-        await interaction.reply({ content: '❌ Không tìm thấy Tông Môn!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Không tìm thấy Tông Môn!' });
         return;
       }
 
@@ -419,48 +419,48 @@ export default class TongMonCommand extends Command {
         embed.setDescription(bonusMsg);
       }
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
     const group = interaction.options.getSubcommandGroup();
     if (group === 'tthi') {
       if (!user.sect_id) {
-        await interaction.reply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn nào!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn nào!' });
         return;
       }
 
       if (sub === 'batdau') {
         if (user.sect_role !== 'master') {
-          await interaction.reply({ content: '❌ Chỉ có Tông Chủ mới có quyền mở giải đấu!', ephemeral: true });
+          await interaction.editReply({ content: '❌ Chỉ có Tông Chủ mới có quyền mở giải đấu!' });
           return;
         }
         const result = guildWarService.startTournament(user.sect_id, userId);
-        await interaction.reply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message, ephemeral: !result.success });
+        await interaction.editReply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message });
         return;
       }
 
       if (sub === 'thamgia') {
         const userName = user.name;
         const result = guildWarService.joinTournament(user.sect_id, userId, userName);
-        await interaction.reply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message, ephemeral: !result.success });
+        await interaction.editReply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message });
         return;
       }
 
       if (sub === 'ketthuc') {
         if (user.sect_role !== 'master') {
-          await interaction.reply({ content: '❌ Chỉ có Tông Chủ mới có quyền kết thúc giải đấu!', ephemeral: true });
+          await interaction.editReply({ content: '❌ Chỉ có Tông Chủ mới có quyền kết thúc giải đấu!' });
           return;
         }
         const result = guildWarService.endTournament(user.sect_id, userId);
-        await interaction.reply({ content: result.success ? result.message : '❌ ' + result.message, ephemeral: !result.success });
+        await interaction.editReply({ content: result.success ? result.message : '❌ ' + result.message });
         return;
       }
 
       if (sub === 'thongtin') {
         const info = guildWarService.getTournamentInfo(user.sect_id);
         if (!info) {
-          await interaction.reply({ content: '📭 Tông Môn của đạo hữu hiện không có giải đấu nào.', ephemeral: true });
+          await interaction.editReply({ content: '📭 Tông Môn của đạo hữu hiện không có giải đấu nào.' });
           return;
         }
         const statusText = info.status === 'open' ? '🟢 Đang mở đăng ký' : info.status === 'fighting' ? '⚔️ Đang diễn ra' : '🏁 Đã kết thúc';
@@ -469,20 +469,20 @@ export default class TongMonCommand extends Command {
           .setColor('#9b59b6')
           .setDescription(`**Trạng thái:** ${statusText}\n**Người tham gia (${info.participants.length}):** ${info.participants.join(', ') || 'Chưa có'}`)
           .setFooter({ text: info.winnerName ? `🏆 Quán quân: ${info.winnerName}` : 'Chưa có quán quân' });
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
         return;
       }
 
       if (sub === 'rut') {
         const result = guildWarService.leaveTournament(user.sect_id, userId);
-        await interaction.reply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message, ephemeral: !result.success });
+        await interaction.editReply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message });
         return;
       }
     }
 
     if (group === 'lienminh') {
       if (!user.sect_id) {
-        await interaction.reply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn nào!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn nào!' });
         return;
       }
 
@@ -490,30 +490,30 @@ export default class TongMonCommand extends Command {
         const targetName = interaction.options.getString('ten', true);
         const targetSect = db.prepare('SELECT id, name FROM sects WHERE name = ?').get(targetName) as { id: number; name: string } | undefined;
         if (!targetSect) {
-          await interaction.reply({ content: '❌ Không tìm thấy Tông Môn **' + targetName + '** trên giang hồ!', ephemeral: true });
+          await interaction.editReply({ content: '❌ Không tìm thấy Tông Môn **' + targetName + '** trên giang hồ!' });
           return;
         }
         const result = sectService.formAlliance(user.sect_id, targetSect.id, userId);
-        await interaction.reply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message, ephemeral: !result.success });
+        await interaction.editReply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message });
         return;
       }
 
       if (sub === 'chapnhan') {
         const result = sectService.acceptAlliance(user.sect_id, userId);
-        await interaction.reply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message, ephemeral: !result.success });
+        await interaction.editReply({ content: result.success ? '✅ ' + result.message : '❌ ' + result.message });
         return;
       }
 
       if (sub === 'huy') {
         const result = sectService.breakAlliance(user.sect_id, userId);
-        await interaction.reply({ content: result.success ? result.message : '❌ ' + result.message, ephemeral: !result.success });
+        await interaction.editReply({ content: result.success ? result.message : '❌ ' + result.message });
         return;
       }
 
       if (sub === 'thongtin') {
         const data = sectService.getAlliance(user.sect_id);
         if (!data) {
-          await interaction.reply({ content: '❌ Tông Môn của đạo hữu hiện không có liên minh nào!', ephemeral: true });
+          await interaction.editReply({ content: '❌ Tông Môn của đạo hữu hiện không có liên minh nào!' });
           return;
         }
         const embed = new EmbedBuilder()
@@ -526,7 +526,7 @@ export default class TongMonCommand extends Command {
             { name: '👥 Thành Viên', value: `${data.partnerSect.member_count}`, inline: true },
             { name: '📅 Kết Minh Từ', value: `<t:${data.alliance.formed_at}:R>` }
           );
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
         return;
       }
 
@@ -534,11 +534,11 @@ export default class TongMonCommand extends Command {
         const targetName = interaction.options.getString('ten', true);
         const targetSect = db.prepare('SELECT id, name FROM sects WHERE name = ?').get(targetName) as { id: number; name: string } | undefined;
         if (!targetSect) {
-          await interaction.reply({ content: '❌ Không tìm thấy Tông Môn **' + targetName + '** trên giang hồ!', ephemeral: true });
+          await interaction.editReply({ content: '❌ Không tìm thấy Tông Môn **' + targetName + '** trên giang hồ!' });
           return;
         }
         const result = sectService.declareWar(userId, user.sect_id, targetSect.id);
-        await interaction.reply({ content: result.success ? result.message : '❌ ' + result.message, ephemeral: !result.success });
+        await interaction.editReply({ content: result.success ? result.message : '❌ ' + result.message });
         return;
       }
     }

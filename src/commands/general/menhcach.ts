@@ -28,7 +28,7 @@ export default class MenhCachCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Bạn chưa khởi tạo nhân vật. Vui lòng dùng `/taonhanvat`!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Vui lòng dùng `/taonhanvat`!' });
       return;
     }
 
@@ -42,7 +42,7 @@ export default class MenhCachCommand extends Command {
         .setDescription(result.message)
         .setTimestamp();
         
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } else if (sub === 'tu-do') {
       const realmDetails = getRealmDetails(user.level);
       const maxSlots = destinyService.getMaxSlotsByRealm(realmDetails.fullName);
@@ -114,7 +114,7 @@ export default class MenhCachCommand extends Command {
         components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(unequipMenu));
       }
 
-      await interaction.reply({ embeds: [embed], components });
+      await interaction.editReply({ embeds: [embed], components });
     }
   }
 }

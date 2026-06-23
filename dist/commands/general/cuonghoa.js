@@ -5,6 +5,7 @@ const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const EnhanceService_1 = require("../../services/EnhanceService");
+const itemConstants_1 = require("../../config/itemConstants");
 class CuongHuaCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -15,15 +16,14 @@ class CuongHuaCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Vui lòng dùng `/taonhanvat`!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Vui lòng dùng `/taonhanvat`!' });
             return;
         }
         const inventory = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
         const equipableItems = inventory.filter(i => i.equipable === 1 && i.type === 'equipment');
         if (equipableItems.length === 0) {
-            await interaction.reply({
-                content: '❌ Đạo hữu không sở hữu trang bị nào trong hành trang có thể cường hóa!',
-                ephemeral: true
+            await interaction.editReply({
+                content: '❌ Đạo hữu không sở hữu trang bị nào trong hành trang có thể cường hóa!'
             });
             return;
         }
@@ -48,11 +48,11 @@ class CuongHuaCommand extends Command_1.Command {
             const starText = item.stars > 0 ? ` ⭐${item.stars}` : '';
             selectMenu.addOptions(new discord_js_1.StringSelectMenuOptionBuilder()
                 .setLabel(`${item.name}${enhanceText}${starText}${isEquippedText}`)
-                .setDescription(`Cấp: ${item.enhance_level || 0} | Mã: ${item.id}`)
+                .setDescription(`Cấp: ${item.enhance_level || 0} | ID: ${item.id}`)
                 .setValue(item.id.toString()));
         });
         const row = new discord_js_1.ActionRowBuilder().addComponents(selectMenu);
-        await interaction.reply({ embeds: [embed], components: [row] });
+        await interaction.editReply({ embeds: [embed], components: [row] });
     }
     /**
      * Tạo giao diện xem trước thông tin cường hóa của trang bị cụ thể
@@ -64,7 +64,7 @@ class CuongHuaCommand extends Command_1.Command {
         const embed = new discord_js_1.EmbedBuilder().setTimestamp();
         // Tìm Mảnh Tinh Thạch trong hành trang
         const userInventory = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-        const shardItem = userInventory.find(i => i.item_id === 'tinh_thach_shard');
+        const shardItem = userInventory.find(i => i.item_id === itemConstants_1.ITEMS.TINH_THACH_SHARD);
         const shardQty = shardItem ? shardItem.quantity : 0;
         let resultHeader = '';
         if (lastResult) {

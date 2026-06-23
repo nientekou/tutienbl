@@ -7,17 +7,18 @@ exports.dailyLoginService = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
+const itemConstants_1 = require("../config/itemConstants");
 const LOGIN_REWARDS = [
     { day: 1, coins: 100, exp: 50 },
     { day: 2, coins: 150, exp: 75 },
-    { day: 3, coins: 200, exp: 100, itemId: 'pill_tu_vi_low', itemName: 'Sơ Cấp Tụ Khí Đan' },
+    { day: 3, coins: 200, exp: 100, itemId: itemConstants_1.ITEMS.PILL_TU_VI_LOW, itemName: 'Sơ Cấp Tụ Khí Đan' },
     { day: 4, coins: 250, exp: 125 },
     { day: 5, coins: 300, exp: 150 },
-    { day: 6, coins: 400, exp: 200, itemId: 'pill_hp_1', itemName: 'Hồi Huyết Đan - Hạ Phẩm' },
+    { day: 6, coins: 400, exp: 200, itemId: itemConstants_1.ITEMS.PILL_HP_1, itemName: 'Hồi Huyết Đan - Hạ Phẩm' },
     { day: 7, coins: 1000, exp: 500, title: 'Khách Quý Thiên Đường' },
-    { day: 14, coins: 2000, exp: 1000, itemId: 'pill_break_minor_1', itemName: 'Tụ Khí Đan' },
-    { day: 21, coins: 3000, exp: 1500, itemId: 'pill_stamina_1', itemName: 'Hồi Thể Đan - Sơ Cấp' },
-    { day: 30, coins: 5000, exp: 3000, title: 'Loyal Disciple', itemId: 'pill_break_1', itemName: 'Trúc Cơ Đan' },
+    { day: 14, coins: 2000, exp: 1000, itemId: itemConstants_1.ITEMS.PILL_BREAK_MINOR_1, itemName: 'Tụ Khí Đan' },
+    { day: 21, coins: 3000, exp: 1500, itemId: itemConstants_1.ITEMS.PILL_STAMINA_1, itemName: 'Hồi Thể Đan - Sơ Cấp' },
+    { day: 30, coins: 5000, exp: 3000, title: 'Loyal Disciple', itemId: itemConstants_1.ITEMS.PILL_BREAK_1, itemName: 'Trúc Cơ Đan' },
 ];
 class DailyLoginService {
     initTable() {
@@ -58,7 +59,7 @@ class DailyLoginService {
             UserRepository_1.userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham + reward.coins });
         }
         if (reward.exp > 0) {
-            UserRepository_1.userRepository.update(userId, { tu_vi: user.tu_vi + reward.exp });
+            UserRepository_1.userRepository.update(userId, { tu_vi: Math.min(user.tu_vi + reward.exp, user.exp_needed) });
         }
         if (reward.itemId) {
             InventoryRepository_1.inventoryRepository.addItem(userId, reward.itemId, 1, null);

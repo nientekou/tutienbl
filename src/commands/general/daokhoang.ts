@@ -13,7 +13,6 @@ export default class DaoKhoangCommand extends Command {
   }
 
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
-    await interaction.deferReply();
     const result = performWork(interaction.user.id, 'mining');
 
     if (!result.success) {

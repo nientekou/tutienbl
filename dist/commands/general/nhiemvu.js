@@ -23,7 +23,7 @@ const CATEGORY_EMOJI = {
 function getNhiemVuEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
-        return new discord_js_1.EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Nhân vật không tồn tại.');
+        return new discord_js_1.EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Đạo hữu chưa khởi tạo nhân vật.');
     }
     const quests = DailyQuestService_1.dailyQuestService.getOrAssignQuests(userId);
     const resetSecs = DailyQuestService_1.dailyQuestService.getSecondsToReset();
@@ -105,7 +105,7 @@ function getNhiemVuComponents(userId) {
 function getQuestChainEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
-        return new discord_js_1.EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Nhân vật không tồn tại.');
+        return new discord_js_1.EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Đạo hữu chưa khởi tạo nhân vật.');
     }
     const progressData = QuestChainService_1.questChainService.getDetailedProgress(userId);
     const availableChains = QuestChainService_1.questChainService.getAvailableChains(userId);
@@ -115,7 +115,7 @@ function getQuestChainEmbed(userId) {
         .setDescription('Những thử thách tu tiên trải dài theo từng bước. Hoàn thành tất cả bước trong một chuỗi để nhận phần thưởng cuối cùng!')
         .setTimestamp();
     if (progressData.length === 0 && availableChains.length === 0) {
-        embed.setDescription('🎉 Bạn đã hoàn thành tất cả chuỗi nhiệm vụ hiện có!');
+        embed.setDescription('🎉 Đạo hữu đã hoàn thành tất cả chuỗi nhiệm vụ hiện có!');
         return embed;
     }
     for (const chain of QuestChainService_1.QUEST_CHAINS) {
@@ -202,19 +202,19 @@ class NhiemVuCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const subcommand = interaction.options.getSubcommand(false);
         if (subcommand === 'chuong-trinh') {
             const embed = getQuestChainEmbed(userId);
             const rows = getQuestChainComponents(userId);
-            await interaction.reply({ embeds: [embed], components: rows });
+            await interaction.editReply({ embeds: [embed], components: rows });
         }
         else {
             const embed = getNhiemVuEmbed(userId);
             const rows = getNhiemVuComponents(userId);
-            await interaction.reply({ embeds: [embed], components: rows });
+            await interaction.editReply({ embeds: [embed], components: rows });
         }
     }
 }

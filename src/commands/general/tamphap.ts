@@ -100,7 +100,7 @@ export default class TamPhapCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
 
@@ -132,7 +132,7 @@ export default class TamPhapCommand extends Command {
       }
 
       embed.setDescription(listStr || '*Hiện tại hệ thống chưa có tâm pháp nào.*');
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
 
     // ───────────────── TRANG BỊ TÂM PHÁP ĐANG MANG ─────────────────
@@ -192,7 +192,7 @@ export default class TamPhapCommand extends Command {
       }
       embed.addFields({ name: '⚡ Hiệu Ứng Đang Hoạt Động', value: passivesStr });
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
 
     // ───────────────── TRANG BỊ VÀO Ô ─────────────────
@@ -202,9 +202,9 @@ export default class TamPhapCommand extends Command {
 
       const res = heartLawService.equipHeartLaw(userId, lawId, slot);
       if (res.success) {
-        await interaction.reply({ content: res.message });
+        await interaction.editReply({ content: res.message });
       } else {
-        await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${res.message}` });
       }
     }
 
@@ -214,9 +214,9 @@ export default class TamPhapCommand extends Command {
 
       const res = heartLawService.unequipHeartLaw(userId, slot);
       if (res.success) {
-        await interaction.reply({ content: res.message });
+        await interaction.editReply({ content: res.message });
       } else {
-        await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${res.message}` });
       }
     }
 
@@ -226,9 +226,9 @@ export default class TamPhapCommand extends Command {
 
       const res = heartLawService.learnHeartLaw(userId, lawId);
       if (res.success) {
-        await interaction.reply({ content: res.message });
+        await interaction.editReply({ content: res.message });
       } else {
-        await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${res.message}` });
       }
     }
 
@@ -238,9 +238,9 @@ export default class TamPhapCommand extends Command {
 
       const res = heartLawService.levelUpHeartLaw(userId, lawId);
       if (res.success) {
-        await interaction.reply({ content: res.message });
+        await interaction.editReply({ content: res.message });
       } else {
-        await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${res.message}` });
       }
     }
   }

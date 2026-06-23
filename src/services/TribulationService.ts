@@ -5,6 +5,7 @@ import { inventoryRepository } from '../database/repositories/InventoryRepositor
 import { inventoryService } from './InventoryService';
 import { cultivationService } from './CultivationService';
 import { getRealmDetails, getProgressBar } from '../utils/constants';
+import { ITEMS } from '../config/itemConstants';
 
 export interface TribulationState {
   userId: string;
@@ -56,13 +57,13 @@ export class TribulationService {
   public getOncomingKiepInfo(userId: string): { name: string; pillId: string; pillName: string } {
     const strongestElement = this.getStrongestElement(userId);
     const elementMapping: Record<string, { name: string; pillId: string; pillName: string }> = {
-      'Hỏa': { name: '💧 Thủy Lôi Kiếp', pillId: 'pill_protect_tho', pillName: 'Địa Thổ Đan' },
-      'Thủy': { name: '🪨 Thổ Lôi Kiếp', pillId: 'pill_protect_moc', pillName: 'Mộc Linh Hoàn' },
-      'Mộc': { name: '🗡️ Kim Lôi Kiếp', pillId: 'pill_protect_hoa', pillName: 'Hỏa Linh Đan' },
-      'Thổ': { name: '🌿 Mộc Lôi Kiếp', pillId: 'pill_protect_kim', pillName: 'Kim Cương Đan' },
-      'Kim': { name: '🔥 Hỏa Lôi Kiếp', pillId: 'pill_protect_thuy', pillName: 'Thủy Nguyên Đan' },
-      'Phong': { name: '⚡ Lôi Lôi Kiếp', pillId: 'pill_protect_phong', pillName: 'Phong Linh Đan' },
-      'Lôi': { name: '🌀 Phong Lôi Kiếp', pillId: 'pill_protect_loi', pillName: 'Lôi Linh Hoàn' },
+      'Hỏa': { name: '💧 Thủy Lôi Kiếp', pillId: ITEMS.PILL_PROTECT_THO, pillName: 'Địa Thổ Đan' },
+      'Thủy': { name: '🪨 Thổ Lôi Kiếp', pillId: ITEMS.PILL_PROTECT_MOC, pillName: 'Mộc Linh Hoàn' },
+      'Mộc': { name: '🗡️ Kim Lôi Kiếp', pillId: ITEMS.PILL_PROTECT_HOA, pillName: 'Hỏa Linh Đan' },
+      'Thổ': { name: '🌿 Mộc Lôi Kiếp', pillId: ITEMS.PILL_PROTECT_KIM, pillName: 'Kim Cương Đan' },
+      'Kim': { name: '🔥 Hỏa Lôi Kiếp', pillId: ITEMS.PILL_PROTECT_THUY, pillName: 'Thủy Nguyên Đan' },
+      'Phong': { name: '⚡ Lôi Lôi Kiếp', pillId: ITEMS.PILL_PROTECT_PHONG, pillName: 'Phong Linh Đan' },
+      'Lôi': { name: '🌀 Phong Lôi Kiếp', pillId: ITEMS.PILL_PROTECT_LOI, pillName: 'Lôi Linh Hoàn' },
     };
     return elementMapping[strongestElement] || elementMapping['Hỏa'];
   }
@@ -218,9 +219,9 @@ export class TribulationService {
     
     // Kiểm tra đan dược trong túi
     const inv = inventoryRepository.getUserInventory(userId);
-    const hasTiLoi = inv.some(i => i.item_id === 'talisman_anti_loi' && i.quantity > 0);
-    const hasAntiLoi = inv.some(i => i.item_id === 'pill_alchemy_anti_loi' && i.quantity > 0);
-    const hasHoiHuyet = inv.some(i => (i.item_id === 'pill_hp_2' || i.item_id === 'pill_hp_1') && i.quantity > 0);
+    const hasTiLoi = inv.some(i => i.item_id === ITEMS.TALISMAN_ANTI_LOI && i.quantity > 0);
+    const hasAntiLoi = inv.some(i => i.item_id === ITEMS.PILL_ALCHEMY_ANTI_LOI && i.quantity > 0);
+    const hasHoiHuyet = inv.some(i => (i.item_id === ITEMS.PILL_HP_2 || i.item_id === ITEMS.PILL_HP_1) && i.quantity > 0);
 
     // Kiểm tra Ngũ Hành Đan
     const requiredPillId = currentState.requiredPillId || '';
@@ -392,7 +393,7 @@ export class TribulationService {
     } 
     
     else if (action === 'dungnguloidan') {
-      inventoryRepository.removeItem(userId, 'pill_alchemy_anti_loi', 1);
+      inventoryRepository.removeItem(userId, ITEMS.PILL_ALCHEMY_ANTI_LOI, 1);
       state.hasAntiLoiPillUsed = true;
       dmgReceived = Math.round(currentBoltDamage * 0.7) + extraDmg;
       logs = `${prefix}💊 Đạo hữu nuốt nhanh Ngự Lôi Đan, kích hoạt kết giới chống sét! Đạo sét thứ ${state.currentLightningBolt} giáng xuống chịu giảm sát thương, gánh chịu **${dmgReceived}** sát thương.`;
@@ -408,13 +409,13 @@ export class TribulationService {
     
     else if (action === 'dunghoihuyetdan') {
       const inv = inventoryRepository.getUserInventory(userId);
-      const midPill = inv.find(i => i.item_id === 'pill_hp_2' && i.quantity > 0);
+      const midPill = inv.find(i => i.item_id === ITEMS.PILL_HP_2 && i.quantity > 0);
       let restore = 50;
       if (midPill) {
-        inventoryRepository.removeItem(userId, 'pill_hp_2', 1);
+        inventoryRepository.removeItem(userId, ITEMS.PILL_HP_2, 1);
         restore = 150;
       } else {
-        inventoryRepository.removeItem(userId, 'pill_hp_1', 1);
+        inventoryRepository.removeItem(userId, ITEMS.PILL_HP_1, 1);
         restore = 50;
       }
       
@@ -424,7 +425,7 @@ export class TribulationService {
     }
 
     else if (action === 'dungtiloi') {
-      inventoryRepository.removeItem(userId, 'talisman_anti_loi', 1);
+      inventoryRepository.removeItem(userId, ITEMS.TALISMAN_ANTI_LOI, 1);
       dmgReceived = Math.round(currentBoltDamage * 0.2) + extraDmg;
       logs = `${prefix}📜 Đạo hữu tế xuất Tị Lôi Phù hóa giải phần lớn uy lực thiên kiếp! Gánh chịu **${dmgReceived}** sát thương từ đạo sét thứ ${state.currentLightningBolt}.`;
     }

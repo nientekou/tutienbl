@@ -30,7 +30,7 @@ class DestinyService {
     rollGacha(userId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật' };
         if (user.coin_ha_pham < destinies_1.DESTINY_GACHA_COST) {
             return { success: false, message: `Không đủ Linh Thạch. Bốc quẻ cần **${destinies_1.DESTINY_GACHA_COST}** Hạ Phẩm Linh Thạch.` };
         }

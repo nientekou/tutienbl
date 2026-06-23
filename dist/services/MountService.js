@@ -14,8 +14,8 @@ class MountService {
     getActiveMount(userId) {
         return database_1.default.prepare('SELECT * FROM mounts WHERE user_id = ? AND is_active = 1').get(userId) || null;
     }
-    getMount(mountId, userId) {
-        return database_1.default.prepare('SELECT * FROM mounts WHERE id = ? AND user_id = ?').get(mountId, userId) || null;
+    getMount(id, userId) {
+        return database_1.default.prepare('SELECT * FROM mounts WHERE id = ? AND user_id = ?').get(id, userId) || null;
     }
     activateMount(userId, mountId) {
         const mount = this.getMount(mountId, userId);
@@ -25,7 +25,7 @@ class MountService {
             return { success: false, message: 'Tọa kỵ chưa được thuần hóa, không thể cưỡi!' };
         database_1.default.transaction(() => {
             database_1.default.prepare('UPDATE mounts SET is_active = 0 WHERE user_id = ?').run(userId);
-            database_1.default.prepare('UPDATE mounts SET is_active = 1 WHERE id = ?').run(mountId);
+            database_1.default.prepare('UPDATE mounts SET is_active = 1 WHERE id = ? AND user_id = ?').run(mountId, userId);
         })();
         return { success: true, message: `🐎 Đã cưỡi **${mount.name}**! Tốc độ làm việc +${Math.round(mount.speed_bonus * 100)}%, Thể lực tiết kiệm +${Math.round(mount.stamina_save * 100)}%.` };
     }
@@ -89,8 +89,8 @@ class MountService {
             else {
                 database_1.default.prepare('DELETE FROM inventories WHERE id = ?').run(inv.id);
             }
-            database_1.default.prepare('UPDATE mounts SET exp = ?, level = ?, speed_bonus = ?, stamina_save = ?, is_tamed = ? WHERE id = ?')
-                .run(remainingExp, newLevel, newSpeedBonus, newStaminaSave, newTamed, mountId);
+            database_1.default.prepare('UPDATE mounts SET exp = ?, level = ?, speed_bonus = ?, stamina_save = ?, is_tamed = ? WHERE id = ? AND user_id = ?')
+                .run(remainingExp, newLevel, newSpeedBonus, newStaminaSave, newTamed, mountId, userId);
         })();
         const totalExpGained = consumedCount * expGain;
         let msg = `🍖 **${mount.name}** hấp thụ x${consumedCount} **${item?.name || materialItemId}**, nhận **+${totalExpGained}** EXP!`;
@@ -149,7 +149,7 @@ class MountService {
     `).run(userId, selectedMount.name, selectedMount.id, selectedMount.rarity, Math.floor(Date.now() / 1000));
         return {
             success: true,
-            message: `🎉 Chúc mừng! Đạo hữu đã tóm được **${selectedMount.name}** [${selectedMount.rarity}]!\n⚠️ Tọa kỵ vẫn còn hoang dại, hãy dùng \`/toaky nuoiduong\` để thuần hóa.`,
+            message: `🎉 Chúc mừng! Đạo hữu đã tóm được **${selectedMount.name}** [${selectedMount.rarity}]! (ID: ${res.lastInsertRowid})\n⚠️ Tọa kỵ vẫn còn hoang dại, hãy dùng \`/toaky nuoiduong\` để thuần hóa.`,
             mount: selectedMount
         };
     }

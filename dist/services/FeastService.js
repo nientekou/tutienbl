@@ -26,7 +26,9 @@ class FeastService {
                 sectName = sect.name;
             }
         }
-        catch (e) { }
+        catch (e) {
+            console.warn('[FeastService] Failed to fetch sect name:', e);
+        }
         const now = new Date();
         // Offset +7 hours to get VN time
         const vnTime = new Date(now.getTime() + 7 * 3600000);

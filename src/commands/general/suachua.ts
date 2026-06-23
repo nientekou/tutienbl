@@ -12,6 +12,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository, InventoryItem } from '../../database/repositories/InventoryRepository';
 import db from '../../database/database';
+import { ITEMS } from '../../config/itemConstants';
 
 export default class SuaChuaCommand extends Command {
   constructor() {
@@ -23,10 +24,10 @@ export default class SuaChuaCommand extends Command {
           sub
             .setName('trangbi')
             .setDescription('Sửa chữa một trang bị cụ thể bằng Linh Thạch.')
-             .addStringOption(opt =>
+             .addIntegerOption(opt =>
               opt
-                .setName('item_id')
-                .setDescription('Mã vật phẩm cần sửa (xem trong /tuido).')
+                .setName('inventory_id')
+                .setDescription('ID vật phẩm trong hành trang cần sửa.')
                 .setRequired(true)
             )
         )
@@ -47,7 +48,7 @@ export default class SuaChuaCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'});
       return;
     }
 
@@ -61,21 +62,21 @@ export default class SuaChuaCommand extends Command {
     }
 
     if (sub === 'trangbi') {
-      const itemId = interaction.options.getString('item_id', true);
-      const item = inventory.find(i => i.item_id === itemId);
+      const inventoryId = interaction.options.getInteger('inventory_id', true);
+      const item = inventory.find(i => i.id === inventoryId);
       if (!item) {
-        await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
+        await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong túi đồ!`});
         return;
       }
 
       const result = this.repairSingleItem(userId, item, inventory);
-      await interaction.reply({ content: result.message, ephemeral: !result.success });
+      await interaction.editReply({ content: result.message });
       return;
     }
 
     if (sub === 'tatca') {
       const result = this.repairAllEquipped(userId, equippedItems);
-      await interaction.reply({ content: result.message, ephemeral: !result.success });
+      await interaction.editReply({ content: result.message });
       return;
     }
   }
@@ -92,7 +93,7 @@ export default class SuaChuaCommand extends Command {
       .setTitle('🛡️ DANH SÁCH TRANG BỊ - ĐỘ BỀN 🛡️')
       .setColor('#3498db')
       .setDescription('Kiểm tra tình trạng pháp bảo của đạo hữu. Trang bị hết độ bền chỉ còn **50%** chỉ số!')
-      .setFooter({ text: 'Dùng /suachua trangbi item_id: <mã> hoặc /suachua tatca để sửa chữa.' })
+      .setFooter({ text: 'Dùng /suachua trangbi inventory_id: <id> hoặc /suachua tatca để sửa chữa.' })
       .setTimestamp();
 
     if (equippedItems.length === 0) {
@@ -128,7 +129,7 @@ export default class SuaChuaCommand extends Command {
         .setStyle(ButtonStyle.Secondary)
     );
 
-    await interaction.reply({ embeds: [embed], components: [row] });
+    await interaction.editReply({ embeds: [embed], components: [row] });
   }
 
   /**
@@ -146,14 +147,14 @@ export default class SuaChuaCommand extends Command {
 
     // Kiểm tra có đá dưỡng trong túi không
     const repairStones = inventory.filter(i =>
-      i.item_id === 'repair_stone_low' ||
-      i.item_id === 'repair_stone_mid' ||
-      i.item_id === 'repair_stone_high'
+      i.item_id === ITEMS.REPAIR_STONE_LOW ||
+      i.item_id === ITEMS.REPAIR_STONE_MID ||
+      i.item_id === ITEMS.REPAIR_STONE_HIGH
     );
 
     if (repairStones.length > 0) {
       // Ưu tiên dùng đá dưỡng phẩm cao nhất
-      const stonePriority = ['repair_stone_high', 'repair_stone_mid', 'repair_stone_low'];
+      const stonePriority = [ITEMS.REPAIR_STONE_HIGH, ITEMS.REPAIR_STONE_MID, ITEMS.REPAIR_STONE_LOW];
       let usedStone: InventoryItem | null = null;
       for (const stoneId of stonePriority) {
         const found = repairStones.find(s => s.item_id === stoneId);

@@ -12,6 +12,7 @@ const constants_1 = require("../../utils/constants");
 const DailyQuestService_1 = require("../../services/DailyQuestService");
 const InventoryService_1 = require("../../services/InventoryService");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
+const itemConstants_1 = require("../../config/itemConstants");
 // Cần quản lý cooldown chung cho thiền định
 exports.practiceCooldowns = new Map();
 // Dọn dẹp bộ nhớ (garbage collection) cho practiceCooldowns mỗi 10 phút
@@ -65,6 +66,11 @@ class CultivationInteractionHandler {
                 await interaction.reply({ content: 'Không tìm thấy nhân vật.', ephemeral: true });
                 return;
             }
+            // Nếu Tu Vi đã đầy, thông báo cần đột phá
+            if (result.gained === 0 && result.message) {
+                await interaction.reply({ content: `🔔 ${result.message}`, ephemeral: true });
+                return;
+            }
             const freshUser = result.user;
             if (freshUser.stamina < 1) {
                 await interaction.reply({ content: `❌ Đạo hữu đã cạn kiệt Thể Lực! Việc khiên cưỡng vận công sẽ tẩu hỏa nhập ma. Hãy nghỉ ngơi chờ phục hồi.`, ephemeral: true });
@@ -110,10 +116,10 @@ class CultivationInteractionHandler {
                     const stats = InventoryService_1.inventoryService.getActiveStats(targetUserId);
                     const inv = InventoryRepository_1.inventoryRepository.getUserInventory(targetUserId);
                     const getQty = (itemId) => inv.find(i => i.item_id === itemId)?.quantity || 0;
-                    const antiLoiQty = getQty('pill_alchemy_anti_loi');
-                    const hp1Qty = getQty('pill_hp_1');
-                    const hp2Qty = getQty('pill_hp_2');
-                    const tiLoiQty = getQty('talisman_anti_loi');
+                    const antiLoiQty = getQty(itemConstants_1.ITEMS.PILL_ALCHEMY_ANTI_LOI);
+                    const hp1Qty = getQty(itemConstants_1.ITEMS.PILL_HP_1);
+                    const hp2Qty = getQty(itemConstants_1.ITEMS.PILL_HP_2);
+                    const tiLoiQty = getQty(itemConstants_1.ITEMS.TALISMAN_ANTI_LOI);
                     const oncomingKiep = TribulationService_1.tribulationService.getOncomingKiepInfo(targetUserId);
                     const protectPillQty = oncomingKiep.pillId ? getQty(oncomingKiep.pillId) : 0;
                     const bequanMajorCost = user.level * 1000;
@@ -155,11 +161,11 @@ class CultivationInteractionHandler {
                         const baseRate = Math.max(90 - majorIndex * 10, 10);
                         const luckBonus = user.base_luck * 0.002;
                         let pillBonus = 0;
-                        if (usedPill === 'pill_break_minor_1')
+                        if (usedPill === itemConstants_1.ITEMS.PILL_BREAK_MINOR_1)
                             pillBonus = 15;
-                        else if (usedPill === 'pill_break_minor_2')
+                        else if (usedPill === itemConstants_1.ITEMS.PILL_BREAK_MINOR_2)
                             pillBonus = 30;
-                        else if (usedPill === 'pill_break_minor_3')
+                        else if (usedPill === itemConstants_1.ITEMS.PILL_BREAK_MINOR_3)
                             pillBonus = 50;
                         let alignmentRateMod = 0;
                         if (user.alignment === 'neutral' || !user.alignment) {
@@ -254,7 +260,8 @@ class CultivationInteractionHandler {
                 base_def: newStats.def,
                 base_crit: newStats.crit,
                 base_crit_res: newStats.critRes,
-                base_luck: user.base_luck
+                base_luck: user.base_luck,
+                base_speed: newStats.speed
             });
             const updatedUser = UserRepository_1.userRepository.get(targetUserId);
             const formattedLinhCan = (0, constants_1.formatLinhCan)(newLinhCanJson);
@@ -351,6 +358,7 @@ class CultivationInteractionHandler {
                 base_def: newStats.def,
                 base_crit: newStats.crit,
                 base_crit_res: newStats.critRes,
+                base_speed: newStats.speed,
             });
             const updatedUser = UserRepository_1.userRepository.get(targetUserId);
             const welcomeMsg = chosen === 'orthodox'

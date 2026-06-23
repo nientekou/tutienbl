@@ -91,7 +91,7 @@ class SectWarService {
     joinBattle(userId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại.' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
         if (!user.sect_id)
             return { success: false, message: 'Đạo hữu chưa gia nhập Tông Môn!' };
         const season = this.getOrCreateSeason();
@@ -145,9 +145,9 @@ class SectWarService {
         const user = UserRepository_1.userRepository.get(userId);
         const target = UserRepository_1.userRepository.get(targetUserId);
         if (!user || !target)
-            return { success: false, message: 'Nhân vật không tồn tại.' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
         if (!user.sect_id)
-            return { success: false, message: 'Bạn chưa gia nhập Tông Môn!' };
+            return { success: false, message: 'Đạo hữu chưa gia nhập Tông Môn!' };
         const season = this.getOrCreateSeason();
         const weekAttacks = this.getUserWeeklyAttacks(userId, season.id);
         if (weekAttacks >= MAX_ATTACKS_PER_WEEK) {
@@ -294,7 +294,7 @@ class SectWarService {
     captureMine(userId, mineId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user || !user.sect_id)
-            return { success: false, message: 'Bạn chưa gia nhập Tông Môn!' };
+            return { success: false, message: 'Đạo hữu chưa gia nhập Tông Môn!' };
         const mineDef = exports.SECT_MINES.find(m => m.id === mineId);
         if (!mineDef)
             return { success: false, message: 'Mỏ linh thạch không tồn tại.' };
@@ -344,7 +344,7 @@ class SectWarService {
         const result = CombatEngine_1.CombatEngine.run(playerCombatant, guardCombatant, null, 15);
         const isWin = result.winner === 'player';
         if (!isWin) {
-            return { success: false, message: `💀 Thất bại! Bạn không đánh bại được Hộ Vệ Mỏ.\nSát thương gây ra: **${result.totalDamageDealt}**`, log: result.log };
+            return { success: false, message: `💀 Thất bại! Đạo hữu không đánh bại được Hộ Vệ Mỏ.\nSát thương gây ra: **${result.totalDamageDealt}**`, log: result.log };
         }
         // Chiếm thành công
         const now = Math.floor(Date.now() / 1000);
@@ -366,7 +366,7 @@ class SectWarService {
     claimMineIncome(userId, mineId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user || !user.sect_id)
-            return { success: false, message: 'Bạn chưa gia nhập Tông Môn!' };
+            return { success: false, message: 'Đạo hữu chưa gia nhập Tông Môn!' };
         const ownership = database_1.default.prepare('SELECT * FROM mine_ownership WHERE mine_id = ?').get(mineId);
         if (!ownership)
             return { success: false, message: 'Mỏ này chưa có ai chiếm giữ.' };

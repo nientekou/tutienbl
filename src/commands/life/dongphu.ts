@@ -12,7 +12,7 @@ export function buildCaveEmbed(userId: string): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle('❌ Lỗi')
       .setColor('#e74c3c')
-      .setDescription('Nhân vật không tồn tại.');
+      .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
   }
 
   const cave = caveService.getCave(userId);
@@ -105,13 +105,13 @@ export default class DongPhuCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật!'});
       return;
     }
 
     const embed = buildCaveEmbed(userId);
     const components = buildCaveComponents(userId);
 
-    await interaction.reply({ embeds: [embed], components });
+    await interaction.editReply({ embeds: [embed], components });
   }
 }

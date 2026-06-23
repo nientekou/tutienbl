@@ -98,7 +98,7 @@ export default class CamNangCommand extends Command {
         )
     );
 
-    await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+    await interaction.editReply({ embeds: [embed], components: [row] });
   }
 }
 

@@ -64,15 +64,14 @@ class YCanhCommand extends Command_1.Command {
         const discordId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(discordId);
         if (!user) {
-            await interaction.reply({
-                content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!',
-                ephemeral: true
+            await interaction.editReply({
+                content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!'
             });
             return;
         }
         const embed = getYCanhEmbed(discordId);
         const row = getYCanhComponents(discordId);
-        await interaction.reply({ embeds: [embed], components: [row] });
+        await interaction.editReply({ embeds: [embed], components: [row] });
     }
 }
 exports.default = YCanhCommand;

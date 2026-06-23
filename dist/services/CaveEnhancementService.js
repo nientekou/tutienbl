@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.caveEnhancementService = exports.CaveEnhancementService = void 0;
+const itemConstants_1 = require("../config/itemConstants");
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
@@ -43,7 +44,7 @@ class CaveEnhancementService {
     upgradeBuilding(userId, type) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         const cave = CaveService_1.caveService.getCave(userId);
         const currentLevel = type === 'spring' ? cave.spring_level : type === 'meridian' ? cave.meridian_level : cave.array_level;
         if (currentLevel >= 10) {
@@ -56,7 +57,7 @@ class CaveEnhancementService {
         }
         // Kiểm tra nguyên liệu (Mảnh Tinh Thạch - tinh_thach_shard)
         const userInv = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-        const shardItem = userInv.find(i => i.item_id === 'tinh_thach_shard');
+        const shardItem = userInv.find(i => i.item_id === itemConstants_1.ITEMS.TINH_THACH_SHARD);
         const hasShards = shardItem ? shardItem.quantity : 0;
         if (cost.shards > 0 && hasShards < cost.shards) {
             return { success: false, message: `Thiếu nguyên liệu! Cần **${cost.shards}** Mảnh Tinh Thạch nhưng đạo hữu chỉ có **${hasShards}**.` };
@@ -124,7 +125,7 @@ class CaveEnhancementService {
     claimMeridianResources(userId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         const cave = CaveService_1.caveService.getCave(userId);
         const meridianLevel = cave.meridian_level || 0;
         if (meridianLevel <= 0) {

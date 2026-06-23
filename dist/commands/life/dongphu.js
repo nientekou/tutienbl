@@ -17,7 +17,7 @@ function buildCaveEmbed(userId) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('❌ Lỗi')
             .setColor('#e74c3c')
-            .setDescription('Nhân vật không tồn tại.');
+            .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
     }
     const cave = CaveService_1.caveService.getCave(userId);
     // Tính toán buff tu vi
@@ -105,12 +105,12 @@ class DongPhuCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật!' });
             return;
         }
         const embed = buildCaveEmbed(userId);
         const components = buildCaveComponents(userId);
-        await interaction.reply({ embeds: [embed], components });
+        await interaction.editReply({ embeds: [embed], components });
     }
 }
 exports.default = DongPhuCommand;

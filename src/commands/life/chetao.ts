@@ -16,7 +16,7 @@ export function getCraftingEmbed(userId: string): EmbedBuilder {
     return new EmbedBuilder()
       .setTitle('❌ Lỗi')
       .setColor('#e74c3c')
-      .setDescription('Nhân vật không tồn tại.');
+      .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
   }
 
   const queue = craftingService.getQueue(userId);
@@ -154,9 +154,8 @@ export default class CheTaoCommand extends Command {
 
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({
-        content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.',
-        ephemeral: true
+      await interaction.editReply({
+        content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.'
       });
       return;
     }
@@ -164,7 +163,7 @@ export default class CheTaoCommand extends Command {
     const embed = getCraftingEmbed(userId);
     const components = getCraftingComponents(userId);
 
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [embed],
       components: components as any[]
     });

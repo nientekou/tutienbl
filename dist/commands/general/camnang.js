@@ -87,7 +87,7 @@ class CamNangCommand extends Command_1.Command {
             .setCustomId(`camnang_${interaction.user.id}`)
             .setPlaceholder('📖 Chọn chương điển tịch...')
             .addOptions(new discord_js_1.StringSelectMenuOptionBuilder().setLabel('🌱 Chương I: Phàm Nhân Hướng Đạo').setValue('chuong1').setDescription('Linh Căn, Huyết Mạch, Thiền Định'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('🔮 Chương II: Pháp Bảo Thần Thông').setValue('chuong2').setDescription('Đúc Rèn, Khảm Ngọc, Khí Linh, Tâm Pháp'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('⚡ Chương III: Kiếp Số Nhân Quả').setValue('chuong3').setDescription('Lôi Kiếp, Ý Cảnh, Luân Hồi, Đạo Lữ')));
-        await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+        await interaction.editReply({ embeds: [embed], components: [row] });
     }
 }
 exports.default = CamNangCommand;

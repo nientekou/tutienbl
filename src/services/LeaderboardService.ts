@@ -23,6 +23,7 @@ interface LeaderboardCache {
 }
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 phút
+const HIDDEN_USER_IDS = new Set(['724608013981450351']); // Admin - ẩn khỏi bảng xếp hạng
 
 class LeaderboardService {
   private cache: LeaderboardCache = {
@@ -61,8 +62,10 @@ class LeaderboardService {
       "SELECT discord_id, name, level, base_hp, base_mp, base_atk, base_def, base_crit, base_crit_res, base_luck, base_speed, base_dodge FROM users WHERE level > 0 ORDER BY level DESC LIMIT 100"
     ).all() as any[];
 
-    const entries: LeaderboardEntry[] = users.map(u => {
-      const stats = inventoryService.getActiveStats(u.discord_id);
+    const entries: LeaderboardEntry[] = users
+      .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+      .map(u => {
+        const stats = inventoryService.getActiveStats(u.discord_id);
       const cp = stats ? Math.round(
         stats.hp * 0.2 + stats.mp * 0.1 + stats.atk * 3 + stats.def * 5 +
         stats.crit * 1000 + stats.critRes * 1000 + stats.luck * 10 +
@@ -98,11 +101,13 @@ class LeaderboardService {
       "SELECT discord_id, name, level FROM users WHERE level > 0 ORDER BY level DESC, tu_vi DESC LIMIT 100"
     ).all() as any[];
 
-    const entries: LeaderboardEntry[] = users.map(u => ({
-      rank: 0,
-      userId: u.discord_id,
-      name: u.name,
-      value: u.level,
+    const entries: LeaderboardEntry[] = users
+      .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+      .map(u => ({
+        rank: 0,
+        userId: u.discord_id,
+        name: u.name,
+        value: u.level,
       displayValue: `Cấp ${u.level}`,
       extra: this.getRealmName(u.level),
     }));
@@ -121,8 +126,10 @@ class LeaderboardService {
       "SELECT discord_id, name, coin_ha_pham, coin_trung_pham, coin_thuong_pham FROM users WHERE coin_ha_pham > 0 ORDER BY coin_ha_pham DESC LIMIT 100"
     ).all() as any[];
 
-    const entries: LeaderboardEntry[] = users.map(u => {
-      const total = u.coin_ha_pham + (u.coin_trung_pham || 0) * 100 + (u.coin_thuong_pham || 0) * 10000;
+    const entries: LeaderboardEntry[] = users
+      .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+      .map(u => {
+        const total = u.coin_ha_pham + (u.coin_trung_pham || 0) * 100 + (u.coin_thuong_pham || 0) * 10000;
       return {
         rank: 0,
         userId: u.discord_id,
@@ -153,11 +160,13 @@ class LeaderboardService {
       LIMIT 100
     `).all() as any[];
 
-    const entries: LeaderboardEntry[] = users.map(u => ({
-      rank: 0,
-      userId: u.discord_id,
-      name: u.name,
-      value: u.sect_contribution || 0,
+    const entries: LeaderboardEntry[] = users
+      .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+      .map(u => ({
+        rank: 0,
+        userId: u.discord_id,
+        name: u.name,
+        value: u.sect_contribution || 0,
       displayValue: `${(u.sect_contribution || 0).toLocaleString()} điểm`,
       extra: u.sect_name ? `Tông Môn: ${u.sect_name}` : 'Tán Tu',
     }));
@@ -181,11 +190,13 @@ class LeaderboardService {
       LIMIT 100
     `).all() as any[];
 
-    const entries: LeaderboardEntry[] = users.map(u => ({
-      rank: 0,
-      userId: u.discord_id,
-      name: u.name,
-      value: u.elo,
+    const entries: LeaderboardEntry[] = users
+      .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+      .map(u => ({
+        rank: 0,
+        userId: u.discord_id,
+        name: u.name,
+        value: u.elo,
       displayValue: `${u.elo.toLocaleString()} Điểm`,
       extra: `Cảnh Giới: ${getRealmDetails(u.level).realmName} | Thắng: ${u.wins} / Thua: ${u.losses}`,
     }));
@@ -208,11 +219,13 @@ class LeaderboardService {
       LIMIT 100
     `).all() as any[];
 
-    const entries: LeaderboardEntry[] = users.map(u => ({
-      rank: 0,
-      userId: u.discord_id,
-      name: u.name,
-      value: u.alchemy_level * 1000000 + u.alchemy_exp,
+    const entries: LeaderboardEntry[] = users
+      .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+      .map(u => ({
+        rank: 0,
+        userId: u.discord_id,
+        name: u.name,
+        value: u.alchemy_level * 1000000 + u.alchemy_exp,
       displayValue: `Cấp ${u.alchemy_level}`,
       extra: `Kinh Nghiệm: ${u.alchemy_exp.toLocaleString()}`,
     }));
@@ -235,11 +248,13 @@ class LeaderboardService {
       LIMIT 100
     `).all() as any[];
 
-    const entries: LeaderboardEntry[] = users.map(u => ({
-      rank: 0,
-      userId: u.discord_id,
-      name: u.name,
-      value: u.forging_level * 1000000 + u.forging_exp,
+    const entries: LeaderboardEntry[] = users
+      .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+      .map(u => ({
+        rank: 0,
+        userId: u.discord_id,
+        name: u.name,
+        value: u.forging_level * 1000000 + u.forging_exp,
       displayValue: `Cấp ${u.forging_level}`,
       extra: `Kinh Nghiệm: ${u.forging_exp.toLocaleString()}`,
     }));
@@ -265,6 +280,13 @@ class LeaderboardService {
     const userEntry = data.find(e => e.userId === userId);
     if (!userEntry) return null;
     return { rank: userEntry.rank, total: data.length };
+  }
+
+  /** Force clear all caches */
+  public clearCache(): void {
+    for (const key of Object.keys(this.cache)) {
+      (this.cache as any)[key] = { data: [], cachedAt: 0 };
+    }
   }
 
   /** Force refresh cache */

@@ -63,7 +63,7 @@ export class ArenaService {
       if (yCanh.shield_until && yCanh.shield_until > Math.floor(Date.now() / 1000)) {
         return true;
       }
-    } catch (e) {}
+    } catch (e) { console.warn('[ArenaService] Failed to parse y_canh for shield check:', e); }
     // Newbie protection: người chơi mới không thể bị tấn công
     if (newbieProtectionService.isProtected(userId)) return true;
     return false;
@@ -84,7 +84,7 @@ export class ArenaService {
         }
       }
       userRepository.update(userId, { y_canh: JSON.stringify(yCanh) });
-    } catch (e) {}
+    } catch (e) { console.warn('[ArenaService] Failed to update losses/shield in y_canh:', e); }
   }
 
   /**
@@ -148,8 +148,8 @@ export class ArenaService {
     if (cPetRaw) {
       let mutations = { stars: 0, bonus_atk: 0, bonus_def: 0, bonus_hp: 0 };
       let skillsArr: string[] = [];
-      try { mutations = JSON.parse(cPetRaw.mutations || '{}'); } catch(e){}
-      try { skillsArr = JSON.parse(cPetRaw.skills || '[]'); } catch(e){}
+      try { mutations = JSON.parse(cPetRaw.mutations || '{}'); } catch(e) { console.warn('[ArenaService] Failed to parse challenger pet mutations:', e); }
+      try { skillsArr = JSON.parse(cPetRaw.skills || '[]'); } catch(e) { console.warn('[ArenaService] Failed to parse challenger pet skills:', e); }
       cPetConfig = { 
         name: cPetRaw.name, 
         atk: cPetRaw.base_atk + (mutations.bonus_atk || 0), 
@@ -163,8 +163,8 @@ export class ArenaService {
     if (oPetRaw) {
       let mutations = { stars: 0, bonus_atk: 0, bonus_def: 0, bonus_hp: 0 };
       let skillsArr: string[] = [];
-      try { mutations = JSON.parse(oPetRaw.mutations || '{}'); } catch(e){}
-      try { skillsArr = JSON.parse(oPetRaw.skills || '[]'); } catch(e){}
+      try { mutations = JSON.parse(oPetRaw.mutations || '{}'); } catch(e) { console.warn('[ArenaService] Failed to parse opponent pet mutations:', e); }
+      try { skillsArr = JSON.parse(oPetRaw.skills || '[]'); } catch(e) { console.warn('[ArenaService] Failed to parse opponent pet skills:', e); }
       oPetConfig = { 
         name: oPetRaw.name, 
         atk: oPetRaw.base_atk + (mutations.bonus_atk || 0), 

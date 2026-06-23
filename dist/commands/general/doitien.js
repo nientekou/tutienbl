@@ -188,28 +188,28 @@ class DoiTienCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy dùng `/taonhanvat` để bắt đầu.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy dùng `/taonhanvat` để bắt đầu.' });
             return;
         }
         const type = interaction.options.getString('loai_doi');
         const qty = interaction.options.getInteger('soluong') || 1;
         if (type) {
             if (qty <= 0) {
-                await interaction.reply({ content: '❌ Số lượng lần đổi phải lớn hơn 0!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Số lượng lần đổi phải lớn hơn 0!' });
                 return;
             }
             const res = DoiTienCommand.performConversion(userId, type, qty);
             if (!res.success) {
-                await interaction.reply({ content: res.message, ephemeral: true });
+                await interaction.editReply({ content: res.message });
                 return;
             }
             const embed = DoiTienCommand.buildResultEmbed(res, userId);
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else {
             const embed = getDoiTienEmbed(userId);
             const components = getDoiTienComponents(userId);
-            await interaction.reply({ embeds: [embed], components });
+            await interaction.editReply({ embeds: [embed], components });
         }
     }
 }

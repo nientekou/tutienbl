@@ -10,6 +10,7 @@ const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const database_1 = __importDefault(require("../../database/database"));
+const itemConstants_1 = require("../../config/itemConstants");
 class SuaChuaCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -18,9 +19,9 @@ class SuaChuaCommand extends Command_1.Command {
             .addSubcommand(sub => sub
             .setName('trangbi')
             .setDescription('Sửa chữa một trang bị cụ thể bằng Linh Thạch.')
-            .addStringOption(opt => opt
-            .setName('item_id')
-            .setDescription('Mã vật phẩm cần sửa (xem trong /tuido).')
+            .addIntegerOption(opt => opt
+            .setName('inventory_id')
+            .setDescription('ID vật phẩm trong hành trang cần sửa.')
             .setRequired(true)))
             .addSubcommand(sub => sub
             .setName('tatca')
@@ -33,7 +34,7 @@ class SuaChuaCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -44,19 +45,19 @@ class SuaChuaCommand extends Command_1.Command {
             return;
         }
         if (sub === 'trangbi') {
-            const itemId = interaction.options.getString('item_id', true);
-            const item = inventory.find(i => i.item_id === itemId);
+            const inventoryId = interaction.options.getInteger('inventory_id', true);
+            const item = inventory.find(i => i.id === inventoryId);
             if (!item) {
-                await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
+                await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong túi đồ!` });
                 return;
             }
             const result = this.repairSingleItem(userId, item, inventory);
-            await interaction.reply({ content: result.message, ephemeral: !result.success });
+            await interaction.editReply({ content: result.message });
             return;
         }
         if (sub === 'tatca') {
             const result = this.repairAllEquipped(userId, equippedItems);
-            await interaction.reply({ content: result.message, ephemeral: !result.success });
+            await interaction.editReply({ content: result.message });
             return;
         }
     }
@@ -68,7 +69,7 @@ class SuaChuaCommand extends Command_1.Command {
             .setTitle('🛡️ DANH SÁCH TRANG BỊ - ĐỘ BỀN 🛡️')
             .setColor('#3498db')
             .setDescription('Kiểm tra tình trạng pháp bảo của đạo hữu. Trang bị hết độ bền chỉ còn **50%** chỉ số!')
-            .setFooter({ text: 'Dùng /suachua trangbi item_id: <mã> hoặc /suachua tatca để sửa chữa.' })
+            .setFooter({ text: 'Dùng /suachua trangbi inventory_id: <id> hoặc /suachua tatca để sửa chữa.' })
             .setTimestamp();
         if (equippedItems.length === 0) {
             embed.addFields({ name: '📭 Trống', value: 'Đạo hữu chưa trang bị bất kỳ pháp bảo nào!' });
@@ -98,7 +99,7 @@ class SuaChuaCommand extends Command_1.Command {
             .setCustomId(`hosoback_${userId}`)
             .setLabel('🔙 Quay Lại Hồ Sơ')
             .setStyle(discord_js_1.ButtonStyle.Secondary));
-        await interaction.reply({ embeds: [embed], components: [row] });
+        await interaction.editReply({ embeds: [embed], components: [row] });
     }
     /**
      * Sửa chữa một trang bị cụ thể
@@ -109,12 +110,12 @@ class SuaChuaCommand extends Command_1.Command {
             return { success: false, message: `✅ **${item.name}** vẫn còn nguyên vẹn, không cần sửa chữa!` };
         }
         // Kiểm tra có đá dưỡng trong túi không
-        const repairStones = inventory.filter(i => i.item_id === 'repair_stone_low' ||
-            i.item_id === 'repair_stone_mid' ||
-            i.item_id === 'repair_stone_high');
+        const repairStones = inventory.filter(i => i.item_id === itemConstants_1.ITEMS.REPAIR_STONE_LOW ||
+            i.item_id === itemConstants_1.ITEMS.REPAIR_STONE_MID ||
+            i.item_id === itemConstants_1.ITEMS.REPAIR_STONE_HIGH);
         if (repairStones.length > 0) {
             // Ưu tiên dùng đá dưỡng phẩm cao nhất
-            const stonePriority = ['repair_stone_high', 'repair_stone_mid', 'repair_stone_low'];
+            const stonePriority = [itemConstants_1.ITEMS.REPAIR_STONE_HIGH, itemConstants_1.ITEMS.REPAIR_STONE_MID, itemConstants_1.ITEMS.REPAIR_STONE_LOW];
             let usedStone = null;
             for (const stoneId of stonePriority) {
                 const found = repairStones.find(s => s.item_id === stoneId);

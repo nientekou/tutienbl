@@ -1,6 +1,7 @@
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository as invRepo } from '../database/repositories/InventoryRepository';
+import { ITEMS } from '../config/itemConstants';
 
 export interface EnhanceConfig {
   level: number;       // Cấp độ hiện tại (ví dụ: 0 -> muốn lên 1)
@@ -61,7 +62,7 @@ export class EnhanceService {
 
     // Tìm Mảnh Tinh Thạch trong túi người chơi
     const userInventory = invRepo.getUserInventory(userId);
-    const shardItem = userInventory.find(i => i.item_id === 'tinh_thach_shard');
+    const shardItem = userInventory.find(i => i.item_id === ITEMS.TINH_THACH_SHARD);
     const shardQty = shardItem ? shardItem.quantity : 0;
 
     if (shardQty < cfg.costShards) {

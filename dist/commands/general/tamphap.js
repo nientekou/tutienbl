@@ -46,7 +46,7 @@ class TamPhapCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -72,7 +72,7 @@ class TamPhapCommand extends Command_1.Command {
                     `  └─ *Hiệu quả:* ${law.description}\n\n`;
             }
             embed.setDescription(listStr || '*Hiện tại hệ thống chưa có tâm pháp nào.*');
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         // ───────────────── TRANG BỊ TÂM PHÁP ĐANG MANG ─────────────────
         else if (sub === 'trangbi') {
@@ -129,7 +129,7 @@ class TamPhapCommand extends Command_1.Command {
                 passivesStr = '*Chưa kích hoạt hiệu ứng nào. Hãy trang bị Tâm Pháp.*';
             }
             embed.addFields({ name: '⚡ Hiệu Ứng Đang Hoạt Động', value: passivesStr });
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         // ───────────────── TRANG BỊ VÀO Ô ─────────────────
         else if (sub === 'mang') {
@@ -137,10 +137,10 @@ class TamPhapCommand extends Command_1.Command {
             const slot = interaction.options.getInteger('o_trang_bi', true);
             const res = HeartLawService_1.heartLawService.equipHeartLaw(userId, lawId, slot);
             if (res.success) {
-                await interaction.reply({ content: res.message });
+                await interaction.editReply({ content: res.message });
             }
             else {
-                await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${res.message}` });
             }
         }
         // ───────────────── THÁO TRANG BỊ ─────────────────
@@ -148,10 +148,10 @@ class TamPhapCommand extends Command_1.Command {
             const slot = interaction.options.getInteger('o_trang_bi', true);
             const res = HeartLawService_1.heartLawService.unequipHeartLaw(userId, slot);
             if (res.success) {
-                await interaction.reply({ content: res.message });
+                await interaction.editReply({ content: res.message });
             }
             else {
-                await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${res.message}` });
             }
         }
         // ───────────────── LĨNH NGỘ ─────────────────
@@ -159,10 +159,10 @@ class TamPhapCommand extends Command_1.Command {
             const lawId = interaction.options.getString('tam_phap', true);
             const res = HeartLawService_1.heartLawService.learnHeartLaw(userId, lawId);
             if (res.success) {
-                await interaction.reply({ content: res.message });
+                await interaction.editReply({ content: res.message });
             }
             else {
-                await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${res.message}` });
             }
         }
         // ───────────────── NÂNG CẤP ─────────────────
@@ -170,10 +170,10 @@ class TamPhapCommand extends Command_1.Command {
             const lawId = interaction.options.getString('tam_phap', true);
             const res = HeartLawService_1.heartLawService.levelUpHeartLaw(userId, lawId);
             if (res.success) {
-                await interaction.reply({ content: res.message });
+                await interaction.editReply({ content: res.message });
             }
             else {
-                await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${res.message}` });
             }
         }
     }

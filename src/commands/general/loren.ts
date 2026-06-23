@@ -3,6 +3,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { blacksmithService } from '../../services/BlacksmithService';
+import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 
 export default class LoRenCommand extends Command {
   constructor() {
@@ -18,7 +19,7 @@ export default class LoRenCommand extends Command {
         .addSubcommand(sub =>
           sub.setName('tinh-luyen')
             .setDescription('Đập thăng sao trang bị (Tốn Huyền Thiết & Linh Thạch)')
-            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('Mã hành trang của vật phẩm trong túi đồ').setRequired(true))
+            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('ID vật phẩm trong hành trang').setRequired(true))
         )
     );
   }
@@ -26,7 +27,7 @@ export default class LoRenCommand extends Command {
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
-    if (!user) { await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true }); return; }
+    if (!user) { await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'}); return; }
 
     const sub = interaction.options.getSubcommand();
 
@@ -35,17 +36,22 @@ export default class LoRenCommand extends Command {
       const ids = idsStr.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
 
       if (ids.length === 0) {
-        await interaction.reply({ content: '❌ Định dạng ID không hợp lệ. Ví dụ đúng: 12, 34, 56', ephemeral: true });
+        await interaction.editReply({ content: '❌ Định dạng ID không hợp lệ. Ví dụ đúng: 12, 34, 56'});
         return;
       }
 
       const result = blacksmithService.dismantleItem(userId, ids);
-      await interaction.reply({ content: result.message });
+      await interaction.editReply({ content: result.message });
 
     } else if (sub === 'tinh-luyen') {
-      const invId = interaction.options.getInteger('inventory_id', true);
+      const inventoryId = interaction.options.getInteger('inventory_id', true);
+      const invRow = inventoryRepository.get(inventoryId) as { id: number; user_id: string } | undefined;
+      if (!invRow || invRow.user_id !== userId) {
+        await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong túi đồ!`});
+        return;
+      }
       
-      const result = blacksmithService.refineItem(userId, invId);
+      const result = blacksmithService.refineItem(userId, invRow.id);
       
       if (result.success) {
         const embed = new EmbedBuilder()
@@ -53,9 +59,9 @@ export default class LoRenCommand extends Command {
           .setColor('#f1c40f')
           .setDescription(result.message)
           .setTimestamp();
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
       } else {
-        await interaction.reply({ content: result.message });
+        await interaction.editReply({ content: result.message });
       }
     }
   }

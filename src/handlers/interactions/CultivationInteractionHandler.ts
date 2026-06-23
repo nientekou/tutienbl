@@ -9,6 +9,7 @@ import { getRealmDetails, formatLinhCan } from '../../utils/constants';
 import { dailyQuestService } from '../../services/DailyQuestService';
 import { inventoryService } from '../../services/InventoryService';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
+import { ITEMS } from '../../config/itemConstants';
 
 // Cần quản lý cooldown chung cho thiền định
 export const practiceCooldowns = new Map<string, number>();
@@ -75,6 +76,12 @@ export class CultivationInteractionHandler {
         return;
       }
 
+      // Nếu Tu Vi đã đầy, thông báo cần đột phá
+      if (result.gained === 0 && result.message) {
+        await interaction.reply({ content: `🔔 ${result.message}`, ephemeral: true });
+        return;
+      }
+
       const freshUser = result.user;
 
       if (freshUser.stamina < 1) {
@@ -131,10 +138,10 @@ export class CultivationInteractionHandler {
           const inv = inventoryRepository.getUserInventory(targetUserId);
           const getQty = (itemId: string) => inv.find(i => i.item_id === itemId)?.quantity || 0;
 
-          const antiLoiQty = getQty('pill_alchemy_anti_loi');
-          const hp1Qty = getQty('pill_hp_1');
-          const hp2Qty = getQty('pill_hp_2');
-          const tiLoiQty = getQty('talisman_anti_loi');
+          const antiLoiQty = getQty(ITEMS.PILL_ALCHEMY_ANTI_LOI);
+          const hp1Qty = getQty(ITEMS.PILL_HP_1);
+          const hp2Qty = getQty(ITEMS.PILL_HP_2);
+          const tiLoiQty = getQty(ITEMS.TALISMAN_ANTI_LOI);
 
           const oncomingKiep = tribulationService.getOncomingKiepInfo(targetUserId);
           const protectPillQty = oncomingKiep.pillId ? getQty(oncomingKiep.pillId) : 0;
@@ -188,9 +195,9 @@ export class CultivationInteractionHandler {
             const baseRate = Math.max(90 - majorIndex * 10, 10);
             const luckBonus = user.base_luck * 0.002;
             let pillBonus = 0;
-            if (usedPill === 'pill_break_minor_1') pillBonus = 15;
-            else if (usedPill === 'pill_break_minor_2') pillBonus = 30;
-            else if (usedPill === 'pill_break_minor_3') pillBonus = 50;
+            if (usedPill === ITEMS.PILL_BREAK_MINOR_1) pillBonus = 15;
+            else if (usedPill === ITEMS.PILL_BREAK_MINOR_2) pillBonus = 30;
+            else if (usedPill === ITEMS.PILL_BREAK_MINOR_3) pillBonus = 50;
 
             let alignmentRateMod = 0;
             if (user.alignment === 'neutral' || !user.alignment) {
@@ -311,7 +318,8 @@ export class CultivationInteractionHandler {
         base_def: newStats.def,
         base_crit: newStats.crit,
         base_crit_res: newStats.critRes,
-        base_luck: user.base_luck
+        base_luck: user.base_luck,
+        base_speed: newStats.speed
       });
 
       const updatedUser = userRepository.get(targetUserId)!;
@@ -439,6 +447,7 @@ export class CultivationInteractionHandler {
         base_def: newStats.def,
         base_crit: newStats.crit,
         base_crit_res: newStats.critRes,
+        base_speed: newStats.speed,
       });
 
       const updatedUser = userRepository.get(targetUserId)!;

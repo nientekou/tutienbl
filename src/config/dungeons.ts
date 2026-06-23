@@ -1,3 +1,5 @@
+import { ITEMS } from './itemConstants';
+
 export interface MonsterConfig {
   name: string;
   hp: number;
@@ -52,10 +54,10 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
       coinMin: 20,
       coinMax: 40,
       loots: [
-        { itemId: 'pill_hp_1', rate: 0.50, quantity: 1 },       // 50% hồi huyết đan hạ phẩm
-        { itemId: 'weapon_sword_1', rate: 0.15, quantity: 1 },   // 15% kiếm gỗ thanh phong
-        { itemId: 'armor_robe_1', rate: 0.15, quantity: 1 },     // 15% đạo bào thanh lam
-        { itemId: 'material_iron_1', rate: 0.40, quantity: 2 },  // 40% huyền thiết sa
+        { itemId: ITEMS.PILL_HP_1, rate: 0.50, quantity: 1 },       // 50% hồi huyết đan hạ phẩm
+        { itemId: ITEMS.WEAPON_SWORD_1, rate: 0.15, quantity: 1 },   // 15% kiếm gỗ thanh phong
+        { itemId: ITEMS.ARMOR_ROBE_1, rate: 0.15, quantity: 1 },     // 15% đạo bào thanh lam
+        { itemId: ITEMS.MATERIAL_IRON_1, rate: 0.40, quantity: 2 },  // 40% huyền thiết sa
       ]
     }
   },
@@ -80,11 +82,11 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
       coinMin: 80,
       coinMax: 150,
       loots: [
-        { itemId: 'pill_hp_2', rate: 0.50, quantity: 1 },       // 50% hồi huyết đan trung phẩm
-        { itemId: 'pill_break_1', rate: 0.25, quantity: 1 },     // 25% trúc cơ đan
-        { itemId: 'weapon_sword_2', rate: 0.20, quantity: 1 },   // 20% Xích Long Kiếm
-        { itemId: 'armor_robe_2', rate: 0.20, quantity: 1 },     // 20% Thăng Long Đạo Bào
-        { itemId: 'talisman_speed_1', rate: 0.35, quantity: 1 }, // 35% Thần Hành Phù
+        { itemId: ITEMS.PILL_HP_2, rate: 0.50, quantity: 1 },       // 50% hồi huyết đan trung phẩm
+        { itemId: ITEMS.PILL_BREAK_1, rate: 0.25, quantity: 1 },     // 25% trúc cơ đan
+        { itemId: ITEMS.WEAPON_SWORD_2, rate: 0.20, quantity: 1 },   // 20% Xích Long Kiếm
+        { itemId: ITEMS.ARMOR_ROBE_2, rate: 0.20, quantity: 1 },     // 20% Thăng Long Đạo Bào
+        { itemId: ITEMS.TALISMAN_SPEED_1, rate: 0.35, quantity: 1 }, // 35% Thần Hành Phù
       ]
     }
   },
@@ -109,10 +111,10 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
       coinMin: 300,
       coinMax: 600,
       loots: [
-        { itemId: 'weapon_sword_3', rate: 0.20, quantity: 1 },   // 20% Thiên Cổ Phán Quyết (Epic)
-        { itemId: 'armor_robe_3', rate: 0.20, quantity: 1 },     // 20% Thăng Quang Huyền Giáp (Epic)
-        { itemId: 'pill_break_1', rate: 0.40, quantity: 2 },     // 40% x2 trúc cơ đan
-        { itemId: 'talisman_speed_1', rate: 0.50, quantity: 2 }, // 50% x2 Thần Hành Phù
+        { itemId: ITEMS.WEAPON_SWORD_3, rate: 0.20, quantity: 1 },   // 20% Thiên Cổ Phán Quyết (Epic)
+        { itemId: ITEMS.ARMOR_ROBE_3, rate: 0.20, quantity: 1 },     // 20% Thăng Quang Huyền Giáp (Epic)
+        { itemId: ITEMS.PILL_BREAK_1, rate: 0.40, quantity: 2 },     // 40% x2 trúc cơ đan
+        { itemId: ITEMS.TALISMAN_SPEED_1, rate: 0.50, quantity: 2 }, // 50% x2 Thần Hành Phù
       ]
     }
   }

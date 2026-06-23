@@ -154,7 +154,7 @@ const GUIDES: Record<string, { title: string; color: `#${string}`; content: stri
       '  • **💧 Thủy**: Phục hồi 20% HP tối đa và giải hoàn toàn trạng thái thiêu đốt Hỏa Phế.',
       '  • **🌿 Mộc**: Hút máu đòn đánh 40% và hồi thêm 5% HP tối đa trực tiếp.',
       '  • **🪨 Thổ**: Khiên Thổ Giáp hấp thụ 25% HP tối đa + tăng 30% Thủ khi khiên tồn tại.',
-      '  • **⚡ Lôi**: Tê liệt đối thủ hiệp kế tiếp + nhân 2x sát thương đòn đánh.',
+      '  • **⚡ Lôi**: Tê liệt đối thủ 1 hiệp + nhân 2x sát thương đòn đánh + tăng 20 Tốc Độ từ linh căn.',
       '  • **🌀 Phong**: Chuẩn bị Né Tránh đòn sau + cộng vĩnh viễn +10% tỷ lệ Né suốt trận.',
     ].join('\n'),
   },
@@ -226,7 +226,7 @@ export default class HuongDanCommand extends Command {
         )
     );
 
-    await interaction.reply({ embeds: [embed], components: [menu], ephemeral: true });
+    await interaction.editReply({ embeds: [embed], components: [menu] });
   }
 }
 

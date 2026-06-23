@@ -236,9 +236,8 @@ export default class BiCanhCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({
-        content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.',
-        ephemeral: true
+      await interaction.editReply({
+        content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.'
       });
       return;
     }
@@ -246,7 +245,6 @@ export default class BiCanhCommand extends Command {
     const subcmd = interaction.options.getSubcommand(true);
 
     if (subcmd === 'solo') {
-      await interaction.deferReply();
       const embed = getDungeonEmbed(userId);
       const row = getDungeonComponents(userId);
 
@@ -261,9 +259,8 @@ export default class BiCanhCommand extends Command {
       if (!dungeon) return;
 
       if (user.level < dungeon.minLevel) {
-        await interaction.reply({ 
-          content: `❌ Cảnh giới của đạo hữu chưa đủ để vào **${dungeon.name}**! (Yêu cầu cấp ${dungeon.minLevel})`, 
-          ephemeral: true 
+        await interaction.editReply({ 
+          content: `❌ Cảnh giới của đạo hữu chưa đủ để vào **${dungeon.name}**! (Yêu cầu cấp ${dungeon.minLevel})` 
         });
         return;
       }
@@ -281,14 +278,12 @@ export default class BiCanhCommand extends Command {
       }
 
       if (entriesToday >= dungeon.maxDailyEntries) {
-        await interaction.reply({
-          content: `❌ Đạo hữu đã cạn kiệt linh lực khiêu chiến Bí Cảnh này hôm nay! (Giới hạn: **${dungeon.maxDailyEntries}/${dungeon.maxDailyEntries}** lượt/ngày)`,
-          ephemeral: true
+        await interaction.editReply({
+          content: `❌ Đạo hữu đã cạn kiệt linh lực khiêu chiến Bí Cảnh này hôm nay! (Giới hạn: **${dungeon.maxDailyEntries}/${dungeon.maxDailyEntries}** lượt/ngày)`
         });
         return;
       }
 
-      await interaction.deferReply();
       // Tạo party
       const party = partyService.createParty(userId, dungeonId, dungeon.maxMembers);
       const embed = buildCoopPartyEmbed(party.id);
@@ -302,7 +297,6 @@ export default class BiCanhCommand extends Command {
       await interaction.editReply({ embeds: [embed], components: [row] });
     }
     else if (subcmd === 'bangxephang') {
-      await interaction.deferReply();
       const topPlayers = db.prepare(`
         SELECT name, dungeon_clears, level 
         FROM users 

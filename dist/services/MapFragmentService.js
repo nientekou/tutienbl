@@ -7,6 +7,7 @@ exports.mapFragmentService = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
+const itemConstants_1 = require("../config/itemConstants");
 const LOCATION_NAMES = [
     'Hang Động Tử Cấm',
     'Thánh Địa U Minh',
@@ -24,16 +25,16 @@ const LOCATION_NAMES = [
     'Linh Trì Bách Hoa',
     'Núi Băng Thiên Sơn',
 ];
-const COMMON_MATERIALS = ['material_linh_thao_1', 'material_iron_1'];
-const RARE_MATERIALS = ['material_nhan_sam_1', 'material_tinh_thiet_1'];
-const EPIC_MATERIALS = ['item_pet_evolve', 'material_lingzhi', 'material_tuyet_lien'];
+const COMMON_MATERIALS = [itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, itemConstants_1.ITEMS.MATERIAL_IRON_1];
+const RARE_MATERIALS = [itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1];
+const EPIC_MATERIALS = [itemConstants_1.ITEMS.ITEM_PET_EVOLVE, itemConstants_1.ITEMS.MATERIAL_LINGZHI, itemConstants_1.ITEMS.MATERIAL_TUYET_LIEN];
 class MapFragmentService {
     addFragment(userId) {
-        InventoryRepository_1.inventoryRepository.addItem(userId, 'map_fragment', 1);
+        InventoryRepository_1.inventoryRepository.addItem(userId, itemConstants_1.ITEMS.MAP_FRAGMENT, 1);
     }
     getFragmentCount(userId) {
         const inv = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-        const frag = inv.find(i => i.item_id === 'map_fragment');
+        const frag = inv.find(i => i.item_id === itemConstants_1.ITEMS.MAP_FRAGMENT);
         return frag ? frag.quantity : 0;
     }
     combineFragments(userId) {
@@ -44,7 +45,7 @@ class MapFragmentService {
         if (count < 5) {
             return { success: false, message: `❌ Cần 5 Mảnh Bản Đồ để ghép. Hiện có: **${count}/5**.` };
         }
-        const removed = InventoryRepository_1.inventoryRepository.removeItem(userId, 'map_fragment', 5);
+        const removed = InventoryRepository_1.inventoryRepository.removeItem(userId, itemConstants_1.ITEMS.MAP_FRAGMENT, 5);
         if (!removed)
             return { success: false, message: '❌ Không thể tiêu hao Mảnh Bản Đồ.' };
         const now = Math.floor(Date.now() / 1000);
@@ -139,7 +140,7 @@ class MapFragmentService {
                 const knbAmount = 10;
                 UserRepository_1.userRepository.update(userId, { knb: (user.knb || 0) + knbAmount });
                 rewardTexts.push(`💎 **${knbAmount}** KNB`);
-                InventoryRepository_1.inventoryRepository.addItem(userId, 'manh_vo_vu_khi', 1);
+                InventoryRepository_1.inventoryRepository.addItem(userId, itemConstants_1.ITEMS.MANH_VO_VU_KHI, 1);
                 rewardTexts.push(`🗡️ **Mảnh Vỡ Vũ Khí Huyền Thoại** x1`);
                 break;
             }
@@ -154,7 +155,7 @@ class MapFragmentService {
                 InventoryRepository_1.inventoryRepository.addItem(userId, epicMat, 2);
                 rewardTexts.push(`🎁 Nguyên liệu Epic **x2**`);
                 if (Math.random() < 0.2) {
-                    InventoryRepository_1.inventoryRepository.addItem(userId, 'item_pet_evolve', 1);
+                    InventoryRepository_1.inventoryRepository.addItem(userId, itemConstants_1.ITEMS.ITEM_PET_EVOLVE, 1);
                     rewardTexts.push(`🥚 **Linh Thú Tiến Hóa Đan** (Cơ hội nhận trứng thú cưng!)`);
                 }
                 break;

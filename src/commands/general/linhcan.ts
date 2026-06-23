@@ -58,8 +58,8 @@ function getElementDetails(element: string, percentage: number): {
     talent1 = `${checkMark1} **Thổ Chân (>=40%)**: Thổ Giáp khiên hấp thụ sát thương bằng 15% HP tối đa.`;
     talent2 = `${checkMark2} **Thổ Thiên (>=90%)**: Thổ Giáp hấp thụ 25% HP tối đa và tăng 30% phòng thủ khi khiên tồn tại.`;
   } else if (isLoi) {
-    talent1 = `${checkMark1} **Lôi Chân (>=40%)**: Sấm sét gây Tê Liệt địch ở hiệp kế tiếp, tăng 50% sát thương đòn đánh.`;
-    talent2 = `${checkMark2} **Lôi Thiên (>=90%)**: Tê liệt kẻ địch + tăng 100% sát thương đòn đánh (x2 damage).`;
+    talent1 = `${checkMark1} **Lôi Chân (>=40%)**: Sấm sét gây Tê Liệt địch 1 hiệp, nhân 1.5x sát thương đòn đánh. +10 Tốc Độ từ Linh Căn Lôi.`;
+    talent2 = `${checkMark2} **Lôi Thiên (>=90%)**: Lôi Phạt gây Tê Liệt địch 1 hiệp, nhân 2x sát thương đòn đánh. +20 Tốc Độ từ Linh Căn Lôi.`;
   } else if (isPhong) {
     talent1 = `${checkMark1} **Phong Chân (>=40%)**: Phong Hành Bộ Pháp chuẩn bị né tránh hoàn toàn đòn đánh sau.`;
     talent2 = `${checkMark2} **Phong Thiên (>=90%)**: Né tránh đòn sau + tăng vĩnh viễn 10% tỷ lệ né tránh (dodge) suốt trận.`;
@@ -111,9 +111,8 @@ export default class LinhCanCommand extends Command {
     const user = userRepository.get(discordId);
 
     if (!user) {
-      await interaction.reply({
-        content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh `/taonhanvat` để bắt đầu!',
-        ephemeral: true
+      await interaction.editReply({
+        content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh `/taonhanvat` để bắt đầu!'
       });
       return;
     }
@@ -173,7 +172,7 @@ export default class LinhCanCommand extends Command {
           .setStyle(ButtonStyle.Secondary)
       );
 
-      await interaction.reply({ embeds: [embed], components: [row] });
+      await interaction.editReply({ embeds: [embed], components: [row] });
       return;
     }
 
@@ -182,7 +181,7 @@ export default class LinhCanCommand extends Command {
       const result = cultivationService.temperLinhCan(discordId, targetElement);
 
       if (!result.success) {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}`});
         return;
       }
 
@@ -192,7 +191,7 @@ export default class LinhCanCommand extends Command {
         .setDescription(result.message)
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
@@ -222,7 +221,7 @@ export default class LinhCanCommand extends Command {
           .setStyle(ButtonStyle.Secondary)
       );
 
-      await interaction.reply({ embeds: [embed], components: [row] });
+      await interaction.editReply({ embeds: [embed], components: [row] });
       return;
     }
   }

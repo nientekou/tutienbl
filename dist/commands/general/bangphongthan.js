@@ -96,7 +96,7 @@ function buildLeaderboardEmbed(userId, category, page) {
     }
     else {
         embed.setFooter({
-            text: `📍 Bạn chưa có dữ liệu trong bảng này | Trang ${currentPage}/${totalPages}`
+            text: `📍 Đạo hữu chưa có dữ liệu trong bảng này | Trang ${currentPage}/${totalPages}`
         });
     }
     return embed;
@@ -162,12 +162,12 @@ class BangPhongThanCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật! Hãy dùng `/taonhanvat` trước.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật! Hãy dùng `/taonhanvat` trước.' });
             return;
         }
         const subType = interaction.options.getString('danhmuc') || 'combatPower';
         const messageOptions = buildLeaderboardMessage(userId, subType, 1);
-        await interaction.reply({ ...messageOptions, ephemeral: false });
+        await interaction.editReply({ ...messageOptions });
     }
 }
 exports.default = BangPhongThanCommand;

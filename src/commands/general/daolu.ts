@@ -6,6 +6,7 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import { coupleRepository } from '../../database/repositories/CoupleRepository';
 import { coupleService } from '../../services/CoupleService';
 import { getProgressBar } from '../../utils/constants';
+import { ITEMS } from '../../config/itemConstants';
 
 export default class DaoLuCommand extends Command {
   constructor() {
@@ -37,13 +38,13 @@ export default class DaoLuCommand extends Command {
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
-    if (!user) { await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true }); return; }
+    if (!user) { await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'}); return; }
 
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'thongtin') {
       const couple = coupleRepository.getCoupleByUserId(userId);
-      if (!couple) { await interaction.reply({ content: '💔 Đạo hữu hiện đang độc thân vui tính!', ephemeral: true }); return; }
+      if (!couple) { await interaction.editReply({ content: '💔 Đạo hữu hiện đang độc thân vui tính!'}); return; }
 
       const partnerId = couple.user1_id === userId ? couple.user2_id : couple.user1_id;
       const partner = userRepository.get(partnerId);
@@ -66,27 +67,27 @@ export default class DaoLuCommand extends Command {
         embed.setDescription(anniversaryMsg);
       }
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
 
     } else if (sub === 'cau-hon') {
       const target = interaction.options.getUser('nguoi_choi', true);
-      if (target.id === userId) { await interaction.reply({ content: '❌ Không thể tự cầu hôn chính mình!', ephemeral: true }); return; }
-      if (target.bot) { await interaction.reply({ content: '❌ Không thể cầu hôn Bot!', ephemeral: true }); return; }
+      if (target.id === userId) { await interaction.editReply({ content: '❌ Không thể tự cầu hôn chính mình!'}); return; }
+      if (target.bot) { await interaction.editReply({ content: '❌ Không thể cầu hôn Bot!'}); return; }
 
       const targetUser = userRepository.get(target.id);
-      if (!targetUser) { await interaction.reply({ content: '❌ Người này chưa tu tiên!', ephemeral: true }); return; }
+      if (!targetUser) { await interaction.editReply({ content: '❌ Người này chưa tu tiên!'}); return; }
 
       const myCouple = coupleRepository.getCoupleByUserId(userId);
-      if (myCouple) { await interaction.reply({ content: '❌ Đạo hữu đã có Đạo Lữ rồi! Cấm ngoại tình!', ephemeral: true }); return; }
+      if (myCouple) { await interaction.editReply({ content: '❌ Đạo hữu đã có Đạo Lữ rồi! Cấm ngoại tình!'}); return; }
 
       const targetCouple = coupleRepository.getCoupleByUserId(target.id);
-      if (targetCouple) { await interaction.reply({ content: '❌ Người ta đã có chủ rồi! Xin tự trọng!', ephemeral: true }); return; }
+      if (targetCouple) { await interaction.editReply({ content: '❌ Người ta đã có chủ rồi! Xin tự trọng!'}); return; }
 
       // Kiểm tra nhẫn đính hôn
       const inv = inventoryRepository.getUserInventory(userId);
-      const ring = inv.find(i => i.item_id === 'item_nhan_dinh_hon');
+      const ring = inv.find(i => i.item_id === ITEMS.ITEM_NHAN_DINH_HON);
       if (!ring || ring.quantity < 1) {
-        await interaction.reply({ content: '❌ Đạo hữu không có **Nhẫn Đính Hôn** (Mua trong Cửa Hàng giá 500,000 LT)!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu không có **Nhẫn Đính Hôn** (Mua trong Cửa Hàng giá 500,000 LT)!'});
         return;
       }
 
@@ -95,22 +96,21 @@ export default class DaoLuCommand extends Command {
         new ButtonBuilder().setCustomId('decline_marriage').setLabel('Từ chối').setStyle(ButtonStyle.Danger)
       );
 
-      const msg = await interaction.reply({
-        content: `💍 <@${target.id}>, đạo hữu **${user.name}** muốn kết thành Đạo Lữ cùng bạn! Bạn có đồng ý không?`,
-        components: [row],
-        fetchReply: true
+      const msg = await interaction.editReply({
+        content: `💍 <@${target.id}>, đạo hữu **${user.name}** muốn kết thành Đạo Lữ cùng Đạo hữu! Đạo hữu có đồng ý không?`,
+        components: [row]
       });
 
       const collector = msg.createMessageComponentCollector({ componentType: ComponentType.Button, time: 60000 });
       collector.on('collect', async i => {
         if (i.user.id !== target.id) {
-          await i.reply({ content: '❌ Bạn không phải là người được cầu hôn!', ephemeral: true });
+          await i.reply({ content: '❌ Đạo hữu không phải là người được cầu hôn!'});
           return;
         }
 
         if (i.customId === 'accept_marriage') {
           // Trừ nhẫn
-          inventoryRepository.removeItem(userId, 'item_nhan_dinh_hon', 1);
+          inventoryRepository.removeItem(userId, ITEMS.ITEM_NHAN_DINH_HON, 1);
           coupleRepository.createCouple(userId, target.id);
           // Đồng bộ sang bảng users
           userRepository.update(userId, { partner_id: target.id, intimacy: 100 });
@@ -128,28 +128,28 @@ export default class DaoLuCommand extends Command {
 
     } else if (sub === 'song-tu') {
       const couple = coupleRepository.getCoupleByUserId(userId);
-      if (!couple) { await interaction.reply({ content: '❌ Đạo hữu chưa có Đạo Lữ!', ephemeral: true }); return; }
+      if (!couple) { await interaction.editReply({ content: '❌ Đạo hữu chưa có Đạo Lữ!'}); return; }
       
       const result = coupleService.dualCultivate(couple.id);
-      await interaction.reply({ content: result.message });
+      await interaction.editReply({ content: result.message });
       
     } else if (sub === 'tang-qua') {
       const amount = interaction.options.getInteger('so_luong', true);
-      if (amount <= 0) { await interaction.reply({ content: '❌ Số lượng phải lớn hơn 0!', ephemeral: true }); return; }
+      if (amount <= 0) { await interaction.editReply({ content: '❌ Số lượng phải lớn hơn 0!'}); return; }
       
       const couple = coupleRepository.getCoupleByUserId(userId);
-      if (!couple) { await interaction.reply({ content: '❌ Đạo hữu chưa có Đạo Lữ!', ephemeral: true }); return; }
+      if (!couple) { await interaction.editReply({ content: '❌ Đạo hữu chưa có Đạo Lữ!'}); return; }
 
       // 1 Quà = 1000 Linh Thạch = 1 Hảo cảm
       const cost = amount * 1000;
       if (user.coin_ha_pham < cost) {
-        await interaction.reply({ content: `❌ Không đủ Linh Thạch! Cần **${cost}** LT để tặng ${amount} món quà.`, ephemeral: true });
+        await interaction.editReply({ content: `❌ Không đủ Linh Thạch! Cần **${cost}** LT để tặng ${amount} món quà.`});
         return;
       }
 
       userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - cost });
       const result = coupleService.giveGift(couple.id, amount);
-      await interaction.reply({ content: result.message });
+      await interaction.editReply({ content: result.message });
     }
   }
 }

@@ -33,7 +33,7 @@ export default class HuyetMachCommand extends Command {
     if (subCommand === 'thongtin') {
       const ub = bloodlineService.getUserBloodline(userId);
       if (!ub) {
-        await interaction.reply({ content: '❌ Đạo hữu chưa giác tỉnh Huyết Mạch! Dùng lệnh `/huyetmach chon <tên>` để giác tỉnh (cần Cấp 10 và 500 Linh Thạch). Xem danh sách bằng `/huyetmach danhsach`.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu chưa giác tỉnh Huyết Mạch! Dùng lệnh `/huyetmach chon <tên>` để giác tỉnh (cần Cấp 10 và 500 Linh Thạch). Xem danh sách bằng `/huyetmach danhsach`.' });
         return;
       }
 
@@ -60,7 +60,7 @@ export default class HuyetMachCommand extends Command {
           { name: '⚠️ Điểm Yếu', value: `*Sẽ bị ảnh hưởng bởi điểm yếu của ${ub.name} trong thực chiến.*`, inline: false }
         ]);
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
@@ -73,7 +73,7 @@ export default class HuyetMachCommand extends Command {
         .setDescription(desc + '\n\n💡 *Dùng `/huyetmach chon <id>` để giác tỉnh (Phí 500 Linh thạch, cần Cấp 10).*')
         .setColor('#8b0000');
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
@@ -81,7 +81,7 @@ export default class HuyetMachCommand extends Command {
       const bloodlineId = interaction.options.getString('id');
       if (!bloodlineId) return;
       const result = bloodlineService.chooseBloodline(userId, bloodlineId);
-      await interaction.reply({ content: result.message, ephemeral: !result.success });
+      await interaction.editReply({ content: result.message });
       return;
     }
 
@@ -89,7 +89,7 @@ export default class HuyetMachCommand extends Command {
       const newBloodlineId = interaction.options.getString('id');
       if (!newBloodlineId) return;
       const result = bloodlineService.changeBloodline(userId, newBloodlineId);
-      await interaction.reply({ content: result.message, ephemeral: !result.success });
+      await interaction.editReply({ content: result.message });
       return;
     }
   }

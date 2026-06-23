@@ -9,28 +9,24 @@ class UserRepository {
     cache = new Map();
     CACHE_TTL_MS = 60 * 1000; // 1 phút cache
     /**
-     * Lấy thông tin tu sĩ theo Discord ID (tự động hồi phục Thể Lực)
+     * Lấy thông tin tu sĩ theo Discord ID
      */
     get(discordId) {
         const nowMs = Date.now();
-        let user = null;
         if (this.cache.has(discordId)) {
             const cached = this.cache.get(discordId);
             if (nowMs - cached.cachedAt < this.CACHE_TTL_MS) {
-                user = { ...cached.data }; // Return a copy to prevent accidental mutation without calling update()
+                return { ...cached.data };
             }
             else {
                 this.cache.delete(discordId);
             }
         }
-        if (!user) {
-            const stmt = database_1.default.prepare('SELECT * FROM users WHERE discord_id = ?');
-            user = stmt.get(discordId) || null;
-            if (!user)
-                return null;
-            this.cache.set(discordId, { data: { ...user }, cachedAt: nowMs });
-        }
-        // Hồi phục Thể Lực: 1 điểm mỗi 60 giây (tối đa 500)
+        const stmt = database_1.default.prepare('SELECT * FROM users WHERE discord_id = ?');
+        const user = stmt.get(discordId) || null;
+        if (!user)
+            return null;
+        // Hồi phục Thể Lực theo thời gian
         const now = Math.floor(Date.now() / 1000);
         const lastRecover = user.last_stamina_recover_at || user.created_at;
         if (user.stamina < 500) {
@@ -43,42 +39,21 @@ class UserRepository {
                     .run(newStamina, newRecoverAt, now, discordId);
                 user.stamina = newStamina;
                 user.last_stamina_recover_at = newRecoverAt;
-                user.updated_at = now;
-                // Cập nhật lại cache
-                if (this.cache.has(discordId)) {
-                    this.cache.get(discordId).data.stamina = newStamina;
-                    this.cache.get(discordId).data.last_stamina_recover_at = newRecoverAt;
-                    this.cache.get(discordId).data.updated_at = now;
-                }
             }
         }
-        else {
-            // Cập nhật lại mốc thời gian hồi phục để tránh trôi lệch
-            if (lastRecover !== now && user.stamina === 500) {
-                database_1.default.prepare('UPDATE users SET last_stamina_recover_at = ? WHERE discord_id = ?').run(now, discordId);
-                user.last_stamina_recover_at = now;
-                // Cập nhật lại cache
-                if (this.cache.has(discordId)) {
-                    this.cache.get(discordId).data.last_stamina_recover_at = now;
-                }
-            }
-        }
-        // Hồi phục MP: 1 điểm mỗi 30 giây (tối đa max_mp)
+        // Hồi phục MP theo thời gian
+        const lastMpRecover = user.updated_at || user.created_at;
         if (user.mp < user.max_mp) {
-            const mpElapsed = now - lastRecover;
-            if (mpElapsed >= 30) {
-                const mpRecoverAmount = Math.floor(mpElapsed / 30);
-                const newMp = Math.min(user.max_mp, user.mp + mpRecoverAmount);
+            const elapsedMp = now - lastMpRecover;
+            if (elapsedMp >= 30) {
+                const recoverMp = Math.floor(elapsedMp / 30);
+                const newMp = Math.min(user.max_mp, user.mp + recoverMp);
                 database_1.default.prepare('UPDATE users SET mp = ?, updated_at = ? WHERE discord_id = ?')
                     .run(newMp, now, discordId);
                 user.mp = newMp;
-                user.updated_at = now;
-                if (this.cache.has(discordId)) {
-                    this.cache.get(discordId).data.mp = newMp;
-                    this.cache.get(discordId).data.updated_at = now;
-                }
             }
         }
+        this.cache.set(discordId, { data: { ...user }, cachedAt: nowMs });
         return user;
     }
     /**
@@ -115,12 +90,6 @@ class UserRepository {
         const keys = Object.keys(updates);
         if (keys.length === 0)
             return;
-        // Tự động kiểm tra và thông báo khi tu vi đạt cực hạn
-        const user = this.get(discordId);
-        if (user && updates.tu_vi !== undefined && user.tu_vi < user.exp_needed && updates.tu_vi >= user.exp_needed) {
-            const { notifyExpFull } = require('../../utils/constants');
-            notifyExpFull(discordId).catch(() => null);
-        }
         updates.updated_at = Math.floor(Date.now() / 1000);
         const updatedKeys = Object.keys(updates);
         const setClause = updatedKeys.map(k => `${k} = ?`).join(', ');

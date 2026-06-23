@@ -1,5 +1,6 @@
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
+import { ITEMS } from '../config/itemConstants';
 
 export interface UserCave {
   user_id: string;
@@ -43,7 +44,7 @@ class CaveService {
 
   public getUpgradeCost(level: number): { lt: number; knb: number; reqItems: { id: string; quantity: number }[] } | null {
     if (level === 1) return { lt: 1000, knb: 0, reqItems: [] };
-    if (level === 2) return { lt: 5000, knb: 0, reqItems: [{ id: 'material_iron_1', quantity: 10 }] };
+    if (level === 2) return { lt: 5000, knb: 0, reqItems: [{ id: ITEMS.MATERIAL_IRON_1, quantity: 10 }] };
     if (level === 3) return { lt: 20000, knb: 0, reqItems: [{ id: 'material_herb_1', quantity: 20 }] };
     if (level === 4) return { lt: 0, knb: 50, reqItems: [] };
     return null;
@@ -59,7 +60,7 @@ class CaveService {
     cultivationService.claimIdleCultivation(userId);
 
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
     // Tính % Tu vi dựa theo cấp động phủ
     let expPercent = 0.05;

@@ -1,6 +1,8 @@
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
+import { ITEMS, getLegendaryWeapon } from '../config/itemConstants';
 import { CombatEngine, Combatant } from './CombatEngine';
+import { dailyQuestService } from './DailyQuestService';
 
 export interface EliteDungeon {
   id: string;
@@ -216,7 +218,7 @@ class EliteDungeonService {
           try {
             const config = JSON.parse(dungeon.rewards_config || '{}');
             bossDropRate = config.boss_drop_rate || {};
-          } catch (e) {}
+          } catch (e) { console.warn('[EliteDungeonService] Failed to parse dungeon rewards_config:', e); }
 
           const party = db.prepare('SELECT member_ids FROM party_rooms WHERE id = ?').get(run.party_id) as any;
           if (party) {
@@ -232,7 +234,7 @@ class EliteDungeonService {
 
                 // Nếu là Thánh Địa Cấm Khu, rơi legendary weapon theo tỷ lệ
                 if (dungeon.id === 'ed_cam_khu' && bossDropRate.legendary && Math.random() < bossDropRate.legendary) {
-                  const itemId = `weapon_legendary_${Math.floor(Math.random() * 5) + 1}`;
+                  const itemId = getLegendaryWeapon(Math.floor(Math.random() * 5) + 1);
                   invRepo.addItem(uid, itemId, 1);
                   
                   // Lấy tên vật phẩm huyền thoại
@@ -240,6 +242,9 @@ class EliteDungeonService {
                   const name = itemRow?.name || itemId;
                   dropMessage += `\n• <@${uid}> nhận được **${name}** 👑`;
                 }
+
+                // Cập nhật tiến trình nhiệm vụ hàng ngày
+                dailyQuestService.updateProgress(uid, 'daily_bicanh', 1);
               }
             }
           }

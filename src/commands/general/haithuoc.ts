@@ -13,7 +13,6 @@ export default class HaiThuocCommand extends Command {
   }
 
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
-    await interaction.deferReply();
     const result = performWork(interaction.user.id, 'gathering');
 
     if (!result.success) {

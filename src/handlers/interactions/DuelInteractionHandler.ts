@@ -2,7 +2,9 @@ import { ButtonInteraction, StringSelectMenuInteraction, ActionRowBuilder, Butto
 import { minigameService } from '../../services/MinigameService';
 import { pvpService } from '../../services/PvPService';
 import { dailyQuestService } from '../../services/DailyQuestService';
+import { questChainService } from '../../services/QuestChainService';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
+import { ITEMS } from '../../config/itemConstants';
 
 export class DuelInteractionHandler {
   public static async handle(
@@ -105,7 +107,7 @@ export class DuelInteractionHandler {
         const invItems = inventoryRepository.getUserInventory(interaction.user.id);
         const combatPills = invItems.filter(i => 
           i.type === 'pill' && 
-          ['pill_hp_1', 'pill_hp_2', 'pill_tu_vi_low'].includes(i.item_id)
+          ([ITEMS.PILL_HP_1, ITEMS.PILL_HP_2, ITEMS.PILL_TU_VI_LOW] as string[]).includes(i.item_id)
         );
 
         if (combatPills.length === 0) {
@@ -168,6 +170,7 @@ export class DuelInteractionHandler {
 
           const pvpResult = pvpService.recordMatch(winnerId, loserId);
           dailyQuestService.updateProgress(winnerId, 'daily_pvp', 1);
+          questChainService.updateProgress(winnerId, 'pvp_win', 1);
 
           let stolenText = '';
           if (pvpResult.coinsStolen > 0) {
@@ -236,7 +239,7 @@ export class DuelInteractionHandler {
         }
         
         let choiceName = actionMeta[choiceRaw]?.name || 'Vật Phẩm';
-        await interaction.followUp({ content: `✅ Đạo hữu ra chiêu thành công! Bạn chọn **${choiceName}** cho hiệp ${prevRound}. Hãy chọn chiêu hiệp ${duel.currentRound}!`, ephemeral: true });
+        await interaction.followUp({ content: `✅ Đạo hữu ra chiêu thành công! Đạo hữu chọn **${choiceName}** cho hiệp ${prevRound}. Hãy chọn chiêu hiệp ${duel.currentRound}!`, ephemeral: true });
         return;
       }
 

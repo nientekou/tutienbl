@@ -20,7 +20,7 @@ export default class LuyenKhiCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'});
       return;
     }
 
@@ -51,7 +51,7 @@ export default class LuyenKhiCommand extends Command {
 
     if (visibleRecipes.length === 0) {
       embed.addFields({ name: 'Trống', value: 'Chưa có công thức rèn nào phù hợp với cảnh giới của đạo hữu.' });
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
@@ -94,6 +94,6 @@ export default class LuyenKhiCommand extends Command {
 
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
 
-    await interaction.reply({ embeds: [embed], components: [row] });
+    await interaction.editReply({ embeds: [embed], components: [row] });
   }
 }

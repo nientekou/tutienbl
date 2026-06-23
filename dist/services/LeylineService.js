@@ -73,7 +73,9 @@ class LeylineService {
             try {
                 hourlyContribs = JSON.parse(data.hourly_contributions);
             }
-            catch (e) { }
+            catch (e) {
+                console.warn('[LeylineService] Failed to parse hourly_contributions:', e);
+            }
         }
         else {
             hourlyContribs = {};

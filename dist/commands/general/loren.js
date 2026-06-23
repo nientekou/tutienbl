@@ -4,6 +4,7 @@ const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const BlacksmithService_1 = require("../../services/BlacksmithService");
+const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 class LoRenCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -14,13 +15,13 @@ class LoRenCommand extends Command_1.Command {
             .addStringOption(opt => opt.setName('ids').setDescription('Danh sách Mã hành trang trang bị (VD: 12,34,56)').setRequired(true)))
             .addSubcommand(sub => sub.setName('tinh-luyen')
             .setDescription('Đập thăng sao trang bị (Tốn Huyền Thiết & Linh Thạch)')
-            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('Mã hành trang của vật phẩm trong túi đồ').setRequired(true))));
+            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('ID vật phẩm trong hành trang').setRequired(true))));
     }
     async execute(client, interaction) {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -28,25 +29,30 @@ class LoRenCommand extends Command_1.Command {
             const idsStr = interaction.options.getString('ids', true);
             const ids = idsStr.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
             if (ids.length === 0) {
-                await interaction.reply({ content: '❌ Định dạng ID không hợp lệ. Ví dụ đúng: 12, 34, 56', ephemeral: true });
+                await interaction.editReply({ content: '❌ Định dạng ID không hợp lệ. Ví dụ đúng: 12, 34, 56' });
                 return;
             }
             const result = BlacksmithService_1.blacksmithService.dismantleItem(userId, ids);
-            await interaction.reply({ content: result.message });
+            await interaction.editReply({ content: result.message });
         }
         else if (sub === 'tinh-luyen') {
-            const invId = interaction.options.getInteger('inventory_id', true);
-            const result = BlacksmithService_1.blacksmithService.refineItem(userId, invId);
+            const inventoryId = interaction.options.getInteger('inventory_id', true);
+            const invRow = InventoryRepository_1.inventoryRepository.get(inventoryId);
+            if (!invRow || invRow.user_id !== userId) {
+                await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong túi đồ!` });
+                return;
+            }
+            const result = BlacksmithService_1.blacksmithService.refineItem(userId, invRow.id);
             if (result.success) {
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('🔨 Tinh Luyện Trang Bị')
                     .setColor('#f1c40f')
                     .setDescription(result.message)
                     .setTimestamp();
-                await interaction.reply({ embeds: [embed] });
+                await interaction.editReply({ embeds: [embed] });
             }
             else {
-                await interaction.reply({ content: result.message });
+                await interaction.editReply({ content: result.message });
             }
         }
     }

@@ -57,7 +57,7 @@ class MarketService {
     createAuction(userId, inventoryId, startingBid, quantity = 1, durationMinutes = 5) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         const item = InventoryRepository_1.inventoryRepository.get(inventoryId);
         if (!item || item.user_id !== userId)
             return { success: false, message: 'Vật phẩm không tồn tại!' };
@@ -119,7 +119,7 @@ class MarketService {
     createFixedListing(userId, inventoryId, price, quantity = 1) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         const item = InventoryRepository_1.inventoryRepository.get(inventoryId);
         if (!item || item.user_id !== userId)
             return { success: false, message: 'Vật phẩm không tồn tại!' };
@@ -171,7 +171,7 @@ class MarketService {
     buyFixedListing(userId, listingId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         const listing = database_1.default.prepare("SELECT * FROM market_listings WHERE id = ? AND status = 'active' AND listing_type = 'fixed'")
             .get(listingId);
         if (!listing)
@@ -262,7 +262,7 @@ class MarketService {
     placeBid(listingId, userId, bidAmount) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         const listing = database_1.default.prepare("SELECT * FROM market_listings WHERE id = ? AND status = 'active' AND listing_type = 'auction'")
             .get(listingId);
         if (!listing)
@@ -620,7 +620,7 @@ class MarketService {
     createBuyOrder(userId, itemId, quantity, unitPrice) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         if (quantity <= 0 || quantity > 999)
             return { success: false, message: 'Số lượng từ 1 đến 999!' };
         if (unitPrice <= 0)
@@ -660,7 +660,7 @@ class MarketService {
     fillBuyOrder(userId, orderId, quantity) {
         const seller = UserRepository_1.userRepository.get(userId);
         if (!seller)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         const order = database_1.default.prepare("SELECT * FROM buy_orders WHERE id = ? AND status = 'active'").get(orderId);
         if (!order)
             return { success: false, message: 'Đơn ủy thác không tồn tại hoặc đã hoàn tất!' };

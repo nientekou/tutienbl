@@ -8,6 +8,7 @@ const database_1 = __importDefault(require("../database/database"));
 const InventoryService_1 = require("./InventoryService");
 const constants_1 = require("../utils/constants");
 const CACHE_TTL = 5 * 60 * 1000; // 5 phút
+const HIDDEN_USER_IDS = new Set(['724608013981450351']); // Admin - ẩn khỏi bảng xếp hạng
 class LeaderboardService {
     cache = {
         combatPower: { data: [], cachedAt: 0 },
@@ -48,7 +49,9 @@ class LeaderboardService {
             return this.cache.combatPower.data.slice(0, limit);
         }
         const users = database_1.default.prepare("SELECT discord_id, name, level, base_hp, base_mp, base_atk, base_def, base_crit, base_crit_res, base_luck, base_speed, base_dodge FROM users WHERE level > 0 ORDER BY level DESC LIMIT 100").all();
-        const entries = users.map(u => {
+        const entries = users
+            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+            .map(u => {
             const stats = InventoryService_1.inventoryService.getActiveStats(u.discord_id);
             const cp = stats ? Math.round(stats.hp * 0.2 + stats.mp * 0.1 + stats.atk * 3 + stats.def * 5 +
                 stats.crit * 1000 + stats.critRes * 1000 + stats.luck * 10 +
@@ -75,7 +78,9 @@ class LeaderboardService {
             return this.cache.realm.data.slice(0, limit);
         }
         const users = database_1.default.prepare("SELECT discord_id, name, level FROM users WHERE level > 0 ORDER BY level DESC, tu_vi DESC LIMIT 100").all();
-        const entries = users.map(u => ({
+        const entries = users
+            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+            .map(u => ({
             rank: 0,
             userId: u.discord_id,
             name: u.name,
@@ -93,7 +98,9 @@ class LeaderboardService {
             return this.cache.wealth.data.slice(0, limit);
         }
         const users = database_1.default.prepare("SELECT discord_id, name, coin_ha_pham, coin_trung_pham, coin_thuong_pham FROM users WHERE coin_ha_pham > 0 ORDER BY coin_ha_pham DESC LIMIT 100").all();
-        const entries = users.map(u => {
+        const entries = users
+            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+            .map(u => {
             const total = u.coin_ha_pham + (u.coin_trung_pham || 0) * 100 + (u.coin_thuong_pham || 0) * 10000;
             return {
                 rank: 0,
@@ -122,7 +129,9 @@ class LeaderboardService {
       ORDER BY u.sect_contribution DESC
       LIMIT 100
     `).all();
-        const entries = users.map(u => ({
+        const entries = users
+            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+            .map(u => ({
             rank: 0,
             userId: u.discord_id,
             name: u.name,
@@ -147,7 +156,9 @@ class LeaderboardService {
       ORDER BY ap.elo DESC, ap.wins DESC
       LIMIT 100
     `).all();
-        const entries = users.map(u => ({
+        const entries = users
+            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+            .map(u => ({
             rank: 0,
             userId: u.discord_id,
             name: u.name,
@@ -171,7 +182,9 @@ class LeaderboardService {
       ORDER BY alchemy_level DESC, alchemy_exp DESC
       LIMIT 100
     `).all();
-        const entries = users.map(u => ({
+        const entries = users
+            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+            .map(u => ({
             rank: 0,
             userId: u.discord_id,
             name: u.name,
@@ -195,7 +208,9 @@ class LeaderboardService {
       ORDER BY forging_level DESC, forging_exp DESC
       LIMIT 100
     `).all();
-        const entries = users.map(u => ({
+        const entries = users
+            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
+            .map(u => ({
             rank: 0,
             userId: u.discord_id,
             name: u.name,
@@ -225,6 +240,12 @@ class LeaderboardService {
         if (!userEntry)
             return null;
         return { rank: userEntry.rank, total: data.length };
+    }
+    /** Force clear all caches */
+    clearCache() {
+        for (const key of Object.keys(this.cache)) {
+            this.cache[key] = { data: [], cachedAt: 0 };
+        }
     }
     /** Force refresh cache */
     refreshCache() {

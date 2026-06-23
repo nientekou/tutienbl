@@ -51,7 +51,7 @@ export default class SuKienCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
 
@@ -116,7 +116,7 @@ export default class SuKienCommand extends Command {
 
       embed.setFooter({ text: 'Dùng /sukien tham gia để tham gia sự kiện!' });
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
 
     else if (sub === 'thamgia') {
@@ -124,7 +124,7 @@ export default class SuKienCommand extends Command {
       const result = eventService.joinEvent(eventId, userId);
 
       if (!result.success) {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}` });
         return;
       }
 
@@ -135,7 +135,7 @@ export default class SuKienCommand extends Command {
         .setDescription(result.message)
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], ephemeral: false });
+      await interaction.editReply({ embeds: [embed] });
     }
 
     else if (sub === 'nhanthuong') {
@@ -143,7 +143,7 @@ export default class SuKienCommand extends Command {
       const result = eventService.claimRewards(eventId, userId);
 
       if (!result.success) {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}` });
         return;
       }
 
@@ -153,7 +153,7 @@ export default class SuKienCommand extends Command {
         .setDescription(result.message)
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], ephemeral: false });
+      await interaction.editReply({ embeds: [embed] });
     }
   }
 

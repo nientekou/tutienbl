@@ -78,7 +78,7 @@ export class DreamscapeService {
    */
   public challenge(userId: string): { success: boolean; message: string; log?: string[]; isWin?: boolean; currentFloor?: number } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại.' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
 
     const data = this.getDreamscapeData(userId);
 

@@ -77,7 +77,7 @@ export default class KyNangCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
 
@@ -119,7 +119,7 @@ export default class KyNangCommand extends Command {
         }
       );
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
@@ -132,9 +132,8 @@ export default class KyNangCommand extends Command {
         .get(userId, skillId) as UserSkill | undefined;
 
       if (!skill) {
-        await interaction.reply({
-          content: '❌ Đạo hữu chưa lĩnh ngộ kỹ năng này! Hãy mua bí tịch tương ứng để học.',
-          ephemeral: true
+        await interaction.editReply({
+          content: '❌ Đạo hữu chưa lĩnh ngộ kỹ năng này! Hãy mua bí tịch tương ứng để học.'
         });
         return;
       }
@@ -152,7 +151,7 @@ export default class KyNangCommand extends Command {
           .run(slot, userId, skillId);
       })();
 
-      await interaction.reply({
+      await interaction.editReply({
         content: `✅ Đã trang bị kỹ năng **${skillName}** vào **Ô số ${slot}**!`
       });
       return;
@@ -166,13 +165,12 @@ export default class KyNangCommand extends Command {
         .run(userId, slot);
 
       if (changes.changes > 0) {
-        await interaction.reply({
+        await interaction.editReply({
           content: `✅ Đã tháo kỹ năng khỏi **Ô số ${slot}** thành công.`
         });
       } else {
-        await interaction.reply({
-          content: `❌ Không có kỹ năng nào đang trang bị ở **Ô số ${slot}** để tháo.`,
-          ephemeral: true
+        await interaction.editReply({
+          content: `❌ Không có kỹ năng nào đang trang bị ở **Ô số ${slot}** để tháo.`
         });
       }
     }

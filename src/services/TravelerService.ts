@@ -1,6 +1,7 @@
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { getRealmDetails } from '../utils/constants';
+import { ITEMS } from '../config/itemConstants';
 import { Client, TextChannel, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
 
 export interface TravelerItem {
@@ -12,10 +13,10 @@ export interface TravelerItem {
 
 export class TravelerService {
   private possibleItems = [
-    { id: 'tinh_thach_shard', name: 'Mảnh Tinh Thạch', price: 100, minQty: 1, maxQty: 5 },
-    { id: 'lenh_bai', name: 'Lệnh Bài Bí Cảnh', price: 50, minQty: 2, maxQty: 10 },
-    { id: 'pill_alchemy_stamina', name: 'Bổ Thiên Đan', price: 30, minQty: 3, maxQty: 15 },
-    { id: 'tang_bao_do', name: 'Tàng Bảo Đồ (Hiếm)', price: 200, minQty: 1, maxQty: 3 }
+    { id: ITEMS.TINH_THACH_SHARD, name: 'Mảnh Tinh Thạch', price: 100, minQty: 1, maxQty: 5 },
+    { id: ITEMS.LENH_BAI, name: 'Lệnh Bài Bí Cảnh', price: 50, minQty: 2, maxQty: 10 },
+    { id: ITEMS.PILL_ALCHEMY_STAMINA, name: 'Bổ Thiên Đan', price: 30, minQty: 3, maxQty: 15 },
+    { id: ITEMS.TANG_BAO_DO, name: 'Tàng Bảo Đồ (Hiếm)', price: 200, minQty: 1, maxQty: 3 }
   ];
 
   /**
@@ -61,7 +62,7 @@ export class TravelerService {
       if (channel && channel.isTextBased()) {
         const embed = new EmbedBuilder()
           .setTitle('👺 Lữ Khách Thần Bí Xuất Hiện!')
-          .setDescription('Một gã Lữ Khách bí ẩn mang chiếc mặt nạ quỷ vừa đi ngang qua. Hắn vác theo một túi đồ nặng trĩu. Có vẻ như hắn sẵn sàng bán một số vật phẩm quý hiếm cho những ai trả giá cao!\n\n*(Lữ khách sẽ rời đi sau 1 giờ hoặc khi hết hàng. Bạn cũng có thể liều mạng cướp hàng của hắn!)*')
+          .setDescription('Một gã Lữ Khách bí ẩn mang chiếc mặt nạ quỷ vừa đi ngang qua. Hắn vác theo một túi đồ nặng trĩu. Có vẻ như hắn sẵn sàng bán một số vật phẩm quý hiếm cho những ai trả giá cao!\n\n*(Lữ khách sẽ rời đi sau 1 giờ hoặc khi hết hàng. Đạo hữu cũng có thể liều mạng cướp hàng của hắn!)*')
           .setColor('#8B008B')
           .addFields(
             { name: '💰 Hàng Hoá', value: Object.values(inventory).map(i => `- **${i.name}** (Còn: ${i.quantity}) - Giá: ${i.price} LT`).join('\n') }
@@ -112,7 +113,7 @@ export class TravelerService {
       let inventory: Record<string, TravelerItem> = {};
       try {
         inventory = JSON.parse(event.inventory || '{}');
-      } catch (e) { }
+      } catch (e) { console.warn('[TravelerService] Failed to parse traveler event inventory:', e); }
 
       const item = inventory[itemId];
       if (!item) {
@@ -183,7 +184,7 @@ export class TravelerService {
       if (isWin) {
         // Gom hết đồ còn lại
         let inventory: Record<string, TravelerItem> = {};
-        try { inventory = JSON.parse(event.inventory || '{}'); } catch (e) {}
+        try { inventory = JSON.parse(event.inventory || '{}'); } catch (e) { console.warn('[TravelerService] Failed to parse traveler loot inventory:', e); }
 
         const itemsLooted: string[] = [];
         const { inventoryRepository } = require('../database/repositories/InventoryRepository');

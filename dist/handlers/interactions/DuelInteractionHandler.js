@@ -5,7 +5,9 @@ const discord_js_1 = require("discord.js");
 const MinigameService_1 = require("../../services/MinigameService");
 const PvPService_1 = require("../../services/PvPService");
 const DailyQuestService_1 = require("../../services/DailyQuestService");
+const QuestChainService_1 = require("../../services/QuestChainService");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
+const itemConstants_1 = require("../../config/itemConstants");
 class DuelInteractionHandler {
     static async handle(interaction, action, parts) {
         if (action === 'duelaccept') {
@@ -81,7 +83,7 @@ class DuelInteractionHandler {
             if (choiceRaw === 'dùng_vật_phẩm') {
                 const invItems = InventoryRepository_1.inventoryRepository.getUserInventory(interaction.user.id);
                 const combatPills = invItems.filter(i => i.type === 'pill' &&
-                    ['pill_hp_1', 'pill_hp_2', 'pill_tu_vi_low'].includes(i.item_id));
+                    [itemConstants_1.ITEMS.PILL_HP_1, itemConstants_1.ITEMS.PILL_HP_2, itemConstants_1.ITEMS.PILL_TU_VI_LOW].includes(i.item_id));
                 if (combatPills.length === 0) {
                     await interaction.reply({ content: '❌ Đạo hữu không có Đan Dược nào có thể dùng trong chiến đấu! (Cần Hồi Huyết Đan hoặc Tụ Khí Đan)', ephemeral: true });
                     return;
@@ -129,6 +131,7 @@ class DuelInteractionHandler {
                     const loserId = res.loserId;
                     const pvpResult = PvPService_1.pvpService.recordMatch(winnerId, loserId);
                     DailyQuestService_1.dailyQuestService.updateProgress(winnerId, 'daily_pvp', 1);
+                    QuestChainService_1.questChainService.updateProgress(winnerId, 'pvp_win', 1);
                     let stolenText = '';
                     if (pvpResult.coinsStolen > 0) {
                         stolenText = `\n🩸 **Cướp Đoạt:** <@${winnerId}> đã cướp thêm được **${pvpResult.coinsStolen}** Hạ Phẩm Linh Thạch từ túi đồ của kẻ bại trận!`;
@@ -178,7 +181,7 @@ class DuelInteractionHandler {
                     await interaction.message.edit({ embeds: [embed], components: [row1, row2, row3] });
                 }
                 let choiceName = actionMeta[choiceRaw]?.name || 'Vật Phẩm';
-                await interaction.followUp({ content: `✅ Đạo hữu ra chiêu thành công! Bạn chọn **${choiceName}** cho hiệp ${prevRound}. Hãy chọn chiêu hiệp ${duel.currentRound}!`, ephemeral: true });
+                await interaction.followUp({ content: `✅ Đạo hữu ra chiêu thành công! Đạo hữu chọn **${choiceName}** cho hiệp ${prevRound}. Hãy chọn chiêu hiệp ${duel.currentRound}!`, ephemeral: true });
                 return;
             }
             if (duel.roundStatus === 'waiting') {

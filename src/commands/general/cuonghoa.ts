@@ -15,6 +15,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { enhanceService } from '../../services/EnhanceService';
+import { ITEMS } from '../../config/itemConstants';
 
 export default class CuongHuaCommand extends Command {
   constructor() {
@@ -29,7 +30,7 @@ export default class CuongHuaCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Vui lòng dùng `/taonhanvat`!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Vui lòng dùng `/taonhanvat`!'});
       return;
     }
 
@@ -37,9 +38,8 @@ export default class CuongHuaCommand extends Command {
     const equipableItems = inventory.filter(i => i.equipable === 1 && i.type === 'equipment');
 
     if (equipableItems.length === 0) {
-      await interaction.reply({ 
-        content: '❌ Đạo hữu không sở hữu trang bị nào trong hành trang có thể cường hóa!', 
-        ephemeral: true 
+      await interaction.editReply({ 
+        content: '❌ Đạo hữu không sở hữu trang bị nào trong hành trang có thể cường hóa!' 
       });
       return;
     }
@@ -70,13 +70,13 @@ export default class CuongHuaCommand extends Command {
       selectMenu.addOptions(
         new StringSelectMenuOptionBuilder()
           .setLabel(`${item.name}${enhanceText}${starText}${isEquippedText}`)
-          .setDescription(`Cấp: ${item.enhance_level || 0} | Mã: ${item.id}`)
+          .setDescription(`Cấp: ${item.enhance_level || 0} | ID: ${item.id}`)
           .setValue(item.id.toString())
       );
     });
 
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-    await interaction.reply({ embeds: [embed], components: [row] });
+    await interaction.editReply({ embeds: [embed], components: [row] });
   }
 
   /**
@@ -95,7 +95,7 @@ export default class CuongHuaCommand extends Command {
 
     // Tìm Mảnh Tinh Thạch trong hành trang
     const userInventory = inventoryRepository.getUserInventory(userId);
-    const shardItem = userInventory.find(i => i.item_id === 'tinh_thach_shard');
+    const shardItem = userInventory.find(i => i.item_id === ITEMS.TINH_THACH_SHARD);
     const shardQty = shardItem ? shardItem.quantity : 0;
 
     let resultHeader = '';

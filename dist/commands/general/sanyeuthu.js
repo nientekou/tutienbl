@@ -538,12 +538,12 @@ class SanYeuThuCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const embed = getSanYeuThuEmbed(userId);
         const rows = getSanYeuThuComponents(userId);
-        await interaction.reply({ embeds: [embed], components: rows });
+        await interaction.editReply({ embeds: [embed], components: rows });
     }
 }
 exports.default = SanYeuThuCommand;

@@ -20,7 +20,7 @@ export default class VanBaoLauCommand extends Command {
         .addSubcommand(sub =>
           sub.setName('ban')
             .setDescription('Treo bán vật phẩm (giá cố định).')
-            .addStringOption(opt => opt.setName('item_id').setDescription('Mã vật phẩm (xem trong /tuido)').setRequired(true))
+            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('ID vật phẩm trong hành trang').setRequired(true))
             .addIntegerOption(opt => opt.setName('gia').setDescription('Giá Linh Thạch').setRequired(true))
             .addIntegerOption(opt => opt.setName('soluong').setDescription('Số lượng (mặc định 1)').setRequired(false))
         )
@@ -35,9 +35,9 @@ export default class VanBaoLauCommand extends Command {
             .addIntegerOption(opt => opt.setName('listing_id').setDescription('Mã tin bán').setRequired(true))
         )
         .addSubcommand(sub =>
-          sub.setName('daugia')
+          sub            .setName('daugia')
             .setDescription('Tạo đấu giá với thời gian đếm ngược (5 phút).')
-            .addStringOption(opt => opt.setName('item_id').setDescription('Mã vật phẩm (xem trong /tuido)').setRequired(true))
+            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('ID vật phẩm trong hành trang').setRequired(true))
             .addIntegerOption(opt => opt.setName('gia_khoi_diem').setDescription('Giá khởi điểm').setRequired(true))
             .addIntegerOption(opt => opt.setName('soluong').setDescription('Số lượng (mặc định 1)').setRequired(false))
         )
@@ -85,7 +85,7 @@ export default class VanBaoLauCommand extends Command {
                 { name: '➕ Thêm vật phẩm', value: 'them' },
                 { name: '➖ Xóa vật phẩm', value: 'xoa' }
               ))
-            .addStringOption(opt => opt.setName('item_id').setDescription('Mã vật phẩm (khi thêm/xóa)').setRequired(false))
+            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('ID vật phẩm trong hành trang (khi thêm/xóa)').setRequired(false))
             .addIntegerOption(opt => opt.setName('watchlist_id').setDescription('ID mục yêu thích (khi xóa)').setRequired(false))
         )
         .addSubcommand(sub =>
@@ -101,7 +101,7 @@ export default class VanBaoLauCommand extends Command {
         .addSubcommand(sub =>
           sub.setName('muahang')
             .setDescription('Tạo đơn ủy thác thu mua vật phẩm.')
-            .addStringOption(opt => opt.setName('item_id').setDescription('Mã vật phẩm cần mua').setRequired(true))
+            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('ID vật phẩm trong hành trang cần mua').setRequired(true))
             .addIntegerOption(opt => opt.setName('soluong').setDescription('Số lượng mua (tối đa 999)').setRequired(true))
             .addIntegerOption(opt => opt.setName('gia').setDescription('Giá Linh Thạch/đơn vị').setRequired(true))
         )
@@ -126,7 +126,7 @@ export default class VanBaoLauCommand extends Command {
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
-    if (!user) { await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true }); return; }
+    if (!user) { await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'}); return; }
 
     const sub = interaction.options.getSubcommand();
 
@@ -208,47 +208,53 @@ export default class VanBaoLauCommand extends Command {
     }
 
     embed.setFooter({ text: 'Dùng /vanbaolau daugia để tạo đấu giá, /vanbaolau datgia để đặt giá.' });
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 
   private async handleBan(interaction: ChatInputCommandInteraction, userId: string, user: any): Promise<void> {
-    const itemId = interaction.options.getString('item_id', true);
+    const inventoryId = interaction.options.getInteger('inventory_id', true);
     const price = interaction.options.getInteger('gia', true);
     const qty = interaction.options.getInteger('soluong') || 1;
-    if (price <= 0) { await interaction.reply({ content: '❌ Giá phải > 0!', ephemeral: true }); return; }
-    if (qty <= 0) { await interaction.reply({ content: '❌ Số lượng phải > 0!', ephemeral: true }); return; }
+    if (price <= 0) { await interaction.editReply({ content: '❌ Giá phải > 0!'}); return; }
+    if (qty <= 0) { await interaction.editReply({ content: '❌ Số lượng phải > 0!'}); return; }
 
-    const invItem = inventoryRepository.getByUserIdAndItemId(userId, itemId);
-    if (!invItem) {
-      await interaction.reply({ content: `❌ Không tìm thấy vật phẩm \`${itemId}\` trong túi đồ!`, ephemeral: true });
+    const invItem = inventoryRepository.get(inventoryId);
+    if (!invItem || invItem.user_id !== userId) {
+      await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong hành trang!`});
       return;
     }
 
     const result = marketService.createFixedListing(userId, invItem.id, price, qty);
     if (result.success) leylineService.addEnergy(userId, 'kinhte', 5);
-    await interaction.reply({ content: result.success ? result.message : `❌ ${result.message}`, ephemeral: !result.success });
+    await interaction.editReply({ content: result.success ? result.message : `❌ ${result.message}` });
   }
 
   private async handleMua(interaction: ChatInputCommandInteraction, userId: string, user: any): Promise<void> {
     const listingId = interaction.options.getInteger('listing_id', true);
     const result = marketService.buyFixedListing(userId, listingId);
     if (result.success) leylineService.addEnergy(userId, 'kinhte', 10);
-    await interaction.reply({ content: result.success ? result.message : `❌ ${result.message}`, ephemeral: !result.success });
+    await interaction.editReply({ content: result.success ? result.message : `❌ ${result.message}` });
   }
 
   private async handleHuy(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
     const listingId = interaction.options.getInteger('listing_id', true);
     const result = marketService.cancelListing(userId, listingId);
-    await interaction.reply({ content: result.success ? result.message : `❌ ${result.message}`, ephemeral: !result.success });
+    await interaction.editReply({ content: result.success ? result.message : `❌ ${result.message}` });
   }
 
   private async handleDauGia(interaction: ChatInputCommandInteraction, userId: string, user: any): Promise<void> {
-    const invId = interaction.options.getInteger('inventory_id', true);
+    const inventoryId = interaction.options.getInteger('inventory_id', true);
     const startBid = interaction.options.getInteger('gia_khoi_diem', true);
     const qty = interaction.options.getInteger('soluong') || 1;
 
-    const result = marketService.createAuction(userId, invId, startBid, qty);
-    if (!result.success) { await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true }); return; }
+    const invItem = inventoryRepository.get(inventoryId);
+    if (!invItem || invItem.user_id !== userId) {
+      await interaction.editReply({ content: `❌ Đạo hữu không có vật phẩm ID **${inventoryId}** trong hành trang!`});
+      return;
+    }
+
+    const result = marketService.createAuction(userId, inventoryId, startBid, qty);
+    if (!result.success) { await interaction.editReply({ content: `❌ ${result.message}`}); return; }
 
     leylineService.addEnergy(userId, 'kinhte', 5);
 
@@ -260,7 +266,7 @@ export default class VanBaoLauCommand extends Command {
       .setFooter({ text: 'Dùng /vanbaolau datgia để đặt giá!' })
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 
   private async handleDatGia(interaction: ChatInputCommandInteraction, userId: string, user: any): Promise<void> {
@@ -268,11 +274,11 @@ export default class VanBaoLauCommand extends Command {
     const bidAmount = interaction.options.getInteger('gia', true);
 
     const result = marketService.placeBid(listingId, userId, bidAmount);
-    if (!result.success) { await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true }); return; }
+    if (!result.success) { await interaction.editReply({ content: `❌ ${result.message}`}); return; }
 
     leylineService.addEnergy(userId, 'kinhte', 5);
 
-    await interaction.reply({ content: `✅ ${result.message}` });
+    await interaction.editReply({ content: `✅ ${result.message}` });
   }
 
   private async handleTim(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -343,7 +349,7 @@ export default class VanBaoLauCommand extends Command {
     }
 
     embed.setFooter({ text: 'Dùng /vanbaolau mua hoặc /vanbaolau datgia để giao dịch.' });
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 
   private async handleYeuThich(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
@@ -375,17 +381,21 @@ export default class VanBaoLauCommand extends Command {
         embed.addFields({ name: `📋 Danh sách (${entries.length} mục)`, value: text });
       }
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } else if (action === 'them') {
-      const itemId = interaction.options.getString('item_id');
-      if (!itemId) { await interaction.reply({ content: '❌ Cần nhập mã vật phẩm!', ephemeral: true }); return; }
-      const result = marketService.addWatchlist(userId, itemId);
-      await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: true });
+      const inventoryId = interaction.options.getInteger('inventory_id');
+      if (!inventoryId) { await interaction.editReply({ content: '❌ Cần nhập ID vật phẩm trong hành trang!'}); return; }
+      const invItem = inventoryRepository.get(inventoryId);
+      if (!invItem || invItem.user_id !== userId) {
+        await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong hành trang!`}); return;
+      }
+      const result = marketService.addWatchlist(userId, invItem.item_id);
+      await interaction.editReply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`});
     } else if (action === 'xoa') {
       const watchlistId = interaction.options.getInteger('watchlist_id');
-      if (!watchlistId) { await interaction.reply({ content: '❌ Cần nhập ID mục yêu thích!', ephemeral: true }); return; }
+      if (!watchlistId) { await interaction.editReply({ content: '❌ Cần nhập ID mục yêu thích!'}); return; }
       const result = marketService.removeWatchlist(userId, watchlistId);
-      await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: true });
+      await interaction.editReply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`});
     }
   }
 
@@ -409,7 +419,7 @@ export default class VanBaoLauCommand extends Command {
       embed.setDescription(text);
     }
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 
   private async handleAutoBid(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
@@ -417,28 +427,32 @@ export default class VanBaoLauCommand extends Command {
     const maxPrice = interaction.options.getInteger('gia_toi_da', true);
 
     const result = marketService.setAutoBid(userId, watchlistId, true, maxPrice);
-    await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: true });
+    await interaction.editReply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`});
   }
 
   private async handleMuaHang(interaction: ChatInputCommandInteraction, userId: string, user: any): Promise<void> {
-    const itemId = interaction.options.getString('item_id', true).trim().toLowerCase();
+    const inventoryId = interaction.options.getInteger('inventory_id', true);
+    const invItem = inventoryRepository.get(inventoryId);
+    if (!invItem || invItem.user_id !== userId) {
+      await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong hành trang!`}); return;
+    }
     const quantity = interaction.options.getInteger('soluong', true);
     const unitPrice = interaction.options.getInteger('gia', true);
-    const result = marketService.createBuyOrder(userId, itemId, quantity, unitPrice);
-    await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: !result.success });
+    const result = marketService.createBuyOrder(userId, invItem.item_id, quantity, unitPrice);
+    await interaction.editReply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}` });
   }
 
   private async handleBanHang(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
     const orderId = interaction.options.getInteger('order_id', true);
     const quantity = interaction.options.getInteger('soluong', true);
     const result = marketService.fillBuyOrder(userId, orderId, quantity);
-    await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: !result.success });
+    await interaction.editReply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}` });
   }
 
   private async handleHuyMua(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
     const orderId = interaction.options.getInteger('order_id', true);
     const result = marketService.cancelBuyOrder(userId, orderId);
-    await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: !result.success });
+    await interaction.editReply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}` });
   }
 
   private async handleDsMuaHang(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -460,6 +474,6 @@ export default class VanBaoLauCommand extends Command {
       embed.setDescription(text);
     }
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 }

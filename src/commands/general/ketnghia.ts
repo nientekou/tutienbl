@@ -49,7 +49,7 @@ export default class KetNghiaCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
 
@@ -67,9 +67,9 @@ export default class KetNghiaCommand extends Command {
           .setDescription(`${interaction.user.username} gửi lời kết nghĩa đến **${targetUser.username}**!\n\n${result.message}`)
           .setFooter({ text: 'Hãy dùng /ketnghia chapnhan để chấp nhận.' })
           .setTimestamp();
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
       } else {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}` });
       }
       return;
     }
@@ -77,7 +77,7 @@ export default class KetNghiaCommand extends Command {
     if (sub === 'chapnhan') {
       const invite = brotherhoodService.getPendingInvite(userId);
       if (!invite) {
-        await interaction.reply({ content: '❌ Không có lời mời kết nghĩa nào đang chờ!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Không có lời mời kết nghĩa nào đang chờ!' });
         return;
       }
 
@@ -91,9 +91,9 @@ export default class KetNghiaCommand extends Command {
           .setDescription(result.message)
           .setFooter({ text: 'Huynh đệ đồng tâm, vạn sự hưng long!' })
           .setTimestamp();
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
       } else {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}` });
       }
       return;
     }
@@ -101,9 +101,9 @@ export default class KetNghiaCommand extends Command {
     if (sub === 'tuche') {
       const result = brotherhoodService.rejectInvite(userId);
       if (result.success) {
-        await interaction.reply({ content: `✅ ${result.message}` });
+        await interaction.editReply({ content: `✅ ${result.message}` });
       } else {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}` });
       }
       return;
     }
@@ -111,9 +111,9 @@ export default class KetNghiaCommand extends Command {
     if (sub === 'huy') {
       const result = brotherhoodService.breakBrotherhood(userId);
       if (result.success) {
-        await interaction.reply({ content: result.message });
+        await interaction.editReply({ content: result.message });
       } else {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}` });
       }
       return;
     }
@@ -121,7 +121,7 @@ export default class KetNghiaCommand extends Command {
     if (sub === 'thongtin') {
       const bh = brotherhoodService.getBrotherhood(userId);
       if (!bh) {
-        await interaction.reply({ content: '❌ Đạo hữu chưa kết nghĩa với ai!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu chưa kết nghĩa với ai!' });
         return;
       }
 
@@ -162,7 +162,7 @@ export default class KetNghiaCommand extends Command {
         )
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
   }

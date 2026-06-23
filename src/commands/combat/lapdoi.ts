@@ -187,7 +187,7 @@ export default class LapDoiCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
 
@@ -200,9 +200,8 @@ export default class LapDoiCommand extends Command {
       ).get(userId, `%"${userId}"%`) as PartyRoom | undefined;
 
       if (existingRoom) {
-        await interaction.reply({
-          content: `❌ Đạo hữu đã ở trong phòng **${existingRoom.id}**! Hãy rời phòng trước khi tạo mới.`,
-          ephemeral: true
+        await interaction.editReply({
+          content: `❌ Đạo hữu đã ở trong phòng **${existingRoom.id}**! Hãy rời phòng trước khi tạo mới.`
         });
         return;
       }
@@ -221,11 +220,10 @@ export default class LapDoiCommand extends Command {
       const embed = getPartyRoomEmbed(room, user);
       const components = getPartyRoomComponents(room, userId);
 
-      await interaction.reply({
+      await interaction.editReply({
         content: `🎉 **Phòng tổ đội đã được tạo!** Mời bạn bè dùng \`/lapdoi thamgia ma_phong: ${roomId}\` để vào phòng!`,
         embeds: [embed],
-        components,
-        ephemeral: false
+        components
       });
     }
 
@@ -234,9 +232,8 @@ export default class LapDoiCommand extends Command {
       const room = db.prepare("SELECT * FROM party_rooms WHERE id = ? AND status != 'closed'").get(roomId) as PartyRoom | undefined;
 
       if (!room) {
-        await interaction.reply({
-          content: '❌ Mã phòng không hợp lệ hoặc phòng đã đóng!',
-          ephemeral: true
+        await interaction.editReply({
+          content: '❌ Mã phòng không hợp lệ hoặc phòng đã đóng!'
         });
         return;
       }
@@ -244,17 +241,15 @@ export default class LapDoiCommand extends Command {
       const members: string[] = JSON.parse(room.member_ids || '[]');
 
       if (members.length >= 3) {
-        await interaction.reply({
-          content: '❌ Phòng đã đầy! (Tối đa 3 người)',
-          ephemeral: true
+        await interaction.editReply({
+          content: '❌ Phòng đã đầy! (Tối đa 3 người)'
         });
         return;
       }
 
       if (members.includes(userId)) {
-        await interaction.reply({
-          content: '❌ Đạo hữu đã ở trong phòng này rồi!',
-          ephemeral: true
+        await interaction.editReply({
+          content: '❌ Đạo hữu đã ở trong phòng này rồi!'
         });
         return;
       }
@@ -265,9 +260,8 @@ export default class LapDoiCommand extends Command {
       ).get(userId, `%"${userId}"%`, roomId);
 
       if (inOtherRoom) {
-        await interaction.reply({
-          content: '❌ Đạo hữu đang ở trong một phòng khác! Hãy rời phòng đó trước.',
-          ephemeral: true
+        await interaction.editReply({
+          content: '❌ Đạo hữu đang ở trong một phòng khác! Hãy rời phòng đó trước.'
         });
         return;
       }
@@ -280,11 +274,10 @@ export default class LapDoiCommand extends Command {
       const embed = getPartyRoomEmbed(room, host);
       const components = getPartyRoomComponents(room, userId);
 
-      await interaction.reply({
+      await interaction.editReply({
         content: `✅ **${user.name}** đã tham gia phòng **${roomId}**!`,
         embeds: [embed],
-        components,
-        ephemeral: false
+        components
       });
     }
   }

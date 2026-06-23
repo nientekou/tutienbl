@@ -13,26 +13,31 @@ class DungKyNangCommand extends Command_1.Command {
         super(new discord_js_1.SlashCommandBuilder()
             .setName('dungkynang')
             .setDescription('Sử dụng bí tịch sách kỹ năng để lĩnh ngộ pháp quyết.')
-            .addStringOption(opt => opt
-            .setName('item_id')
-            .setDescription('Mã sách kỹ năng muốn học (ví dụ: book_fire, book_lightning...)')
+            .addIntegerOption(opt => opt
+            .setName('inventory_id')
+            .setDescription('ID sách kỹ năng trong hành trang muốn học.')
             .setRequired(false)));
     }
     async execute(client, interaction) {
         const userId = interaction.user.id;
-        const bookId = interaction.options.getString('item_id');
+        const inventoryId = interaction.options.getInteger('inventory_id');
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
-        if (bookId) {
-            const result = DungKyNangCommand.learnSkill(userId, bookId);
-            if (!result.success) {
-                await interaction.reply({ content: result.message, ephemeral: true });
+        if (inventoryId) {
+            const invItem = InventoryRepository_1.inventoryRepository.get(inventoryId);
+            if (!invItem || invItem.user_id !== userId) {
+                await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong hành trang!` });
                 return;
             }
-            await interaction.reply({ embeds: [result.embed] });
+            const result = DungKyNangCommand.learnSkill(userId, invItem.item_id);
+            if (!result.success) {
+                await interaction.editReply({ content: result.message });
+                return;
+            }
+            await interaction.editReply({ embeds: [result.embed] });
             return;
         }
         // Nếu không truyền bookId, tìm tất cả sách kỹ năng trong túi đồ
@@ -48,7 +53,7 @@ class DungKyNangCommand extends Command_1.Command {
                 `• Thử vận khí khi **Săn Yêu Thú Dã Ngoại** hoặc khám phá **Rương Cơ Duyên**.\n` +
                 `• Mua bán trao đổi với các đạo hữu khác thông qua **Chợ Trời**.`)
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.editReply({ embeds: [embed] });
             return;
         }
         const embed = new discord_js_1.EmbedBuilder()
@@ -83,7 +88,7 @@ class DungKyNangCommand extends Command_1.Command {
             .setLabel('Hủy Bỏ')
             .setStyle(discord_js_1.ButtonStyle.Danger);
         const rowButton = new discord_js_1.ActionRowBuilder().addComponents(cancelBtn);
-        await interaction.reply({ embeds: [embed], components: [row, rowButton] });
+        await interaction.editReply({ embeds: [embed], components: [row, rowButton] });
     }
     /**
      * Logic bế quan lĩnh ngộ kỹ năng từ sách

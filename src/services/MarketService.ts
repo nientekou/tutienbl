@@ -105,7 +105,7 @@ class MarketService {
     durationMinutes: number = 5
   ): { success: boolean; message: string; listingId?: number } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
     const item = inventoryRepository.get(inventoryId);
     if (!item || item.user_id !== userId) return { success: false, message: 'Vật phẩm không tồn tại!' };
@@ -170,7 +170,7 @@ class MarketService {
    */
   createFixedListing(userId: string, inventoryId: number, price: number, quantity: number = 1): { success: boolean; message: string; listingId?: number } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
     const item = inventoryRepository.get(inventoryId);
     if (!item || item.user_id !== userId) return { success: false, message: 'Vật phẩm không tồn tại!' };
@@ -224,7 +224,7 @@ class MarketService {
    */
   buyFixedListing(userId: string, listingId: number): { success: boolean; message: string } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
     const listing = db.prepare("SELECT * FROM market_listings WHERE id = ? AND status = 'active' AND listing_type = 'fixed'")
       .get(listingId) as MarketListing | undefined;
@@ -317,7 +317,7 @@ class MarketService {
    */
   placeBid(listingId: number, userId: string, bidAmount: number): { success: boolean; message: string } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
     const listing = db.prepare("SELECT * FROM market_listings WHERE id = ? AND status = 'active' AND listing_type = 'auction'")
       .get(listingId) as MarketListing | undefined;
@@ -734,7 +734,7 @@ class MarketService {
    */
   createBuyOrder(userId: string, itemId: string, quantity: number, unitPrice: number): { success: boolean; message: string; orderId?: number } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
     if (quantity <= 0 || quantity > 999) return { success: false, message: 'Số lượng từ 1 đến 999!' };
     if (unitPrice <= 0) return { success: false, message: 'Giá phải > 0!' };
 
@@ -779,7 +779,7 @@ class MarketService {
    */
   fillBuyOrder(userId: string, orderId: number, quantity: number): { success: boolean; message: string } {
     const seller = userRepository.get(userId);
-    if (!seller) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!seller) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
     const order = db.prepare("SELECT * FROM buy_orders WHERE id = ? AND status = 'active'").get(orderId) as any;
     if (!order) return { success: false, message: 'Đơn ủy thác không tồn tại hoặc đã hoàn tất!' };

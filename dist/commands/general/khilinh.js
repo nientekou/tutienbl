@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
+const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const SpiritWeaponService_1 = require("../../services/SpiritWeaponService");
 const database_1 = __importDefault(require("../../database/database"));
 const constants_1 = require("../../utils/constants");
@@ -17,25 +18,25 @@ class KhiLinhCommand extends Command_1.Command {
             .addSubcommand(sub => sub
             .setName('thuctinh')
             .setDescription('Thức tỉnh khí linh cho pháp bảo (Yêu cầu vũ khí Epic trở lên)')
-            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('Mã hành trang của vật phẩm trong túi đồ (xem trong /tuido)').setRequired(true)))
+            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('ID vật phẩm trong hành trang').setRequired(true)))
             .addSubcommand(sub => sub
             .setName('nuoiduong')
             .setDescription('Cho khí linh ăn trang bị hoặc nguyên liệu tăng EXP')
-            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID Khí Linh (Xem trong /khilinh danhsach hoặc /hoso)').setRequired(true))
-            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('Mã hành trang của vật phẩm trong túi đồ (xem trong /tuido)').setRequired(true))
+            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID khí linh (xem trong /khilinh)').setRequired(true))
+            .addIntegerOption(opt => opt.setName('inventory_id').setDescription('ID vật phẩm trong hành trang (xem trong /hoso)').setRequired(true))
             .addIntegerOption(opt => opt.setName('soluong').setDescription('Số lượng hiến tế').setRequired(false)))
             .addSubcommand(sub => sub
             .setName('tuongtac')
             .setDescription('Trò chuyện với khí linh để tăng độ thân thiết')
-            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID Khí Linh (Xem trong /khilinh danhsach hoặc /hoso)').setRequired(true)))
+            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID khí linh (xem trong /khilinh)').setRequired(true)))
             .addSubcommand(sub => sub
             .setName('kynang')
             .setDescription('Xem thông tin và kỹ năng của Khí Linh')
-            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID Khí Linh (Xem trong /khilinh danhsach hoặc /hoso)').setRequired(true)))
+            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID khí linh (xem trong /khilinh)').setRequired(true)))
             .addSubcommand(sub => sub
             .setName('tienhoa')
             .setDescription('Tiến hóa khí linh đạt cấp 20')
-            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID Khí Linh (Xem trong /khilinh danhsach hoặc /hoso)').setRequired(true)))
+            .addIntegerOption(opt => opt.setName('spirit_id').setDescription('ID khí linh (xem trong /khilinh)').setRequired(true)))
             .addSubcommand(sub => sub
             .setName('danhsach')
             .setDescription('Xem danh sách tất cả Khí Linh đang sở hữu')));
@@ -44,15 +45,20 @@ class KhiLinhCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const subcmd = interaction.options.getSubcommand(true);
         if (subcmd === 'thuctinh') {
             const inventoryId = interaction.options.getInteger('inventory_id', true);
-            const res = SpiritWeaponService_1.spiritWeaponService.awaken(userId, inventoryId);
+            const invItem = InventoryRepository_1.inventoryRepository.get(inventoryId);
+            if (!invItem || invItem.user_id !== userId) {
+                await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong túi đồ!` });
+                return;
+            }
+            const res = SpiritWeaponService_1.spiritWeaponService.awaken(userId, invItem.id);
             if (!res.success) {
-                await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${res.message}` });
                 return;
             }
             const spirit = res.spirit;
@@ -64,7 +70,7 @@ class KhiLinhCommand extends Command_1.Command {
                 .setTitle('✨ THỨC TỈNH KHÍ LINH THÀNH CÔNG! ✨')
                 .setColor('#8e44ad')
                 .setDescription(`*Từ trong thần phong sắc bén của pháp bảo, một tia linh trí bỗng chốc thức tỉnh...*\n\n` +
-                `🔮 **Khí Linh:** **${spirit.spirit_name}**\n` +
+                `🔮 **Khí Linh:** **${spirit.spirit_name}** (#${spirit.id})\n` +
                 `⚔️ **Ký Chủ Pháp Bảo:** **${itemInfo?.name || spirit.item_id}** [${itemInfo?.rarity.toUpperCase()}]\n` +
                 `⚡ **Cấp Độ:** Cấp **${spirit.level}**\n` +
                 `   └ Tiến trình EXP: ${expBar} *(${spirit.exp}/${spirit.level * 50} EXP)*\n` +
@@ -76,15 +82,25 @@ class KhiLinhCommand extends Command_1.Command {
                     : '*Chưa ngộ ra kỹ năng nào.*'
             })
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (subcmd === 'nuoiduong') {
             const spiritId = interaction.options.getInteger('spirit_id', true);
             const inventoryId = interaction.options.getInteger('inventory_id', true);
             const qty = interaction.options.getInteger('soluong') || 1;
-            const res = SpiritWeaponService_1.spiritWeaponService.feedSpirit(userId, spiritId, inventoryId, qty);
+            const spirit = database_1.default.prepare('SELECT * FROM spirit_weapons WHERE id = ? AND user_id = ?').get(spiritId, userId);
+            if (!spirit) {
+                await interaction.editReply({ content: `❌ Không tìm thấy khí linh ID **${spiritId}**!` });
+                return;
+            }
+            const invItem = InventoryRepository_1.inventoryRepository.get(inventoryId);
+            if (!invItem || invItem.user_id !== userId) {
+                await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong túi đồ!` });
+                return;
+            }
+            const res = SpiritWeaponService_1.spiritWeaponService.feedSpirit(userId, spirit.id, invItem.id, qty);
             if (!res.success) {
-                await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${res.message}` });
                 return;
             }
             const expBar = (0, constants_1.getProgressBar)(res.remainingExp || 0, res.expNeeded || 50);
@@ -101,13 +117,18 @@ class KhiLinhCommand extends Command_1.Command {
                     value: `🔮 Khí linh bừng tỉnh thần thông, ngộ được kỹ năng: **${res.newSkillName}**`
                 });
             }
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (subcmd === 'tuongtac') {
             const spiritId = interaction.options.getInteger('spirit_id', true);
-            const res = SpiritWeaponService_1.spiritWeaponService.interact(userId, spiritId);
+            const spirit = database_1.default.prepare('SELECT * FROM spirit_weapons WHERE id = ? AND user_id = ?').get(spiritId, userId);
+            if (!spirit) {
+                await interaction.editReply({ content: `❌ Không tìm thấy khí linh ID **${spiritId}**!` });
+                return;
+            }
+            const res = SpiritWeaponService_1.spiritWeaponService.interact(userId, spirit.id);
             if (!res.success) {
-                await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${res.message}` });
                 return;
             }
             const affinityBar = (0, constants_1.getProgressBar)(res.newAffinity || 0, 100);
@@ -125,13 +146,18 @@ class KhiLinhCommand extends Command_1.Command {
                 `💬 **${res.spiritName}:**\n*${quote}*\n\n` +
                 `❤️ **Độ Thân Thiết:** ${affinityBar} *(+${res.affinityGain} | ${res.newAffinity}/100)*`)
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (subcmd === 'tienhoa') {
             const spiritId = interaction.options.getInteger('spirit_id', true);
-            const res = SpiritWeaponService_1.spiritWeaponService.evolve(userId, spiritId);
+            const spirit = database_1.default.prepare('SELECT * FROM spirit_weapons WHERE id = ? AND user_id = ?').get(spiritId, userId);
+            if (!spirit) {
+                await interaction.editReply({ content: `❌ Không tìm thấy khí linh ID **${spiritId}**!` });
+                return;
+            }
+            const res = SpiritWeaponService_1.spiritWeaponService.evolve(userId, spirit.id);
             if (!res.success) {
-                await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${res.message}` });
                 return;
             }
             const embed = new discord_js_1.EmbedBuilder()
@@ -142,13 +168,13 @@ class KhiLinhCommand extends Command_1.Command {
                 `✨ 👉 **${res.newName}** 👈 ✨\n\n` +
                 `*Phong ấn sức mạnh tối cổ đã được giải trừ, khí lực bừng bừng bộc phát!*`)
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (subcmd === 'kynang') {
             const spiritId = interaction.options.getInteger('spirit_id', true);
             const spirit = database_1.default.prepare('SELECT * FROM spirit_weapons WHERE id = ? AND user_id = ?').get(spiritId, userId);
             if (!spirit) {
-                await interaction.reply({ content: '❌ Khí linh không tồn tại!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Khí linh không tồn tại!' });
                 return;
             }
             const itemInfo = database_1.default.prepare('SELECT * FROM items WHERE id = ?').get(spirit.item_id);
@@ -156,7 +182,7 @@ class KhiLinhCommand extends Command_1.Command {
             const expBar = (0, constants_1.getProgressBar)(spirit.exp, spirit.level * 50);
             const affinityBar = (0, constants_1.getProgressBar)(spirit.affinity, 100);
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle(`✨ Thông Tin Khí Linh: ${spirit.spirit_name}`)
+                .setTitle(`✨ Thông Tin Khí Linh: ${spirit.spirit_name} (#${spirit.id})`)
                 .setColor('#8e44ad')
                 .setDescription(`⚔️ **Pháp Bảo Ký Chủ:** **${itemInfo?.name || spirit.item_id}** [${itemInfo?.rarity.toUpperCase()}]\n\n` +
                 `⚡ **Cấp Độ:** Cấp **${spirit.level}**\n` +
@@ -177,14 +203,13 @@ class KhiLinhCommand extends Command_1.Command {
                     '*Khí linh có thể nuốt các loại khoáng sản, linh thạch, tinh thạch, linh thảo hoặc trang bị không dùng.*'
             })
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (subcmd === 'danhsach') {
             const spiritWeapons = SpiritWeaponService_1.spiritWeaponService.getSpiritWeapons(userId);
             if (spiritWeapons.length === 0) {
-                await interaction.reply({
-                    content: '🍃 Đạo hữu hiện chưa thức tỉnh Khí Linh nào. Hãy dùng `/khilinh thuctinh [mã_trang_bi]` trên trang bị phẩm chất Epic trở lên!',
-                    ephemeral: true
+                await interaction.editReply({
+                    content: '🍃 Đạo hữu hiện chưa thức tỉnh Khí Linh nào. Hãy dùng `/khilinh thuctinh [mã_trang_bi]` trên trang bị phẩm chất Epic trở lên!'
                 });
                 return;
             }
@@ -197,14 +222,14 @@ class KhiLinhCommand extends Command_1.Command {
                 const expBar = (0, constants_1.getProgressBar)(sw.exp, sw.level * 50);
                 const affinityBar = '❤️'.repeat(Math.min(Math.floor(sw.affinity / 20), 5)) + '🖤'.repeat(Math.max(0, 5 - Math.floor(sw.affinity / 20)));
                 embed.addFields({
-                    name: `🔮 ${sw.spirit_name} (ID: **${sw.id}**)`,
+                    name: `🔮 ${sw.spirit_name} (#${sw.id})`,
                     value: `• **Pháp Bảo ký chủ:** **${itemInfo?.name || sw.item_id}** [${itemInfo?.rarity.toUpperCase() || 'UNKNOWN'}]\n` +
                         `• **Cấp độ:** Cấp **${sw.level}** (EXP: ${expBar} - ${sw.exp}/${sw.level * 50})\n` +
                         `• **Thân mật:** ${affinityBar} (${sw.affinity}/100)\n` +
                         `• **Kỹ năng:** **${sw.skill_id || 'Chưa thức tỉnh'}**`
                 });
             });
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }

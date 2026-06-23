@@ -214,7 +214,7 @@ class DailyQuestService {
    */
   claimQuest(userId: string, questId: string): { success: boolean; message: string } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại.' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
 
     const nowDay = this.getTodayStartTimestamp();
     const quest = db.prepare(`
@@ -233,7 +233,7 @@ class DailyQuestService {
       db.prepare('UPDATE daily_quests SET is_claimed = 1 WHERE id = ?').run(quest.id);
       userRepository.update(userId, {
         coin_ha_pham: user.coin_ha_pham + quest.reward_coin,
-        tu_vi: user.tu_vi + quest.reward_exp,
+        tu_vi: Math.min(user.tu_vi + quest.reward_exp, user.exp_needed),
         ngotinh: (user.ngotinh || 0) + quest.reward_ngotinh
       });
     })();

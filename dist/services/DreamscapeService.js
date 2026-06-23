@@ -72,7 +72,7 @@ class DreamscapeService {
     challenge(userId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại.' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
         const data = this.getDreamscapeData(userId);
         if (data.current_floor > 50) {
             return { success: false, message: 'Đạo hữu đã vượt qua tầng 50, chạm tới đỉnh cao Vọng Tưởng tuần này!' };

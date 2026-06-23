@@ -22,7 +22,7 @@ export class FeastService {
       if (sect) {
         sectName = sect.name;
       }
-    } catch (e) {}
+    } catch (e) { console.warn('[FeastService] Failed to fetch sect name:', e); }
 
     const now = new Date();
     // Offset +7 hours to get VN time

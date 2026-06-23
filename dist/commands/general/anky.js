@@ -8,6 +8,7 @@ const InventoryRepository_1 = require("../../database/repositories/InventoryRepo
 const SoulImprintRepository_1 = require("../../database/repositories/SoulImprintRepository");
 const SoulImprintService_1 = require("../../services/SoulImprintService");
 const constants_1 = require("../../utils/constants");
+const itemConstants_1 = require("../../config/itemConstants");
 const GROUP_NAMES = {
     'weapon': '⚔️ Bộ Vũ Khí Thượng Cổ',
     'armor': '🛡️ Bộ Pháp Y Vô Thượng',
@@ -16,25 +17,25 @@ const GROUP_NAMES = {
 };
 const SET_ITEMS = {
     'weapon': [
-        { id: 'weapon_sword_c', name: 'Kiếm Sắt (C)' },
-        { id: 'weapon_sword_b', name: 'Thanh Phong Kiếm (B)' },
-        { id: 'weapon_sword_a', name: 'Thanh Quang Bảo Kiếm (A)' },
-        { id: 'weapon_sword_s', name: 'Vô Ảnh Kiếm (S)' },
-        { id: 'weapon_sword_ss', name: 'Huyền Thiên Linh Kiếm (SS)' },
-        { id: 'weapon_sword_sss', name: 'Thần Ma Trảm Tiên Kiếm (SSS)' }
+        { id: itemConstants_1.ITEMS.WEAPON_SWORD_C, name: 'Kiếm Sắt (C)' },
+        { id: itemConstants_1.ITEMS.WEAPON_SWORD_B, name: 'Thanh Phong Kiếm (B)' },
+        { id: itemConstants_1.ITEMS.WEAPON_SWORD_A, name: 'Thanh Quang Bảo Kiếm (A)' },
+        { id: itemConstants_1.ITEMS.WEAPON_SWORD_S, name: 'Vô Ảnh Kiếm (S)' },
+        { id: itemConstants_1.ITEMS.WEAPON_SWORD_SS, name: 'Huyền Thiên Linh Kiếm (SS)' },
+        { id: itemConstants_1.ITEMS.WEAPON_SWORD_SSS, name: 'Thần Ma Trảm Tiên Kiếm (SSS)' }
     ],
     'armor': [
-        { id: 'armor_robe_c', name: 'Đạo Bào Thô (C)' },
-        { id: 'armor_robe_b', name: 'Tụ Linh Y (B)' },
-        { id: 'armor_robe_a', name: 'Huyền Vũ Bào (A)' },
-        { id: 'armor_robe_s', name: 'Hỗn Nguyên Đạo Y (S)' },
-        { id: 'armor_robe_ss', name: 'Thái Cực Huyền Y (SS)' },
-        { id: 'armor_robe_sss', name: 'Cửu Thiên Phượng Vũ Y (SSS)' }
+        { id: itemConstants_1.ITEMS.ARMOR_ROBE_C, name: 'Đạo Bào Thô (C)' },
+        { id: itemConstants_1.ITEMS.ARMOR_ROBE_B, name: 'Tụ Linh Y (B)' },
+        { id: itemConstants_1.ITEMS.ARMOR_ROBE_A, name: 'Huyền Vũ Bào (A)' },
+        { id: itemConstants_1.ITEMS.ARMOR_ROBE_S, name: 'Hỗn Nguyên Đạo Y (S)' },
+        { id: itemConstants_1.ITEMS.ARMOR_ROBE_SS, name: 'Thái Cực Huyền Y (SS)' },
+        { id: itemConstants_1.ITEMS.ARMOR_ROBE_SSS, name: 'Cửu Thiên Phượng Vũ Y (SSS)' }
     ],
     'accessory': [
-        { id: 'ring_1', name: 'Nhẫn Trữ Vật' },
-        { id: 'necklace_1', name: 'Dây Chuyền Linh Lực' },
-        { id: 'amulet_1', name: 'Bùa Hộ Mệnh' }
+        { id: itemConstants_1.ITEMS.RING_1, name: 'Nhẫn Trữ Vật' },
+        { id: itemConstants_1.ITEMS.NECKLACE_1, name: 'Dây Chuyền Linh Lực' },
+        { id: itemConstants_1.ITEMS.AMULET_1, name: 'Bùa Hộ Mệnh' }
     ]
 };
 function buildImprintListEmbed(userId) {
@@ -117,16 +118,15 @@ class AnkyCommand extends Command_1.Command {
         const discordId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(discordId);
         if (!user) {
-            await interaction.reply({
-                content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!',
-                ephemeral: true
+            await interaction.editReply({
+                content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!'
             });
             return;
         }
         const sub = interaction.options.getSubcommand();
         if (sub === 'danhsach') {
             const embed = buildImprintListEmbed(discordId);
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (sub === 'anky') {
             const targetId = interaction.options.getInteger('id');
@@ -134,10 +134,10 @@ class AnkyCommand extends Command_1.Command {
                 // Thực hiện ấn ký trực tiếp
                 const result = SoulImprintService_1.soulImprintService.imprintItem(discordId, targetId);
                 if (result.success) {
-                    await interaction.reply({ content: result.message });
+                    await interaction.editReply({ content: result.message });
                 }
                 else {
-                    await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                    await interaction.editReply({ content: `❌ ${result.message}` });
                 }
             }
             else {
@@ -145,9 +145,8 @@ class AnkyCommand extends Command_1.Command {
                 const userInventory = InventoryRepository_1.inventoryRepository.getUserInventory(discordId);
                 const candidates = userInventory.filter(item => item.equipable === 1 && item.is_equipped === 0 && item.stars === 5);
                 if (candidates.length === 0) {
-                    await interaction.reply({
-                        content: '❌ Đạo hữu không có trang bị nào đạt **5 Sao** (và chưa trang bị) trong túi đồ để tiến hành Ấn Ký Linh Hồn!',
-                        ephemeral: true
+                    await interaction.editReply({
+                        content: '❌ Đạo hữu không có trang bị nào đạt **5 Sao** (và chưa trang bị) trong túi đồ để tiến hành Ấn Ký Linh Hồn!'
                     });
                     return;
                 }
@@ -161,10 +160,9 @@ class AnkyCommand extends Command_1.Command {
                         .setValue(c.id.toString()));
                 });
                 const row = new discord_js_1.ActionRowBuilder().addComponents(selectMenu);
-                await interaction.reply({
+                await interaction.editReply({
                     content: '🧘 **Đúc Luyện Ấn Ký Linh Hồn**\n*Hãy chọn một trang bị 5 Sao bên dưới để tiêu hủy và lưu giữ chỉ số vĩnh viễn (Chi phí: 5,000 LT + 10 Mảnh Trang Bị):*',
-                    components: [row],
-                    ephemeral: true
+                    components: [row]
                 });
             }
         }
@@ -205,22 +203,22 @@ class AnkyCommand extends Command_1.Command {
                 value: activeBonuses.length > 0 ? activeBonuses.join('\n') : '`Chưa kích hoạt hiệu ứng bộ nào.`',
                 inline: false
             });
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (sub === 'trade') {
             const imprintId = interaction.options.getInteger('id', true);
             const targetUser = interaction.options.getUser('user', true);
             const targetUserId = targetUser.id;
             if (targetUserId === discordId) {
-                await interaction.reply({ content: '❌ Đạo hữu không thể tự giao dịch Ấn Ký với bản thân!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Đạo hữu không thể tự giao dịch Ấn Ký với bản thân!' });
                 return;
             }
             const result = SoulImprintService_1.soulImprintService.tradeImprint(discordId, targetUserId, imprintId);
             if (result.success) {
-                await interaction.reply({ content: result.message });
+                await interaction.editReply({ content: result.message });
             }
             else {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
             }
         }
     }

@@ -46,7 +46,7 @@ export default class KhamPhaBanDoCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật! Dùng `/taonhanvat` để bắt đầu.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật! Dùng `/taonhanvat` để bắt đầu.' });
       return;
     }
 
@@ -104,7 +104,7 @@ export default class KhamPhaBanDoCommand extends Command {
       }).join('\n');
 
       embed.addFields({
-        name: `📍 Kho Báu Của Bạn (${activeLocations.length})`,
+        name: `📍 Kho Báu Của Đạo Hữu (${activeLocations.length})`,
         value: locationList,
         inline: false,
       });
@@ -125,12 +125,12 @@ export default class KhamPhaBanDoCommand extends Command {
     }
 
     embed.setFooter({ text: 'Mảnh Bản Đồ có thể nhận được khi làm công việc Phiêu Lưu.' });
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 
   private async handleCombine(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
     const result = mapFragmentService.combineFragments(userId);
-    await interaction.reply({ content: result.message });
+    await interaction.editReply({ content: result.message });
   }
 
   private async handleClaim(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
@@ -143,7 +143,7 @@ export default class KhamPhaBanDoCommand extends Command {
       .setDescription(result.message)
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 
   private async handleSteal(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
@@ -156,6 +156,6 @@ export default class KhamPhaBanDoCommand extends Command {
       .setDescription(result.message)
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 }

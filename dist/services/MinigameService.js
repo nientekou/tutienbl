@@ -8,17 +8,18 @@ const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 const InventoryService_1 = require("./InventoryService");
+const itemConstants_1 = require("../config/itemConstants");
 /**
  * Cấu hình phần thưởng cho top 3 quyết đấu hàng tuần
  */
 const WEEKLY_PRIZES = [
     {
         coins: 5000, tuVi: 2000, ngotinh: 10,
-        items: [{ item_id: 'repair_stone_mid', quantity: 3 }]
+        items: [{ item_id: itemConstants_1.ITEMS.REPAIR_STONE_MID, quantity: 3 }]
     },
     {
         coins: 3000, tuVi: 1000, ngotinh: 5,
-        items: [{ item_id: 'repair_stone_mid', quantity: 2 }]
+        items: [{ item_id: itemConstants_1.ITEMS.REPAIR_STONE_MID, quantity: 2 }]
     },
     {
         coins: 1000, tuVi: 500, ngotinh: 3,
@@ -582,7 +583,9 @@ class MinigameService {
                         itemNarrative += `\n💊 <@${userId}> nuốt **${invItem.name}**, dược lực hóa tán hồi phục **+${heal}** HP!`;
                     }
                 }
-                catch (e) { }
+                catch (e) {
+                    console.warn('[MinigameService] Failed to use HP pill in duel:', e);
+                }
             }
         };
         applyItem(duel.challengerId, duel.challengerUsedItemId, true);

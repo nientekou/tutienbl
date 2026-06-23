@@ -79,7 +79,7 @@ export class BlacksmithService {
         try {
           const b = JSON.parse(sect.buildings || '{}');
           if (b.loren) sectBonus = b.loren * 0.02; // +2% mỗi cấp
-        } catch(e){}
+        } catch(e) { console.warn('[BlacksmithService] Failed to parse sect buildings for loren bonus:', e); }
       }
     }
 

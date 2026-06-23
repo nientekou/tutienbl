@@ -2,6 +2,7 @@ import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
 import { systemConfigService } from './SystemConfigService';
+import { ITEMS } from '../config/itemConstants';
 
 export interface GameEvent {
   id: string;
@@ -43,8 +44,8 @@ export const EVENT_TEMPLATES: EventConfig[] = [
     rewards: [
       { type: 'coin', amount: 5000 },
       { type: 'tuvi', amount: 10000 },
-      { type: 'item', itemId: 'lucky_chest', amount: 3 },
-      { type: 'item', itemId: 'pill_alchemy_tuvi', amount: 5 }
+      { type: 'item', itemId: ITEMS.LUCKY_CHEST, amount: 3 },
+      { type: 'item', itemId: ITEMS.PILL_ALCHEMY_TUVI, amount: 5 }
     ],
     repeatable: 'weekly'
   },
@@ -67,7 +68,7 @@ export const EVENT_TEMPLATES: EventConfig[] = [
     durationHours: 72, // 3 ngày
     rewards: [
       { type: 'coin', amount: 10000 },
-      { type: 'item', itemId: 'pill_alchemy_tuvi', amount: 10 },
+      { type: 'item', itemId: ITEMS.PILL_ALCHEMY_TUVI, amount: 10 },
     ],
     repeatable: 'once'
   },
@@ -80,7 +81,7 @@ export const EVENT_TEMPLATES: EventConfig[] = [
     rewards: [
       { type: 'coin', amount: 3000 },
       { type: 'ngotinh', amount: 50 },
-      { type: 'item', itemId: 'item_fragment', amount: 20 }
+      { type: 'item', itemId: ITEMS.ITEM_FRAGMENT, amount: 20 }
     ],
     repeatable: 'monthly'
   }
@@ -271,7 +272,7 @@ class EventService {
     if (event.status !== 'ended') return { success: false, message: 'Sự kiện chưa kết thúc! Hãy chờ đến khi sự kiện kết thúc để nhận thưởng.' };
 
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
     let rewards: EventReward[];
     try {

@@ -12,6 +12,7 @@ const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const database_1 = __importDefault(require("../../database/database"));
 const constants_1 = require("../../utils/constants");
+const itemConstants_1 = require("../../config/itemConstants");
 /**
  * Tạo Embed hiển thị trạng thái Linh Điền
  */
@@ -21,7 +22,7 @@ function getLinhDienEmbed(userId) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('❌ Lỗi')
             .setColor('#e74c3c')
-            .setDescription('Nhân vật không tồn tại.');
+            .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
     }
     const plots = FarmingService_1.farmingService.getPlots(userId);
     const unlockedCount = plots.length;
@@ -119,8 +120,8 @@ function getLinhDienComponents(userId) {
     rows.push(new discord_js_1.ActionRowBuilder().addComponents(seedSelect));
     // 2. Dropdown gia tốc bằng Thần Hành Phù (chỉ hiển thị nếu có ô đang mọc)
     const growingPlots = plots.filter(p => p.status === 'growing' && (p.timeRemaining || 0) > 0);
-    const hasTalisman = inv.some(i => i.item_id === 'talisman_speed_1' && i.quantity > 0);
-    const talismanCount = inv.find(i => i.item_id === 'talisman_speed_1')?.quantity || 0;
+    const hasTalisman = inv.some(i => i.item_id === itemConstants_1.ITEMS.TALISMAN_SPEED_1 && i.quantity > 0);
+    const talismanCount = inv.find(i => i.item_id === itemConstants_1.ITEMS.TALISMAN_SPEED_1)?.quantity || 0;
     const speedSelect = new discord_js_1.StringSelectMenuBuilder()
         .setCustomId(`linhdienspeedupselect_${userId}`)
         .setPlaceholder(`⚡ Gia tốc bằng Thần Hành Phù (Có x${talismanCount})...`);
@@ -204,14 +205,11 @@ class LinhDienCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({
-                content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.',
-                ephemeral: true
+            await interaction.editReply({
+                content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.'
             });
             return;
         }
-        // Trì hoãn phản hồi do các truy vấn và xử lý bên dưới có thể mất thời gian
-        await interaction.deferReply();
         const embed = getLinhDienEmbed(userId);
         const components = getLinhDienComponents(userId);
         await interaction.editReply({

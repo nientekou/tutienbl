@@ -20,7 +20,7 @@ class LuyenKhiCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const anyUser = user;
@@ -44,7 +44,7 @@ class LuyenKhiCommand extends Command_1.Command {
         const visibleRecipes = recipes.filter(r => user.level >= Math.max(1, r.minLevel - 20)).slice(0, 25);
         if (visibleRecipes.length === 0) {
             embed.addFields({ name: 'Trống', value: 'Chưa có công thức rèn nào phù hợp với cảnh giới của đạo hữu.' });
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
             return;
         }
         visibleRecipes.forEach(r => {
@@ -76,7 +76,7 @@ class LuyenKhiCommand extends Command_1.Command {
                 .setDescription(`Tốn ${r.cost} LT & 15 Thể Lực.`));
         }
         const row = new discord_js_1.ActionRowBuilder().addComponents(selectMenu);
-        await interaction.reply({ embeds: [embed], components: [row] });
+        await interaction.editReply({ embeds: [embed], components: [row] });
     }
 }
 exports.default = LuyenKhiCommand;

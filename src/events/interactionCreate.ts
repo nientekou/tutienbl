@@ -28,6 +28,7 @@ import { getLuanHoiEmbed, getLuanHoiComponents } from '../commands/general/luanh
 import { explorationService, EXPLORATION_LOCATIONS } from '../services/ExplorationService';
 import { dailyQuestService } from '../services/DailyQuestService';
 import { questChainService, QUEST_CHAINS } from '../services/QuestChainService';
+import { ITEMS, getPhoiWeaponByGrade, getPhoiArmorByGrade } from '../config/itemConstants';
 import { communityQuestService } from '../services/CommunityQuestService';
 import { getKhamBhaEmbed, getKhamBhaComponents } from '../commands/general/khambha';
 import { getNhiemVuEmbed, getNhiemVuComponents, getQuestChainEmbed, getQuestChainComponents } from '../commands/general/nhiemvu';
@@ -50,8 +51,8 @@ import { mountService } from '../services/MountService';
 // Cooldown trong bộ nhớ cho hành động Tu Luyện (Thiền Định)
 const practiceCooldowns = new Map<string, number>();
 
-// Bộ nhớ tạm lưu trữ nhật ký chiến đấu của người chơi để xem chi tiết
-const combatLogsCache = new Map<string, string[]>();
+// Bộ nhớ tạm lưu trữ nhật ký chiến đấu của người chơi để xem chi tiết (có TTL 10 phút)
+const combatLogsCache = new Map<string, { data: string[]; timestamp: number }>();
 
 // Trạng thái sẵn sàng được import và chia sẻ trực tiếp từ commands/combat/lapdoi
 
@@ -63,8 +64,10 @@ CronManager.registerTask('interaction_gc', 600000, () => {
   for (const [userId, timestamp] of practiceCooldowns.entries()) {
     if (now - timestamp > 60000) practiceCooldowns.delete(userId);
   }
-  // combatLogsCache và readyStates hiện tại để user tự dọn dẹp (disband/leave/xem log).
-  // Việc tự xóa sẽ cần bọc thêm timestamp vào type nhưng code base đang sử dụng set/get trực tiếp nhiều nơi.
+  // Dọn combat log cache hết hạn (TTL 10 phút)
+  for (const [userId, entry] of combatLogsCache.entries()) {
+    if (now - entry.timestamp > 600000) combatLogsCache.delete(userId);
+  }
 });
 
 export default class InteractionCreateEvent extends Event<'interactionCreate'> {
@@ -149,6 +152,18 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
       }
 
       // Lấy khóa chống race condition / spam
+      // Defer reply ngay lập tức cho slash commands để tránh Unknown interaction (3s timeout)
+      if (interaction.isChatInputCommand() && !interaction.deferred && !interaction.replied) {
+        try {
+          await interaction.deferReply();
+        } catch (deferErr: any) {
+          if (deferErr?.code !== 10062 && deferErr?.rawError?.code !== 10062) {
+            console.error('[Defer] Lỗi defer reply:', deferErr);
+          }
+          return;
+        }
+      }
+
       if (!InteractionLock.acquire(userId)) {
         if (interaction.isRepliable()) {
           try {
@@ -200,9 +215,9 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           console.error(`[Command Error] Lỗi khi thực thi lệnh /${interaction.commandName}:`, error);
           const errorMessage = 'Đã xảy ra lỗi khi thực thi lệnh này! Vui lòng thử lại sau.';
           if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ content: errorMessage, ephemeral: true });
+            try { await interaction.editReply({ content: errorMessage }); } catch (_) {}
           } else {
-            await interaction.reply({ content: errorMessage, ephemeral: true });
+            try { await interaction.reply({ content: errorMessage, ephemeral: true }); } catch (_) {}
           }
         }
         return;
@@ -316,7 +331,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
       const user = userRepository.get(targetUserId);
       if (!user) {
         await interaction.reply({
-          content: '❌ Nhân vật của đạo hữu không tồn tại hoặc đã bị xóa khỏi thế giới.',
+          content: '❌ Đạo hữu chưa khởi tạo nhân vật hoặc đã bị xóa khỏi thế giới.',
           ephemeral: true
         });
         return;
@@ -355,8 +370,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const contrib = db.prepare("SELECT last_attack_at FROM world_boss_contributions WHERE user_id = ? AND boss_id = 'world_boss_current'")
             .get(interaction.user.id) as { last_attack_at: number } | undefined;
             
-          if (contrib && now - contrib.last_attack_at < 400) {
-            const cdSec = 400 - (now - contrib.last_attack_at);
+          if (contrib && now - contrib.last_attack_at < 200) {
+            const cdSec = 200 - (now - contrib.last_attack_at);
             await interaction.reply({ content: `⏳ Đạo hữu đang kiệt sức. Cần **${cdSec} giây** nữa để hồi phục!`, ephemeral: true });
             return;
           }
@@ -368,60 +383,92 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             return;
           }
 
-          // Chạy lượt đánh nhanh (Live Raid Hit)
-          const isCrit = Math.random() < (activeStats.crit + activeStats.luck * 0.001);
-          let rawDmg = Math.max(1, activeStats.atk - boss.def);
-          rawDmg = Math.round(rawDmg * (0.9 + Math.random() * 0.2));
-          if (isCrit) rawDmg = Math.round(rawDmg * 1.5);
+          // Chạy lượt đánh nhanh (Live Raid Hit) — wrapped in transaction to prevent race condition
+          const bossTx = db.transaction(() => {
+            const bossRow = db.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get() as any;
+            if (!bossRow || bossRow.status === 'defeated') return { error: 'defeated' as const };
 
-          // Sủng thú hỗ trợ
-          const pet = db.prepare('SELECT name, base_atk FROM pets WHERE user_id = ? AND is_deployed = 1')
-            .get(interaction.user.id) as { name: string; base_atk: number } | undefined;
-          const petDmg = pet ? Math.round(pet.base_atk * (0.9 + Math.random() * 0.2)) : 0;
+            const isCrit = Math.random() < (activeStats.crit + activeStats.luck * 0.001);
+            let rawDmg = Math.max(1, activeStats.atk - bossRow.def);
+            rawDmg = Math.round(rawDmg * (0.9 + Math.random() * 0.2));
+            if (isCrit) rawDmg = Math.round(rawDmg * 1.5);
 
-          const totalDmg = rawDmg + petDmg;
-          const newHp = Math.max(0, boss.hp - totalDmg);
-          const isDefeated = newHp <= 0;
+            const pet = db.prepare('SELECT name, base_atk FROM pets WHERE user_id = ? AND is_deployed = 1')
+              .get(interaction.user.id) as { name: string; base_atk: number } | undefined;
+            const petDmg = pet ? Math.round(pet.base_atk * (0.9 + Math.random() * 0.2)) : 0;
 
-          // Cập nhật Database
-          if (isDefeated) {
-            db.prepare("UPDATE world_boss SET hp = 0, status = 'defeated', defeated_at = ?, defeated_by = ? WHERE id = 'world_boss_current'")
-              .run(now, interaction.user.id);
-          } else {
-            db.prepare("UPDATE world_boss SET hp = ? WHERE id = 'world_boss_current'").run(newHp);
+            const totalDmg = rawDmg + petDmg;
+            const newHp = Math.max(0, bossRow.hp - totalDmg);
+            const isDefeated = newHp <= 0;
+
+            if (isDefeated) {
+              db.prepare("UPDATE world_boss SET hp = 0, status = 'defeated', defeated_at = ?, defeated_by = ? WHERE id = 'world_boss_current'")
+                .run(now, interaction.user.id);
+            } else {
+              db.prepare("UPDATE world_boss SET hp = ? WHERE id = 'world_boss_current'").run(newHp);
+            }
+
+            const playerContrib = db.prepare("SELECT damage, attacks FROM world_boss_contributions WHERE user_id = ? AND boss_id = 'world_boss_current'")
+              .get(interaction.user.id) as { damage: number; attacks: number } | undefined;
+
+            if (playerContrib) {
+              db.prepare(`
+                UPDATE world_boss_contributions
+                SET damage = damage + ?, attacks = attacks + 1, last_attack_at = ?
+                WHERE user_id = ? AND boss_id = 'world_boss_current'
+              `).run(totalDmg, now, interaction.user.id);
+            } else {
+              db.prepare(`
+                INSERT INTO world_boss_contributions (user_id, boss_id, damage, attacks, last_attack_at)
+                VALUES (?, 'world_boss_current', ?, 1, ?)
+              `).run(interaction.user.id, totalDmg, now);
+            }
+
+            return { boss: bossRow, isCrit, totalDmg, isDefeated, pet, petDmg };
+          });
+
+          const txResult = bossTx();
+          if ('error' in txResult) {
+            await interaction.reply({ content: '❌ World Boss đã bị tiêu diệt hoặc chưa xuất thế!', ephemeral: true });
+            return;
           }
 
-          // Cập nhật đóng góp sát thương
-          const playerContrib = db.prepare("SELECT damage, attacks FROM world_boss_contributions WHERE user_id = ? AND boss_id = 'world_boss_current'")
-            .get(interaction.user.id) as { damage: number; attacks: number } | undefined;
+          const { boss: currentBossData, isCrit, totalDmg, isDefeated, pet, petDmg } = txResult;
 
-          if (playerContrib) {
-            db.prepare(`
-              UPDATE world_boss_contributions
-              SET damage = damage + ?, attacks = attacks + 1, last_attack_at = ?
-              WHERE user_id = ? AND boss_id = 'world_boss_current'
-            `).run(totalDmg, now, interaction.user.id);
-          } else {
-            db.prepare(`
-              INSERT INTO world_boss_contributions (user_id, boss_id, damage, attacks, last_attack_at)
-              VALUES (?, 'world_boss_current', ?, 1, ?)
-            `).run(interaction.user.id, totalDmg, now);
-          }
+          // Tính rank dựa trên tổng damage thực tế từ DB (đã bao gồm đòn hiện tại sau transaction)
+          const allContribs = db.prepare("SELECT user_id, damage FROM world_boss_contributions WHERE boss_id = 'world_boss_current' ORDER BY damage DESC")
+            .all() as { user_id: string; damage: number }[];
+          const currentRank = allContribs.findIndex(c => c.user_id === interaction.user.id) + 1;
 
-          // Tính toán chấn thương và phản phệ
-          const reflectDmg = Math.round(totalDmg * 0.05 + boss.atk * 0.1);
-          // HP thấp (dưới boss.atk * 5) -> 25% tỷ lệ chấn thương, ngược lại 8%
-          const injuryChance = activeStats.hp < (boss.atk * 5) ? 0.25 : 0.08;
-          const isInjured = Math.random() < injuryChance;
+          // Phản phệ dựa trên % máu tối đa theo thứ hạng World Boss
+          // Ponytail: hardcoded rank brackets — có thể chuyển sang công thức độ dốc nếu mở rộng
+          const reflectPctByRank: Record<number, [number, number]> = {
+            1: [0.20, 0.30],
+            2: [0.16, 0.25],
+            3: [0.12, 0.20],
+            4: [0.10, 0.16],
+            5: [0.08, 0.13],
+          };
+          const range = reflectPctByRank[currentRank] ?? [0.03, 0.08];
+          const pct = range[0] + Math.random() * (range[1] - range[0]);
+          const reflectDmg = Math.round(activeStats.hp * pct);
+
+          // Chấn thương xảy ra khi phản phệ vượt ngưỡng 25% máu tối đa — có thể dự đoán được, không random
+          // Ponytail: ngưỡng cố định 25%, có thể điều chỉnh theo boss level nếu cần
+          const injuryThreshold = Math.round(activeStats.hp * 0.25);
+          const isInjured = reflectDmg >= injuryThreshold;
+
+          // Thưởng Ngộ Tính theo hạng: top 3 nhận nhiều hơn vì chịu phản phệ lớn hơn
+          const ngoTinhBonus = currentRank <= 3 ? 5 : 3;
 
           const updatedUser = userRepository.get(interaction.user.id)!;
           
           const updates: any = {
-            ngotinh: updatedUser.ngotinh + 3
+            ngotinh: updatedUser.ngotinh + ngoTinhBonus
           };
 
           if (isInjured) {
-            updates.injury_end_time = now + 900; // 15 phút trọng thương
+            updates.injury_end_time = now + 600; // 10 phút trọng thương (giảm từ 15 xuống vì dễ đoán hơn)
           }
 
           userRepository.update(interaction.user.id, updates);
@@ -430,9 +477,9 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           dailyQuestService.updateProgress(interaction.user.id, 'daily_worldboss', 1);
 
           // Ghi nhận đòn đánh Boss và cập nhật thành tựu tương ứng
-          combatService.recordBossAttack(interaction.user.id, boss.level, totalDmg);
+          combatService.recordBossAttack(interaction.user.id, currentBossData.level, totalDmg);
           if (isDefeated) {
-            combatService.recordBossKill(interaction.user.id, boss.level);
+            combatService.recordBossKill(interaction.user.id, currentBossData.level);
           }
 
           // Cập nhật lại Boss embeds ở tất cả các Guild
@@ -443,8 +490,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           let rewardsText = '';
           if (isDefeated) {
             try {
-              const rewardsLogs = combatService.distributeWorldBossRewards(boss.level, interaction.user.id);
-              rewardsText = `\n\n🏆 **BẢNG PHONG THẦN THẢO PHẠT BOSS (LEVEL ${boss.level}):**\n` + 
+              const rewardsLogs = combatService.distributeWorldBossRewards(currentBossData.level, interaction.user.id);
+              rewardsText = `\n\n🏆 **BẢNG PHONG THẦN THẢO PHẠT BOSS (LEVEL ${currentBossData.level}):**\n` + 
                             (rewardsLogs.length > 0 ? rewardsLogs.join('\n') : '*Không có phần thưởng.*');
               try {
                 await bossSpawnService.broadcastBossDefeatedLogs(client, currentBoss, rewardsLogs);
@@ -460,11 +507,13 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           // Trả lời đòn đánh thành công
           const petText = pet ? ` (Sủng thú **${pet.name}** phụ trợ +${petDmg})` : '';
           const critText = isCrit ? ' **[BẠO KÍCH]** 💥' : '';
-          const reflectText = `\n⚡ **Phản Phệ:** Đạo hữu chịu **-${reflectDmg}** sát thương phản chấn từ Boss thế giới!`;
-          const injuryText = isInjured ? `\n🚨 **Chấn Thương:** Đạo hữu sinh lực cạn kiệt, chấn động kinh mạch, bị **Trọng Thương trong 15 phút**!` : '';
+          const rankText = ` 🏆 **(Hạng #${currentRank})**`;
+          const reflectPctShow = Math.round(pct * 100);
+          const reflectText = `\n⚡ **Phản Phệ:** Đạo hữu chịu **-${reflectDmg}** sát thương phản chấn [hạng #${currentRank} — ${reflectPctShow}% HP] từ Boss thế giới!`;
+          const injuryText = isInjured ? `\n🚨 **Chấn Thương:** Phản phệ chấn động kinh mạch, bị **Trọng Thương trong 10 phút**!` : '';
           
           await interaction.reply({
-            content: `💥 Đạo hữu **${updatedUser.name}** vung đòn tấn công Boss thế giới, gây **-${totalDmg}** sát thương lên Boss${critText}!${petText}${reflectText}${injuryText}\n🧘 Nhận được **+3** Điểm Ngộ Tính!${rewardsText}`,
+            content: `💥 Đạo hữu **${updatedUser.name}** vung đòn tấn công Boss thế giới, gây **-${totalDmg}** sát thương lên Boss${critText}${rankText}!${petText}${reflectText}${injuryText}\n🧘 Nhận được **+${ngoTinhBonus}** Điểm Ngộ Tính!${rewardsText}`,
             ephemeral: false
           });
           return;
@@ -505,16 +554,17 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             .addOptions(options);
 
           const row = new ActionRowBuilder().addComponents(selectMenu);
-          await interaction.reply({ content: 'Bạn muốn mua gì?', components: [row], ephemeral: true });
+          await interaction.reply({ content: 'Đạo hữu muốn mua gì?', components: [row], ephemeral: true });
         }
         else if (action === 'traveler_buy_item' && interaction.isStringSelectMenu()) {
           const eventId = parseInt(parts[1], 10);
           const itemId = interaction.values[0];
           const { travelerService } = require('../services/TravelerService');
           
-          const result = travelerService.buyItem(interaction.user.id, eventId, itemId, 1); // Tạm thời mua 1 cái mỗi lần
-          if (result.success) {
-            await interaction.update({ content: result.message, components: [] });
+          try {
+            const result = travelerService.buyItem(interaction.user.id, eventId, itemId, 1);
+            if (result.success) {
+              await interaction.update({ content: result.message, components: [] });
             
             // Nếu mua thành công, thử update message gốc
             try {
@@ -548,6 +598,16 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             }
           } else {
             await interaction.update({ content: `❌ ${result.message}`, components: [] });
+          }
+          } catch (buyErr: any) {
+            console.error('[TravelerBuy] Lỗi mua hàng:', buyErr);
+            try {
+              if (interaction.deferred || interaction.replied) {
+                await interaction.followUp({ content: '❌ Có lỗi xảy ra khi mua hàng từ Lữ Khách!', ephemeral: true });
+              } else {
+                await interaction.reply({ content: '❌ Có lỗi xảy ra khi mua hàng từ Lữ Khách!', ephemeral: true });
+              }
+            } catch (_) {}
           }
         }
         else if (action === 'traveler_rob') {
@@ -965,7 +1025,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           }
 
           const combatResult = result.combatResult!;
-          combatLogsCache.set(targetUserId, combatResult.log);
+          combatLogsCache.set(targetUserId, { data: combatResult.log, timestamp: Date.now() });
 
           // Nạp năng lượng cho Linh mạch Chiến Đấu
           leylineService.addEnergy(targetUserId, 'chiendau', 15);
@@ -1048,6 +1108,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           // Cập nhật tiến trình nhiệm vụ hàng ngày khi hoàn thành bí cảnh
           dailyQuestService.updateProgress(targetUserId, 'daily_bicanh', 1);
+          questChainService.updateProgress(targetUserId, 'kill', 1);
 
           await interaction.update({ embeds: [embed], components: [row] });
         }
@@ -1055,7 +1116,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         // --- Nút: XEM NHẬT KÝ CHIẾN ĐẤU BÍ CẢNH ---
         else if (action === 'bicanhlogs') {
           const { renderCombatLog } = require('../utils/combatLogUtils');
-          await renderCombatLog(interaction, combatLogsCache.get(targetUserId), 'Chi tiết nhật ký trận đấu');
+          await renderCombatLog(interaction, combatLogsCache.get(targetUserId)?.data, 'Chi tiết nhật ký trận đấu');
         }
 
         // --- Nút: QUAY LẠI BÍ CẢNH ---
@@ -1071,13 +1132,13 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         // --- Nút: XEM NHẬT KÝ CHIẾN ĐẤU WORLD BOSS ---
         else if (action === 'worldbosslogs') {
           const { renderCombatLog } = require('../utils/combatLogUtils');
-          await renderCombatLog(interaction, combatLogsCache.get(targetUserId), 'Chi tiết trận đấu World Boss');
+          await renderCombatLog(interaction, combatLogsCache.get(targetUserId)?.data, 'Chi tiết trận đấu World Boss');
         }
 
         // --- Nút: XEM NHẬT KÝ CHIẾN ĐẤU SĂN YÊU THÚ ---
         else if (action === 'sanyeuthulogs') {
           const { renderCombatLog } = require('../utils/combatLogUtils');
-          await renderCombatLog(interaction, combatLogsCache.get(targetUserId), 'Chi tiết nhật ký trận săn');
+          await renderCombatLog(interaction, combatLogsCache.get(targetUserId)?.data, 'Chi tiết nhật ký trận săn');
         }
 
         // --- Nút: QUAY LẠI / LÀM MỚI WORLD BOSS ---
@@ -1106,6 +1167,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           // Nạp năng lượng Linh Mạch Thu Thập (5 năng lượng cho mỗi cây)
           leylineService.addEnergy(targetUserId, 'thuthap', harvested.length * 5);
+          questChainService.updateProgress(targetUserId, 'collect', harvested.length);
 
           const embed = getLinhDienEmbed(targetUserId);
           const components = getLinhDienComponents(targetUserId);
@@ -1559,7 +1621,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           // --- 3. pb_swap_nav_<userId>: Hiển thị danh sách vật phẩm hoán đổi Bản Mệnh (Yêu cầu Huyết Tế Ma Bảng) ---
           else if (pbSub === 'swap' && pbType === 'nav') {
             const inv = inventoryRepository.getUserInventory(targetUserId);
-            const scroll = inv.find(i => i.item_id === 'item_life_bind_scroll' && i.quantity > 0);
+            const scroll = inv.find(i => i.item_id === ITEMS.ITEM_LIFE_BIND_SCROLL && i.quantity > 0);
             if (!scroll) {
               await interaction.reply({
                 content: '❌ Đạo hữu cần có **Huyết Tế Ma Bảng** trong hành trang để tiến hành hoán đổi Bản Mệnh Pháp Bảo!',
@@ -1619,7 +1681,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             const newInvId = parseInt(interaction.values[0], 10);
 
             const inv = inventoryRepository.getUserInventory(targetUserId);
-            const scroll = inv.find(i => i.item_id === 'item_life_bind_scroll' && i.quantity > 0);
+            const scroll = inv.find(i => i.item_id === ITEMS.ITEM_LIFE_BIND_SCROLL && i.quantity > 0);
             if (!scroll) {
               await interaction.reply({
                 content: '❌ Đạo hữu đã đánh mất **Huyết Tế Ma Bảng** nửa chừng, không thể tiến hành hoán đổi!',
@@ -1643,7 +1705,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             }
 
             // Khấu trừ Huyết Tế Ma Bảng
-            inventoryRepository.removeItem(targetUserId, 'item_life_bind_scroll', 1);
+            inventoryRepository.removeItem(targetUserId, ITEMS.ITEM_LIFE_BIND_SCROLL, 1);
 
             const embed = getBanMenhEmbed(targetUserId);
             const comps = getBanMenhComponents(targetUserId);
@@ -1785,6 +1847,21 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           await interaction.update({ embeds: [embed], components: [...rowsArr, backRow] });
         }
 
+        // --- Nút: PHÂN TRANG SỦNG THÚ ---
+        else if (action === 'sungthu') {
+          const page = parseInt(parts[1], 10) || 1;
+          const embed = getSungThuEmbed(targetUserId, page);
+          const rows = getSungThuComponents(targetUserId, page);
+          const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`hosoback_${targetUserId}`)
+              .setLabel('🔙 Quay Lại Hồ Sơ')
+              .setStyle(ButtonStyle.Secondary)
+          );
+          const rowsArr = Array.isArray(rows) ? rows : [rows];
+          await interaction.update({ embeds: [embed], components: [...rowsArr, backRow] });
+        }
+
         // --- Nút: ĐI ĐẾN CỬA HÀNG (từ hồ sơ) ---
         else if (action === 'shopnav') {
           const embed = getShopEmbed(targetUserId);
@@ -1854,7 +1931,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             }
 
             if (huntResult.combatLog) {
-              combatLogsCache.set(targetUserId, huntResult.combatLog);
+              combatLogsCache.set(targetUserId, { data: huntResult.combatLog, timestamp: Date.now() });
             }
 
             const { ActionRowBuilder: LocalActionRow, ButtonBuilder: LocalButton, ButtonStyle: LocalStyle } = require('discord.js');
@@ -2000,6 +2077,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           } else {
             // Thu hoạch bình thường
             dailyQuestService.updateProgress(targetUserId, 'daily_khambha', 1);
+            questChainService.updateProgress(targetUserId, 'explore', 1);
             const embed = getKhamBhaEmbed(targetUserId);
             const rows = getKhamBhaComponents(targetUserId);
             await interaction.update({ embeds: [embed], components: rows });
@@ -2014,6 +2092,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const result = explorationService.resolveEvent(targetUserId, explorationId, choiceId);
           dailyQuestService.updateProgress(targetUserId, 'daily_khambha', 1);
+          questChainService.updateProgress(targetUserId, 'explore', 1);
 
           const embed = getKhamBhaEmbed(targetUserId);
           const rows = getKhamBhaComponents(targetUserId);
@@ -2182,11 +2261,17 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
                   if (Math.random() < 0.3) {
                     const phoiType = Math.random() < 0.5 ? 'weapon' : 'armor';
                     const phoiGrade = isHard ? 's' : 'a';
-                    db.prepare(`INSERT INTO inventories (user_id, item_id, quantity, is_equipped, created_at) VALUES (?, ?, 1, 0, ?)`).run(mId, `phoi_${phoiType}_${phoiGrade}`, Math.floor(Date.now()/1000));
+                    const phoiItemId = phoiType === 'weapon' ? getPhoiWeaponByGrade(phoiGrade) : getPhoiArmorByGrade(phoiGrade);
+                    db.prepare(`INSERT INTO inventories (user_id, item_id, quantity, is_equipped, created_at) VALUES (?, ?, 1, 0, ?)`).run(mId, phoiItemId, Math.floor(Date.now()/1000));
                     rewardsText += `  🎉 Nhận 1x Phôi ${phoiType==='weapon'?'Vũ Khí':'Đạo Bào'} (${phoiGrade.toUpperCase()})!\n`;
                   }
                 }
               }
+            }
+
+            // Cập nhật tiến trình nhiệm vụ hàng ngày cho tất cả thành viên tổ đội
+            for (const m of partyMembers) {
+              dailyQuestService.updateProgress(m.userId, 'daily_bicanh', 1);
             }
 
             // Dọn dẹp phòng
@@ -2485,7 +2570,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
                 // Đặc quyền Boss Drop
                 if (Math.random() < 0.2) {
-                  db.prepare(`INSERT INTO inventories (user_id, item_id, quantity, is_equipped, created_at) VALUES (?, ?, 1, 0, ?)`).run(mId, `manh_vo_vu_khi`, Math.floor(Date.now()/1000));
+                  db.prepare(`INSERT INTO inventories (user_id, item_id, quantity, is_equipped, created_at) VALUES (?, ?, 1, 0, ?)`).run(mId, ITEMS.MANH_VO_VU_KHI, Math.floor(Date.now()/1000));
                   rewardsText += `  🎉 Nhận 1x Mảnh Vỡ Vũ Khí!\n`;
                 }
               }
@@ -2511,6 +2596,11 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
                 rewardsText += `• **${u.name}**: -${expLoss} Tu Vi, -${coinLoss} Linh Thạch, -${thuongPhamLoss} LT Thượng Phẩm, -50 Thể Lực, 45p Trọng Thương.\n`;
               }
             }
+          }
+
+          // Cập nhật tiến trình nhiệm vụ hàng ngày cho tất cả thành viên tổ đội
+          for (const mId of party.members) {
+            dailyQuestService.updateProgress(mId, 'daily_bicanh', 1);
           }
 
           partyService.endParty(partyId);
@@ -3221,9 +3311,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         }
 
         const item = SHOP_ITEMS.find(i => i.id === itemId);
-        const buyer = userRepository.get(targetUserId);
 
-        if (!item || !buyer) {
+        if (!item) {
           await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', ephemeral: true });
           return;
         }
@@ -3231,19 +3320,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const totalCost = item.price * qty;
 
         if (item.currency === 'knb') {
-          if (buyer.knb < totalCost) {
-            await interaction.reply({
-              content: `❌ Đạo hữu không đủ KNB! (Tổng chi phí: **${totalCost}** KNB, hiện có: **${buyer.knb}** KNB).`,
-              ephemeral: true
-            });
-            return;
-          }
-
           let realItemId = item.id;
-          if (item.id === 'item_nhan_dinh_hon_knb') realItemId = 'item_nhan_dinh_hon';
-          if (item.id === 'item_bloodline_pill_knb') realItemId = 'item_bloodline_pill';
+          if (item.id === ITEMS.ITEM_NHAN_DINH_HON_KNB) realItemId = ITEMS.ITEM_NHAN_DINH_HON;
+          if (item.id === ITEMS.ITEM_BLOODLINE_PILL_KNB) realItemId = ITEMS.ITEM_BLOODLINE_PILL;
 
           const tx = db.transaction(() => {
+            const buyer = userRepository.get(targetUserId);
+            if (!buyer) throw new Error('Đạo hữu chưa khởi tạo nhân vật');
+            if (buyer.knb < totalCost) throw new Error(`Không đủ KNB! (Cần: ${totalCost}, có: ${buyer.knb})`);
             checkAndUpdateWeeklyLimit(targetUserId, item.id, qty);
             userRepository.update(targetUserId, { knb: buyer.knb - totalCost });
             inventoryRepository.addItem(targetUserId, realItemId, qty);
@@ -3267,15 +3351,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             await interaction.reply({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} KNB)!`, ephemeral: true });
           }
         } else {
-          if (buyer.coin_ha_pham < totalCost) {
-            await interaction.reply({
-              content: `❌ Đạo hữu không đủ Linh Thạch! (Tổng chi phí: **${totalCost}** Linh Thạch, hiện có: **${buyer.coin_ha_pham}**).`,
-              ephemeral: true
-            });
-            return;
-          }
-
           const tx = db.transaction(() => {
+            const buyer = userRepository.get(targetUserId);
+            if (!buyer) throw new Error('Đạo hữu chưa khởi tạo nhân vật');
+            if (buyer.coin_ha_pham < totalCost) throw new Error(`Không đủ Linh Thạch! (Cần: ${totalCost}, có: ${buyer.coin_ha_pham})`);
             checkAndUpdateWeeklyLimit(targetUserId, item.id, qty);
             userRepository.update(targetUserId, { coin_ha_pham: buyer.coin_ha_pham - totalCost });
             inventoryRepository.addItem(targetUserId, item.id, qty);

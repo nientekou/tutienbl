@@ -161,7 +161,7 @@ class AchievementService {
     setTitle(userId, title) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: '❌ Nhân vật không tồn tại!' };
+            return { success: false, message: '❌ Đạo hữu chưa khởi tạo nhân vật!' };
         // Kiểm tra title có trong danh sách đã mở khóa không
         const hasTitle = database_1.default.prepare('SELECT id FROM user_titles WHERE user_id = ? AND title = ?').get(userId, title);
         if (!hasTitle) {
@@ -187,7 +187,9 @@ class AchievementService {
         try {
             yCanhMap = JSON.parse(user.y_canh || '{}');
         }
-        catch (e) { }
+        catch (e) {
+            console.warn('[AchievementService] Failed to parse y_canh for achievement tracking:', e);
+        }
         const totalYCLevels = Object.values(yCanhMap).reduce((a, b) => a + b, 0);
         return this.setProgress(userId, 'tl_18', totalYCLevels);
     }

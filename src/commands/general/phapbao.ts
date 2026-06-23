@@ -44,21 +44,21 @@ export default class PhapBaoCommand extends Command {
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
-    if (!user) { await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true }); return; }
+    if (!user) { await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'}); return; }
 
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'banmenh') {
       const embed = getBanMenhEmbed(userId);
       const components = getBanMenhComponents(userId);
-      await interaction.reply({ embeds: [embed], components });
+      await interaction.editReply({ embeds: [embed], components });
       return;
     }
 
     if (sub === 'thongtin') {
       const sw = soulWeaponRepository.getByUserId(userId);
       if (!sw) {
-        await interaction.reply({ content: '❌ Đạo hữu chưa ngưng tụ Pháp Bảo Bản Mệnh! Dùng lệnh `/phapbao ngung-tu` (Yêu cầu Kim Đan Kỳ).', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu chưa ngưng tụ Pháp Bảo Bản Mệnh! Dùng lệnh `/phapbao ngung-tu` (Yêu cầu Kim Đan Kỳ).'});
         return;
       }
 
@@ -85,18 +85,18 @@ export default class PhapBaoCommand extends Command {
         .setFooter({ text: 'Dùng lệnh /phapbao te-luyen <id,id...> để Pháp Bảo nuốt trang bị rác!' })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
 
     } else if (sub === 'ngung-tu') {
       const sw = soulWeaponRepository.getByUserId(userId);
       if (sw) {
-        await interaction.reply({ content: `❌ Đạo hữu đã có Pháp Bảo Bản Mệnh là **${sw.name}** rồi! Không thể ngưng tụ thêm.`, ephemeral: true });
+        await interaction.editReply({ content: `❌ Đạo hữu đã có Pháp Bảo Bản Mệnh là **${sw.name}** rồi! Không thể ngưng tụ thêm.`});
         return;
       }
 
       const realm = getRealmDetails(user.level);
       if (user.level < 40) {
-        await interaction.reply({ content: `❌ Cảnh giới hiện tại là **${realm.fullName}**, chưa đủ điều kiện! Yêu cầu cấp **40** trở lên để ngưng tụ Pháp Bảo Bản Mệnh.`, ephemeral: true });
+        await interaction.editReply({ content: `❌ Cảnh giới hiện tại là **${realm.fullName}**, chưa đủ điều kiện! Yêu cầu cấp **40** trở lên để ngưng tụ Pháp Bảo Bản Mệnh.`});
         return;
       }
 
@@ -104,7 +104,7 @@ export default class PhapBaoCommand extends Command {
       const type = interaction.options.getString('loai', true) as 'kiem' | 'dinh' | 'an';
 
       if (user.coin_ha_pham < 50000) {
-        await interaction.reply({ content: '❌ Cần **50,000 Hạ Phẩm Linh Thạch** làm vật dẫn để ngưng tụ Pháp Bảo!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Cần **50,000 Hạ Phẩm Linh Thạch** làm vật dẫn để ngưng tụ Pháp Bảo!'});
         return;
       }
 
@@ -125,20 +125,20 @@ export default class PhapBaoCommand extends Command {
         )
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
 
     } else if (sub === 'te-luyen') {
       const idsStr = interaction.options.getString('ids', true);
       const ids = idsStr.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
 
       if (ids.length === 0) {
-        await interaction.reply({ content: '❌ Định dạng ID không hợp lệ. Ví dụ đúng: 12, 34, 56', ephemeral: true });
+        await interaction.editReply({ content: '❌ Định dạng ID không hợp lệ. Ví dụ đúng: 12, 34, 56'});
         return;
       }
 
       const result = soulWeaponService.feedItems(userId, ids);
       if (!result.success) {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}`});
         return;
       }
 
@@ -158,7 +158,7 @@ export default class PhapBaoCommand extends Command {
         )
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
   }
 }

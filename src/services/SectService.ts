@@ -35,7 +35,7 @@ export class SectService {
   public createSect(userId: string, name: string, description: string): { success: boolean; message: string; sectId?: number } {
     const user = userRepository.get(userId);
     if (!user) {
-      return { success: false, message: 'Nhân vật của đạo hữu không tồn tại.' };
+      return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
     }
 
     if (user.sect_id) {
@@ -91,7 +91,7 @@ export class SectService {
   public joinSect(userId: string, sectId: number): { success: boolean; message: string } {
     const user = userRepository.get(userId);
     if (!user) {
-      return { success: false, message: 'Nhân vật của đạo hữu không tồn tại.' };
+      return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
     }
 
     if (user.sect_id) {
@@ -476,7 +476,7 @@ export class SectService {
    */
   public declareWar(requesterUserId: string, allianceSectId: number, targetAllianceSectId: number): { success: boolean; message: string; warId?: string } {
     const requester = userRepository.get(requesterUserId);
-    if (!requester) return { success: false, message: 'Nhân vật không tồn tại.' };
+    if (!requester) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
 
     const challengerSect = db.prepare('SELECT * FROM sects WHERE id = ?').get(allianceSectId) as any;
     if (!challengerSect) return { success: false, message: 'Tông Môn của đạo hữu không tồn tại!' };

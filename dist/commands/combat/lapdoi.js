@@ -125,7 +125,7 @@ class LapDoiCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -133,9 +133,8 @@ class LapDoiCommand extends Command_1.Command {
             // Kiểm tra đã có phòng chưa
             const existingRoom = database_1.default.prepare("SELECT * FROM party_rooms WHERE (host_id = ? OR member_ids LIKE ?) AND status != 'closed'").get(userId, `%"${userId}"%`);
             if (existingRoom) {
-                await interaction.reply({
-                    content: `❌ Đạo hữu đã ở trong phòng **${existingRoom.id}**! Hãy rời phòng trước khi tạo mới.`,
-                    ephemeral: true
+                await interaction.editReply({
+                    content: `❌ Đạo hữu đã ở trong phòng **${existingRoom.id}**! Hãy rời phòng trước khi tạo mới.`
                 });
                 return;
             }
@@ -149,44 +148,39 @@ class LapDoiCommand extends Command_1.Command {
             const room = database_1.default.prepare("SELECT * FROM party_rooms WHERE id = ?").get(roomId);
             const embed = getPartyRoomEmbed(room, user);
             const components = getPartyRoomComponents(room, userId);
-            await interaction.reply({
+            await interaction.editReply({
                 content: `🎉 **Phòng tổ đội đã được tạo!** Mời bạn bè dùng \`/lapdoi thamgia ma_phong: ${roomId}\` để vào phòng!`,
                 embeds: [embed],
-                components,
-                ephemeral: false
+                components
             });
         }
         else if (sub === 'thamgia') {
             const roomId = interaction.options.getString('ma_phong', true).toUpperCase();
             const room = database_1.default.prepare("SELECT * FROM party_rooms WHERE id = ? AND status != 'closed'").get(roomId);
             if (!room) {
-                await interaction.reply({
-                    content: '❌ Mã phòng không hợp lệ hoặc phòng đã đóng!',
-                    ephemeral: true
+                await interaction.editReply({
+                    content: '❌ Mã phòng không hợp lệ hoặc phòng đã đóng!'
                 });
                 return;
             }
             const members = JSON.parse(room.member_ids || '[]');
             if (members.length >= 3) {
-                await interaction.reply({
-                    content: '❌ Phòng đã đầy! (Tối đa 3 người)',
-                    ephemeral: true
+                await interaction.editReply({
+                    content: '❌ Phòng đã đầy! (Tối đa 3 người)'
                 });
                 return;
             }
             if (members.includes(userId)) {
-                await interaction.reply({
-                    content: '❌ Đạo hữu đã ở trong phòng này rồi!',
-                    ephemeral: true
+                await interaction.editReply({
+                    content: '❌ Đạo hữu đã ở trong phòng này rồi!'
                 });
                 return;
             }
             // Kiểm tra người dùng có đang ở phòng khác không
             const inOtherRoom = database_1.default.prepare("SELECT id FROM party_rooms WHERE (host_id = ? OR member_ids LIKE ?) AND status != 'closed' AND id != ?").get(userId, `%"${userId}"%`, roomId);
             if (inOtherRoom) {
-                await interaction.reply({
-                    content: '❌ Đạo hữu đang ở trong một phòng khác! Hãy rời phòng đó trước.',
-                    ephemeral: true
+                await interaction.editReply({
+                    content: '❌ Đạo hữu đang ở trong một phòng khác! Hãy rời phòng đó trước.'
                 });
                 return;
             }
@@ -196,11 +190,10 @@ class LapDoiCommand extends Command_1.Command {
             const host = UserRepository_1.userRepository.get(room.host_id);
             const embed = getPartyRoomEmbed(room, host);
             const components = getPartyRoomComponents(room, userId);
-            await interaction.reply({
+            await interaction.editReply({
                 content: `✅ **${user.name}** đã tham gia phòng **${roomId}**!`,
                 embeds: [embed],
-                components,
-                ephemeral: false
+                components
             });
         }
     }

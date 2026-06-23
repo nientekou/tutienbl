@@ -43,7 +43,7 @@ export default class ArenaCommand extends Command {
 
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật, vui lòng dùng lệnh `/taonhanvat`.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật, vui lòng dùng lệnh `/taonhanvat`.'});
       return;
     }
 
@@ -53,7 +53,7 @@ export default class ArenaCommand extends Command {
       const targetProfile = userRepository.get(targetId);
 
       if (!targetProfile) {
-        await interaction.reply({ content: '❌ Người chơi này chưa tạo nhân vật.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Người chơi này chưa tạo nhân vật.'});
         return;
       }
 
@@ -90,12 +90,10 @@ export default class ArenaCommand extends Command {
         .setThumbnail(targetUser.displayAvatarURL())
         .setFooter({ text: `Mùa Giải: ${profile.season_id}` });
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
     
     else if (subcommand === 'find') {
-      await interaction.deferReply(); // Do tính toán combat có thể lâu
-
       const opponentId = arenaService.getMatchmaking(userId);
       if (!opponentId) {
         await interaction.editReply('❌ Đấu trường hiện tại vắng lặng, không tìm thấy đối thủ nào! Hãy quay lại sau.');
@@ -156,7 +154,7 @@ export default class ArenaCommand extends Command {
       const topPlayers = arenaService.getLeaderboard(10);
 
       if (topPlayers.length === 0) {
-        await interaction.reply({ content: '📭 Bảng xếp hạng Đấu Trường hiện tại trống rỗng.', ephemeral: true });
+        await interaction.editReply({ content: '📭 Bảng xếp hạng Đấu Trường hiện tại trống rỗng.'});
         return;
       }
 
@@ -176,7 +174,7 @@ export default class ArenaCommand extends Command {
       });
 
       embed.setDescription(description);
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
     
     else if (subcommand === 'history') {
@@ -188,7 +186,7 @@ export default class ArenaCommand extends Command {
       `).all(userId, userId) as any[];
 
       if (history.length === 0) {
-        await interaction.reply({ content: '📭 Đạo hữu chưa tham gia trận đấu nào.', ephemeral: true });
+        await interaction.editReply({ content: '📭 Đạo hữu chưa tham gia trận đấu nào.'});
         return;
       }
 
@@ -212,7 +210,7 @@ export default class ArenaCommand extends Command {
       }
 
       embed.setDescription(desc);
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
   }
 }

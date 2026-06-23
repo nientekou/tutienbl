@@ -9,6 +9,7 @@ const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 const InventoryService_1 = require("./InventoryService");
 const constants_1 = require("../utils/constants");
+const itemConstants_1 = require("../config/itemConstants");
 class GuildWarService {
     /** Tạo mã chiến ngẫu nhiên */
     generateWarId() {
@@ -40,7 +41,7 @@ class GuildWarService {
     createWar(challengerUserId, defenderSectId) {
         const challenger = UserRepository_1.userRepository.get(challengerUserId);
         if (!challenger)
-            return { success: false, message: 'Nhân vật không tồn tại.' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
         if (!challenger.sect_id)
             return { success: false, message: 'Đạo hữu chưa gia nhập Tông Môn nào!' };
         const challengerSect = database_1.default.prepare('SELECT * FROM sects WHERE id = ?').get(challenger.sect_id);
@@ -196,7 +197,7 @@ class GuildWarService {
     attack(warId, userId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         const war = database_1.default.prepare("SELECT * FROM guild_wars WHERE id = ? AND status = 'active'").get(warId);
         if (!war)
             return { success: false, message: 'Cuộc chiến không tồn tại hoặc không ở trạng thái chiến đấu!' };
@@ -365,7 +366,7 @@ class GuildWarService {
                 const mvpThreshold = underdogMult > 1.0 ? 0.25 : 0.4;
                 if (share >= mvpThreshold) {
                     const bonusChests = underdogMult > 1.0 ? Math.floor(underdogMult) : 1;
-                    InventoryRepository_1.inventoryRepository.addItem(p.user_id, 'lucky_chest', bonusChests);
+                    InventoryRepository_1.inventoryRepository.addItem(p.user_id, itemConstants_1.ITEMS.LUCKY_CHEST, bonusChests);
                 }
             })();
             // Audit log

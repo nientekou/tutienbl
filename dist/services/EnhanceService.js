@@ -7,6 +7,7 @@ exports.enhanceService = exports.EnhanceService = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
+const itemConstants_1 = require("../config/itemConstants");
 class EnhanceService {
     // Cấu hình cường hóa từ cấp hiện tại lên cấp tiếp theo (level + 1)
     // Cấu hình cường hóa đã tăng độ khó
@@ -55,7 +56,7 @@ class EnhanceService {
             return { success: false, message: 'Cấu hình cường hóa cho cấp độ này không tồn tại!' };
         // Tìm Mảnh Tinh Thạch trong túi người chơi
         const userInventory = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-        const shardItem = userInventory.find(i => i.item_id === 'tinh_thach_shard');
+        const shardItem = userInventory.find(i => i.item_id === itemConstants_1.ITEMS.TINH_THACH_SHARD);
         const shardQty = shardItem ? shardItem.quantity : 0;
         if (shardQty < cfg.costShards) {
             return {

@@ -4,6 +4,7 @@ exports.marriageService = exports.MarriageService = void 0;
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 const CoupleRepository_1 = require("../database/repositories/CoupleRepository");
+const itemConstants_1 = require("../config/itemConstants");
 class MarriageService {
     checkProposal(userId, targetId) {
         if (userId === targetId) {
@@ -12,7 +13,7 @@ class MarriageService {
         const user = UserRepository_1.userRepository.get(userId);
         const target = UserRepository_1.userRepository.get(targetId);
         if (!user)
-            return { success: false, message: 'Nhân vật của bạn không tồn tại.' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
         if (!target)
             return { success: false, message: 'Người chơi mục tiêu không tồn tại.' };
         if (user.partner_id) {
@@ -22,7 +23,7 @@ class MarriageService {
             return { success: false, message: 'Người ấy đã là hoa đã có chủ, xin đạo hữu tự trọng.' };
         }
         const inv = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-        const hasItem = inv.find(i => i.item_id === 'item_tam_sinh_thach' && i.quantity > 0);
+        const hasItem = inv.find(i => i.item_id === itemConstants_1.ITEMS.ITEM_TAM_SINH_THACH && i.quantity > 0);
         if (!hasItem) {
             return { success: false, message: 'Cần có **Tam Sinh Thạch** trong túi để làm tín vật định tình!' };
         }
@@ -37,7 +38,7 @@ class MarriageService {
         if (!check.success)
             return check;
         // Trừ vật phẩm của người cầu hôn
-        InventoryRepository_1.inventoryRepository.removeItem(proposerId, 'item_tam_sinh_thach', 1);
+        InventoryRepository_1.inventoryRepository.removeItem(proposerId, itemConstants_1.ITEMS.ITEM_TAM_SINH_THACH, 1);
         // Cập nhật cả 2 người
         UserRepository_1.userRepository.update(proposerId, { partner_id: targetId, intimacy: 100 });
         UserRepository_1.userRepository.update(targetId, { partner_id: proposerId, intimacy: 100 });
@@ -53,17 +54,17 @@ class MarriageService {
     divorce(userId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại.' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
         if (!user.partner_id)
             return { success: false, message: 'Đạo hữu hiện đang độc thân, không thể ly hôn.' };
         const inv = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-        const hasItem = inv.find(i => i.item_id === 'item_tuyet_tinh_nuoc' && i.quantity > 0);
+        const hasItem = inv.find(i => i.item_id === itemConstants_1.ITEMS.ITEM_TUYET_TINH_NUOC && i.quantity > 0);
         if (!hasItem) {
             return { success: false, message: 'Cần có **Tuyệt Tình Nước** để cắt đứt tơ hồng duyên phận.' };
         }
         const partnerId = user.partner_id;
         // Trừ vật phẩm
-        InventoryRepository_1.inventoryRepository.removeItem(userId, 'item_tuyet_tinh_nuoc', 1);
+        InventoryRepository_1.inventoryRepository.removeItem(userId, itemConstants_1.ITEMS.ITEM_TUYET_TINH_NUOC, 1);
         // Xóa liên kết trong bảng couples
         const couple = CoupleRepository_1.coupleRepository.getCoupleByUserId(userId);
         if (couple) {
@@ -87,13 +88,13 @@ class MarriageService {
     dualCultivate(userId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại.' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
         if (!user.partner_id)
             return { success: false, message: 'Đạo hữu chưa có đạo lữ để song tu.' };
         const partnerId = user.partner_id;
         const partner = UserRepository_1.userRepository.get(partnerId);
         if (!partner)
-            return { success: false, message: 'Đạo lữ của bạn không tồn tại.' };
+            return { success: false, message: 'Đạo lữ của Đạo hữu không tồn tại.' };
         const now = Math.floor(Date.now() / 1000);
         const startOfToday = Math.floor(new Date().setHours(0, 0, 0, 0) / 1000);
         // Tính toán Stamina cost

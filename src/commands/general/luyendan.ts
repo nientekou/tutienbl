@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
@@ -6,6 +6,7 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import { alchemyService, ALCHEMY_RECIPES } from '../../services/AlchemyService';
 import { getProgressBar } from '../../utils/constants';
 import db from '../../database/database';
+import { ITEMS } from '../../config/itemConstants';
 
 export default class LuyenDanCommand extends Command {
   constructor() {
@@ -21,14 +22,14 @@ export default class LuyenDanCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'});
       return;
     }
 
     const embed = this.getAlchemyEmbed(userId);
     const rows = this.getAlchemyComponents(userId);
 
-    await interaction.reply({ embeds: [embed], components: rows });
+    await interaction.editReply({ embeds: [embed], components: rows });
   }
 
   /**
@@ -59,7 +60,7 @@ export default class LuyenDanCommand extends Command {
 
     if (cauldrons.length > 0) {
       // Ưu tiên: cauldron_high > cauldron_mid > cauldron_low
-      const order = ['cauldron_high', 'cauldron_mid', 'cauldron_low'];
+      const order = [ITEMS.CAULDRON_HIGH, ITEMS.CAULDRON_MID, ITEMS.CAULDRON_LOW];
       for (const cid of order) {
         bestCauldron = cauldrons.find(i => i.item_id === cid);
         if (bestCauldron) break;
@@ -116,13 +117,13 @@ export default class LuyenDanCommand extends Command {
       const matText = recipe.requiredMaterials.map(m => {
         const itemInfo = inventoryRepository.getUserInventory(userId).find(i => i.item_id === m.itemId);
         const nameMap: Record<string, string> = {
-          'material_linh_thao_1': 'Linh Thảo Hạ Phẩm',
-          'material_nhan_sam_1': 'Huyết Nhân Sâm',
-          'material_iron_1': 'Huyền Thiết Sa',
-          'item_fragment': 'Mảnh Trang Bị',
-          'material_blood_flower': 'Huyết Hoa',
-          'material_void_herb': 'Hư Không Thảo',
-          'material_wind_leaf': 'Thiên Phong Diệp'
+          [ITEMS.MATERIAL_LINH_THAO_1]: 'Linh Thảo Hạ Phẩm',
+          [ITEMS.MATERIAL_NHAN_SAM_1]: 'Huyết Nhân Sâm',
+          [ITEMS.MATERIAL_IRON_1]: 'Huyền Thiết Sa',
+          [ITEMS.ITEM_FRAGMENT]: 'Mảnh Trang Bị',
+          [ITEMS.MATERIAL_BLOOD_FLOWER]: 'Huyết Hoa',
+          [ITEMS.MATERIAL_VOID_HERB]: 'Hư Không Thảo',
+          [ITEMS.MATERIAL_WIND_LEAF]: 'Thiên Phong Diệp'
         };
         const name = nameMap[m.itemId] || m.itemId;
         
@@ -170,7 +171,7 @@ export default class LuyenDanCommand extends Command {
   /**
    * Tạo Action Row nút bấm luyện đan
    */
-  public getAlchemyComponents(userId: string): ActionRowBuilder<ButtonBuilder>[] {
+  public getAlchemyComponents(userId: string): ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[] {
     const user = userRepository.get(userId)!;
     const alchemyLevel = user.alchemy_level || 1;
 
@@ -182,7 +183,7 @@ export default class LuyenDanCommand extends Command {
     }
     const craftQty = yCanh.active_craft_quantity || 1;
 
-    const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+    const rows: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[] = [];
 
     // Row 1: Toggle Quantity button
     const rowQty = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -193,29 +194,22 @@ export default class LuyenDanCommand extends Command {
     );
     rows.push(rowQty);
 
-    // Row 2 and 3: Recipe buttons (5 buttons per row max)
-    let currentRow = new ActionRowBuilder<ButtonBuilder>();
-    let btnCount = 0;
+    // Row 2: Recipe select menu
+    const recipeSelect = new StringSelectMenuBuilder()
+      .setCustomId(`alch_select_${userId}`)
+      .setPlaceholder('📜 Chọn công thức luyện đan...');
 
     for (const recipe of ALCHEMY_RECIPES) {
-      if (btnCount > 0 && btnCount % 5 === 0) {
-        rows.push(currentRow);
-        currentRow = new ActionRowBuilder<ButtonBuilder>();
-      }
-
       const isLocked = alchemyLevel < recipe.requiredAlchemyLevel;
-      currentRow.addComponents(
-        new ButtonBuilder()
-          .setCustomId(`alch_craft_${recipe.id}_${userId}`)
-          .setLabel(`Nấu ${recipe.name}`)
-          .setStyle(isLocked ? ButtonStyle.Secondary : ButtonStyle.Success)
-          .setDisabled(isLocked)
+      recipeSelect.addOptions(
+        new StringSelectMenuOptionBuilder()
+          .setLabel(`Nấu ${recipe.name}${isLocked ? ' 🔒' : ''}`)
+          .setDescription(`Level yêu cầu: ${recipe.requiredAlchemyLevel}`)
+          .setValue(recipe.id)
       );
-      btnCount++;
     }
-    if (currentRow.components.length > 0) {
-      rows.push(currentRow);
-    }
+
+    rows.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(recipeSelect));
 
     return rows;
   }

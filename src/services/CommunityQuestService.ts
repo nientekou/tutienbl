@@ -1,6 +1,7 @@
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
+import { ITEMS } from '../config/itemConstants';
 
 export interface CommunityQuestDefinition {
   id: string;
@@ -37,7 +38,7 @@ const COMMUNITY_QUEST_POOL: CommunityQuestDefinition[] = [
     description: 'Các tu sĩ quyết đấu khắp thiên hạ',
     objectiveType: 'total_pvp',
     totalRequired: 100,
-    rewardPerPlayer: { exp: 8000, coins: 3000, items: [{ id: 'pill_tu_vi_low', qty: 3 }] },
+    rewardPerPlayer: { exp: 8000, coins: 3000, items: [{ id: ITEMS.PILL_TU_VI_LOW, qty: 3 }] },
     durationHours: 36,
   },
 ];
@@ -122,7 +123,7 @@ class CommunityQuestService {
       if (!user) continue;
 
       userRepository.update(p.user_id, {
-        tu_vi: user.tu_vi + quest.reward_exp,
+        tu_vi: Math.min(user.tu_vi + quest.reward_exp, user.exp_needed),
         coin_ha_pham: user.coin_ha_pham + quest.reward_coins,
       });
 

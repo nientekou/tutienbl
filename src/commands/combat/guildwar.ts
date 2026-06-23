@@ -87,7 +87,7 @@ export default class GuildWarCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
 
@@ -98,7 +98,7 @@ export default class GuildWarCommand extends Command {
 
       const result = guildWarService.createWar(userId, targetSectId);
       if (!result.success) {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}` });
         return;
       }
 
@@ -120,7 +120,7 @@ export default class GuildWarCommand extends Command {
         .setFooter({ text: 'Thư chiến sẽ tự động hết hạn sau 24 giờ.' })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
 
     else if (sub === 'thamgia') {
@@ -128,11 +128,11 @@ export default class GuildWarCommand extends Command {
       const result = guildWarService.joinWar(warId, userId);
 
       if (!result.success) {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}` });
         return;
       }
 
-      await interaction.reply({ content: `✅ ${result.message}`, ephemeral: false });
+      await interaction.editReply({ content: `✅ ${result.message}` });
     }
 
     else if (sub === 'chapnhan') {
@@ -140,14 +140,14 @@ export default class GuildWarCommand extends Command {
       const result = guildWarService.respondToWar(warId, userId, true);
 
       if (!result.success) {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}` });
         return;
       }
 
       // Hiển thị thông tin chiến tranh
       const war = guildWarService.getWarDetail(warId);
       const embed = this.getWarStatusEmbed(war!);
-      await interaction.reply({ content: '✅ ' + result.message, embeds: embed ? [embed] : [], ephemeral: false });
+      await interaction.editReply({ content: '✅ ' + result.message, embeds: embed ? [embed] : [] });
     }
 
     else if (sub === 'tuchoi') {
@@ -155,11 +155,11 @@ export default class GuildWarCommand extends Command {
       const result = guildWarService.respondToWar(warId, userId, false);
 
       if (!result.success) {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}` });
         return;
       }
 
-      await interaction.reply({ content: result.message, ephemeral: false });
+      await interaction.editReply({ content: result.message });
     }
 
     else if (sub === 'tancong') {
@@ -167,7 +167,7 @@ export default class GuildWarCommand extends Command {
       const result = guildWarService.attack(warId, userId);
 
       if (!result.success) {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}` });
         return;
       }
 
@@ -175,10 +175,9 @@ export default class GuildWarCommand extends Command {
       const war = guildWarService.getWarDetail(warId);
       const embed = this.getWarStatusEmbed(war!);
 
-      await interaction.reply({
+      await interaction.editReply({
         content: result.message,
-        embeds: embed ? [embed] : [],
-        ephemeral: false
+        embeds: embed ? [embed] : []
       });
     }
 
@@ -212,7 +211,7 @@ export default class GuildWarCommand extends Command {
         embed.addFields({ name: '📊 Bảng Xếp Hạng', value: rankingText });
       }
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
 
     else if (sub === 'thongtin') {
@@ -238,17 +237,17 @@ export default class GuildWarCommand extends Command {
                 `_Tông Chủ có thể dùng \`/guildwar taophong\` để khiêu chiến Tông Môn khác._`
               )
               .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
             return;
           }
         }
-        await interaction.reply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn nào!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn nào!' });
         return;
       }
 
       const embed = this.getWarStatusEmbed(war);
       if (!embed) {
-        await interaction.reply({ content: '❌ Không thể tải thông tin chiến tranh.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Không thể tải thông tin chiến tranh.' });
         return;
       }
 
@@ -276,7 +275,7 @@ export default class GuildWarCommand extends Command {
         );
       }
 
-      await interaction.reply({
+      await interaction.editReply({
         embeds: [embed],
         components: participantRows.components.length > 0 ? [participantRows] : []
       });

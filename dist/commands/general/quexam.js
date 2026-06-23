@@ -24,15 +24,13 @@ class QueXamCommand extends Command_1.Command {
                 if (minutes > 0)
                     timeStr += `${minutes} phút `;
                 timeStr += `${seconds} giây`;
-                await interaction.reply({
-                    content: `⏳ **Thiên cơ bất khả lộ:** Đạo hữu hôm nay đã rút quẻ rồi. Hãy đợi **${timeStr}** để tinh tú dịch chuyển, quẻ xăm tiếp theo mới linh ứng!`,
-                    ephemeral: true
+                await interaction.editReply({
+                    content: `⏳ **Thiên cơ bất khả lộ:** Đạo hữu hôm nay đã rút quẻ rồi. Hãy đợi **${timeStr}** để tinh tú dịch chuyển, quẻ xăm tiếp theo mới linh ứng!`
                 });
             }
             else {
-                await interaction.reply({
-                    content: `❌ ${result.message}`,
-                    ephemeral: true
+                await interaction.editReply({
+                    content: `❌ ${result.message}`
                 });
             }
             return;
@@ -101,7 +99,7 @@ class QueXamCommand extends Command_1.Command {
         })
             .setFooter({ text: 'Mỗi ngày đạo hữu chỉ được rút xăm một lần duy nhất!' })
             .setTimestamp();
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
     }
 }
 exports.default = QueXamCommand;

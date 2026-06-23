@@ -55,7 +55,7 @@ export default class SectWarCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
 
@@ -82,7 +82,7 @@ export default class SectWarCommand extends Command {
             value: `Yêu cầu Tông Môn cấp: **${mineDef.level_req}**\nSản lượng: **${mineDef.income} LT/4h**\n${statusStr}`
           });
         }
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
         return;
       }
 
@@ -91,9 +91,9 @@ export default class SectWarCommand extends Command {
         const result = sectWarService.captureMine(userId, mineId);
         if (result.success && result.log) {
           const logText = result.log.slice(0, 5).join('\n') + (result.log.length > 5 ? '\n... (trận đấu diễn ra ác liệt)' : '');
-          await interaction.reply({ content: `${result.message}\n\n**Chiến báo:**\n${logText}` });
+          await interaction.editReply({ content: `${result.message}\n\n**Chiến báo:**\n${logText}` });
         } else {
-          await interaction.reply({ content: result.message, ephemeral: !result.success });
+          await interaction.editReply({ content: result.message });
         }
         return;
       }
@@ -101,7 +101,7 @@ export default class SectWarCommand extends Command {
       if (sub === 'thuhoach') {
         const mineId = interaction.options.getString('mine_id', true);
         const result = sectWarService.claimMineIncome(userId, mineId);
-        await interaction.reply({ content: result.message, ephemeral: !result.success });
+        await interaction.editReply({ content: result.message });
         return;
       }
     }
@@ -163,13 +163,13 @@ export default class SectWarCommand extends Command {
         });
       }
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
     if (sub === 'thamgia') {
       const result = sectWarService.joinBattle(userId);
-      await interaction.reply({ content: result.message, ephemeral: !result.success });
+      await interaction.editReply({ content: result.message });
       return;
     }
 
@@ -177,12 +177,12 @@ export default class SectWarCommand extends Command {
       const targetId = interaction.options.getString('player_id', true);
 
       if (targetId === userId) {
-        await interaction.reply({ content: '❌ Không thể tự tấn công bản thân!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Không thể tự tấn công bản thân!' });
         return;
       }
 
       const result = sectWarService.attack(userId, targetId);
-      await interaction.reply({ content: result.message, ephemeral: !result.success });
+      await interaction.editReply({ content: result.message });
       return;
     }
 
@@ -191,7 +191,7 @@ export default class SectWarCommand extends Command {
       const leaderboard = sectWarService.getSectLeaderboard();
 
       if (leaderboard.length === 0) {
-        await interaction.reply({ content: '📊 Chưa có dữ liệu bảng xếp hạng cho mùa này.', ephemeral: true });
+        await interaction.editReply({ content: '📊 Chưa có dữ liệu bảng xếp hạng cho mùa này.' });
         return;
       }
 
@@ -204,14 +204,14 @@ export default class SectWarCommand extends Command {
         }).join('\n'))
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
     if (sub === 'lichsu') {
       const history = sectWarService.getFinishedBattlesHistory();
       if (history.length === 0) {
-        await interaction.reply({ content: '📜 Chưa có dữ liệu lịch sử chiến trận nào.', ephemeral: true });
+        await interaction.editReply({ content: '📜 Chưa có dữ liệu lịch sử chiến trận nào.' });
         return;
       }
 
@@ -235,7 +235,7 @@ export default class SectWarCommand extends Command {
         });
       }
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
   }

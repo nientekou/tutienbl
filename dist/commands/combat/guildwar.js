@@ -55,7 +55,7 @@ class GuildWarCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -63,7 +63,7 @@ class GuildWarCommand extends Command_1.Command {
             const targetSectId = interaction.options.getInteger('id_tongmon_dich', true);
             const result = GuildWarService_1.guildWarService.createWar(userId, targetSectId);
             if (!result.success) {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
                 return;
             }
             const warDetail = GuildWarService_1.guildWarService.getWarDetail(result.warId);
@@ -80,52 +80,51 @@ class GuildWarCommand extends Command_1.Command {
                 `Đệ tử **${defenderSect?.name}** hãy dùng \`/guildwar thamgia ma_chien: ${result.warId}\` để tham gia!`)
                 .setFooter({ text: 'Thư chiến sẽ tự động hết hạn sau 24 giờ.' })
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (sub === 'thamgia') {
             const warId = interaction.options.getString('ma_chien', true).toUpperCase();
             const result = GuildWarService_1.guildWarService.joinWar(warId, userId);
             if (!result.success) {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
                 return;
             }
-            await interaction.reply({ content: `✅ ${result.message}`, ephemeral: false });
+            await interaction.editReply({ content: `✅ ${result.message}` });
         }
         else if (sub === 'chapnhan') {
             const warId = interaction.options.getString('ma_chien', true).toUpperCase();
             const result = GuildWarService_1.guildWarService.respondToWar(warId, userId, true);
             if (!result.success) {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
                 return;
             }
             // Hiển thị thông tin chiến tranh
             const war = GuildWarService_1.guildWarService.getWarDetail(warId);
             const embed = this.getWarStatusEmbed(war);
-            await interaction.reply({ content: '✅ ' + result.message, embeds: embed ? [embed] : [], ephemeral: false });
+            await interaction.editReply({ content: '✅ ' + result.message, embeds: embed ? [embed] : [] });
         }
         else if (sub === 'tuchoi') {
             const warId = interaction.options.getString('ma_chien', true).toUpperCase();
             const result = GuildWarService_1.guildWarService.respondToWar(warId, userId, false);
             if (!result.success) {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
                 return;
             }
-            await interaction.reply({ content: result.message, ephemeral: false });
+            await interaction.editReply({ content: result.message });
         }
         else if (sub === 'tancong') {
             const warId = interaction.options.getString('ma_chien', true).toUpperCase();
             const result = GuildWarService_1.guildWarService.attack(warId, userId);
             if (!result.success) {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
                 return;
             }
             // Hiển thị kết quả
             const war = GuildWarService_1.guildWarService.getWarDetail(warId);
             const embed = this.getWarStatusEmbed(war);
-            await interaction.reply({
+            await interaction.editReply({
                 content: result.message,
-                embeds: embed ? [embed] : [],
-                ephemeral: false
+                embeds: embed ? [embed] : []
             });
         }
         else if (sub === 'bangxephang') {
@@ -153,7 +152,7 @@ class GuildWarCommand extends Command_1.Command {
                 }
                 embed.addFields({ name: '📊 Bảng Xếp Hạng', value: rankingText });
             }
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (sub === 'thongtin') {
             const war = GuildWarService_1.guildWarService.getUserActiveWar(userId);
@@ -174,16 +173,16 @@ class GuildWarCommand extends Command_1.Command {
                             `• Tổng sát thương: **${(sectEntry?.totalDamage || 0).toLocaleString('vi-VN')}**\n\n` +
                             `_Tông Chủ có thể dùng \`/guildwar taophong\` để khiêu chiến Tông Môn khác._`)
                             .setTimestamp();
-                        await interaction.reply({ embeds: [embed] });
+                        await interaction.editReply({ embeds: [embed] });
                         return;
                     }
                 }
-                await interaction.reply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn nào!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Đạo hữu chưa gia nhập Tông Môn nào!' });
                 return;
             }
             const embed = this.getWarStatusEmbed(war);
             if (!embed) {
-                await interaction.reply({ content: '❌ Không thể tải thông tin chiến tranh.', ephemeral: true });
+                await interaction.editReply({ content: '❌ Không thể tải thông tin chiến tranh.' });
                 return;
             }
             // Lấy lịch sử tấn công gần đây
@@ -203,7 +202,7 @@ class GuildWarCommand extends Command_1.Command {
                     .setLabel('🔄 Làm Mới')
                     .setStyle(discord_js_1.ButtonStyle.Secondary));
             }
-            await interaction.reply({
+            await interaction.editReply({
                 embeds: [embed],
                 components: participantRows.components.length > 0 ? [participantRows] : []
             });

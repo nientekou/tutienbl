@@ -34,20 +34,20 @@ class PhapBaoCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
         if (sub === 'banmenh') {
             const embed = getBanMenhEmbed(userId);
             const components = getBanMenhComponents(userId);
-            await interaction.reply({ embeds: [embed], components });
+            await interaction.editReply({ embeds: [embed], components });
             return;
         }
         if (sub === 'thongtin') {
             const sw = SoulWeaponRepository_1.soulWeaponRepository.getByUserId(userId);
             if (!sw) {
-                await interaction.reply({ content: '❌ Đạo hữu chưa ngưng tụ Pháp Bảo Bản Mệnh! Dùng lệnh `/phapbao ngung-tu` (Yêu cầu Kim Đan Kỳ).', ephemeral: true });
+                await interaction.editReply({ content: '❌ Đạo hữu chưa ngưng tụ Pháp Bảo Bản Mệnh! Dùng lệnh `/phapbao ngung-tu` (Yêu cầu Kim Đan Kỳ).' });
                 return;
             }
             const expNeeded = SoulWeaponService_1.soulWeaponService.getExpRequired(sw.level);
@@ -70,23 +70,23 @@ class PhapBaoCommand extends Command_1.Command {
                 `✨ **Thuộc Tính Cộng Thêm:**\n└ **${buffDesc}**`)
                 .setFooter({ text: 'Dùng lệnh /phapbao te-luyen <id,id...> để Pháp Bảo nuốt trang bị rác!' })
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (sub === 'ngung-tu') {
             const sw = SoulWeaponRepository_1.soulWeaponRepository.getByUserId(userId);
             if (sw) {
-                await interaction.reply({ content: `❌ Đạo hữu đã có Pháp Bảo Bản Mệnh là **${sw.name}** rồi! Không thể ngưng tụ thêm.`, ephemeral: true });
+                await interaction.editReply({ content: `❌ Đạo hữu đã có Pháp Bảo Bản Mệnh là **${sw.name}** rồi! Không thể ngưng tụ thêm.` });
                 return;
             }
             const realm = (0, constants_1.getRealmDetails)(user.level);
             if (user.level < 40) {
-                await interaction.reply({ content: `❌ Cảnh giới hiện tại là **${realm.fullName}**, chưa đủ điều kiện! Yêu cầu cấp **40** trở lên để ngưng tụ Pháp Bảo Bản Mệnh.`, ephemeral: true });
+                await interaction.editReply({ content: `❌ Cảnh giới hiện tại là **${realm.fullName}**, chưa đủ điều kiện! Yêu cầu cấp **40** trở lên để ngưng tụ Pháp Bảo Bản Mệnh.` });
                 return;
             }
             const name = interaction.options.getString('ten', true);
             const type = interaction.options.getString('loai', true);
             if (user.coin_ha_pham < 50000) {
-                await interaction.reply({ content: '❌ Cần **50,000 Hạ Phẩm Linh Thạch** làm vật dẫn để ngưng tụ Pháp Bảo!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Cần **50,000 Hạ Phẩm Linh Thạch** làm vật dẫn để ngưng tụ Pháp Bảo!' });
                 return;
             }
             UserRepository_1.userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - 50000 });
@@ -102,18 +102,18 @@ class PhapBaoCommand extends Command_1.Command {
                 `⭐ **Cấp Độ Ban Đầu:** Cấp **1**\n\n` +
                 `*Hãy dùng lệnh \`/phapbao te-luyen\` để hiến tế trang bị thừa giúp Pháp Bảo thăng cấp sức mạnh!*`)
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (sub === 'te-luyen') {
             const idsStr = interaction.options.getString('ids', true);
             const ids = idsStr.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
             if (ids.length === 0) {
-                await interaction.reply({ content: '❌ Định dạng ID không hợp lệ. Ví dụ đúng: 12, 34, 56', ephemeral: true });
+                await interaction.editReply({ content: '❌ Định dạng ID không hợp lệ. Ví dụ đúng: 12, 34, 56' });
                 return;
             }
             const result = SoulWeaponService_1.soulWeaponService.feedItems(userId, ids);
             if (!result.success) {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
                 return;
             }
             const sw = SoulWeaponRepository_1.soulWeaponRepository.getByUserId(userId);
@@ -128,7 +128,7 @@ class PhapBaoCommand extends Command_1.Command {
                 `📈 **Cấp Độ:** Cấp **${sw.level}**${result.levelUp > 0 ? ` ⬆️ **[TĂNG ${result.levelUp} CẤP!]**` : ''}\n` +
                 `   └ Tiến trình EXP: ${expBar} *(${sw.exp}/${sw.level >= 100 ? 'TỐI ĐA' : expNeeded} EXP)*\n`)
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }

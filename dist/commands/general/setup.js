@@ -48,14 +48,13 @@ class SetupCommand extends Command_1.Command {
     async execute(client, interaction) {
         const { guild } = interaction;
         if (!guild) {
-            await interaction.reply({ content: '❌ Lệnh này chỉ dùng trong máy chủ Discord.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Lệnh này chỉ dùng trong máy chủ Discord.' });
             return;
         }
         const botMember = await guild.members.fetch(client.user.id);
         if (!botMember.permissions.has(discord_js_1.PermissionFlagsBits.ManageChannels)) {
-            await interaction.reply({
+            await interaction.editReply({
                 content: '❌ Ta cần quyền **Quản Lý Kênh** (Manage Channels) để kiến tạo Đạo Trường!',
-                ephemeral: true,
             });
             return;
         }
@@ -73,7 +72,7 @@ class SetupCommand extends Command_1.Command {
     async showInfo(interaction) {
         const config = getExistingConfig(interaction.guildId);
         if (!config || !config.category_id) {
-            await interaction.reply({ content: '⚠️ Máy chủ chưa được thiết lập. Dùng `/setup create` để kiến tạo Đạo Trường.', ephemeral: true });
+            await interaction.editReply({ content: '⚠️ Máy chủ chưa được thiết lập. Dùng `/setup create` để kiến tạo Đạo Trường.' });
             return;
         }
         const guild = interaction.guild;
@@ -90,19 +89,18 @@ class SetupCommand extends Command_1.Command {
                 inline: true,
             });
         }
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.editReply({ embeds: [embed] });
     }
     async confirmReset(client, interaction) {
         const config = getExistingConfig(interaction.guildId);
         if (!config?.category_id) {
-            await interaction.reply({ content: '⚠️ Chưa có cấu hình nào để reset. Dùng `/setup create` để tạo mới.', ephemeral: true });
+            await interaction.editReply({ content: '⚠️ Chưa có cấu hình nào để reset. Dùng `/setup create` để tạo mới.' });
             return;
         }
         const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId('confirm_reset').setLabel('🗑️ Xoá & Tạo Lại').setStyle(discord_js_1.ButtonStyle.Danger), new discord_js_1.ButtonBuilder().setCustomId('cancel_reset').setLabel('❌ Huỷ').setStyle(discord_js_1.ButtonStyle.Secondary));
-        await interaction.reply({
+        await interaction.editReply({
             content: '⚠️ **CẢNH BÁO:** Thao tác này sẽ xoá tất cả kênh cũ trong danh mục Đạo Trường và tạo lại từ đầu. Tiếp tục?',
             components: [row],
-            ephemeral: true,
         });
         const filter = (i) => i.user.id === interaction.user.id;
         const collected = await interaction.channel.awaitMessageComponent({
@@ -131,7 +129,6 @@ class SetupCommand extends Command_1.Command {
         const { guild } = interaction;
         if (!guild)
             return;
-        await interaction.deferReply({ ephemeral: true });
         try {
             // 1. Tạo category
             let category = guild.channels.cache.find(c => c.name === '🌌 ĐẠO TRƯỜNG TU TIÊN' && c.type === discord_js_1.ChannelType.GuildCategory);

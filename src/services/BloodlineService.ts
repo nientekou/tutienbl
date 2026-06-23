@@ -2,6 +2,7 @@ import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
 import { achievementService } from './AchievementService';
+import { ITEMS } from '../config/itemConstants';
 
 export interface Bloodline {
   id: string;
@@ -45,7 +46,7 @@ class BloodlineService {
 
   public chooseBloodline(userId: string, bloodlineId: string): { success: boolean; message: string } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
     if (user.level < 10) return { success: false, message: 'Cần đạt Cấp 10 để giác tỉnh Huyết Mạch!' };
 
     const existing = db.prepare('SELECT * FROM user_bloodlines WHERE user_id = ?').get(userId);
@@ -73,7 +74,7 @@ class BloodlineService {
 
   public changeBloodline(userId: string, newBloodlineId: string): { success: boolean; message: string } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
     const existing = db.prepare('SELECT * FROM user_bloodlines WHERE user_id = ?').get(userId);
     if (!existing) return { success: false, message: 'Đạo hữu chưa giác tỉnh Huyết Mạch! Dùng /huyetmach chon để giác tỉnh.' };
@@ -81,7 +82,7 @@ class BloodlineService {
     const bloodline = db.prepare('SELECT * FROM bloodlines WHERE id = ?').get(newBloodlineId) as Bloodline | undefined;
     if (!bloodline) return { success: false, message: 'Huyết mạch mới không tồn tại!' };
 
-    const requiredItem = 'item_bloodline_pill'; // ID của Huyết Mạch Chuyển Hóa Đan
+    const requiredItem = ITEMS.ITEM_BLOODLINE_PILL;
     const inv = inventoryRepository.getUserInventory(userId);
     const item = inv.find(i => i.item_id === requiredItem && i.is_equipped === 0);
 

@@ -2,11 +2,12 @@ import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionR
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
-import { cultivationService } from '../../services/CultivationService';
+import { cultivationService, CultivationService } from '../../services/CultivationService';
 import { tribulationService } from '../../services/TribulationService';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { inventoryService } from '../../services/InventoryService';
 import { getRealmDetails, getProgressBar } from '../../utils/constants';
+import { ITEMS } from '../../config/itemConstants';
 
 export default class DotPhaCommand extends Command {
   constructor() {
@@ -22,14 +23,13 @@ export default class DotPhaCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
 
     if (user.tu_vi < user.exp_needed) {
-      await interaction.reply({
-        content: `❌ Tu vi chưa đủ tích lũy để đột phá! (Đang có: **${user.tu_vi}/${user.exp_needed}** Tu Vi). Đạo hữu hãy thiền định hoặc đi bí cảnh dã ngoại để kiếm thêm tu vi.`,
-        ephemeral: true
+      await interaction.editReply({
+        content: `❌ Tu vi chưa đủ tích lũy để đột phá! (Đang có: **${user.tu_vi}/${user.exp_needed}** Tu Vi). Đạo hữu hãy thiền định hoặc đi bí cảnh dã ngoại để kiếm thêm tu vi.`
       });
       return;
     }
@@ -39,15 +39,13 @@ export default class DotPhaCommand extends Command {
 
     if (!isMajor) {
       // Đột phá cấp cảnh giới nhỏ -> Hiện bảng xác nhận và tuỳ chọn đan dược
-      const baseRate = Math.max(90 - majorIndex * 10, 10);
-      const luckBonus = user.base_luck * 0.002;
-      const totalRate = Math.min(baseRate + (luckBonus * 100), 100);
+      const totalRate = CultivationService.getBreakthroughRate(majorIndex, user.base_luck);
 
       const inv = inventoryRepository.getUserInventory(userId);
       const getQty = (itemId: string) => inv.find(i => i.item_id === itemId)?.quantity || 0;
-      const q1 = getQty('pill_break_minor_1');
-      const q2 = getQty('pill_break_minor_2');
-      const q3 = getQty('pill_break_minor_3');
+      const q1 = getQty(ITEMS.PILL_BREAK_MINOR_1);
+      const q2 = getQty(ITEMS.PILL_BREAK_MINOR_2);
+      const q3 = getQty(ITEMS.PILL_BREAK_MINOR_3);
       const bequanCost = user.level * 200;
 
       const embed = new EmbedBuilder()
@@ -93,7 +91,7 @@ export default class DotPhaCommand extends Command {
           .setDisabled(user.coin_ha_pham < bequanCost)
       );
 
-      await interaction.reply({ embeds: [embed], components: [row] });
+      await interaction.editReply({ embeds: [embed], components: [row] });
     } else {
       // Đột phá cảnh giới lớn -> Nghênh tiếp Lôi Kiếp
       const bolts = 3 + majorIndex * 2;
@@ -103,10 +101,10 @@ export default class DotPhaCommand extends Command {
       const inv = inventoryRepository.getUserInventory(userId);
       const getQty = (itemId: string) => inv.find(i => i.item_id === itemId)?.quantity || 0;
 
-      const antiLoiQty = getQty('pill_alchemy_anti_loi');
-      const hp1Qty = getQty('pill_hp_1');
-      const hp2Qty = getQty('pill_hp_2');
-      const tiLoiQty = getQty('talisman_anti_loi');
+      const antiLoiQty = getQty(ITEMS.PILL_ALCHEMY_ANTI_LOI);
+      const hp1Qty = getQty(ITEMS.PILL_HP_1);
+      const hp2Qty = getQty(ITEMS.PILL_HP_2);
+      const tiLoiQty = getQty(ITEMS.TALISMAN_ANTI_LOI);
 
       const oncomingKiep = tribulationService.getOncomingKiepInfo(userId);
       const protectPillQty = oncomingKiep.pillId ? getQty(oncomingKiep.pillId) : 0;
@@ -150,7 +148,7 @@ export default class DotPhaCommand extends Command {
           .setDisabled(user.coin_ha_pham < bequanMajorCost)
       );
 
-      await interaction.reply({ embeds: [embed], components: [row] });
+      await interaction.editReply({ embeds: [embed], components: [row] });
     }
   }
 }

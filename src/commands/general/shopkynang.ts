@@ -4,15 +4,16 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { getShopEmbed, getShopComponents } from './shop';
+import { ITEMS } from '../../config/itemConstants';
 
 
 export const SKILL_BOOKS = [
-  { id: 'book_fire', name: '🔥 Bí Tịch: Liệt Diễm Quyết', price: 500, element: 'Hỏa', desc: 'Sách hỏa hệ linh lực, dùng học Liệt Diễm Quyết. Sát thương cực mạnh thiêu đốt đối thủ.' },
-  { id: 'book_water', name: '💧 Bí Tịch: Thủy Linh Quyết', price: 500, element: 'Thủy', desc: 'Sách thủy hệ linh lực, dùng học Thủy Linh Quyết. Tấn công hồi phục sinh lực bản thân.' },
-  { id: 'book_wood', name: '🌿 Bí Tịch: Hấp Huyết Quyết', price: 500, element: 'Mộc', desc: 'Sách mộc hệ linh lực, dùng học Hấp Huyết Quyết. Tấn công hút sinh khí địch nhân.' },
-  { id: 'book_earth', name: '🪨 Bí Tịch: Thổ Giáp Quyết', price: 500, element: 'Thổ', desc: 'Sách thổ hệ linh lực, dùng học Thổ Giáp Quyết. Tạo hộ盾 giáp hấp thụ sát thương.' },
-  { id: 'book_wind', name: '🌀 Bí Tịch: Phong Hành Quyết', price: 500, element: 'Phong', desc: 'Sách phong hệ linh lực, dùng học Phong Hành Quyết. Gia tăng tốc độ né tránh cực đỉnh.' },
-  { id: 'book_lightning', name: '⚡ Bí Tịch: Lôi Phạt Quyết', price: 1000, element: 'Lôi', desc: 'Sách lôi phạt viễn cổ, dùng học Lôi Phạt Quyết. Tê liệt mục tiêu trong combat.' }
+  { id: ITEMS.BOOK_FIRE, name: '🔥 Bí Tịch: Liệt Diễm Quyết', price: 500, element: 'Hỏa', desc: 'Sách hỏa hệ linh lực, dùng học Liệt Diễm Quyết. Sát thương cực mạnh thiêu đốt đối thủ.' },
+  { id: ITEMS.BOOK_WATER, name: '💧 Bí Tịch: Thủy Linh Quyết', price: 500, element: 'Thủy', desc: 'Sách thủy hệ linh lực, dùng học Thủy Linh Quyết. Tấn công hồi phục sinh lực bản thân.' },
+  { id: ITEMS.BOOK_WOOD, name: '🌿 Bí Tịch: Hấp Huyết Quyết', price: 500, element: 'Mộc', desc: 'Sách mộc hệ linh lực, dùng học Hấp Huyết Quyết. Tấn công hút sinh khí địch nhân.' },
+  { id: ITEMS.BOOK_EARTH, name: '🪨 Bí Tịch: Thổ Giáp Quyết', price: 500, element: 'Thổ', desc: 'Sách thổ hệ linh lực, dùng học Thổ Giáp Quyết. Tạo hộ盾 giáp hấp thụ sát thương.' },
+  { id: ITEMS.BOOK_WIND, name: '🌀 Bí Tịch: Phong Hành Quyết', price: 500, element: 'Phong', desc: 'Sách phong hệ linh lực, dùng học Phong Hành Quyết. Gia tăng tốc độ né tránh cực đỉnh.' },
+  { id: ITEMS.BOOK_LIGHTNING, name: '⚡ Bí Tịch: Lôi Phạt Quyết', price: 1000, element: 'Lôi', desc: 'Sách lôi phạt viễn cổ, dùng học Lôi Phạt Quyết. Tê liệt mục tiêu trong combat.' }
 ];
 
 /**
@@ -62,7 +63,7 @@ export default class ShopKyNangCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'});
       return;
     }
 
@@ -88,7 +89,7 @@ export default class ShopKyNangCommand extends Command {
         value: `🟤 **${user.coin_ha_pham}** Hạ Phẩm Linh Thạch.`
       });
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
@@ -97,22 +98,21 @@ export default class ShopKyNangCommand extends Command {
       const qty = interaction.options.getInteger('soluong') || 1;
 
       if (qty <= 0) {
-        await interaction.reply({ content: '❌ Số lượng thỉnh sách phải lớn hơn 0!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Số lượng thỉnh sách phải lớn hơn 0!'});
         return;
       }
 
       const book = SKILL_BOOKS.find(b => b.id === bookId);
       if (!book) {
-        await interaction.reply({ content: '❌ Bí tịch này không tồn tại trong Tàng Kinh Các!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Bí tịch này không tồn tại trong Tàng Kinh Các!'});
         return;
       }
 
       const totalCost = book.price * qty;
 
       if (user.coin_ha_pham < totalCost) {
-        await interaction.reply({
-          content: `❌ Đạo hữu không đủ Linh Thạch! (Chi phí: **${totalCost}** Linh Thạch, đạo hữu có: **${user.coin_ha_pham}**).`,
-          ephemeral: true
+        await interaction.editReply({
+          content: `❌ Đạo hữu không đủ Linh Thạch! (Chi phí: **${totalCost}** Linh Thạch, đạo hữu có: **${user.coin_ha_pham}**).`
         });
         return;
       }
@@ -136,7 +136,7 @@ export default class ShopKyNangCommand extends Command {
         )
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
   }
 }

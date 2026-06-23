@@ -21,7 +21,7 @@ class HuyetMachCommand extends Command_1.Command {
         if (subCommand === 'thongtin') {
             const ub = BloodlineService_1.bloodlineService.getUserBloodline(userId);
             if (!ub) {
-                await interaction.reply({ content: '❌ Đạo hữu chưa giác tỉnh Huyết Mạch! Dùng lệnh `/huyetmach chon <tên>` để giác tỉnh (cần Cấp 10 và 500 Linh Thạch). Xem danh sách bằng `/huyetmach danhsach`.', ephemeral: true });
+                await interaction.editReply({ content: '❌ Đạo hữu chưa giác tỉnh Huyết Mạch! Dùng lệnh `/huyetmach chon <tên>` để giác tỉnh (cần Cấp 10 và 500 Linh Thạch). Xem danh sách bằng `/huyetmach danhsach`.' });
                 return;
             }
             const passives = BloodlineService_1.bloodlineService.getActivePassives(ub);
@@ -51,7 +51,7 @@ class HuyetMachCommand extends Command_1.Command {
                 { name: '💢 Hiệu Ứng Nộ (Rage)', value: `Tăng sức mạnh x${ub.rage_effect.multiplier || 2} trong ${ub.rage_effect.duration || 3} hiệp (Cooldown: ${ub.rage_effect.cooldown || 10} phút).`, inline: false },
                 { name: '⚠️ Điểm Yếu', value: `*Sẽ bị ảnh hưởng bởi điểm yếu của ${ub.name} trong thực chiến.*`, inline: false }
             ]);
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
             return;
         }
         if (subCommand === 'danhsach') {
@@ -61,7 +61,7 @@ class HuyetMachCommand extends Command_1.Command {
                 .setTitle('📜 Danh Sách Huyết Mạch Thượng Cổ')
                 .setDescription(desc + '\n\n💡 *Dùng `/huyetmach chon <id>` để giác tỉnh (Phí 500 Linh thạch, cần Cấp 10).*')
                 .setColor('#8b0000');
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
             return;
         }
         if (subCommand === 'chon') {
@@ -69,7 +69,7 @@ class HuyetMachCommand extends Command_1.Command {
             if (!bloodlineId)
                 return;
             const result = BloodlineService_1.bloodlineService.chooseBloodline(userId, bloodlineId);
-            await interaction.reply({ content: result.message, ephemeral: !result.success });
+            await interaction.editReply({ content: result.message });
             return;
         }
         if (subCommand === 'chuyenhoa') {
@@ -77,7 +77,7 @@ class HuyetMachCommand extends Command_1.Command {
             if (!newBloodlineId)
                 return;
             const result = BloodlineService_1.bloodlineService.changeBloodline(userId, newBloodlineId);
-            await interaction.reply({ content: result.message, ephemeral: !result.success });
+            await interaction.editReply({ content: result.message });
             return;
         }
     }

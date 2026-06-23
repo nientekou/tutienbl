@@ -97,7 +97,7 @@ export class LeylineService {
     let hourlyContribs: Record<string, number> = {};
 
     if (data.last_contribution_hour === currentHour) {
-      try { hourlyContribs = JSON.parse(data.hourly_contributions); } catch(e){}
+      try { hourlyContribs = JSON.parse(data.hourly_contributions); } catch(e) { console.warn('[LeylineService] Failed to parse hourly_contributions:', e); }
     } else {
       hourlyContribs = {};
     }

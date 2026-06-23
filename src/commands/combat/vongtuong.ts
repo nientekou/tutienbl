@@ -90,23 +90,22 @@ export default class VongTuongCommand extends Command {
   const user = userRepository.get(discordId);
 
   if (!user) {
-    return interaction.reply({ content: 'Đạo hữu chưa khởi tạo nhân vật. Hãy dùng lệnh `/taonhanvat`!', ephemeral: true });
+    return interaction.editReply({ content: 'Đạo hữu chưa khởi tạo nhân vật. Hãy dùng lệnh `/taonhanvat`!' });
   }
 
   // Yêu cầu cảnh giới tối thiểu (VD: Trúc Cơ Kỳ tầng 1 = level 39)
   if (user.level < 39) {
-    return interaction.reply({ content: 'Bí Cảnh Vọng Tưởng chỉ dành cho tu sĩ từ **Trúc Cơ Kỳ** trở lên. Khí tức của đạo hữu chưa đủ mạnh để phân tách Bóng Tối!', ephemeral: true });
+    return interaction.editReply({ content: 'Bí Cảnh Vọng Tưởng chỉ dành cho tu sĩ từ **Trúc Cơ Kỳ** trở lên. Khí tức của đạo hữu chưa đủ mạnh để phân tách Bóng Tối!' });
   }
 
   const dsData = dreamscapeService.getDreamscapeData(discordId);
 
   if (subcommand === 'thongtin') {
     const embed = getDreamscapeEmbed(discordId);
-    return interaction.reply({ embeds: [embed] });
+    return interaction.editReply({ embeds: [embed] });
   }
 
   if (subcommand === 'khieuchien') {
-    await interaction.deferReply();
     const result = dreamscapeService.challenge(discordId);
 
     if (!result.success) {
@@ -128,14 +127,14 @@ export default class VongTuongCommand extends Command {
 
   if (subcommand === 'dauhang') {
     const result = dreamscapeService.resetDreamscape(discordId);
-    return interaction.reply({ content: result.message });
+    return interaction.editReply({ content: result.message });
   }
 
   if (subcommand === 'bangxephang') {
     const leaderboard = dreamscapeService.getLeaderboard(10);
     
     if (leaderboard.length === 0) {
-      return interaction.reply({ content: 'Bảng xếp hạng tuần này chưa có ai tham gia.', ephemeral: true });
+      return interaction.editReply({ content: 'Bảng xếp hạng tuần này chưa có ai tham gia.' });
     }
 
     let desc = '';
@@ -153,7 +152,7 @@ export default class VongTuongCommand extends Command {
       .setColor('#f1c40f')
       .setFooter({ text: 'Sẽ tự động trao phần thưởng và reset vào sáng Thứ 2 hàng tuần.' });
 
-    return interaction.reply({ embeds: [embed] });
+    return interaction.editReply({ embeds: [embed] });
   }
 }
 }

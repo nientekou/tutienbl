@@ -1,6 +1,7 @@
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
+import { ITEMS, getWeaponByGrade, getArmorByGrade } from '../config/itemConstants';
 
 export class EquipmentService {
   /**
@@ -42,18 +43,18 @@ export class EquipmentService {
     for (let i = 0; i < actualQty; i++) {
       let targetItemId = '';
       if (phoiType === 'weapon') {
-        targetItemId = `weapon_sword_${phoiGrade}`;
+        targetItemId = getWeaponByGrade(phoiGrade);
       } else if (phoiType === 'armor') {
-        targetItemId = `armor_robe_${phoiGrade}`;
+        targetItemId = getArmorByGrade(phoiGrade);
       } else if (phoiType === 'accessory') {
         const rand = Math.random();
-        if (rand < 0.33) targetItemId = 'ring_1';
-        else if (rand < 0.66) targetItemId = 'necklace_1';
-        else targetItemId = 'amulet_1';
+        if (rand < 0.33) targetItemId = ITEMS.RING_1;
+        else if (rand < 0.66) targetItemId = ITEMS.NECKLACE_1;
+        else targetItemId = ITEMS.AMULET_1;
       } else if (phoiType === 'mount') {
         const rand = Math.random();
-        if (rand < 0.5) targetItemId = 'mount_sword_1';
-        else targetItemId = 'mount_beast_1';
+        if (rand < 0.5) targetItemId = ITEMS.MOUNT_SWORD_1;
+        else targetItemId = ITEMS.MOUNT_BEAST_1;
       }
 
       const staticItem = db.prepare('SELECT name, rarity FROM items WHERE id = ?').get(targetItemId) as { name: string; rarity: string } | undefined;
@@ -144,7 +145,7 @@ export class EquipmentService {
 
     const salvageTx = db.transaction(() => {
       inventoryRepository.removeItemById(inventoryId, actualQty);
-      inventoryRepository.addItem(userId, 'item_fragment', fragmentsGained);
+      inventoryRepository.addItem(userId, ITEMS.ITEM_FRAGMENT, fragmentsGained);
     });
 
     salvageTx();
@@ -226,7 +227,7 @@ export class EquipmentService {
           inventoryRepository.removeItemById(invId, it.quantity);
         }
       }
-      inventoryRepository.addItem(userId, 'item_fragment', totalFragmentsGained);
+      inventoryRepository.addItem(userId, ITEMS.ITEM_FRAGMENT, totalFragmentsGained);
     });
 
     salvageTx();
@@ -261,7 +262,7 @@ export class EquipmentService {
 
     // Đếm số mảnh hiện có
     const userInventory = inventoryRepository.getUserInventory(userId);
-    const fragments = userInventory.find(i => i.item_id === 'item_fragment');
+    const fragments = userInventory.find(i => i.item_id === ITEMS.ITEM_FRAGMENT);
     if (!fragments || fragments.quantity < cost) {
       return { success: false, message: `Không đủ Mảnh Trang Bị để nâng sao! (Yêu cầu: **${cost}**, Đạo hữu hiện có: **${fragments ? fragments.quantity : 0}** mảnh).` };
     }
@@ -269,7 +270,7 @@ export class EquipmentService {
     const nextStars = currentStars + 1;
 
     const upgradeTx = db.transaction(() => {
-      inventoryRepository.removeItem(userId, 'item_fragment', cost);
+      inventoryRepository.removeItem(userId, ITEMS.ITEM_FRAGMENT, cost);
       inventoryRepository.updateStars(inventoryId, nextStars);
     });
 
@@ -296,7 +297,7 @@ export class EquipmentService {
     if (rarity === 'SSS') cost = 1000;
 
     const userInventory = inventoryRepository.getUserInventory(userId);
-    const fragments = userInventory.find(i => i.item_id === 'item_fragment');
+    const fragments = userInventory.find(i => i.item_id === ITEMS.ITEM_FRAGMENT);
     if (!fragments || fragments.quantity < cost) {
       return { success: false, message: `Không đủ Mảnh Trang Bị để ghép! (Yêu cầu: **${cost}**, Hiện có: **${fragments ? fragments.quantity : 0}** mảnh).` };
     }
@@ -304,7 +305,7 @@ export class EquipmentService {
     // Chọn ngẫu nhiên loại trang bị và rèn
     const phoiGrade = rarity.toLowerCase(); // 's', 'ss', 'sss'
     const isWeapon = Math.random() < 0.5;
-    const targetItemId = isWeapon ? `weapon_sword_${phoiGrade}` : `armor_robe_${phoiGrade}`;
+    const targetItemId = isWeapon ? getWeaponByGrade(phoiGrade) : getArmorByGrade(phoiGrade);
 
     const staticItem = db.prepare('SELECT name FROM items WHERE id = ?').get(targetItemId) as { name: string } | undefined;
     if (!staticItem) {
@@ -314,7 +315,7 @@ export class EquipmentService {
     const customStats = this.generateCustomStats(phoiGrade);
 
     const craftTx = db.transaction(() => {
-      inventoryRepository.removeItem(userId, 'item_fragment', cost);
+      inventoryRepository.removeItem(userId, ITEMS.ITEM_FRAGMENT, cost);
       inventoryRepository.addItem(userId, targetItemId, 1, customStats ? JSON.stringify(customStats) : null);
     });
 
@@ -435,18 +436,18 @@ export class EquipmentService {
       for (let i = 0; i < p.quantity; i++) {
         let targetItemId = '';
         if (phoiType === 'weapon') {
-          targetItemId = `weapon_sword_${phoiGrade}`;
+          targetItemId = getWeaponByGrade(phoiGrade);
         } else if (phoiType === 'armor') {
-          targetItemId = `armor_robe_${phoiGrade}`;
+          targetItemId = getArmorByGrade(phoiGrade);
         } else if (phoiType === 'accessory') {
           const rand = Math.random();
-          if (rand < 0.33) targetItemId = 'ring_1';
-          else if (rand < 0.66) targetItemId = 'necklace_1';
-          else targetItemId = 'amulet_1';
+          if (rand < 0.33) targetItemId = ITEMS.RING_1;
+          else if (rand < 0.66) targetItemId = ITEMS.NECKLACE_1;
+          else targetItemId = ITEMS.AMULET_1;
         } else if (phoiType === 'mount') {
           const rand = Math.random();
-          if (rand < 0.5) targetItemId = 'mount_sword_1';
-          else targetItemId = 'mount_beast_1';
+          if (rand < 0.5) targetItemId = ITEMS.MOUNT_SWORD_1;
+          else targetItemId = ITEMS.MOUNT_BEAST_1;
         }
 
         const customStats = this.generateCustomStats(phoiGrade);

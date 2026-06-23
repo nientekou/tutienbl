@@ -50,7 +50,7 @@ export default class ThanhTuuCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
 
@@ -138,7 +138,7 @@ export default class ThanhTuuCommand extends Command {
 
     embed.setFooter({ text: `Danh hiệu hiện tại: ${userRepository.get(userId)?.title || 'Tán Tu'} | Dùng /thanhtuu danhhieu để xem tất cả danh hiệu.` });
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 
   /**
@@ -187,7 +187,7 @@ export default class ThanhTuuCommand extends Command {
 
     embed.setFooter({ text: 'Dùng /thanhtuu xem để xem chi tiết từng danh mục.' });
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 
   /**
@@ -264,15 +264,13 @@ export default class ThanhTuuCommand extends Command {
       components.push(...rows);
     }
 
-    await interaction.reply({ embeds: [embed], components });
+    await interaction.editReply({ embeds: [embed], components });
   }
 
   /**
    * Fix thành tựu bị kẹt
    */
   private async handleFix(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
-    await interaction.deferReply({ ephemeral: true });
-
     const fixed = achievementService.fixStuckAchievements(userId);
 
     if (fixed.length === 0) {

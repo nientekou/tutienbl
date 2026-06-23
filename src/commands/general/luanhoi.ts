@@ -63,9 +63,8 @@ export default class LuanHoiCommand extends Command {
     const user = userRepository.get(discordId);
 
     if (!user) {
-      await interaction.reply({
-        content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!',
-        ephemeral: true
+      await interaction.editReply({
+        content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!'
       });
       return;
     }
@@ -73,6 +72,6 @@ export default class LuanHoiCommand extends Command {
     const embed = getLuanHoiEmbed(discordId);
     const row = getLuanHoiComponents(discordId, user.level >= 380);
 
-    await interaction.reply({ embeds: [embed], components: [row] });
+    await interaction.editReply({ embeds: [embed], components: [row] });
   }
 }

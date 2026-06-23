@@ -1,40 +1,42 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InteractionLock = void 0;
+const gameConstants_1 = require("../config/gameConstants");
 class InteractionLock {
     static locks = new Set();
     static lastActionEnds = new Map();
-    /**
-     * Cố gắng lấy khóa cho người chơi.
-     * Trả về true nếu lấy khóa thành công và ngoài cooldown 1.2 giây, false nếu bị chặn.
-     */
+    static lastCleanup = Date.now();
     static acquire(userId) {
         const now = Date.now();
         const lastEnd = this.lastActionEnds.get(userId) || 0;
-        if (now - lastEnd < 1200) {
-            return false; // Spam block
+        if (now - lastEnd < gameConstants_1.GAME_CONSTANTS.INTERACTION_LOCK_MS) {
+            return false;
         }
         if (this.locks.has(userId)) {
-            return false; // Concurrent execution block
+            return false;
         }
         this.locks.add(userId);
+        this.maybeCleanup(now);
         return true;
     }
-    /**
-     * Giải phóng khóa cho người chơi và ghi nhận mốc thời gian kết thúc hành động.
-     */
     static release(userId) {
         this.locks.delete(userId);
         this.lastActionEnds.set(userId, Date.now());
     }
-    /**
-     * Kiểm tra người chơi có đang bị khóa hay không.
-     */
     static isLocked(userId) {
         if (this.locks.has(userId))
             return true;
         const lastEnd = this.lastActionEnds.get(userId) || 0;
-        return Date.now() - lastEnd < 1200;
+        return Date.now() - lastEnd < gameConstants_1.GAME_CONSTANTS.INTERACTION_LOCK_MS;
+    }
+    static maybeCleanup(now) {
+        if (now - this.lastCleanup < gameConstants_1.GAME_CONSTANTS.CLEANUP_INTERVAL_MS)
+            return;
+        this.lastCleanup = now;
+        for (const [userId, ts] of this.lastActionEnds) {
+            if (now - ts > gameConstants_1.GAME_CONSTANTS.INTERACTION_LOCK_TTL_MS)
+                this.lastActionEnds.delete(userId);
+        }
     }
 }
 exports.InteractionLock = InteractionLock;

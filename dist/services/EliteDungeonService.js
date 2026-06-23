@@ -6,6 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.eliteDungeonService = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
+const itemConstants_1 = require("../config/itemConstants");
+const DailyQuestService_1 = require("./DailyQuestService");
 const FLOOR_SCALING = { hp: 1.4, atk: 1.3, def: 1.2 };
 class EliteDungeonService {
     getAvailableDungeons(userLevel) {
@@ -152,7 +154,9 @@ class EliteDungeonService {
                         const config = JSON.parse(dungeon.rewards_config || '{}');
                         bossDropRate = config.boss_drop_rate || {};
                     }
-                    catch (e) { }
+                    catch (e) {
+                        console.warn('[EliteDungeonService] Failed to parse dungeon rewards_config:', e);
+                    }
                     const party = database_1.default.prepare('SELECT member_ids FROM party_rooms WHERE id = ?').get(run.party_id);
                     if (party) {
                         const members = JSON.parse(party.member_ids || '[]');
@@ -166,13 +170,15 @@ class EliteDungeonService {
                                 });
                                 // Nếu là Thánh Địa Cấm Khu, rơi legendary weapon theo tỷ lệ
                                 if (dungeon.id === 'ed_cam_khu' && bossDropRate.legendary && Math.random() < bossDropRate.legendary) {
-                                    const itemId = `weapon_legendary_${Math.floor(Math.random() * 5) + 1}`;
+                                    const itemId = (0, itemConstants_1.getLegendaryWeapon)(Math.floor(Math.random() * 5) + 1);
                                     invRepo.addItem(uid, itemId, 1);
                                     // Lấy tên vật phẩm huyền thoại
                                     const itemRow = database_1.default.prepare('SELECT name FROM items WHERE id = ?').get(itemId);
                                     const name = itemRow?.name || itemId;
                                     dropMessage += `\n• <@${uid}> nhận được **${name}** 👑`;
                                 }
+                                // Cập nhật tiến trình nhiệm vụ hàng ngày
+                                DailyQuestService_1.dailyQuestService.updateProgress(uid, 'daily_bicanh', 1);
                             }
                         }
                     }

@@ -29,8 +29,8 @@ class MountService {
     return (db.prepare('SELECT * FROM mounts WHERE user_id = ? AND is_active = 1').get(userId) as Mount) || null;
   }
 
-  public getMount(mountId: number, userId: string): Mount | null {
-    return (db.prepare('SELECT * FROM mounts WHERE id = ? AND user_id = ?').get(mountId, userId) as Mount) || null;
+  public getMount(id: number, userId: string): Mount | null {
+    return (db.prepare('SELECT * FROM mounts WHERE id = ? AND user_id = ?').get(id, userId) as Mount) || null;
   }
 
   public activateMount(userId: string, mountId: number): { success: boolean; message: string } {
@@ -40,7 +40,7 @@ class MountService {
 
     db.transaction(() => {
       db.prepare('UPDATE mounts SET is_active = 0 WHERE user_id = ?').run(userId);
-      db.prepare('UPDATE mounts SET is_active = 1 WHERE id = ?').run(mountId);
+      db.prepare('UPDATE mounts SET is_active = 1 WHERE id = ? AND user_id = ?').run(mountId, userId);
     })();
 
     return { success: true, message: `🐎 Đã cưỡi **${mount.name}**! Tốc độ làm việc +${Math.round(mount.speed_bonus * 100)}%, Thể lực tiết kiệm +${Math.round(mount.stamina_save * 100)}%.` };
@@ -115,8 +115,8 @@ class MountService {
       } else {
         db.prepare('DELETE FROM inventories WHERE id = ?').run(inv.id);
       }
-      db.prepare('UPDATE mounts SET exp = ?, level = ?, speed_bonus = ?, stamina_save = ?, is_tamed = ? WHERE id = ?')
-        .run(remainingExp, newLevel, newSpeedBonus, newStaminaSave, newTamed, mountId);
+      db.prepare('UPDATE mounts SET exp = ?, level = ?, speed_bonus = ?, stamina_save = ?, is_tamed = ? WHERE id = ? AND user_id = ?')
+        .run(remainingExp, newLevel, newSpeedBonus, newStaminaSave, newTamed, mountId, userId);
     })();
 
     const totalExpGained = consumedCount * expGain;
@@ -185,7 +185,7 @@ class MountService {
 
     return {
       success: true,
-      message: `🎉 Chúc mừng! Đạo hữu đã tóm được **${selectedMount.name}** [${selectedMount.rarity}]!\n⚠️ Tọa kỵ vẫn còn hoang dại, hãy dùng \`/toaky nuoiduong\` để thuần hóa.`,
+      message: `🎉 Chúc mừng! Đạo hữu đã tóm được **${selectedMount.name}** [${selectedMount.rarity}]! (ID: ${res.lastInsertRowid})\n⚠️ Tọa kỵ vẫn còn hoang dại, hãy dùng \`/toaky nuoiduong\` để thuần hóa.`,
       mount: selectedMount
     };
   }

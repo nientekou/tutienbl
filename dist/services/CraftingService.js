@@ -16,7 +16,7 @@ class CraftingService {
     startCrafting(userId, recipeId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            return { success: false, message: 'Nhân vật của đạo hữu không tồn tại.' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
         }
         const recipe = recipes_1.RECIPES[recipeId];
         if (!recipe) {

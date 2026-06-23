@@ -74,7 +74,7 @@ class SpiritWeaponService {
 
   public awaken(userId: string, inventoryId: number): { success: boolean; message: string; spirit?: SpiritWeapon } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại.' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
 
     const inv = db.prepare('SELECT * FROM inventories WHERE id = ? AND user_id = ?').get(inventoryId, userId) as any;
     if (!inv) return { success: false, message: 'Trang bị không tồn tại trong túi đồ!' };

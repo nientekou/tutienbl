@@ -36,7 +36,7 @@ class TreasureMapService {
     digTreasure(userId, x, y) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại.' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
         if ((user.stamina || 0) < 10) {
             return { success: false, message: 'Không đủ Thể Lực! Cần ít nhất 10 Thể Lực để tiến hành đào bới.' };
         }

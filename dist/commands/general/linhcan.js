@@ -72,8 +72,8 @@ function getElementDetails(element, percentage) {
         talent2 = `${checkMark2} **Thổ Thiên (>=90%)**: Thổ Giáp hấp thụ 25% HP tối đa và tăng 30% phòng thủ khi khiên tồn tại.`;
     }
     else if (isLoi) {
-        talent1 = `${checkMark1} **Lôi Chân (>=40%)**: Sấm sét gây Tê Liệt địch ở hiệp kế tiếp, tăng 50% sát thương đòn đánh.`;
-        talent2 = `${checkMark2} **Lôi Thiên (>=90%)**: Tê liệt kẻ địch + tăng 100% sát thương đòn đánh (x2 damage).`;
+        talent1 = `${checkMark1} **Lôi Chân (>=40%)**: Sấm sét gây Tê Liệt địch 1 hiệp, nhân 1.5x sát thương đòn đánh. +10 Tốc Độ từ Linh Căn Lôi.`;
+        talent2 = `${checkMark2} **Lôi Thiên (>=90%)**: Lôi Phạt gây Tê Liệt địch 1 hiệp, nhân 2x sát thương đòn đánh. +20 Tốc Độ từ Linh Căn Lôi.`;
     }
     else if (isPhong) {
         talent1 = `${checkMark1} **Phong Chân (>=40%)**: Phong Hành Bộ Pháp chuẩn bị né tránh hoàn toàn đòn đánh sau.`;
@@ -105,9 +105,8 @@ class LinhCanCommand extends Command_1.Command {
         const discordId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(discordId);
         if (!user) {
-            await interaction.reply({
-                content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh `/taonhanvat` để bắt đầu!',
-                ephemeral: true
+            await interaction.editReply({
+                content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh `/taonhanvat` để bắt đầu!'
             });
             return;
         }
@@ -151,14 +150,14 @@ class LinhCanCommand extends Command_1.Command {
                 .setCustomId(`hosoback_${discordId}`)
                 .setLabel('🔙 Quay Lại Hồ Sơ')
                 .setStyle(discord_js_1.ButtonStyle.Secondary));
-            await interaction.reply({ embeds: [embed], components: [row] });
+            await interaction.editReply({ embeds: [embed], components: [row] });
             return;
         }
         if (subcommand === 'toiluyen') {
             const targetElement = interaction.options.getString('nguyen_to', true);
             const result = CultivationService_1.cultivationService.temperLinhCan(discordId, targetElement);
             if (!result.success) {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
                 return;
             }
             const embed = new discord_js_1.EmbedBuilder()
@@ -166,7 +165,7 @@ class LinhCanCommand extends Command_1.Command {
                 .setColor('#2ecc71')
                 .setDescription(result.message)
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
             return;
         }
         if (subcommand === 'taytuy') {
@@ -186,7 +185,7 @@ class LinhCanCommand extends Command_1.Command {
                 .setCustomId(`hosoback_${discordId}`)
                 .setLabel('🔙 Quay Lại Hồ Sơ')
                 .setStyle(discord_js_1.ButtonStyle.Secondary));
-            await interaction.reply({ embeds: [embed], components: [row] });
+            await interaction.editReply({ embeds: [embed], components: [row] });
             return;
         }
     }

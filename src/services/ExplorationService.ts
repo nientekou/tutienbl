@@ -1,6 +1,7 @@
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
+import { ITEMS } from '../config/itemConstants';
 import { leylineService } from './LeylineService';
 import { achievementService } from './AchievementService';
 
@@ -57,9 +58,9 @@ export const EXPLORATION_LOCATIONS: Record<string, ExplorationLocation> = {
     minLevel: 1,
     dangerRate: 0.45,  // tăng từ 0.3
     rewardPool: [
-      { type: 'item', itemId: 'material_linh_thao_1', amount: 2, weight: 35 },
-      { type: 'item', itemId: 'item_fragment', amount: 1, weight: 15 },
-      { type: 'item', itemId: 'map_fragment', amount: 1, weight: 10 },
+      { type: 'item', itemId: ITEMS.MATERIAL_LINH_THAO_1, amount: 2, weight: 35 },
+      { type: 'item', itemId: ITEMS.ITEM_FRAGMENT, amount: 1, weight: 15 },
+      { type: 'item', itemId: ITEMS.MAP_FRAGMENT, amount: 1, weight: 10 },
       { type: 'coin', amount: 50, weight: 25 },
       { type: 'tuvi', amount: 200, weight: 10 },
       { type: 'nothing', weight: 5 },
@@ -75,9 +76,9 @@ export const EXPLORATION_LOCATIONS: Record<string, ExplorationLocation> = {
     minLevel: 15,
     dangerRate: 0.55,  // tăng từ 0.4
     rewardPool: [
-      { type: 'item', itemId: 'phoi_weapon_c', amount: 1, weight: 15 },
-      { type: 'item', itemId: 'phoi_armor_c', amount: 1, weight: 15 },
-      { type: 'item', itemId: 'material_nhan_sam_1', amount: 1, weight: 25 },
+      { type: 'item', itemId: ITEMS.PHOI_WEAPON_C, amount: 1, weight: 15 },
+      { type: 'item', itemId: ITEMS.PHOI_ARMOR_C, amount: 1, weight: 15 },
+      { type: 'item', itemId: ITEMS.MATERIAL_NHAN_SAM_1, amount: 1, weight: 25 },
       { type: 'coin', amount: 150, weight: 30 },
       { type: 'ngotinh', amount: 5, weight: 15 },
     ]
@@ -92,9 +93,9 @@ export const EXPLORATION_LOCATIONS: Record<string, ExplorationLocation> = {
     minLevel: 30,
     dangerRate: 0.65,  // tăng từ 0.5
     rewardPool: [
-      { type: 'item', itemId: 'phoi_weapon_b', amount: 1, weight: 20 },
-      { type: 'item', itemId: 'phoi_armor_b', amount: 1, weight: 20 },
-      { type: 'item', itemId: 'item_fragment', amount: 3, weight: 20 },
+      { type: 'item', itemId: ITEMS.PHOI_WEAPON_B, amount: 1, weight: 20 },
+      { type: 'item', itemId: ITEMS.PHOI_ARMOR_B, amount: 1, weight: 20 },
+      { type: 'item', itemId: ITEMS.ITEM_FRAGMENT, amount: 3, weight: 20 },
       { type: 'coin', amount: 300, weight: 25 },
       { type: 'ngotinh', amount: 10, weight: 15 },
     ]
@@ -109,8 +110,8 @@ export const EXPLORATION_LOCATIONS: Record<string, ExplorationLocation> = {
     minLevel: 8,
     dangerRate: 0.35,  // tăng từ 0.2
     rewardPool: [
-      { type: 'item', itemId: 'material_linh_thao_1', amount: 3, weight: 35 },
-      { type: 'item', itemId: 'material_nhan_sam_1', amount: 1, weight: 20 },
+      { type: 'item', itemId: ITEMS.MATERIAL_LINH_THAO_1, amount: 3, weight: 35 },
+      { type: 'item', itemId: ITEMS.MATERIAL_NHAN_SAM_1, amount: 1, weight: 20 },
       { type: 'tuvi', amount: 500, weight: 20 },
       { type: 'coin', amount: 80, weight: 20 },
       { type: 'ngotinh', amount: 3, weight: 5 },
@@ -126,9 +127,9 @@ export const EXPLORATION_LOCATIONS: Record<string, ExplorationLocation> = {
     minLevel: 20,
     dangerRate: 0.60,  // tăng từ 0.45
     rewardPool: [
-      { type: 'item', itemId: 'material_iron_1', amount: 5, weight: 30 },
-      { type: 'item', itemId: 'phoi_weapon_d', amount: 1, weight: 20 },
-      { type: 'item', itemId: 'phoi_armor_d', amount: 1, weight: 20 },
+      { type: 'item', itemId: ITEMS.MATERIAL_IRON_1, amount: 5, weight: 30 },
+      { type: 'item', itemId: ITEMS.PHOI_WEAPON_D, amount: 1, weight: 20 },
+      { type: 'item', itemId: ITEMS.PHOI_ARMOR_D, amount: 1, weight: 20 },
       { type: 'coin', amount: 200, weight: 25 },
       { type: 'nothing', weight: 5 },
     ]
@@ -174,7 +175,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         successMsg: '✅ Linh thú cảm kích! Tặng cho đạo hữu một ân sủng kỳ trân!',
         failMsg: '❌ Linh thú phẫn nộ! Bị cắn xé mất Stamina và Linh Thạch.',
         successRate: 0.45,
-        successReward: { type: 'item', itemId: 'item_fragment', amount: 2, weight: 100 },
+        successReward: { type: 'item', itemId: ITEMS.ITEM_FRAGMENT, amount: 2, weight: 100 },
         failPenalty: { stamina: 40, coin: 200 }
       },
       {
@@ -275,7 +276,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         successMsg: '✅ Cuộn giấy chính là Tàng Bảo Đồ chỉ dẫn đến kho báu!',
         failMsg: '❌ Xung quanh hài cốt có trận pháp bảo vệ! Đạo hữu bị thương nặng.',
         successRate: 0.5,
-        successReward: { type: 'item', itemId: 'tang_bao_do', amount: 1, weight: 100 },
+        successReward: { type: 'item', itemId: ITEMS.TANG_BAO_DO, amount: 1, weight: 100 },
         failPenalty: { stamina: 100, coin: 400 }
       },
       {
@@ -284,7 +285,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         successMsg: '✅ Lòng tốt được đền đáp, từ trong áo người chết rơi ra một cuộn giấy.',
         failMsg: '❌ Vừa chạm vào, tà khí xâm nhập cơ thể!',
         successRate: 0.8,
-        successReward: { type: 'item', itemId: 'tang_bao_do', amount: 1, weight: 100 },
+        successReward: { type: 'item', itemId: ITEMS.TANG_BAO_DO, amount: 1, weight: 100 },
         failPenalty: { stamina: 40 }
       }
     ]
@@ -301,7 +302,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         successMsg: '✅ Trải qua một phen khổ chiến, đạo hữu đã đánh tan tàn hồn và thu được chí bảo viễn cổ!',
         failMsg: '❌ Tàn hồn quá mạnh! Đạo hữu bị đánh trọng thương, phải bỏ chạy trối chết.',
         successRate: 0.35,
-        successReward: { type: 'item', itemId: 'phoi_weapon_b', amount: 1, weight: 100 },
+        successReward: { type: 'item', itemId: ITEMS.PHOI_WEAPON_B, amount: 1, weight: 100 },
         failPenalty: { stamina: 120, coin: 500 }
       },
       {
@@ -327,7 +328,7 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
         successMsg: '✅ Đạo hữu mở ra thấy một Pháp Bảo uy lực! Quả là món hời!',
         failMsg: '❌ Đạo hữu bị lừa! Trong hộp chỉ là đá cuội...',
         successRate: 0.6,
-        successReward: { type: 'item', itemId: 'phoi_weapon_a', amount: 1, weight: 100 },
+        successReward: { type: 'item', itemId: ITEMS.PHOI_WEAPON_A, amount: 1, weight: 100 },
         cost: { coin: 1000 }
       },
       {
@@ -386,7 +387,7 @@ class ExplorationService {
    */
   startExploration(userId: string, locationId: string): { success: boolean; message: string; endTime?: number } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại.' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
 
     const location = EXPLORATION_LOCATIONS[locationId];
     if (!location) return { success: false, message: 'Địa điểm không tồn tại.' };
@@ -523,7 +524,7 @@ class ExplorationService {
 
     const location = EXPLORATION_LOCATIONS[exp.location_id];
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại.' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
 
     // Tìm event (mã event lưu trong JSON result)
     const result = exp.result ? JSON.parse(exp.result) : null;

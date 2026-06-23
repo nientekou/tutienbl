@@ -33,7 +33,7 @@ class SuKienCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -81,13 +81,13 @@ class SuKienCommand extends Command_1.Command {
             const templateText = EventService_1.EVENT_TEMPLATES.map(t => `${this.getEventEmoji(t.type)} **${t.name}** - ${t.durationHours}h - ${this.getEventTypeName(t.type)}`).join('\n');
             embed.addFields({ name: '📋 LOẠI SỰ KIỆN', value: templateText });
             embed.setFooter({ text: 'Dùng /sukien tham gia để tham gia sự kiện!' });
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (sub === 'thamgia') {
             const eventId = interaction.options.getString('ma_sukien', true);
             const result = EventService_1.eventService.joinEvent(eventId, userId);
             if (!result.success) {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
                 return;
             }
             const event = EventService_1.eventService.getEvent(eventId);
@@ -96,13 +96,13 @@ class SuKienCommand extends Command_1.Command {
                 .setColor('#2ecc71')
                 .setDescription(result.message)
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed], ephemeral: false });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (sub === 'nhanthuong') {
             const eventId = interaction.options.getString('ma_sukien', true);
             const result = EventService_1.eventService.claimRewards(eventId, userId);
             if (!result.success) {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${result.message}` });
                 return;
             }
             const embed = new discord_js_1.EmbedBuilder()
@@ -110,7 +110,7 @@ class SuKienCommand extends Command_1.Command {
                 .setColor('#f1c40f')
                 .setDescription(result.message)
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed], ephemeral: false });
+            await interaction.editReply({ embeds: [embed] });
         }
     }
     getEventEmoji(type) {

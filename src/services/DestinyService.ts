@@ -22,7 +22,7 @@ export class DestinyService {
    */
   public rollGacha(userId: string): { success: boolean; message: string; destiny?: UserDestinyEntity } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật' };
 
     if (user.coin_ha_pham < DESTINY_GACHA_COST) {
       return { success: false, message: `Không đủ Linh Thạch. Bốc quẻ cần **${DESTINY_GACHA_COST}** Hạ Phẩm Linh Thạch.` };

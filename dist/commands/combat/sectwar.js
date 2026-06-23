@@ -34,7 +34,7 @@ class SectWarCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const subGroup = interaction.options.getSubcommandGroup(false);
@@ -58,7 +58,7 @@ class SectWarCommand extends Command_1.Command {
                         value: `Yêu cầu Tông Môn cấp: **${mineDef.level_req}**\nSản lượng: **${mineDef.income} LT/4h**\n${statusStr}`
                     });
                 }
-                await interaction.reply({ embeds: [embed] });
+                await interaction.editReply({ embeds: [embed] });
                 return;
             }
             if (sub === 'chiem') {
@@ -66,17 +66,17 @@ class SectWarCommand extends Command_1.Command {
                 const result = SectWarService_1.sectWarService.captureMine(userId, mineId);
                 if (result.success && result.log) {
                     const logText = result.log.slice(0, 5).join('\n') + (result.log.length > 5 ? '\n... (trận đấu diễn ra ác liệt)' : '');
-                    await interaction.reply({ content: `${result.message}\n\n**Chiến báo:**\n${logText}` });
+                    await interaction.editReply({ content: `${result.message}\n\n**Chiến báo:**\n${logText}` });
                 }
                 else {
-                    await interaction.reply({ content: result.message, ephemeral: !result.success });
+                    await interaction.editReply({ content: result.message });
                 }
                 return;
             }
             if (sub === 'thuhoach') {
                 const mineId = interaction.options.getString('mine_id', true);
                 const result = SectWarService_1.sectWarService.claimMineIncome(userId, mineId);
-                await interaction.reply({ content: result.message, ephemeral: !result.success });
+                await interaction.editReply({ content: result.message });
                 return;
             }
         }
@@ -124,29 +124,29 @@ class SectWarCommand extends Command_1.Command {
                     ].join('\n'),
                 });
             }
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
             return;
         }
         if (sub === 'thamgia') {
             const result = SectWarService_1.sectWarService.joinBattle(userId);
-            await interaction.reply({ content: result.message, ephemeral: !result.success });
+            await interaction.editReply({ content: result.message });
             return;
         }
         if (sub === 'tancong') {
             const targetId = interaction.options.getString('player_id', true);
             if (targetId === userId) {
-                await interaction.reply({ content: '❌ Không thể tự tấn công bản thân!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Không thể tự tấn công bản thân!' });
                 return;
             }
             const result = SectWarService_1.sectWarService.attack(userId, targetId);
-            await interaction.reply({ content: result.message, ephemeral: !result.success });
+            await interaction.editReply({ content: result.message });
             return;
         }
         if (sub === 'bangxephang') {
             const season = SectWarService_1.sectWarService.getOrCreateSeason();
             const leaderboard = SectWarService_1.sectWarService.getSectLeaderboard();
             if (leaderboard.length === 0) {
-                await interaction.reply({ content: '📊 Chưa có dữ liệu bảng xếp hạng cho mùa này.', ephemeral: true });
+                await interaction.editReply({ content: '📊 Chưa có dữ liệu bảng xếp hạng cho mùa này.' });
                 return;
             }
             const embed = new discord_js_1.EmbedBuilder()
@@ -157,13 +157,13 @@ class SectWarCommand extends Command_1.Command {
                 return `${medal} **${e.sect_name}** (Cấp ${e.level})\n   ⚔️ ${e.total_damage} dmg | 🏆 ${e.total_wins} thắng | 📊 ${e.total_battles} trận`;
             }).join('\n'))
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
             return;
         }
         if (sub === 'lichsu') {
             const history = SectWarService_1.sectWarService.getFinishedBattlesHistory();
             if (history.length === 0) {
-                await interaction.reply({ content: '📜 Chưa có dữ liệu lịch sử chiến trận nào.', ephemeral: true });
+                await interaction.editReply({ content: '📜 Chưa có dữ liệu lịch sử chiến trận nào.' });
                 return;
             }
             const embed = new discord_js_1.EmbedBuilder()
@@ -182,7 +182,7 @@ class SectWarCommand extends Command_1.Command {
                     value: `Các bên: **${sectNames.join(' vs ')}**\nĐiểm số: ${scoresStr}\nTrạng thái: Đã kết thúc <t:${b.ended_at}:R>`
                 });
             }
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
             return;
         }
     }

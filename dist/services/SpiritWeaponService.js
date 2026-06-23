@@ -50,7 +50,7 @@ class SpiritWeaponService {
     awaken(userId, inventoryId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại.' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
         const inv = database_1.default.prepare('SELECT * FROM inventories WHERE id = ? AND user_id = ?').get(inventoryId, userId);
         if (!inv)
             return { success: false, message: 'Trang bị không tồn tại trong túi đồ!' };

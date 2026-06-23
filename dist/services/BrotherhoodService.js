@@ -53,7 +53,7 @@ class BrotherhoodService {
         const fromUser = UserRepository_1.userRepository.get(invite.fromUserId);
         const toUser = UserRepository_1.userRepository.get(invite.toUserId);
         if (!fromUser || !toUser)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         const existing1 = this.getBrotherhood(invite.fromUserId);
         if (existing1) {
             this.pendingInvites.delete(userId);

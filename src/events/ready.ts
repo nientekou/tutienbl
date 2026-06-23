@@ -1,6 +1,7 @@
 import { Event } from '../structures/Event';
 import { TuTienClient } from '../client/TuTienClient';
 import { initDatabase } from '../database/database';
+import { leaderboardService } from '../services/LeaderboardService';
 import chalk from 'chalk';
 import Table from 'cli-table3';
 
@@ -21,6 +22,7 @@ export default class ReadyEvent extends Event<'ready'> {
     // 1. Tự động kết nối và khởi tạo các bảng cơ sở dữ liệu
     try {
       initDatabase();
+      leaderboardService.clearCache();
       table.push(['SQLite Database', chalk.green('✔ Thành công')]);
     } catch (error) {
       table.push(['SQLite Database', chalk.red('❌ LỖI')]);

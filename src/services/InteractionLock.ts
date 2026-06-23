@@ -1,38 +1,40 @@
+import { GAME_CONSTANTS } from '../config/gameConstants';
+
 export class InteractionLock {
   private static locks = new Set<string>();
   private static lastActionEnds = new Map<string, number>();
+  private static lastCleanup = Date.now();
 
-  /**
-   * Cố gắng lấy khóa cho người chơi.
-   * Trả về true nếu lấy khóa thành công và ngoài cooldown 1.2 giây, false nếu bị chặn.
-   */
   public static acquire(userId: string): boolean {
     const now = Date.now();
     const lastEnd = this.lastActionEnds.get(userId) || 0;
-    if (now - lastEnd < 1200) {
-      return false; // Spam block
+    if (now - lastEnd < GAME_CONSTANTS.INTERACTION_LOCK_MS) {
+      return false;
     }
     if (this.locks.has(userId)) {
-      return false; // Concurrent execution block
+      return false;
     }
     this.locks.add(userId);
+    this.maybeCleanup(now);
     return true;
   }
 
-  /**
-   * Giải phóng khóa cho người chơi và ghi nhận mốc thời gian kết thúc hành động.
-   */
   public static release(userId: string): void {
     this.locks.delete(userId);
     this.lastActionEnds.set(userId, Date.now());
   }
 
-  /**
-   * Kiểm tra người chơi có đang bị khóa hay không.
-   */
   public static isLocked(userId: string): boolean {
     if (this.locks.has(userId)) return true;
     const lastEnd = this.lastActionEnds.get(userId) || 0;
-    return Date.now() - lastEnd < 1200;
+    return Date.now() - lastEnd < GAME_CONSTANTS.INTERACTION_LOCK_MS;
+  }
+
+  private static maybeCleanup(now: number): void {
+    if (now - this.lastCleanup < GAME_CONSTANTS.CLEANUP_INTERVAL_MS) return;
+    this.lastCleanup = now;
+    for (const [userId, ts] of this.lastActionEnds) {
+      if (now - ts > GAME_CONSTANTS.INTERACTION_LOCK_TTL_MS) this.lastActionEnds.delete(userId);
+    }
   }
 }

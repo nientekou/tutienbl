@@ -7,6 +7,7 @@ const InventoryRepository_1 = require("../../database/repositories/InventoryRepo
 const CoupleRepository_1 = require("../../database/repositories/CoupleRepository");
 const CoupleService_1 = require("../../services/CoupleService");
 const constants_1 = require("../../utils/constants");
+const itemConstants_1 = require("../../config/itemConstants");
 class DaoLuCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -27,14 +28,14 @@ class DaoLuCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
         if (sub === 'thongtin') {
             const couple = CoupleRepository_1.coupleRepository.getCoupleByUserId(userId);
             if (!couple) {
-                await interaction.reply({ content: '💔 Đạo hữu hiện đang độc thân vui tính!', ephemeral: true });
+                await interaction.editReply({ content: '💔 Đạo hữu hiện đang độc thân vui tính!' });
                 return;
             }
             const partnerId = couple.user1_id === userId ? couple.user2_id : couple.user1_id;
@@ -49,55 +50,54 @@ class DaoLuCommand extends Command_1.Command {
             if (anniversaryMsg) {
                 embed.setDescription(anniversaryMsg);
             }
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (sub === 'cau-hon') {
             const target = interaction.options.getUser('nguoi_choi', true);
             if (target.id === userId) {
-                await interaction.reply({ content: '❌ Không thể tự cầu hôn chính mình!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Không thể tự cầu hôn chính mình!' });
                 return;
             }
             if (target.bot) {
-                await interaction.reply({ content: '❌ Không thể cầu hôn Bot!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Không thể cầu hôn Bot!' });
                 return;
             }
             const targetUser = UserRepository_1.userRepository.get(target.id);
             if (!targetUser) {
-                await interaction.reply({ content: '❌ Người này chưa tu tiên!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Người này chưa tu tiên!' });
                 return;
             }
             const myCouple = CoupleRepository_1.coupleRepository.getCoupleByUserId(userId);
             if (myCouple) {
-                await interaction.reply({ content: '❌ Đạo hữu đã có Đạo Lữ rồi! Cấm ngoại tình!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Đạo hữu đã có Đạo Lữ rồi! Cấm ngoại tình!' });
                 return;
             }
             const targetCouple = CoupleRepository_1.coupleRepository.getCoupleByUserId(target.id);
             if (targetCouple) {
-                await interaction.reply({ content: '❌ Người ta đã có chủ rồi! Xin tự trọng!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Người ta đã có chủ rồi! Xin tự trọng!' });
                 return;
             }
             // Kiểm tra nhẫn đính hôn
             const inv = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-            const ring = inv.find(i => i.item_id === 'item_nhan_dinh_hon');
+            const ring = inv.find(i => i.item_id === itemConstants_1.ITEMS.ITEM_NHAN_DINH_HON);
             if (!ring || ring.quantity < 1) {
-                await interaction.reply({ content: '❌ Đạo hữu không có **Nhẫn Đính Hôn** (Mua trong Cửa Hàng giá 500,000 LT)!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Đạo hữu không có **Nhẫn Đính Hôn** (Mua trong Cửa Hàng giá 500,000 LT)!' });
                 return;
             }
             const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId('accept_marriage').setLabel('Đồng ý').setStyle(discord_js_1.ButtonStyle.Success), new discord_js_1.ButtonBuilder().setCustomId('decline_marriage').setLabel('Từ chối').setStyle(discord_js_1.ButtonStyle.Danger));
-            const msg = await interaction.reply({
-                content: `💍 <@${target.id}>, đạo hữu **${user.name}** muốn kết thành Đạo Lữ cùng bạn! Bạn có đồng ý không?`,
-                components: [row],
-                fetchReply: true
+            const msg = await interaction.editReply({
+                content: `💍 <@${target.id}>, đạo hữu **${user.name}** muốn kết thành Đạo Lữ cùng Đạo hữu! Đạo hữu có đồng ý không?`,
+                components: [row]
             });
             const collector = msg.createMessageComponentCollector({ componentType: discord_js_1.ComponentType.Button, time: 60000 });
             collector.on('collect', async (i) => {
                 if (i.user.id !== target.id) {
-                    await i.reply({ content: '❌ Bạn không phải là người được cầu hôn!', ephemeral: true });
+                    await i.reply({ content: '❌ Đạo hữu không phải là người được cầu hôn!' });
                     return;
                 }
                 if (i.customId === 'accept_marriage') {
                     // Trừ nhẫn
-                    InventoryRepository_1.inventoryRepository.removeItem(userId, 'item_nhan_dinh_hon', 1);
+                    InventoryRepository_1.inventoryRepository.removeItem(userId, itemConstants_1.ITEMS.ITEM_NHAN_DINH_HON, 1);
                     CoupleRepository_1.coupleRepository.createCouple(userId, target.id);
                     // Đồng bộ sang bảng users
                     UserRepository_1.userRepository.update(userId, { partner_id: target.id, intimacy: 100 });
@@ -117,32 +117,32 @@ class DaoLuCommand extends Command_1.Command {
         else if (sub === 'song-tu') {
             const couple = CoupleRepository_1.coupleRepository.getCoupleByUserId(userId);
             if (!couple) {
-                await interaction.reply({ content: '❌ Đạo hữu chưa có Đạo Lữ!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Đạo hữu chưa có Đạo Lữ!' });
                 return;
             }
             const result = CoupleService_1.coupleService.dualCultivate(couple.id);
-            await interaction.reply({ content: result.message });
+            await interaction.editReply({ content: result.message });
         }
         else if (sub === 'tang-qua') {
             const amount = interaction.options.getInteger('so_luong', true);
             if (amount <= 0) {
-                await interaction.reply({ content: '❌ Số lượng phải lớn hơn 0!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Số lượng phải lớn hơn 0!' });
                 return;
             }
             const couple = CoupleRepository_1.coupleRepository.getCoupleByUserId(userId);
             if (!couple) {
-                await interaction.reply({ content: '❌ Đạo hữu chưa có Đạo Lữ!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Đạo hữu chưa có Đạo Lữ!' });
                 return;
             }
             // 1 Quà = 1000 Linh Thạch = 1 Hảo cảm
             const cost = amount * 1000;
             if (user.coin_ha_pham < cost) {
-                await interaction.reply({ content: `❌ Không đủ Linh Thạch! Cần **${cost}** LT để tặng ${amount} món quà.`, ephemeral: true });
+                await interaction.editReply({ content: `❌ Không đủ Linh Thạch! Cần **${cost}** LT để tặng ${amount} món quà.` });
                 return;
             }
             UserRepository_1.userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - cost });
             const result = CoupleService_1.coupleService.giveGift(couple.id, amount);
-            await interaction.reply({ content: result.message });
+            await interaction.editReply({ content: result.message });
         }
     }
 }

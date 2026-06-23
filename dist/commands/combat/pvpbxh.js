@@ -21,7 +21,7 @@ class PvPBangXepHangCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -54,14 +54,13 @@ class PvPBangXepHangCommand extends Command_1.Command {
                 }
                 embed.addFields({ name: '📊 Bảng Xếp Hạng', value: rankingText });
             }
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (sub === 'thongtin') {
             const profile = PvPService_1.pvpService.getPlayerProfile(userId);
             if (!profile) {
-                await interaction.reply({
-                    content: '❌ Không thể tải thông tin PvP của đạo hữu.',
-                    ephemeral: true
+                await interaction.editReply({
+                    content: '❌ Không thể tải thông tin PvP của đạo hữu.'
                 });
                 return;
             }
@@ -82,7 +81,7 @@ class PvPBangXepHangCommand extends Command_1.Command {
                 `*Sử dụng /quyetau để khiêu chiến các tu sĩ khác và leo hạng!*`)
                 .setFooter({ text: `Mùa giải #${PvPService_1.pvpService.getCurrentSeason().season_number}` })
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }

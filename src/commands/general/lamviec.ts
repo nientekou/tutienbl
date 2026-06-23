@@ -8,6 +8,7 @@ import { encounterService, Encounter } from '../../services/EncounterService';
 import { leylineService } from '../../services/LeylineService';
 import db from '../../database/database';
 import { getProgressBar } from '../../utils/constants';
+import { ITEMS } from '../../config/itemConstants';
 
 // Lưu trữ thời gian chạy lệnh cuối cùng của từng tu sĩ trong bộ nhớ đệm
 const workCooldowns = new Map<string, number>();
@@ -114,7 +115,7 @@ export function performWork(
       earnedCoins = Math.floor(Math.random() * 21) + 10; // 10 -> 30
       actionDescription = 'Đạo hữu vác cuốc sắt vào linh cốc khai sơn phá quặng, đào sâu vách đá hấp thu linh thạch thô...';
       if (Math.random() < rewardItemChance) {
-        rewardItem = { id: 'material_iron_1', name: 'Huyền Thiết Sa' };
+        rewardItem = { id: ITEMS.MATERIAL_IRON_1, name: 'Huyền Thiết Sa' };
       }
     } else if (workType === 'gathering') {
       earnedCoins = Math.floor(Math.random() * 11) + 15; // 15 -> 25
@@ -133,13 +134,13 @@ export function performWork(
 
       actionDescription = 'Đạo hữu leo núi lội rừng tìm linh lung thảo, cẩn thận hái lượm linh dược...';
       if (Math.random() < rewardItemChance) {
-        rewardItem = { id: 'seed_linh_thao_1', name: 'Hạt Giống Linh Thảo' };
+        rewardItem = { id: ITEMS.SEED_LINH_THAO_1, name: 'Hạt Giống Linh Thảo' };
       }
     } else if (workType === 'patrolling') {
       earnedCoins = 20; // Cố định
       actionDescription = 'Đạo hữu khoác đao tuần hành canh gác nội môn tông thành, bảo đảm yên ổn sơn các...';
       if (Math.random() < 0.10) {
-        rewardItem = { id: 'pill_tu_vi_low', name: 'Sơ Cấp Tụ Khí Đan' };
+        rewardItem = { id: ITEMS.PILL_TU_VI_LOW, name: 'Sơ Cấp Tụ Khí Đan' };
       }
     } else if (workType === 'adventure') {
       earnedCoins = Math.floor(Math.random() * 21) + 30; // 30 -> 50
@@ -148,15 +149,15 @@ export function performWork(
         const rand = Math.random();
         if (rand < 0.4) {
           const seeds = [
-            { id: 'seed_tuyet_lien', name: 'Thiên Sơn Tuyết Liên Hạt' },
-            { id: 'seed_lingzhi', name: 'Cửu Diệp Linh Chi Hạt' },
-            { id: 'seed_ngodong', name: 'Ngô Đồng Quả Hạt' }
+            { id: ITEMS.SEED_TUYET_LIEN, name: 'Thiên Sơn Tuyết Liên Hạt' },
+            { id: ITEMS.SEED_LINGZHI, name: 'Cửu Diệp Linh Chi Hạt' },
+            { id: ITEMS.SEED_NGODONG, name: 'Ngô Đồng Quả Hạt' }
           ];
           rewardItem = seeds[Math.floor(Math.random() * seeds.length)];
         } else if (rand < 0.7) {
-          rewardItem = { id: 'lucky_chest', name: 'Rương May Mắn' };
+          rewardItem = { id: ITEMS.LUCKY_CHEST, name: 'Rương May Mắn' };
         } else {
-          rewardItem = { id: 'map_fragment', name: 'Mảnh Bản Đồ' };
+          rewardItem = { id: ITEMS.MAP_FRAGMENT, name: 'Mảnh Bản Đồ' };
         }
       }
     } else if (workType === 'archaeology') {
@@ -164,9 +165,9 @@ export function performWork(
       actionDescription = 'Đạo hữu cầm la bàn bát quái, cẩn thận khảo cổ di tích hoang tàn cổ xưa...';
       if (Math.random() < 0.20) {
         if (Math.random() < 0.5) {
-          rewardItem = { id: 'material_iron_1', name: 'Huyền Thiết Sa' };
+          rewardItem = { id: ITEMS.MATERIAL_IRON_1, name: 'Huyền Thiết Sa' };
         } else {
-          rewardItem = { id: 'mat_huyen_thiet', name: 'Huyền Thiết' };
+          rewardItem = { id: ITEMS.MAT_HUYEN_THIET, name: 'Huyền Thiết' };
         }
       }
     } else if (workType === 'escort') {
@@ -179,7 +180,7 @@ export function performWork(
         actionDescription += `\n⚠️ **Thảo khấu mai phục:** Bọn cướp đường xuất hiện cướp mất **${lostCoins}** Linh Thạch!`;
       }
       if (Math.random() < rewardItemChance) {
-        rewardItem = { id: 'item_fragment', name: 'Mảnh Bảo Vật' };
+        rewardItem = { id: ITEMS.ITEM_FRAGMENT, name: 'Mảnh Bảo Vật' };
       }
     }
 
@@ -320,7 +321,7 @@ export default class LamViecCommand extends Command {
     try {
       const result = performWork(discordId, workType);
       if (!result.success) {
-        await interaction.reply({ content: result.message!, ephemeral: true });
+        await interaction.editReply({ content: result.message!});
         return;
       }
 
@@ -339,12 +340,11 @@ export default class LamViecCommand extends Command {
         components.push(row);
       }
 
-      await interaction.reply({ embeds: [result.embed!], components });
+      await interaction.editReply({ embeds: [result.embed!], components });
     } catch (error) {
       console.error('Lỗi khi lưu kết quả làm việc:', error);
-      await interaction.reply({
-        content: '❌ Đã xảy ra lỗi hệ thống khi lưu kết quả lao động.',
-        ephemeral: true
+      await interaction.editReply({
+        content: '❌ Đã xảy ra lỗi hệ thống khi lưu kết quả lao động.'
       });
     }
   }

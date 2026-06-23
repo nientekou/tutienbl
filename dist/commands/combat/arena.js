@@ -32,7 +32,7 @@ class ArenaCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật, vui lòng dùng lệnh `/taonhanvat`.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật, vui lòng dùng lệnh `/taonhanvat`.' });
             return;
         }
         if (subcommand === 'profile') {
@@ -40,7 +40,7 @@ class ArenaCommand extends Command_1.Command {
             const targetId = targetUser.id;
             const targetProfile = UserRepository_1.userRepository.get(targetId);
             if (!targetProfile) {
-                await interaction.reply({ content: '❌ Người chơi này chưa tạo nhân vật.', ephemeral: true });
+                await interaction.editReply({ content: '❌ Người chơi này chưa tạo nhân vật.' });
                 return;
             }
             const profile = ArenaService_1.arenaService.getProfile(targetId);
@@ -67,10 +67,9 @@ class ArenaCommand extends Command_1.Command {
                 .addFields({ name: '🏆 Điểm ELO', value: `**${profile.elo}**`, inline: true }, { name: '🔥 Chuỗi Thắng', value: `${profile.win_streak}`, inline: true }, { name: '📈 ELO Kỷ Lục', value: `${profile.highest_elo}`, inline: true }, { name: '⚔️ Trận Đấu', value: `Thắng: ${profile.wins} | Thua: ${profile.losses}`, inline: true }, { name: '📊 Tỉ Lệ Thắng', value: `${winRate}%`, inline: true }, { name: '🏅 Xếp Hạng Mùa Trước', value: profile.last_season_rank > 0 ? `#${profile.last_season_rank}` : 'Chưa xếp hạng', inline: true })
                 .setThumbnail(targetUser.displayAvatarURL())
                 .setFooter({ text: `Mùa Giải: ${profile.season_id}` });
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (subcommand === 'find') {
-            await interaction.deferReply(); // Do tính toán combat có thể lâu
             const opponentId = ArenaService_1.arenaService.getMatchmaking(userId);
             if (!opponentId) {
                 await interaction.editReply('❌ Đấu trường hiện tại vắng lặng, không tìm thấy đối thủ nào! Hãy quay lại sau.');
@@ -118,7 +117,7 @@ class ArenaCommand extends Command_1.Command {
         else if (subcommand === 'top') {
             const topPlayers = ArenaService_1.arenaService.getLeaderboard(10);
             if (topPlayers.length === 0) {
-                await interaction.reply({ content: '📭 Bảng xếp hạng Đấu Trường hiện tại trống rỗng.', ephemeral: true });
+                await interaction.editReply({ content: '📭 Bảng xếp hạng Đấu Trường hiện tại trống rỗng.' });
                 return;
             }
             const embed = new discord_js_1.EmbedBuilder()
@@ -137,7 +136,7 @@ class ArenaCommand extends Command_1.Command {
                 description += `└─ 🏆 ELO: **${p.elo}** | ⚔️ W/L: ${p.wins}/${p.losses} | 🔥 Chuỗi: ${p.win_streak}\n\n`;
             });
             embed.setDescription(description);
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (subcommand === 'history') {
             const history = database_1.default.prepare(`
@@ -147,7 +146,7 @@ class ArenaCommand extends Command_1.Command {
         LIMIT 5
       `).all(userId, userId);
             if (history.length === 0) {
-                await interaction.reply({ content: '📭 Đạo hữu chưa tham gia trận đấu nào.', ephemeral: true });
+                await interaction.editReply({ content: '📭 Đạo hữu chưa tham gia trận đấu nào.' });
                 return;
             }
             const embed = new discord_js_1.EmbedBuilder()
@@ -166,7 +165,7 @@ class ArenaCommand extends Command_1.Command {
                 desc += `**${resultIcon}** vs **${oName}** (${eloMod} ELO) - ${timeStr}\n`;
             }
             embed.setDescription(desc);
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
     }
 }

@@ -20,10 +20,10 @@ export default class DungKyNangCommand extends Command {
       new SlashCommandBuilder()
         .setName('dungkynang')
         .setDescription('Sử dụng bí tịch sách kỹ năng để lĩnh ngộ pháp quyết.')
-        .addStringOption(opt =>
+        .addIntegerOption(opt =>
           opt
-            .setName('item_id')
-            .setDescription('Mã sách kỹ năng muốn học (ví dụ: book_fire, book_lightning...)')
+            .setName('inventory_id')
+            .setDescription('ID sách kỹ năng trong hành trang muốn học.')
             .setRequired(false)
         )
     );
@@ -31,21 +31,26 @@ export default class DungKyNangCommand extends Command {
 
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const userId = interaction.user.id;
-    const bookId = interaction.options.getString('item_id');
+    const inventoryId = interaction.options.getInteger('inventory_id');
 
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'});
       return;
     }
 
-    if (bookId) {
-      const result = DungKyNangCommand.learnSkill(userId, bookId);
-      if (!result.success) {
-        await interaction.reply({ content: result.message, ephemeral: true });
+    if (inventoryId) {
+      const invItem = inventoryRepository.get(inventoryId);
+      if (!invItem || invItem.user_id !== userId) {
+        await interaction.editReply({ content: `❌ Không tìm thấy vật phẩm ID **${inventoryId}** trong hành trang!`});
         return;
       }
-      await interaction.reply({ embeds: [result.embed!] });
+      const result = DungKyNangCommand.learnSkill(userId, invItem.item_id);
+      if (!result.success) {
+        await interaction.editReply({ content: result.message});
+        return;
+      }
+      await interaction.editReply({ embeds: [result.embed!] });
       return;
     }
 
@@ -65,7 +70,7 @@ export default class DungKyNangCommand extends Command {
           `• Mua bán trao đổi với các đạo hữu khác thông qua **Chợ Trời**.`
         )
         .setTimestamp();
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await interaction.editReply({ embeds: [embed]});
       return;
     }
 
@@ -112,7 +117,7 @@ export default class DungKyNangCommand extends Command {
       
     const rowButton = new ActionRowBuilder<ButtonBuilder>().addComponents(cancelBtn);
 
-    await interaction.reply({ embeds: [embed], components: [row, rowButton] });
+    await interaction.editReply({ embeds: [embed], components: [row, rowButton] });
   }
 
   /**

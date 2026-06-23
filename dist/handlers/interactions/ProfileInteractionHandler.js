@@ -66,7 +66,7 @@ function getLeaderboardEmbed(userId, subType) {
         embed.setFooter({ text: `📍 Hạng của bạn: #${userRank.rank} / ${userRank.total}` });
     }
     else {
-        embed.setFooter({ text: '📍 Bạn chưa có dữ liệu trong bảng xếp hạng này.' });
+        embed.setFooter({ text: '📍 Đạo hữu chưa có dữ liệu trong bảng xếp hạng này.' });
     }
     return embed;
 }

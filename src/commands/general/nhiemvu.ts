@@ -27,7 +27,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
 export function getNhiemVuEmbed(userId: string): EmbedBuilder {
   const user = userRepository.get(userId);
   if (!user) {
-    return new EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Nhân vật không tồn tại.');
+    return new EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Đạo hữu chưa khởi tạo nhân vật.');
   }
 
   const quests = dailyQuestService.getOrAssignQuests(userId);
@@ -130,7 +130,7 @@ export function getNhiemVuComponents(userId: string): ActionRowBuilder<ButtonBui
 export function getQuestChainEmbed(userId: string): EmbedBuilder {
   const user = userRepository.get(userId);
   if (!user) {
-    return new EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Nhân vật không tồn tại.');
+    return new EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Đạo hữu chưa khởi tạo nhân vật.');
   }
 
   const progressData = questChainService.getDetailedProgress(userId);
@@ -143,7 +143,7 @@ export function getQuestChainEmbed(userId: string): EmbedBuilder {
     .setTimestamp();
 
   if (progressData.length === 0 && availableChains.length === 0) {
-    embed.setDescription('🎉 Bạn đã hoàn thành tất cả chuỗi nhiệm vụ hiện có!');
+    embed.setDescription('🎉 Đạo hữu đã hoàn thành tất cả chuỗi nhiệm vụ hiện có!');
     return embed;
   }
 
@@ -254,7 +254,7 @@ export default class NhiemVuCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'});
       return;
     }
 
@@ -263,11 +263,11 @@ export default class NhiemVuCommand extends Command {
     if (subcommand === 'chuong-trinh') {
       const embed = getQuestChainEmbed(userId);
       const rows = getQuestChainComponents(userId);
-      await interaction.reply({ embeds: [embed], components: rows });
+      await interaction.editReply({ embeds: [embed], components: rows });
     } else {
       const embed = getNhiemVuEmbed(userId);
       const rows = getNhiemVuComponents(userId);
-      await interaction.reply({ embeds: [embed], components: rows });
+      await interaction.editReply({ embeds: [embed], components: rows });
     }
   }
 }

@@ -151,7 +151,7 @@ class HeartLawService {
    */
   public levelUpHeartLaw(userId: string, lawId: string): { success: boolean; message: string } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Nhân vật không tồn tại!' };
+    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
     const userLaws = this.getUserHeartLaws(userId);
     const target = userLaws.find(l => l.id === lawId);
@@ -207,7 +207,7 @@ class HeartLawService {
     try {
       const bl = db.prepare('SELECT bloodline_id FROM user_bloodlines WHERE user_id = ?').get(userId) as { bloodline_id: string } | undefined;
       if (bl) bloodlineId = bl.bloodline_id;
-    } catch(e){}
+    } catch(e) { console.warn('[HeartLawService] Failed to fetch user bloodline:', e); }
 
     const bloodlineElementMap: Record<string, string> = {
       'phuong_hoang': 'Hỏa',
@@ -224,7 +224,7 @@ class HeartLawService {
       let effectObj = { type: '', value: 0 };
       try {
         effectObj = JSON.parse(l.base_effect);
-      } catch(e){}
+      } catch(e) { console.warn('[HeartLawService] Failed to parse heart law base_effect:', e); }
 
       // Mỗi level tăng +10% giá trị gốc: value * (1 + (level - 1) * 0.1)
       let baseVal = effectObj.value * (1 + (l.level - 1) * 0.1);

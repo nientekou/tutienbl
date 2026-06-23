@@ -157,7 +157,7 @@ const GUIDES = {
             '  • **💧 Thủy**: Phục hồi 20% HP tối đa và giải hoàn toàn trạng thái thiêu đốt Hỏa Phế.',
             '  • **🌿 Mộc**: Hút máu đòn đánh 40% và hồi thêm 5% HP tối đa trực tiếp.',
             '  • **🪨 Thổ**: Khiên Thổ Giáp hấp thụ 25% HP tối đa + tăng 30% Thủ khi khiên tồn tại.',
-            '  • **⚡ Lôi**: Tê liệt đối thủ hiệp kế tiếp + nhân 2x sát thương đòn đánh.',
+            '  • **⚡ Lôi**: Tê liệt đối thủ 1 hiệp + nhân 2x sát thương đòn đánh + tăng 20 Tốc Độ từ linh căn.',
             '  • **🌀 Phong**: Chuẩn bị Né Tránh đòn sau + cộng vĩnh viễn +10% tỷ lệ Né suốt trận.',
         ].join('\n'),
     },
@@ -210,7 +210,7 @@ class HuongDanCommand extends Command_1.Command {
             .setCustomId(`huongdan_${interaction.user.id}`)
             .setPlaceholder('📖 Chọn chủ đề hướng dẫn...')
             .addOptions(new discord_js_1.StringSelectMenuOptionBuilder().setLabel('🌱 Bắt Đầu Tu Tiên').setValue('batdau').setDescription('Tạo nhân vật, các bước đầu tiên'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('⛏️ Làm Việc & Kiếm Tài Nguyên').setValue('lamviec').setDescription('Công việc hàng ngày, thủ thuật'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('⚔️ Chiến Đấu & PvP').setValue('chientran').setDescription('Săn quái, boss, bí cảnh, quyết đấu'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('🛡️ Trang Bị & Cường Hóa').setValue('trangbi').setDescription('Trang bị, nâng sao, chế tạo, khí linh'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('🪙 Kinh Tế & Tài Nguyên').setValue('taimat').setDescription('Tiền tệ, giao dịch, linh điền'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('🌟 Nâng Cao & Đặc Biệt').setValue('nangcao').setDescription('Ý cảnh, luân hồi, tông môn, tọa kỵ'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('☯️ Ngũ Hành Linh Căn').setValue('linhcan').setDescription('Tôi luyện, phân phẩm và thiên phú chiến đấu'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('⚙️ Hệ Thống & Mẹo').setValue('vanhanh').setDescription('Lệnh tiện ích, mẹo hàng ngày')));
-        await interaction.reply({ embeds: [embed], components: [menu], ephemeral: true });
+        await interaction.editReply({ embeds: [embed], components: [menu] });
     }
 }
 exports.default = HuongDanCommand;

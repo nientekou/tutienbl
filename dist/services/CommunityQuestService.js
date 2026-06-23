@@ -7,6 +7,7 @@ exports.COMMUNITY_QUEST_POOL = exports.communityQuestService = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
+const itemConstants_1 = require("../config/itemConstants");
 const COMMUNITY_QUEST_POOL = [
     {
         id: 'cq_boss',
@@ -32,7 +33,7 @@ const COMMUNITY_QUEST_POOL = [
         description: 'Các tu sĩ quyết đấu khắp thiên hạ',
         objectiveType: 'total_pvp',
         totalRequired: 100,
-        rewardPerPlayer: { exp: 8000, coins: 3000, items: [{ id: 'pill_tu_vi_low', qty: 3 }] },
+        rewardPerPlayer: { exp: 8000, coins: 3000, items: [{ id: itemConstants_1.ITEMS.PILL_TU_VI_LOW, qty: 3 }] },
         durationHours: 36,
     },
 ];
@@ -88,7 +89,7 @@ class CommunityQuestService {
             if (!user)
                 continue;
             UserRepository_1.userRepository.update(p.user_id, {
-                tu_vi: user.tu_vi + quest.reward_exp,
+                tu_vi: Math.min(user.tu_vi + quest.reward_exp, user.exp_needed),
                 coin_ha_pham: user.coin_ha_pham + quest.reward_coins,
             });
             for (const item of rewardItems) {

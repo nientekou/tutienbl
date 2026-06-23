@@ -32,7 +32,7 @@ class ThanhTuuCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -114,7 +114,7 @@ class ThanhTuuCommand extends Command_1.Command {
             }
         }
         embed.setFooter({ text: `Danh hiệu hiện tại: ${UserRepository_1.userRepository.get(userId)?.title || 'Tán Tu'} | Dùng /thanhtuu danhhieu để xem tất cả danh hiệu.` });
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
     }
     /**
      * Xem tổng quan tất cả thành tựu
@@ -156,7 +156,7 @@ class ThanhTuuCommand extends Command_1.Command {
             embed.addFields({ name: '🆕 Gần đây nhất', value: recentText, inline: false });
         }
         embed.setFooter({ text: 'Dùng /thanhtuu xem để xem chi tiết từng danh mục.' });
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
     }
     /**
      * Xem danh hiệu đã mở khóa
@@ -222,13 +222,12 @@ class ThanhTuuCommand extends Command_1.Command {
             }
             components.push(...rows);
         }
-        await interaction.reply({ embeds: [embed], components });
+        await interaction.editReply({ embeds: [embed], components });
     }
     /**
      * Fix thành tựu bị kẹt
      */
     async handleFix(interaction, userId) {
-        await interaction.deferReply({ ephemeral: true });
         const fixed = AchievementService_1.achievementService.fixStuckAchievements(userId);
         if (fixed.length === 0) {
             await interaction.editReply({ content: '✅ Không có thành tựu nào bị kẹt. Tất cả thành tựu đều đã được cập nhật đúng!' });

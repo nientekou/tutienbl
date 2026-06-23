@@ -9,14 +9,15 @@ const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const InventoryService_1 = require("../../services/InventoryService");
 const database_1 = __importDefault(require("../../database/database"));
+const itemConstants_1 = require("../../config/itemConstants");
 class DungCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
             .setName('dung')
             .setDescription('Sử dụng đan dược, rương báu, hoặc phù lục từ túi đồ.')
-            .addStringOption(opt => opt
-            .setName('item_id')
-            .setDescription('Mã vật phẩm cần sử dụng (ví dụ: pill_hp_1, lucky_chest,...)')
+            .addIntegerOption(opt => opt
+            .setName('inventory_id')
+            .setDescription('Mã hành trang của vật phẩm (xem trong /hoso)')
             .setRequired(true))
             .addIntegerOption(opt => opt
             .setName('soluong')
@@ -25,37 +26,34 @@ class DungCommand extends Command_1.Command {
     }
     async execute(client, interaction) {
         const userId = interaction.user.id;
-        const itemId = interaction.options.getString('item_id', true);
+        const inventoryId = interaction.options.getInteger('inventory_id', true);
         const qty = interaction.options.getInteger('soluong') || 1;
         if (qty <= 0) {
-            await interaction.reply({ content: '❌ Số lượng sử dụng phải lớn hơn 0!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Số lượng sử dụng phải lớn hơn 0!' });
             return;
         }
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         // Lấy danh sách item trong túi đồ
         const inventory = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-        const userItem = inventory.find(i => i.item_id === itemId && i.is_equipped === 0);
+        const userItem = inventory.find(i => i.id === inventoryId && i.is_equipped === 0);
         if (!userItem || userItem.quantity < qty) {
-            await interaction.reply({
-                content: `❌ Đạo hữu không đủ vật phẩm này trong túi đồ! (Hiện có: **${userItem ? userItem.quantity : 0}**).`,
-                ephemeral: true
+            await interaction.editReply({
+                content: `❌ Đạo hữu không đủ vật phẩm này trong túi đồ! (Hiện có: **${userItem ? userItem.quantity : 0}**).`
             });
             return;
         }
+        const itemId = userItem.item_id;
         // Xử lý nếu là Sách kỹ năng -> Chuyển qua học kỹ năng
         if (userItem.type === 'book') {
-            await interaction.reply({
-                content: `💡 Để học kỹ năng từ sách cổ này, đạo hữu hãy sử dụng lệnh \`/dungkynang item_id: ${itemId}\`!`,
-                ephemeral: true
+            await interaction.editReply({
+                content: `💡 Để học kỹ năng từ sách cổ này, đạo hữu hãy sử dụng lệnh \`/dungkynang item_id: ${itemId}\`!`
             });
             return;
         }
-        // Defer reply for potentially heavy database updates or item loops
-        await interaction.deferReply();
         // Xử lý mở rương
         if (userItem.type === 'chest') {
             const openResult = this.openChests(interaction.user.username, itemId, qty);
@@ -90,7 +88,7 @@ class DungCommand extends Command_1.Command {
         for (let i = 0; i < qty; i++) {
             // Refresh inventory item state
             const currentInv = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-            const activeItem = currentInv.find(item => item.item_id === itemId && item.is_equipped === 0);
+            const activeItem = currentInv.find(item => item.id === inventoryId && item.is_equipped === 0);
             if (!activeItem || activeItem.quantity <= 0)
                 break;
             const res = InventoryService_1.inventoryService.useItem(userId, activeItem.id);
@@ -132,7 +130,7 @@ class DungCommand extends Command_1.Command {
             }
         };
         for (let i = 0; i < qty; i++) {
-            if (chestId === 'lucky_chest') {
+            if (chestId === itemConstants_1.ITEMS.LUCKY_CHEST) {
                 // Mở ra phôi từ F tới SSS
                 const rand = Math.random() * 100;
                 let grade = 'f';
@@ -153,13 +151,13 @@ class DungCommand extends Command_1.Command {
                 else
                     grade = 'sss';
                 const isWeapon = Math.random() < 0.5;
-                const phoiId = isWeapon ? `phoi_weapon_${grade}` : `phoi_armor_${grade}`;
+                const phoiId = isWeapon ? (0, itemConstants_1.getPhoiWeaponByGrade)(grade) : (0, itemConstants_1.getPhoiArmorByGrade)(grade);
                 // Lấy tên phôi
                 const staticItem = database_1.default.prepare('SELECT name FROM items WHERE id = ?').get(phoiId);
                 const phoiName = staticItem ? staticItem.name : `Phôi phẩm ${grade.toUpperCase()}`;
                 addReward(phoiId, phoiName, 1);
             }
-            else if (chestId === 'chest_1tr5') {
+            else if (chestId === itemConstants_1.ITEMS.CHEST_1TR5) {
                 // Rương 1.5M tôn quý (Sát tỷ lệ: SSS: 10%, SS: 20%, S: 35%, A: 35%, loại bỏ hoàn toàn phẩm B)
                 const sssRate = 0.10;
                 const ssRate = 0.20;
@@ -179,12 +177,12 @@ class DungCommand extends Command_1.Command {
                     grade = 'a';
                 }
                 const isWeapon = Math.random() < 0.5;
-                const phoiId = isWeapon ? `phoi_weapon_${grade}` : `phoi_armor_${grade}`;
+                const phoiId = isWeapon ? (0, itemConstants_1.getPhoiWeaponByGrade)(grade) : (0, itemConstants_1.getPhoiArmorByGrade)(grade);
                 const staticItem = database_1.default.prepare('SELECT name FROM items WHERE id = ?').get(phoiId);
                 const phoiName = staticItem ? staticItem.name : `Phôi phẩm ${grade.toUpperCase()}`;
                 addReward(phoiId, phoiName, 1);
             }
-            else if (chestId === 'server_raid_chest') {
+            else if (chestId === itemConstants_1.ITEMS.SERVER_RAID_CHEST) {
                 // Rương Boss Thế Giới: Cơ hội ra trang bị trực tiếp EX
                 const rand = Math.random();
                 let grade = 's';
@@ -201,7 +199,7 @@ class DungCommand extends Command_1.Command {
                     grade = 's';
                 }
                 const isWeapon = Math.random() < 0.5;
-                const targetItemId = isWeapon ? `weapon_sword_${grade}` : `armor_robe_${grade}`;
+                const targetItemId = isWeapon ? (0, itemConstants_1.getWeaponByGrade)(grade) : (0, itemConstants_1.getArmorByGrade)(grade);
                 const staticItem = database_1.default.prepare('SELECT name FROM items WHERE id = ?').get(targetItemId);
                 const itemName = staticItem ? staticItem.name : `Trang bị phẩm ${grade.toUpperCase()}`;
                 // Rương này mở thẳng ra trang bị thức tỉnh chỉ số phụ ngẫu nhiên luôn
@@ -210,7 +208,7 @@ class DungCommand extends Command_1.Command {
             }
             else {
                 // Rương rác / mặc định rơi huyền thiết sa
-                addReward('material_iron_1', 'Huyền Thiết Sa', 1);
+                addReward(itemConstants_1.ITEMS.MATERIAL_IRON_1, 'Huyền Thiết Sa', 1);
             }
         }
         const logs = [];

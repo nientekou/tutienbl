@@ -6,6 +6,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const TuTienClient_1 = require("./client/TuTienClient");
 const config_1 = require("./config");
 const chalk_1 = __importDefault(require("chalk"));
+// Global exception handlers
+process.on('unhandledRejection', (reason, promise) => {
+    console.error(chalk_1.default.red('[UNHANDLED REJECTION]'), reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error(chalk_1.default.red('[UNCAUGHT EXCEPTION]'), err);
+});
 console.clear();
 console.log(chalk_1.default.cyan.bold('\n============================================='));
 console.log(chalk_1.default.cyan.bold('          HỆ THỐNG TU TIÊN BOT V7.0         '));

@@ -56,16 +56,15 @@ export default class SetupCommand extends Command {
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const { guild } = interaction;
     if (!guild) {
-      await interaction.reply({ content: '❌ Lệnh này chỉ dùng trong máy chủ Discord.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Lệnh này chỉ dùng trong máy chủ Discord.' });
       return;
     }
 
     const botMember = await guild.members.fetch(client.user!.id);
     if (!botMember.permissions.has(PermissionFlagsBits.ManageChannels)) {
-      await interaction.reply({
+      await interaction.editReply({
         content: '❌ Ta cần quyền **Quản Lý Kênh** (Manage Channels) để kiến tạo Đạo Trường!',
-        ephemeral: true,
-      });
+        });
       return;
     }
 
@@ -84,7 +83,7 @@ export default class SetupCommand extends Command {
   private async showInfo(interaction: ChatInputCommandInteraction): Promise<void> {
     const config = getExistingConfig(interaction.guildId!);
     if (!config || !config.category_id) {
-      await interaction.reply({ content: '⚠️ Máy chủ chưa được thiết lập. Dùng `/setup create` để kiến tạo Đạo Trường.', ephemeral: true });
+      await interaction.editReply({ content: '⚠️ Máy chủ chưa được thiết lập. Dùng `/setup create` để kiến tạo Đạo Trường.' });
       return;
     }
 
@@ -104,13 +103,13 @@ export default class SetupCommand extends Command {
       });
     }
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.editReply({ embeds: [embed] });
   }
 
   private async confirmReset(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const config = getExistingConfig(interaction.guildId!);
     if (!config?.category_id) {
-      await interaction.reply({ content: '⚠️ Chưa có cấu hình nào để reset. Dùng `/setup create` để tạo mới.', ephemeral: true });
+      await interaction.editReply({ content: '⚠️ Chưa có cấu hình nào để reset. Dùng `/setup create` để tạo mới.' });
       return;
     }
 
@@ -119,11 +118,10 @@ export default class SetupCommand extends Command {
       new ButtonBuilder().setCustomId('cancel_reset').setLabel('❌ Huỷ').setStyle(ButtonStyle.Secondary),
     );
 
-    await interaction.reply({
+    await interaction.editReply({
       content: '⚠️ **CẢNH BÁO:** Thao tác này sẽ xoá tất cả kênh cũ trong danh mục Đạo Trường và tạo lại từ đầu. Tiếp tục?',
       components: [row],
-      ephemeral: true,
-    });
+      });
 
     const filter = (i: ButtonInteraction) => i.user.id === interaction.user.id;
     const collected = await interaction.channel!.awaitMessageComponent({
@@ -153,9 +151,6 @@ export default class SetupCommand extends Command {
   private async runSetup(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const { guild } = interaction;
     if (!guild) return;
-
-    await interaction.deferReply({ ephemeral: true });
-
     try {
       // 1. Tạo category
       let category = guild.channels.cache.find(

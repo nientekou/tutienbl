@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RECIPES = void 0;
+const itemConstants_1 = require("./itemConstants");
 exports.RECIPES = {
     recipe_pill_break_minor_1: {
         id: 'recipe_pill_break_minor_1',
@@ -10,11 +11,11 @@ exports.RECIPES = {
         duration: 60,
         cost: 30,
         ingredients: [
-            { itemId: 'material_linh_thao_1', quantity: 3 },
-            { itemId: 'material_nhan_sam_1', quantity: 1 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 3 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 1 }
         ],
         product: {
-            itemId: 'pill_break_minor_1',
+            itemId: itemConstants_1.ITEMS.PILL_BREAK_MINOR_1,
             quantity: 1
         },
         description: 'Hỗ trợ đột phá tầng nhỏ, tăng 15% tỷ lệ thành công.'
@@ -27,11 +28,11 @@ exports.RECIPES = {
         duration: 120,
         cost: 60,
         ingredients: [
-            { itemId: 'material_linh_thao_1', quantity: 6 },
-            { itemId: 'material_nhan_sam_1', quantity: 2 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 6 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 2 }
         ],
         product: {
-            itemId: 'pill_break_minor_2',
+            itemId: itemConstants_1.ITEMS.PILL_BREAK_MINOR_2,
             quantity: 1
         },
         description: 'Hỗ trợ đột phá tầng nhỏ, tăng 30% tỷ lệ thành công.'
@@ -44,11 +45,11 @@ exports.RECIPES = {
         duration: 300,
         cost: 150,
         ingredients: [
-            { itemId: 'material_linh_thao_1', quantity: 15 },
-            { itemId: 'material_nhan_sam_1', quantity: 5 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 15 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 5 }
         ],
         product: {
-            itemId: 'pill_break_minor_3',
+            itemId: itemConstants_1.ITEMS.PILL_BREAK_MINOR_3,
             quantity: 1
         },
         description: 'Hỗ trợ đột phá tầng nhỏ, tăng 50% tỷ lệ thành công.'
@@ -61,11 +62,11 @@ exports.RECIPES = {
         duration: 240,
         cost: 100,
         ingredients: [
-            { itemId: 'material_linh_thao_1', quantity: 5 },
-            { itemId: 'material_nhan_sam_1', quantity: 1 } // Thay thế bằng giấy bùa nếu có sau
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 1 } // Thay thế bằng giấy bùa nếu có sau
         ],
         product: {
-            itemId: 'talisman_anti_loi',
+            itemId: itemConstants_1.ITEMS.TALISMAN_ANTI_LOI,
             quantity: 1
         },
         description: 'Chống đỡ một đạo sét của Lôi Kiếp, giảm 80% sát thương.'
@@ -78,10 +79,10 @@ exports.RECIPES = {
         duration: 60,
         cost: 10,
         ingredients: [
-            { itemId: 'material_linh_thao_1', quantity: 3 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 3 }
         ],
         product: {
-            itemId: 'pill_tu_vi_low',
+            itemId: itemConstants_1.ITEMS.PILL_TU_VI_LOW,
             quantity: 1
         },
         description: 'Luyện đan ngưng tụ thiên địa linh khí, dùng tăng +50 Tu Vi.'
@@ -94,11 +95,11 @@ exports.RECIPES = {
         duration: 60,
         cost: 15,
         ingredients: [
-            { itemId: 'material_linh_thao_1', quantity: 2 },
-            { itemId: 'material_nhan_sam_1', quantity: 1 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 2 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 1 }
         ],
         product: {
-            itemId: 'pill_hp_2',
+            itemId: itemConstants_1.ITEMS.PILL_HP_2,
             quantity: 1
         },
         description: 'Đan dược trung phẩm xoa dịu lục phủ ngũ tạng, dùng hồi phục 150 HP.'
@@ -111,11 +112,11 @@ exports.RECIPES = {
         duration: 120,
         cost: 50,
         ingredients: [
-            { itemId: 'material_linh_thao_1', quantity: 5 },
-            { itemId: 'material_nhan_sam_1', quantity: 2 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 2 }
         ],
         product: {
-            itemId: 'pill_break_1',
+            itemId: itemConstants_1.ITEMS.PILL_BREAK_1,
             quantity: 1
         },
         description: 'Bổ trợ đột phá cảnh giới từ Luyện Khí Kỳ lên Trúc Cơ Kỳ, tăng 20% tỷ lệ thành công.'
@@ -128,11 +129,11 @@ exports.RECIPES = {
         duration: 180,
         cost: 100,
         ingredients: [
-            { itemId: 'material_iron_1', quantity: 10 },
-            { itemId: 'material_nhan_sam_1', quantity: 2 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_IRON_1, quantity: 10 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 2 }
         ],
         product: {
-            itemId: 'weapon_sword_2',
+            itemId: itemConstants_1.ITEMS.WEAPON_SWORD_2,
             quantity: 1
         },
         description: 'Linh kiếm rèn từ vảy Xích Long, tăng +50 Công Kích.'
@@ -145,11 +146,11 @@ exports.RECIPES = {
         duration: 180,
         cost: 100,
         ingredients: [
-            { itemId: 'material_iron_1', quantity: 8 },
-            { itemId: 'material_nhan_sam_1', quantity: 3 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_IRON_1, quantity: 8 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, quantity: 3 }
         ],
         product: {
-            itemId: 'armor_robe_2',
+            itemId: itemConstants_1.ITEMS.ARMOR_ROBE_2,
             quantity: 1
         },
         description: 'Đạo bào thêu rồng bay lượn bảo hộ hộ vệ, tăng +30 Phòng Thủ và +100 HP.'
@@ -162,12 +163,12 @@ exports.RECIPES = {
         duration: 300,
         cost: 500,
         ingredients: [
-            { itemId: 'material_iron_1', quantity: 20 },
-            { itemId: 'material_mythril_1', quantity: 5 },
-            { itemId: 'material_tinh_thiet_1', quantity: 1 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_IRON_1, quantity: 20 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 1 }
         ],
         product: {
-            itemId: 'weapon_sword_3',
+            itemId: itemConstants_1.ITEMS.WEAPON_SWORD_3,
             quantity: 1
         },
         description: 'Cổ kiếm tuyệt thế có khả năng trảm tiên phạt thần, tăng +150 Công Kích và +5% Bạo Kích.'
@@ -180,12 +181,12 @@ exports.RECIPES = {
         duration: 300,
         cost: 500,
         ingredients: [
-            { itemId: 'material_iron_1', quantity: 15 },
-            { itemId: 'material_mythril_1', quantity: 8 },
-            { itemId: 'material_tinh_thiet_1', quantity: 1 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_IRON_1, quantity: 15 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 8 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 1 }
         ],
         product: {
-            itemId: 'armor_robe_3',
+            itemId: itemConstants_1.ITEMS.ARMOR_ROBE_3,
             quantity: 1
         },
         description: 'Huyền giáp ngưng tụ thần quang bảo vệ nguyên thần, tăng +100 Phòng Thủ và +300 Sinh Lực.'

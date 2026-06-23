@@ -116,15 +116,14 @@ class WorldBossCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({
-                content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.',
-                ephemeral: true
+            await interaction.editReply({
+                content: '❌ Đạo hữu chưa khởi tạo nhân vật! Hãy sử dụng lệnh `/taonhanvat` để bước vào con đường tu đạo.'
             });
             return;
         }
         const embed = getWorldBossEmbed(userId);
         const row = getWorldBossComponents(userId);
-        await interaction.reply({
+        await interaction.editReply({
             embeds: [embed],
             components: [row]
         });

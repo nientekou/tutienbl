@@ -8,6 +8,7 @@ const UserRepository_1 = require("../database/repositories/UserRepository");
 const constants_1 = require("../utils/constants");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 const database_1 = __importDefault(require("../database/database"));
+const itemConstants_1 = require("../config/itemConstants");
 class InventoryService {
     statsCache = new Map();
     STATS_CACHE_TTL_MS = 30000; // 30 seconds
@@ -311,7 +312,9 @@ class InventoryService {
             stats.atk += setBonuses.atk;
             stats.crit += setBonuses.crit;
         }
-        catch (e) { }
+        catch (e) {
+            console.warn('[InventoryService] Failed to calculate soul imprint stats:', e);
+        }
         // --- Tính năng Mệnh Cách (Destiny) ---
         try {
             const { destinyService } = require('./DestinyService');
@@ -323,7 +326,9 @@ class InventoryService {
             stats.crit += destinyBonus.crit_rate || 0;
             stats.dodge += destinyBonus.dodge_rate || 0;
         }
-        catch (e) { }
+        catch (e) {
+            console.warn('[InventoryService] Failed to calculate destiny bonus:', e);
+        }
         // --- Tính năng Pháp Bảo Bản Mệnh ---
         try {
             const { soulWeaponRepository } = require('../database/repositories/SoulWeaponRepository');
@@ -345,7 +350,9 @@ class InventoryService {
                 }
             }
         }
-        catch (e) { }
+        catch (e) {
+            console.warn('[InventoryService] Failed to fetch soul weapon stats:', e);
+        }
         // --- Tính năng Đạo Lữ (Song Tu) ---
         try {
             const { coupleRepository } = require('../database/repositories/CoupleRepository');
@@ -359,7 +366,9 @@ class InventoryService {
                 }
             }
         }
-        catch (e) { }
+        catch (e) {
+            console.warn('[InventoryService] Failed to calculate couple (dao lu) buff:', e);
+        }
         // --- Tính năng Danh Hiệu (Title Buffs) ---
         if (user.title) {
             if (user.title === 'Thiên Trụ') {
@@ -423,9 +432,9 @@ class InventoryService {
         }
         // Xác định slot trang bị dựa trên ID vật phẩm
         let slot = 'weapon';
-        if (item.item_id.startsWith('weapon_'))
+        if ((0, itemConstants_1.isWeaponId)(item.item_id))
             slot = 'weapon';
-        else if (item.item_id.startsWith('armor_') || item.item_id.startsWith('robe_'))
+        else if ((0, itemConstants_1.isArmorId)(item.item_id) || item.item_id.startsWith('robe_'))
             slot = 'armor';
         else if (item.item_id.startsWith('ring_'))
             slot = 'ring';
@@ -508,56 +517,56 @@ class InventoryService {
         }
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại.' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
         try {
             const stats = JSON.parse(item.base_stats || '{}');
             // 1. Nếu là vật phẩm phụ trợ, nguyên liệu sửa chữa hoặc bùa gia tốc -> chặn không cho dùng trực tiếp
             const catalystItems = [
-                'pill_break_1',
-                'pill_break_minor_1',
-                'pill_break_minor_2',
-                'pill_break_minor_3',
-                'pill_alchemy_break',
-                'pill_alchemy_anti_loi',
-                'talisman_anti_loi',
-                'talisman_speed_1',
-                'repair_stone_low',
-                'repair_stone_mid',
-                'repair_stone_high',
-                'item_nhan_dinh_hon',
-                'item_bloodline_pill',
-                'tinh_thach_shard',
-                'item_fragment',
-                'manh_vo_vu_khi'
+                itemConstants_1.ITEMS.PILL_BREAK_1,
+                itemConstants_1.ITEMS.PILL_BREAK_MINOR_1,
+                itemConstants_1.ITEMS.PILL_BREAK_MINOR_2,
+                itemConstants_1.ITEMS.PILL_BREAK_MINOR_3,
+                itemConstants_1.ITEMS.PILL_ALCHEMY_BREAK,
+                itemConstants_1.ITEMS.PILL_ALCHEMY_ANTI_LOI,
+                itemConstants_1.ITEMS.TALISMAN_ANTI_LOI,
+                itemConstants_1.ITEMS.TALISMAN_SPEED_1,
+                itemConstants_1.ITEMS.REPAIR_STONE_LOW,
+                itemConstants_1.ITEMS.REPAIR_STONE_MID,
+                itemConstants_1.ITEMS.REPAIR_STONE_HIGH,
+                itemConstants_1.ITEMS.ITEM_NHAN_DINH_HON,
+                itemConstants_1.ITEMS.ITEM_BLOODLINE_PILL,
+                itemConstants_1.ITEMS.TINH_THACH_SHARD,
+                itemConstants_1.ITEMS.ITEM_FRAGMENT,
+                itemConstants_1.ITEMS.MANH_VO_VU_KHI
             ];
             const isPhoi = item.item_id.startsWith('phoi_');
             if (catalystItems.includes(item.item_id) || isPhoi) {
                 let usageHelp = '';
-                if (item.item_id === 'pill_break_1' || item.item_id === 'pill_alchemy_break') {
+                if (item.item_id === itemConstants_1.ITEMS.PILL_BREAK_1 || item.item_id === itemConstants_1.ITEMS.PILL_ALCHEMY_BREAK) {
                     usageHelp = `chất xúc tác hỗ trợ đột phá cảnh giới lớn (ví dụ: Luyện Khí Kỳ -> Trúc Cơ Kỳ) khi thực hiện lệnh \`/dotpha\`!`;
                 }
                 else if (item.item_id.startsWith('pill_break_minor_')) {
                     usageHelp = `chất xúc tác tăng tỷ lệ thành công khi đột phá tầng nhỏ trong giao diện lệnh \`/dotpha\`!`;
                 }
-                else if (item.item_id === 'pill_alchemy_anti_loi' || item.item_id === 'talisman_anti_loi') {
+                else if (item.item_id === itemConstants_1.ITEMS.PILL_ALCHEMY_ANTI_LOI || item.item_id === itemConstants_1.ITEMS.TALISMAN_ANTI_LOI) {
                     usageHelp = `vật phẩm hộ thân giúp chống đỡ lôi kiếp, giảm thiểu sát thương nhận vào khi vượt Thiên Kiếp!`;
                 }
-                else if (item.item_id === 'talisman_speed_1') {
+                else if (item.item_id === itemConstants_1.ITEMS.TALISMAN_SPEED_1) {
                     usageHelp = `bùa gia tốc để rút ngắn thời gian thám hiểm trong lệnh \`/khambha\` hoặc thúc đẩy linh dược tăng trưởng trong lệnh \`/linhdien\`!`;
                 }
                 else if (item.item_id.startsWith('repair_stone_')) {
                     usageHelp = `nguyên liệu dưỡng thạch dùng để sửa chữa pháp bảo/đạo bảo bị hao mòn độ bền qua lệnh \`/suachua\`!`;
                 }
-                else if (item.item_id === 'item_nhan_dinh_hon') {
+                else if (item.item_id === itemConstants_1.ITEMS.ITEM_NHAN_DINH_HON) {
                     usageHelp = `tín vật định tình linh thiêng để tiến hành cầu hôn và lập kết đạo lữ với tu sĩ khác qua lệnh \`/ketduyen\`!`;
                 }
-                else if (item.item_id === 'item_bloodline_pill') {
+                else if (item.item_id === itemConstants_1.ITEMS.ITEM_BLOODLINE_PILL) {
                     usageHelp = `linh đan nghịch thiên cải mệnh dùng để thay đổi (reset) Huyết Mạch Thượng Cổ của đạo hữu trong giao diện lệnh \`/huyetmach\`!`;
                 }
-                else if (item.item_id === 'tinh_thach_shard') {
+                else if (item.item_id === itemConstants_1.ITEMS.TINH_THACH_SHARD) {
                     usageHelp = `nguyên liệu tinh thạch chứa năng lượng linh khí dồi dào, dùng làm chất xúc tác quý khi thức tỉnh Khí Linh hoặc cường hóa nâng sao trang bị!`;
                 }
-                else if (item.item_id === 'item_fragment' || item.item_id === 'manh_vo_vu_khi') {
+                else if (item.item_id === itemConstants_1.ITEMS.ITEM_FRAGMENT || item.item_id === itemConstants_1.ITEMS.MANH_VO_VU_KHI) {
                     usageHelp = `mảnh vỡ trang bị dùng để rèn ghép chế tác thành các phôi trang bị cao cấp hơn trong giao diện lệnh \`/trangbi ghep\`!`;
                 }
                 else if (isPhoi) {
@@ -569,7 +578,7 @@ class InventoryService {
                 };
             }
             // 2. Nếu là đan dược tăng Tu Vi
-            if (stats.add_tu_vi || item.item_id === 'pill_alchemy_tuvi') {
+            if (stats.add_tu_vi || item.item_id === itemConstants_1.ITEMS.PILL_ALCHEMY_TUVI) {
                 // Nhận Tu Vi offline trước để tránh bị reset mất
                 const { cultivationService } = require('./CultivationService');
                 cultivationService.claimIdleCultivation(userId);
@@ -577,12 +586,6 @@ class InventoryService {
                 const { minorLevel } = (0, constants_1.getRealmDetails)(freshUser.level);
                 if (freshUser.tu_vi >= freshUser.exp_needed) {
                     if (minorLevel === 38) {
-                        return {
-                            success: false,
-                            message: 'Tu vi của đạo hữu đã đạt cực hạn tầng 38, vui lòng **Đột Phá** đại cảnh giới trước khi dùng thuốc!'
-                        };
-                    }
-                    else {
                         return {
                             success: false,
                             message: `Tu vi của đạo hữu đã đạt cực hạn tầng ${minorLevel}, vui lòng thực hiện lệnh \`/dotpha\` để đột phá lên tầng tiếp theo trước khi dùng thuốc!`
@@ -597,7 +600,9 @@ class InventoryService {
                         if (cs.evolved)
                             isEvolved = true;
                     }
-                    catch (e) { }
+                    catch (e) {
+                        console.warn('[InventoryService] Failed to parse custom_stats for TuVi pill evolution:', e);
+                    }
                 }
                 const baseAdded = stats.add_tu_vi || 1000;
                 const added = isEvolved ? baseAdded * 2 : baseAdded;
@@ -611,8 +616,19 @@ class InventoryService {
                 };
             }
             // 3. Nếu là Đan Dược hồi thể lực (stamina)
-            if (item.item_id === 'pill_alchemy_stamina' || item.item_id === 'pill_stamina_1' || item.item_id === 'pill_stamina_2' || item.item_id === 'pill_stamina_3') {
-                // Kiểm tra giới hạn 3 viên mỗi ngày
+            if (item.item_id === itemConstants_1.ITEMS.PILL_ALCHEMY_STAMINA || item.item_id === itemConstants_1.ITEMS.PILL_STAMINA_1 || item.item_id === itemConstants_1.ITEMS.PILL_STAMINA_2 || item.item_id === itemConstants_1.ITEMS.PILL_STAMINA_3) {
+                // Kiểm tra biến dị
+                let isEvolved = false;
+                if (item.custom_stats) {
+                    try {
+                        const cs = JSON.parse(item.custom_stats);
+                        if (cs.evolved)
+                            isEvolved = true;
+                    }
+                    catch (e) {
+                        console.warn('[InventoryService] Failed to parse custom_stats for stamina pill evolution:', e);
+                    }
+                }
                 let yCanh = {};
                 try {
                     yCanh = JSON.parse(user.y_canh || '{}');
@@ -634,16 +650,6 @@ class InventoryService {
                         message: `Đạo hữu đã sử dụng tối đa **3 viên** Đan Dược hồi thể lực trong ngày hôm nay! Hãy đợi qua ngày mai để dùng tiếp.`
                     };
                 }
-                // Kiểm tra biến dị
-                let isEvolved = false;
-                if (item.custom_stats) {
-                    try {
-                        const cs = JSON.parse(item.custom_stats);
-                        if (cs.evolved)
-                            isEvolved = true;
-                    }
-                    catch (e) { }
-                }
                 const baseRestore = stats.restore_stamina || 100;
                 const restoreAmount = isEvolved ? baseRestore * 2 : baseRestore;
                 const newStamina = Math.min(500, user.stamina + restoreAmount);
@@ -659,7 +665,7 @@ class InventoryService {
                 };
             }
             // 3.5. Nếu là Bình Thể Lực Giới Hạn Tuần (potion_stamina_weekly)
-            if (item.item_id === 'potion_stamina_weekly') {
+            if (item.item_id === itemConstants_1.ITEMS.POTION_STAMINA_WEEKLY) {
                 const restoreAmount = stats.restore_stamina || 150;
                 const newStamina = Math.min(500, user.stamina + restoreAmount);
                 database_1.default.transaction(() => {
@@ -672,7 +678,7 @@ class InventoryService {
                 };
             }
             // 3.6. Linh Tuyền Phù (no daily limit)
-            if (item.item_id === 'pill_linh_tuyen') {
+            if (item.item_id === itemConstants_1.ITEMS.PILL_LINH_TUYEN) {
                 const restoreAmount = stats.restore_stamina || 200;
                 const newStamina = Math.min(500, user.stamina + restoreAmount);
                 database_1.default.transaction(() => {
@@ -685,7 +691,7 @@ class InventoryService {
                 };
             }
             // 3.7. Nhàn Tu Đan (no offline decay for 24h)
-            if (item.item_id === 'pill_nhan_tu') {
+            if (item.item_id === itemConstants_1.ITEMS.PILL_NHAN_TU) {
                 const now = Math.floor(Date.now() / 1000);
                 const yCanhData = JSON.parse(user.y_canh || '{}');
                 yCanhData.idle_no_decay_until = now + 86400;
@@ -699,7 +705,7 @@ class InventoryService {
                 };
             }
             // --- Tẩy Tủy Đan ---
-            if (item.item_id === 'pill_tay_tuy') {
+            if (item.item_id === itemConstants_1.ITEMS.PILL_TAY_TUY) {
                 const { cultivationService } = require('./CultivationService');
                 const newLinhCanJson = cultivationService.generateLinhCan();
                 const newStats = cultivationService.calculateStatsForLevel(user.level, newLinhCanJson);
@@ -712,7 +718,8 @@ class InventoryService {
                         base_def: newStats.def,
                         base_crit: newStats.crit,
                         base_crit_res: newStats.critRes,
-                        base_luck: user.base_luck
+                        base_luck: user.base_luck,
+                        base_speed: newStats.speed
                     });
                     InventoryRepository_1.inventoryRepository.removeItemById(inventoryId, 1);
                 })();
@@ -724,7 +731,7 @@ class InventoryService {
                 };
             }
             // --- Ý Cảnh Đan ---
-            if (item.item_id === 'pill_y_canh') {
+            if (item.item_id === itemConstants_1.ITEMS.PILL_Y_CANH) {
                 database_1.default.transaction(() => {
                     UserRepository_1.userRepository.update(userId, { ngotinh: user.ngotinh + 30 });
                     InventoryRepository_1.inventoryRepository.removeItemById(inventoryId, 1);
@@ -769,12 +776,12 @@ class InventoryService {
                 };
             }
             // Nếu là Tuyệt Tình Nước (Ly hôn)
-            if (item.item_id === 'item_tuyet_tinh_nuoc') {
+            if (item.item_id === itemConstants_1.ITEMS.ITEM_TUYET_TINH_NUOC) {
                 const { marriageService } = require('./MarriageService');
                 return marriageService.divorce(userId);
             }
             // 5. Nếu là Tàng Bảo Đồ
-            if (item.item_id === 'tang_bao_do') {
+            if (item.item_id === itemConstants_1.ITEMS.TANG_BAO_DO) {
                 const { treasureMapService } = require('./TreasureMapService');
                 const map = treasureMapService.generateMap(userId, item.rarity);
                 InventoryRepository_1.inventoryRepository.removeItemById(inventoryId, 1);
@@ -859,7 +866,9 @@ class InventoryService {
                 try {
                     customStats = JSON.parse(boundItem.custom_stats || '{}');
                 }
-                catch (e) { }
+                catch (e) {
+                    console.warn('[InventoryService] Failed to parse custom_stats for level-up:', e);
+                }
                 // Thêm ngẫu nhiên thuộc tính nhỏ
                 const statsList = ['atk', 'def', 'hp', 'crit', 'luck'];
                 const chosen = statsList[Math.floor(Math.random() * statsList.length)];
@@ -911,7 +920,9 @@ class InventoryService {
         try {
             customStats = JSON.parse(boundItem.custom_stats || '{}');
         }
-        catch (e) { }
+        catch (e) {
+            console.warn('[InventoryService] Failed to parse custom_stats for breakthrough:', e);
+        }
         // Thêm một dòng thuộc tính hiếm khi đột phá đại cảnh giới
         const rareStats = ['atk_percent', 'def_percent', 'hp_percent', 'speed_percent', 'dodge'];
         const chosen = rareStats[Math.floor(Math.random() * rareStats.length)];
@@ -1002,7 +1013,7 @@ class InventoryService {
             }
         };
         for (let i = 0; i < qty; i++) {
-            if (chestId === 'lucky_chest') {
+            if (chestId === itemConstants_1.ITEMS.LUCKY_CHEST) {
                 const rand = Math.random() * 100;
                 let grade = 'f';
                 if (rand < 40.0)
@@ -1022,12 +1033,12 @@ class InventoryService {
                 else
                     grade = 'sss';
                 const isWeapon = Math.random() < 0.5;
-                const phoiId = isWeapon ? `phoi_weapon_${grade}` : `phoi_armor_${grade}`;
+                const phoiId = isWeapon ? (0, itemConstants_1.getPhoiWeaponByGrade)(grade) : (0, itemConstants_1.getPhoiArmorByGrade)(grade);
                 const staticItem = database_1.default.prepare('SELECT name FROM items WHERE id = ?').get(phoiId);
                 const phoiName = staticItem ? staticItem.name : `Phôi phẩm ${grade.toUpperCase()}`;
                 addReward(phoiId, phoiName, 1);
             }
-            else if (chestId === 'chest_1tr5') {
+            else if (chestId === itemConstants_1.ITEMS.CHEST_1TR5) {
                 const ssRate = 0.10;
                 const sssRate = 0.05;
                 const rand = Math.random();
@@ -1048,12 +1059,12 @@ class InventoryService {
                     grade = 'b';
                 }
                 const isWeapon = Math.random() < 0.5;
-                const phoiId = isWeapon ? `phoi_weapon_${grade}` : `phoi_armor_${grade}`;
+                const phoiId = isWeapon ? (0, itemConstants_1.getPhoiWeaponByGrade)(grade) : (0, itemConstants_1.getPhoiArmorByGrade)(grade);
                 const staticItem = database_1.default.prepare('SELECT name FROM items WHERE id = ?').get(phoiId);
                 const phoiName = staticItem ? staticItem.name : `Phôi phẩm ${grade.toUpperCase()}`;
                 addReward(phoiId, phoiName, 1);
             }
-            else if (chestId === 'server_raid_chest') {
+            else if (chestId === itemConstants_1.ITEMS.SERVER_RAID_CHEST) {
                 const rand = Math.random();
                 let grade = 's';
                 if (rand < 0.03) {
@@ -1069,14 +1080,14 @@ class InventoryService {
                     grade = 's';
                 }
                 const isWeapon = Math.random() < 0.5;
-                const targetItemId = isWeapon ? `weapon_sword_${grade}` : `armor_robe_${grade}`;
+                const targetItemId = isWeapon ? (0, itemConstants_1.getWeaponByGrade)(grade) : (0, itemConstants_1.getArmorByGrade)(grade);
                 const staticItem = database_1.default.prepare('SELECT name FROM items WHERE id = ?').get(targetItemId);
                 const itemName = staticItem ? staticItem.name : `Trang bị phẩm ${grade.toUpperCase()}`;
                 const customStats = this.generateCustomStatsForChest(grade);
                 addReward(targetItemId, itemName, 1, customStats ? JSON.stringify(customStats) : null);
             }
             else {
-                addReward('material_iron_1', 'Huyền Thiết Sa', 1);
+                addReward(itemConstants_1.ITEMS.MATERIAL_IRON_1, 'Huyền Thiết Sa', 1);
             }
         }
         const logs = [];

@@ -4,6 +4,7 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import { userRepository } from '../../database/repositories/UserRepository';
 import LuyenDanCommand from '../../commands/general/luyendan';
 import { dailyQuestService } from '../../services/DailyQuestService';
+import { questChainService } from '../../services/QuestChainService';
 
 export class LifeInteractionHandler {
   public static async handle(
@@ -38,7 +39,7 @@ export class LifeInteractionHandler {
         return;
       }
 
-      if (subAction === 'craft') {
+      if (subAction === 'craft' || subAction === 'select') {
         const user = userRepository.get(targetUserId);
         if (!user) return;
         let yCanh: any = {};
@@ -60,11 +61,17 @@ export class LifeInteractionHandler {
           }
         }
 
-        const recipeId = parts.slice(2, -1).join('_');
+        let recipeId: string;
+        if (subAction === 'select') {
+          recipeId = (interaction as StringSelectMenuInteraction).values[0];
+        } else {
+          recipeId = parts.slice(2, -1).join('_');
+        }
         const res = alchemyService.craftPill(targetUserId, recipeId, bestCauldron?.id, activeQty);
 
         if (res.success) {
           dailyQuestService.updateProgress(targetUserId, 'daily_luyendan', activeQty);
+          questChainService.updateProgress(targetUserId, 'craft', activeQty);
         }
 
         const luyenDanCmd = new LuyenDanCommand();

@@ -22,7 +22,7 @@ export default class ToaKyCommand extends Command {
           sub.setName('cuoi')
             .setDescription('Cưỡi tọa kỵ')
             .addIntegerOption(opt =>
-              opt.setName('id').setDescription('ID tọa kỵ').setRequired(true)
+              opt.setName('mount_id').setDescription('ID vật cưỡi (xem trong /toaky)').setRequired(true)
             )
         )
         .addSubcommand(sub =>
@@ -32,7 +32,7 @@ export default class ToaKyCommand extends Command {
           sub.setName('nuoiduong')
             .setDescription('Nuôi dưỡng/Thuần hóa tọa kỵ bằng nguyên liệu')
             .addIntegerOption(opt =>
-              opt.setName('id').setDescription('ID tọa kỵ').setRequired(true)
+              opt.setName('mount_id').setDescription('ID vật cưỡi (xem trong /toaky)').setRequired(true)
             )
             .addStringOption(opt =>
               opt.setName('nguyenlieu').setDescription('Nguyên liệu (gõ tên để gợi ý)').setAutocomplete(true)
@@ -49,7 +49,7 @@ export default class ToaKyCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'});
       return;
     }
 
@@ -63,20 +63,20 @@ export default class ToaKyCommand extends Command {
       const ropesCount = ropeInv ? ropeInv.quantity : 0;
 
       const feedableItems = db.prepare(`
-        SELECT i.item_id, item.name, item.rarity, i.quantity
+        SELECT i.id as inv_id, i.item_id, item.name, item.rarity, i.quantity
         FROM inventories i
         JOIN items item ON i.item_id = item.id
         WHERE i.user_id = ? AND (item.type = 'material' OR item.type = 'pill')
         ORDER BY i.quantity DESC
         LIMIT 5
-      `).all(userId) as { item_id: string; name: string; rarity: string; quantity: number }[];
+      `).all(userId) as { inv_id: number; item_id: string; name: string; rarity: string; quantity: number }[];
 
       let feedableText = '';
       if (feedableItems.length > 0) {
         const rarityExp: Record<string, number> = { common: 15, uncommon: 30, rare: 50, epic: 80, legendary: 150 };
         feedableText = feedableItems.map(item => {
           const exp = rarityExp[item.rarity] || 15;
-          return `• **${item.name}** (\`${item.item_id}\`): còn **x${item.quantity}** (EXP: **+${exp}**)`;
+          return `• **${item.name}** (\`${item.inv_id}\`): còn **x${item.quantity}** (EXP: **+${exp}**)`;
         }).join('\n');
       } else {
         feedableText = '• *Không tìm thấy nguyên liệu/đan dược phù hợp trong túi đồ.*';
@@ -102,7 +102,7 @@ export default class ToaKyCommand extends Command {
               `  - **Giao Long** [EPIC] (Gặp: 4% | Bắt: 20%)\n` +
               `  - **Hỏa Kỳ Lân** [LEGENDARY] (Gặp: 1% | Bắt: 5%)`
           });
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
         return;
       }
 
@@ -122,12 +122,12 @@ export default class ToaKyCommand extends Command {
         const bar = getProgressBar(progress.current, progress.needed, 10);
 
         embed.addFields({
-          name: `${rarityEmoji[m.rarity] || '⚪'} ID: ${m.id} | ${m.name} (Cấp ${m.level}) [${m.rarity.toUpperCase()}]${tamedMark}${activeMark}`,
+          name: `${rarityEmoji[m.rarity] || '⚪'} ${m.name} (ID: ${m.id}, Cấp ${m.level}) [${m.rarity.toUpperCase()}]${tamedMark}${activeMark}`,
           value: [
             m.is_tamed ? `🏇 Tốc độ: **+${Math.round(m.speed_bonus * 100)}%** cooldown làm việc` : '',
             m.is_tamed ? `⚡ Tiết kiệm: **+${Math.round(m.stamina_save * 100)}%** thể lực` : '',
             `📊 EXP: ${bar} *(${progress.current}/${progress.needed})*`,
-            (!m.is_tamed) ? `Dùng \`/toaky nuoiduong id:${m.id} nguyenlieu:[Mã Nguyên Liệu]\` để thuần hóa.` : (m.is_active ? '' : `Dùng \`/toaky cuoi id:${m.id}\` để cưỡi.`),
+            (!m.is_tamed) ? `Dùng \`/toaky nuoiduong mount_id:${m.id} nguyenlieu:[Mã Nguyên Liệu]\` để thuần hóa.` : (m.is_active ? '' : `Dùng \`/toaky cuoi mount_id:${m.id}\` để cưỡi.`),
           ].filter(Boolean).join('\n'),
         });
       }
@@ -150,39 +150,39 @@ export default class ToaKyCommand extends Command {
         }
       );
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
     if (sub === 'cuoi') {
-      const mountId = interaction.options.getInteger('id', true);
+      const mountId = interaction.options.getInteger('mount_id', true);
       const result = mountService.activateMount(userId, mountId);
-      await interaction.reply({ content: result.message, ephemeral: !result.success });
+      await interaction.editReply({ content: result.message });
       return;
     }
 
     if (sub === 'thuhoi') {
       const result = mountService.deactivateMount(userId);
-      await interaction.reply({ content: result.message, ephemeral: !result.success });
+      await interaction.editReply({ content: result.message });
       return;
     }
 
     if (sub === 'nuoiduong') {
-      const mountId = interaction.options.getInteger('id', true);
+      const mountId = interaction.options.getInteger('mount_id', true);
       const material = interaction.options.getString('nguyenlieu');
       if (!material) {
-        await interaction.reply({ content: '❌ Vui lòng chọn nguyên liệu muốn cho tọa kỵ ăn!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Vui lòng chọn nguyên liệu muốn cho tọa kỵ ăn!'});
         return;
       }
       const qty = interaction.options.getInteger('soluong') || 1;
       const result = mountService.feedMount(userId, mountId, material, qty);
-      await interaction.reply({ content: result.message, ephemeral: !result.success });
+      await interaction.editReply({ content: result.message });
       return;
     }
 
     if (sub === 'bat') {
       const result = mountService.captureMount(userId, 'thung_bat_thu');
-      await interaction.reply({ content: result.message, ephemeral: !result.success });
+      await interaction.editReply({ content: result.message });
       return;
     }
   }
@@ -193,18 +193,18 @@ export default class ToaKyCommand extends Command {
       const userId = interaction.user.id;
       const query = focusedOption.value;
       const items = db.prepare(`
-        SELECT i.item_id, item.name, item.rarity, i.quantity
+        SELECT i.id as inv_id, i.item_id, item.name, item.rarity, i.quantity
         FROM inventories i
         JOIN items item ON i.item_id = item.id
         WHERE i.user_id = ? AND (item.type = 'material' OR item.type = 'pill')
         AND (item.name LIKE ? OR i.item_id LIKE ?)
         ORDER BY i.quantity DESC
         LIMIT 25
-      `).all(userId, `%${query}%`, `%${query}%`) as { item_id: string; name: string; rarity: string; quantity: number }[];
+      `).all(userId, `%${query}%`, `%${query}%`) as { inv_id: number; item_id: string; name: string; rarity: string; quantity: number }[];
 
       await interaction.respond(
         items.map(item => ({
-          name: `${item.name} [${item.rarity}] (x${item.quantity}) - ID: ${item.item_id}`,
+          name: `${item.name} [${item.rarity}] (x${item.quantity}) - ID: ${item.inv_id}`,
           value: item.item_id
         }))
       );

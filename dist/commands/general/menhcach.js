@@ -21,7 +21,7 @@ class MenhCachCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Bạn chưa khởi tạo nhân vật. Vui lòng dùng `/taonhanvat`!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Vui lòng dùng `/taonhanvat`!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -32,7 +32,7 @@ class MenhCachCommand extends Command_1.Command {
                 .setColor(result.success ? '#9b59b6' : '#e74c3c')
                 .setDescription(result.message)
                 .setTimestamp();
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         }
         else if (sub === 'tu-do') {
             const realmDetails = (0, constants_1.getRealmDetails)(user.level);
@@ -92,7 +92,7 @@ class MenhCachCommand extends Command_1.Command {
                 });
                 components.push(new discord_js_1.ActionRowBuilder().addComponents(unequipMenu));
             }
-            await interaction.reply({ embeds: [embed], components });
+            await interaction.editReply({ embeds: [embed], components });
         }
     }
 }

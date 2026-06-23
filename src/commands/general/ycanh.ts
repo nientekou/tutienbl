@@ -77,9 +77,8 @@ export default class YCanhCommand extends Command {
     const user = userRepository.get(discordId);
 
     if (!user) {
-      await interaction.reply({
-        content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!',
-        ephemeral: true
+      await interaction.editReply({
+        content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!'
       });
       return;
     }
@@ -87,6 +86,6 @@ export default class YCanhCommand extends Command {
     const embed = getYCanhEmbed(discordId);
     const row = getYCanhComponents(discordId);
 
-    await interaction.reply({ embeds: [embed], components: [row] });
+    await interaction.editReply({ embeds: [embed], components: [row] });
   }
 }

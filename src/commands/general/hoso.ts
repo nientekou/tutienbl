@@ -738,7 +738,7 @@ export function getInventoryEmbed(userId: string, page: number): { embed: EmbedB
       }
 
       const itemName = item.name || item.item_id || 'Vật phẩm lạ';
-      description += `**${idx}.** ${rarityTag}**${itemName}${enhanceText}** x${item.quantity}${starText}${equippedText}${itemStats}\n*└ Mã: \`${item.item_id}\`*\n\n`;
+      description += `**${idx}.** ${rarityTag}**${itemName}${enhanceText}** x${item.quantity}${starText}${equippedText}${itemStats}\n*└ Mã: \`${item.id}\`*\n\n`;
     });
   }
 
@@ -746,7 +746,7 @@ export function getInventoryEmbed(userId: string, page: number): { embed: EmbedB
     .setTitle(`💼 HÀNH TRANG (Trang ${cappedPage}/${totalPages})`)
     .setColor('#f1c40f')
     .setDescription(description)
-    .setFooter({ text: 'Dùng Mã vật phẩm cho tất cả lệnh: /dung, /trangbi, /suachua, /vanbaolau' })
+    .setFooter({ text: 'Dùng Mã (ID số) cho tất cả lệnh: /dung, /thanhly, /trade, /cuonghoa, /trangbi, /suachua, /khilinh, /loren, /vanbaolau, /dungkynang' })
     .setTimestamp();
 
   return { embed, totalPages, itemsOnPage };
@@ -835,15 +835,11 @@ export default class HoSoCommand extends Command {
     // Kiểm tra nhanh xem người chơi có tồn tại không trước khi defer
     const userExists = userRepository.get(discordId);
     if (!userExists) {
-      await interaction.reply({
+      await interaction.editReply({
         content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat` để bước vào con đường tu tiên!',
-        ephemeral: true,
       });
       return;
     }
-
-    // Trì hoãn phản hồi do các truy vấn và xử lý bên dưới có thể mất thời gian
-    await interaction.deferReply();
 
     const idleRes = cultivationService.claimIdleCultivation(discordId);
     const user = idleRes ? idleRes.user : userRepository.get(discordId);

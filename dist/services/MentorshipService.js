@@ -59,7 +59,9 @@ class MentorshipService {
         try {
             yCanh = JSON.parse(mentor.y_canh || '{}');
         }
-        catch (e) { }
+        catch (e) {
+            console.warn('[MentorshipService] Failed to parse mentor y_canh for cooldown check:', e);
+        }
         const now = Math.floor(Date.now() / 1000);
         if (yCanh.mentor_cooldown_until && yCanh.mentor_cooldown_until > now) {
             const remainSec = yCanh.mentor_cooldown_until - now;
@@ -115,7 +117,9 @@ class MentorshipService {
                     try {
                         yCanh = JSON.parse(mentor.y_canh || '{}');
                     }
-                    catch (e) { }
+                    catch (e) {
+                        console.warn('[MentorshipService] Failed to parse mentor y_canh for expulsion penalty:', e);
+                    }
                     yCanh.mentor_cooldown_until = now + 48 * 3600;
                     UserRepository_1.userRepository.update(mentorId, { y_canh: JSON.stringify(yCanh) });
                 }
@@ -165,7 +169,9 @@ class MentorshipService {
             if (expBoostHL)
                 apprenticeExpBuff += expBoostHL.value;
         }
-        catch (e) { }
+        catch (e) {
+            console.warn('[MentorshipService] Failed to get apprentice heart law exp boost:', e);
+        }
         let mentorExpBuff = 1.0;
         try {
             const { heartLawService } = require('./HeartLawService');
@@ -174,7 +180,9 @@ class MentorshipService {
             if (expBoostHL)
                 mentorExpBuff += expBoostHL.value;
         }
-        catch (e) { }
+        catch (e) {
+            console.warn('[MentorshipService] Failed to get mentor heart law exp boost:', e);
+        }
         const apprenticeBonusExp = Math.round(baseWorkExp * 1.05 * apprenticeExpBuff); // +5% EXP
         const mentorGainedExp = Math.round(baseWorkExp * 0.10 * mentorExpBuff); // 10% EXP
         const mentorGainedCoins = Math.round(coinsGained * 0.05); // 5% LT
@@ -302,7 +310,9 @@ class MentorshipService {
         try {
             yCanh = JSON.parse(mentor.y_canh || '{}');
         }
-        catch (e) { }
+        catch (e) {
+            console.warn('[MentorshipService] Failed to parse mentor y_canh for transmission:', e);
+        }
         let transRecord = yCanh.mentorship_transmission || { week: '', amount: 0 };
         if (transRecord.week !== currentWeek) {
             transRecord = { week: currentWeek, amount: 0 };

@@ -167,7 +167,7 @@ export default class KhamBhaCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật! Dùng `/taonhanvat` để bắt đầu.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật! Dùng `/taonhanvat` để bắt đầu.'});
       return;
     }
 
@@ -176,14 +176,14 @@ export default class KhamBhaCommand extends Command {
     if (subcmd === 'bando') {
       const embed = getKhamBhaEmbed(userId);
       const rows = getKhamBhaComponents(userId);
-      await interaction.reply({ embeds: [embed], components: rows });
+      await interaction.editReply({ embeds: [embed], components: rows });
     } 
     else if (subcmd === 'tangbaodo') {
       const { treasureMapService } = require('../../services/TreasureMapService');
       const maps = treasureMapService.getActiveMaps(userId);
       
       if (maps.length === 0) {
-        await interaction.reply({ content: '📜 Đạo hữu hiện không có Tàng Bảo Đồ nào chưa đào.', ephemeral: true });
+        await interaction.editReply({ content: '📜 Đạo hữu hiện không có Tàng Bảo Đồ nào chưa đào.'});
         return;
       }
 
@@ -195,7 +195,7 @@ export default class KhamBhaCommand extends Command {
         )
         .setFooter({ text: 'Dùng lệnh /khambha toado [x] [y] để tiến hành đào!' });
       
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
     else if (subcmd === 'toado') {
       const x = interaction.options.getInteger('x', true);
@@ -204,7 +204,7 @@ export default class KhamBhaCommand extends Command {
       const { treasureMapService } = require('../../services/TreasureMapService');
       const result = treasureMapService.digTreasure(userId, x, y);
       
-      await interaction.reply({ content: result.message });
+      await interaction.editReply({ content: result.message });
     }
   }
 }

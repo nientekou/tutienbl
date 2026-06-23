@@ -110,15 +110,14 @@ class LinhmachCommand extends Command_1.Command {
         const discordId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(discordId);
         if (!user) {
-            await interaction.reply({
-                content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!',
-                ephemeral: true
+            await interaction.editReply({
+                content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!'
             });
             return;
         }
         const embed = buildLeylineEmbed(discordId);
         const components = buildLeylineComponents(discordId);
-        await interaction.reply({ embeds: [embed], components });
+        await interaction.editReply({ embeds: [embed], components });
     }
 }
 exports.default = LinhmachCommand;

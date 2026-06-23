@@ -39,7 +39,7 @@ export default class SuDoCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
 
@@ -48,7 +48,7 @@ export default class SuDoCommand extends Command {
     if (sub === 'nhan') {
       const target = interaction.options.getUser('student', true);
       const result = newbieProtectionService.registerMentor(target.id, userId);
-      await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: !result.success });
+      await interaction.editReply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}` });
     } else if (sub === 'thongtin') {
       const embed = new EmbedBuilder()
         .setTitle('📜 THÔNG TIN SƯ ĐỒ')
@@ -89,10 +89,10 @@ export default class SuDoCommand extends Command {
         });
       }
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } else if (sub === 'doan') {
       const result = newbieProtectionService.removeMentor(userId);
-      await interaction.reply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}`, ephemeral: !result.success });
+      await interaction.editReply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}` });
     } else if (sub === 'danhsach') {
       const students = newbieProtectionService.getStudents(userId);
 
@@ -111,7 +111,7 @@ export default class SuDoCommand extends Command {
         embed.setDescription(list);
       }
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
   }
 }

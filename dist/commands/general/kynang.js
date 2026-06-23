@@ -48,7 +48,7 @@ class KyNangCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -78,7 +78,7 @@ class KyNangCommand extends Command_1.Command {
                 value: learnedList.length > 0 ? learnedList.join('\n') : '*Đạo hữu chưa học pháp thuật nào. Hãy mua bí tịch tại `/shopkynang`!*',
                 inline: false
             });
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
             return;
         }
         if (sub === 'trangbi') {
@@ -88,9 +88,8 @@ class KyNangCommand extends Command_1.Command {
             const skill = database_1.default.prepare('SELECT * FROM user_skills WHERE user_id = ? AND skill_id = ?')
                 .get(userId, skillId);
             if (!skill) {
-                await interaction.reply({
-                    content: '❌ Đạo hữu chưa lĩnh ngộ kỹ năng này! Hãy mua bí tịch tương ứng để học.',
-                    ephemeral: true
+                await interaction.editReply({
+                    content: '❌ Đạo hữu chưa lĩnh ngộ kỹ năng này! Hãy mua bí tịch tương ứng để học.'
                 });
                 return;
             }
@@ -104,7 +103,7 @@ class KyNangCommand extends Command_1.Command {
                 database_1.default.prepare('UPDATE user_skills SET is_equipped = 1, equipped_slot = ? WHERE user_id = ? AND skill_id = ?')
                     .run(slot, userId, skillId);
             })();
-            await interaction.reply({
+            await interaction.editReply({
                 content: `✅ Đã trang bị kỹ năng **${skillName}** vào **Ô số ${slot}**!`
             });
             return;
@@ -115,14 +114,13 @@ class KyNangCommand extends Command_1.Command {
             const changes = database_1.default.prepare('UPDATE user_skills SET is_equipped = 0, equipped_slot = 0 WHERE user_id = ? AND equipped_slot = ?')
                 .run(userId, slot);
             if (changes.changes > 0) {
-                await interaction.reply({
+                await interaction.editReply({
                     content: `✅ Đã tháo kỹ năng khỏi **Ô số ${slot}** thành công.`
                 });
             }
             else {
-                await interaction.reply({
-                    content: `❌ Không có kỹ năng nào đang trang bị ở **Ô số ${slot}** để tháo.`,
-                    ephemeral: true
+                await interaction.editReply({
+                    content: `❌ Không có kỹ năng nào đang trang bị ở **Ô số ${slot}** để tháo.`
                 });
             }
         }

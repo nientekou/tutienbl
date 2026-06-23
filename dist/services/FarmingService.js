@@ -9,6 +9,7 @@ const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 const AchievementService_1 = require("./AchievementService");
 const LeylineService_1 = require("./LeylineService");
+const itemConstants_1 = require("../config/itemConstants");
 class FarmingService {
     /**
      * Lấy danh sách ô đất của người chơi, tự động cập nhật tiến trình sinh trưởng sinh học
@@ -108,7 +109,7 @@ class FarmingService {
         const cost = costList[currentPlots.count - 1];
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            return { success: false, message: 'Nhân vật không tồn tại.' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
         }
         if (user.coin_ha_pham < cost) {
             return { success: false, message: `Đạo hữu không đủ Linh Thạch để khai khẩn ô đất mới! (Cần **${cost}** Linh Thạch, hiện có **${user.coin_ha_pham}**)` };
@@ -233,7 +234,7 @@ class FarmingService {
      */
     speedupPlot(userId, plotIndex) {
         const inv = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-        const hasTalisman = inv.some(i => i.item_id === 'talisman_speed_1' && i.quantity > 0);
+        const hasTalisman = inv.some(i => i.item_id === itemConstants_1.ITEMS.TALISMAN_SPEED_1 && i.quantity > 0);
         if (!hasTalisman) {
             return { success: false, message: 'Đạo hữu không có **Thần Hành Phù** trong túi đồ để sử dụng!' };
         }
@@ -255,7 +256,7 @@ class FarmingService {
       WHERE id = ?
     `).run(newGrowthTime, now, plot.id);
         // Trừ phù lục
-        InventoryRepository_1.inventoryRepository.removeItem(userId, 'talisman_speed_1', 1);
+        InventoryRepository_1.inventoryRepository.removeItem(userId, itemConstants_1.ITEMS.TALISMAN_SPEED_1, 1);
         return { success: true, message: 'Sử dụng Thần Hành Phù gia tốc thành công! Rút ngắn thời gian lớn đi **1 giờ**.' };
     }
     /**
@@ -274,7 +275,7 @@ class FarmingService {
         }
         // Lấy thông tin sản vật phẩm đầu ra
         const item = database_1.default.prepare('SELECT stats FROM items WHERE id = ?').get(plot.seed_item_id);
-        let productItemId = 'material_linh_thao_1';
+        let productItemId = itemConstants_1.ITEMS.MATERIAL_LINH_THAO_1;
         try {
             const stats = JSON.parse(item.stats || '{}');
             if (stats.product)

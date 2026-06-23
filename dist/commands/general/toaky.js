@@ -18,11 +18,11 @@ class ToaKyCommand extends Command_1.Command {
             .addSubcommand(sub => sub.setName('danhsach').setDescription('Xem danh sách tọa kỵ'))
             .addSubcommand(sub => sub.setName('cuoi')
             .setDescription('Cưỡi tọa kỵ')
-            .addIntegerOption(opt => opt.setName('id').setDescription('ID tọa kỵ').setRequired(true)))
+            .addIntegerOption(opt => opt.setName('mount_id').setDescription('ID vật cưỡi (xem trong /toaky)').setRequired(true)))
             .addSubcommand(sub => sub.setName('thuhoi').setDescription('Thu hồi tọa kỵ đang cưỡi'))
             .addSubcommand(sub => sub.setName('nuoiduong')
             .setDescription('Nuôi dưỡng/Thuần hóa tọa kỵ bằng nguyên liệu')
-            .addIntegerOption(opt => opt.setName('id').setDescription('ID tọa kỵ').setRequired(true))
+            .addIntegerOption(opt => opt.setName('mount_id').setDescription('ID vật cưỡi (xem trong /toaky)').setRequired(true))
             .addStringOption(opt => opt.setName('nguyenlieu').setDescription('Nguyên liệu (gõ tên để gợi ý)').setAutocomplete(true))
             .addIntegerOption(opt => opt.setName('soluong').setDescription('Số lượng muốn cho ăn').setRequired(false))));
     }
@@ -30,7 +30,7 @@ class ToaKyCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
             return;
         }
         const sub = interaction.options.getSubcommand();
@@ -40,7 +40,7 @@ class ToaKyCommand extends Command_1.Command {
             const ropeInv = database_1.default.prepare('SELECT quantity FROM inventories WHERE user_id = ? AND item_id = ?').get(userId, 'thung_bat_thu');
             const ropesCount = ropeInv ? ropeInv.quantity : 0;
             const feedableItems = database_1.default.prepare(`
-        SELECT i.item_id, item.name, item.rarity, i.quantity
+        SELECT i.id as inv_id, i.item_id, item.name, item.rarity, i.quantity
         FROM inventories i
         JOIN items item ON i.item_id = item.id
         WHERE i.user_id = ? AND (item.type = 'material' OR item.type = 'pill')
@@ -52,7 +52,7 @@ class ToaKyCommand extends Command_1.Command {
                 const rarityExp = { common: 15, uncommon: 30, rare: 50, epic: 80, legendary: 150 };
                 feedableText = feedableItems.map(item => {
                     const exp = rarityExp[item.rarity] || 15;
-                    return `• **${item.name}** (\`${item.item_id}\`): còn **x${item.quantity}** (EXP: **+${exp}**)`;
+                    return `• **${item.name}** (\`${item.inv_id}\`): còn **x${item.quantity}** (EXP: **+${exp}**)`;
                 }).join('\n');
             }
             else {
@@ -75,7 +75,7 @@ class ToaKyCommand extends Command_1.Command {
                         `  - **Giao Long** [EPIC] (Gặp: 4% | Bắt: 20%)\n` +
                         `  - **Hỏa Kỳ Lân** [LEGENDARY] (Gặp: 1% | Bắt: 5%)`
                 });
-                await interaction.reply({ embeds: [embed] });
+                await interaction.editReply({ embeds: [embed] });
                 return;
             }
             const embed = new discord_js_1.EmbedBuilder()
@@ -90,12 +90,12 @@ class ToaKyCommand extends Command_1.Command {
                 const progress = MountService_1.mountService.calculateExpProgress(m);
                 const bar = (0, constants_1.getProgressBar)(progress.current, progress.needed, 10);
                 embed.addFields({
-                    name: `${rarityEmoji[m.rarity] || '⚪'} ID: ${m.id} | ${m.name} (Cấp ${m.level}) [${m.rarity.toUpperCase()}]${tamedMark}${activeMark}`,
+                    name: `${rarityEmoji[m.rarity] || '⚪'} ${m.name} (ID: ${m.id}, Cấp ${m.level}) [${m.rarity.toUpperCase()}]${tamedMark}${activeMark}`,
                     value: [
                         m.is_tamed ? `🏇 Tốc độ: **+${Math.round(m.speed_bonus * 100)}%** cooldown làm việc` : '',
                         m.is_tamed ? `⚡ Tiết kiệm: **+${Math.round(m.stamina_save * 100)}%** thể lực` : '',
                         `📊 EXP: ${bar} *(${progress.current}/${progress.needed})*`,
-                        (!m.is_tamed) ? `Dùng \`/toaky nuoiduong id:${m.id} nguyenlieu:[Mã Nguyên Liệu]\` để thuần hóa.` : (m.is_active ? '' : `Dùng \`/toaky cuoi id:${m.id}\` để cưỡi.`),
+                        (!m.is_tamed) ? `Dùng \`/toaky nuoiduong mount_id:${m.id} nguyenlieu:[Mã Nguyên Liệu]\` để thuần hóa.` : (m.is_active ? '' : `Dùng \`/toaky cuoi mount_id:${m.id}\` để cưỡi.`),
                     ].filter(Boolean).join('\n'),
                 });
             }
@@ -112,35 +112,35 @@ class ToaKyCommand extends Command_1.Command {
                     `  - **Giao Long** [EPIC] (Gặp: 4% | Bắt: 20%)\n` +
                     `  - **Hỏa Kỳ Lân** [LEGENDARY] (Gặp: 1% | Bắt: 5%)`
             });
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
             return;
         }
         if (sub === 'cuoi') {
-            const mountId = interaction.options.getInteger('id', true);
+            const mountId = interaction.options.getInteger('mount_id', true);
             const result = MountService_1.mountService.activateMount(userId, mountId);
-            await interaction.reply({ content: result.message, ephemeral: !result.success });
+            await interaction.editReply({ content: result.message });
             return;
         }
         if (sub === 'thuhoi') {
             const result = MountService_1.mountService.deactivateMount(userId);
-            await interaction.reply({ content: result.message, ephemeral: !result.success });
+            await interaction.editReply({ content: result.message });
             return;
         }
         if (sub === 'nuoiduong') {
-            const mountId = interaction.options.getInteger('id', true);
+            const mountId = interaction.options.getInteger('mount_id', true);
             const material = interaction.options.getString('nguyenlieu');
             if (!material) {
-                await interaction.reply({ content: '❌ Vui lòng chọn nguyên liệu muốn cho tọa kỵ ăn!', ephemeral: true });
+                await interaction.editReply({ content: '❌ Vui lòng chọn nguyên liệu muốn cho tọa kỵ ăn!' });
                 return;
             }
             const qty = interaction.options.getInteger('soluong') || 1;
             const result = MountService_1.mountService.feedMount(userId, mountId, material, qty);
-            await interaction.reply({ content: result.message, ephemeral: !result.success });
+            await interaction.editReply({ content: result.message });
             return;
         }
         if (sub === 'bat') {
             const result = MountService_1.mountService.captureMount(userId, 'thung_bat_thu');
-            await interaction.reply({ content: result.message, ephemeral: !result.success });
+            await interaction.editReply({ content: result.message });
             return;
         }
     }
@@ -150,7 +150,7 @@ class ToaKyCommand extends Command_1.Command {
             const userId = interaction.user.id;
             const query = focusedOption.value;
             const items = database_1.default.prepare(`
-        SELECT i.item_id, item.name, item.rarity, i.quantity
+        SELECT i.id as inv_id, i.item_id, item.name, item.rarity, i.quantity
         FROM inventories i
         JOIN items item ON i.item_id = item.id
         WHERE i.user_id = ? AND (item.type = 'material' OR item.type = 'pill')
@@ -159,7 +159,7 @@ class ToaKyCommand extends Command_1.Command {
         LIMIT 25
       `).all(userId, `%${query}%`, `%${query}%`);
             await interaction.respond(items.map(item => ({
-                name: `${item.name} [${item.rarity}] (x${item.quantity}) - ID: ${item.item_id}`,
+                name: `${item.name} [${item.rarity}] (x${item.quantity}) - ID: ${item.inv_id}`,
                 value: item.item_id
             })));
         }

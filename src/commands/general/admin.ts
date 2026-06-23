@@ -7,6 +7,7 @@ import { userRepository } from '../../database/repositories/UserRepository';
 import { cultivationService } from '../../services/CultivationService';
 import db from '../../database/database';
 import { config } from '../../config';
+import { getRealmDetails } from '../../utils/constants';
 
 /**
  * ID Discord của Bot Owner — người DUY NHẤT được phép dùng lệnh /admin
@@ -257,6 +258,17 @@ export default class AdminCommand extends Command {
             .setName('checkorphan')
             .setDescription('[Owner Only] Kiểm tra vật phẩm bất thường (orphan items) trong túi đồ người chơi.')
         )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('checkstats')
+            .setDescription('[Owner Only] Kiểm tra và hiển thị chỉ số chi tiết của người chơi.')
+            .addStringOption(option =>
+              option
+                .setName('tuser')
+                .setDescription('ID người chơi cần kiểm tra.')
+                .setRequired(true)
+            )
+        )
     );
   }
 
@@ -268,7 +280,7 @@ export default class AdminCommand extends Command {
     // Bất kể có role admin trên guild hay không
     // ═══════════════════════════════════════════════════════════
     if (userId !== BOT_OWNER_ID) {
-      await interaction.reply({
+      await interaction.editReply({
         content: [
           '🔒 **Thiên Cơ Cấm Địa — Nghiêm Cấm Xâm Nhập!**',
           '',
@@ -277,8 +289,7 @@ export default class AdminCommand extends Command {
           '**vĩnh viễn không có quyền can thiệp vào Thiên Cơ!**',
           '',
           '> *Kẻ nào cưỡng cầu Thiên Đạo, ắt chuốc kiếp nạn hồi quy.*',
-        ].join('\n'),
-        ephemeral: true
+        ].join('\n')
       });
       return;
     }
@@ -310,9 +321,9 @@ export default class AdminCommand extends Command {
           .setFooter({ text: `Chỉ dành cho Thiên Đạo Chủ • ID: ${BOT_OWNER_ID}` })
           .setTimestamp();
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.editReply({ embeds: [embed]});
       } catch (error) {
-        await interaction.reply({ content: `❌ Lỗi khi lấy thông tin hệ thống: ${error}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ Lỗi khi lấy thông tin hệ thống: ${error}`});
       }
       return;
     }
@@ -323,15 +334,14 @@ export default class AdminCommand extends Command {
       systemConfigService.setMaintenanceMode(status);
       systemConfigService.writeAuditLog(userId, 'admin_maintenance', { status });
 
-      await interaction.reply({
+      await interaction.editReply({
         content: [
           `🛠️ **Trạng Thái Bảo Trì: ${status ? '🔴 BẬT' : '🟢 TẮT'}**`,
           '',
           status
             ? '⚠️ Hệ thống đã vào chế độ bảo trì. Mọi lệnh của tu sĩ sẽ bị tạm khóa.'
             : '✅ Hệ thống đã hoạt động trở lại. Tu sĩ có thể tiếp tục tu luyện!',
-        ].join('\n'),
-        ephemeral: true
+        ].join('\n')
       });
       return;
     }
@@ -344,18 +354,16 @@ export default class AdminCommand extends Command {
 
       const targetProfile = userRepository.get(targetUser.id);
       if (!targetProfile) {
-        await interaction.reply({
-          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật trong hệ thống.`,
-          ephemeral: true
+        await interaction.editReply({
+          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật trong hệ thống.`
         });
         return;
       }
 
       const itemCheck = db.prepare('SELECT name FROM items WHERE id = ?').get(itemId) as { name: string } | undefined;
       if (!itemCheck) {
-        await interaction.reply({
-          content: `❌ Vật phẩm ID **\`${itemId}\`** không tồn tại trong Thiên Tài Địa Bảo Lục.`,
-          ephemeral: true
+        await interaction.editReply({
+          content: `❌ Vật phẩm ID **\`${itemId}\`** không tồn tại trong Thiên Tài Địa Bảo Lục.`
         });
         return;
       }
@@ -369,9 +377,8 @@ export default class AdminCommand extends Command {
         quantity
       });
 
-      await interaction.reply({
-        content: `🎁 **Ban Thiên Phúc:** Đã phát **${quantity}x ${itemCheck.name}** cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>)!`,
-        ephemeral: true
+      await interaction.editReply({
+        content: `🎁 **Ban Thiên Phúc:** Đã phát **${quantity}x ${itemCheck.name}** cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>)!`
       });
       return;
     }
@@ -383,9 +390,8 @@ export default class AdminCommand extends Command {
 
       const targetProfile = userRepository.get(targetUser.id);
       if (!targetProfile) {
-        await interaction.reply({
-          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật.`,
-          ephemeral: true
+        await interaction.editReply({
+          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật.`
         });
         return;
       }
@@ -403,7 +409,8 @@ export default class AdminCommand extends Command {
         base_def: newStats.def,
         base_crit: newStats.crit,
         base_crit_res: newStats.critRes,
-        base_luck: targetProfile.base_luck
+        base_luck: targetProfile.base_luck,
+        base_speed: newStats.speed
       });
 
       systemConfigService.writeAuditLog(userId, 'admin_setlevel', {
@@ -413,9 +420,8 @@ export default class AdminCommand extends Command {
         newLevel: targetLevel
       });
 
-      await interaction.reply({
-        content: `⚡ **Thiên Đạo Can Thiệp:** Tu sĩ **${targetProfile.name}** (<@${targetUser.id}>) đã được nâng lên **Cấp ${targetLevel}**!\n📊 Stats đã được tính toán lại theo cảnh giới mới.`,
-        ephemeral: true
+      await interaction.editReply({
+        content: `⚡ **Thiên Đạo Can Thiệp:** Tu sĩ **${targetProfile.name}** (<@${targetUser.id}>) đã được nâng lên **Cấp ${targetLevel}**!\n📊 Stats đã được tính toán lại theo cảnh giới mới.`
       });
       return;
     }
@@ -427,9 +433,8 @@ export default class AdminCommand extends Command {
 
       const targetProfile = userRepository.get(targetUser.id);
       if (!targetProfile) {
-        await interaction.reply({
-          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật trong hệ thống.`,
-          ephemeral: true
+        await interaction.editReply({
+          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật trong hệ thống.`
         });
         return;
       }
@@ -444,9 +449,8 @@ export default class AdminCommand extends Command {
         amount
       });
 
-      await interaction.reply({
-        content: `🪙 **Thiên Phú Linh Khí:** Đã ban **${amount.toLocaleString()} Hạ Phẩm Linh Thạch** cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>)!\n💰 Số dư mới: **${(targetProfile.coin_ha_pham + amount).toLocaleString()}** LT.`,
-        ephemeral: true
+      await interaction.editReply({
+        content: `🪙 **Thiên Phú Linh Khí:** Đã ban **${amount.toLocaleString()} Hạ Phẩm Linh Thạch** cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>)!\n💰 Số dư mới: **${(targetProfile.coin_ha_pham + amount).toLocaleString()}** LT.`
       });
       return;
     }
@@ -458,9 +462,8 @@ export default class AdminCommand extends Command {
 
       const targetProfile = userRepository.get(targetUser.id);
       if (!targetProfile) {
-        await interaction.reply({
-          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật trong hệ thống.`,
-          ephemeral: true
+        await interaction.editReply({
+          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật trong hệ thống.`
         });
         return;
       }
@@ -478,9 +481,8 @@ export default class AdminCommand extends Command {
         amount
       });
 
-      await interaction.reply({
-        content: `💎 **Thiên Phú Kim Bảo:** Đã điều chỉnh **${amount.toLocaleString()} KNB** cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>)!\n💰 Số dư mới: **${newKnb.toLocaleString()}** KNB.`,
-        ephemeral: true
+      await interaction.editReply({
+        content: `💎 **Thiên Phú Kim Bảo:** Đã điều chỉnh **${amount.toLocaleString()} KNB** cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>)!\n💰 Số dư mới: **${newKnb.toLocaleString()}** KNB.`
       });
       return;
     }
@@ -489,7 +491,7 @@ export default class AdminCommand extends Command {
     if (subcommand === 'spawntraveler') {
       const guildId = interaction.guildId;
       if (!guildId) {
-        await interaction.reply({ content: 'Lệnh này phải được dùng trong Server.', ephemeral: true });
+        await interaction.editReply({ content: 'Lệnh này phải được dùng trong Server.'});
         return;
       }
 
@@ -510,9 +512,9 @@ export default class AdminCommand extends Command {
       const success = await travelerService.spawnTraveler(client, targetChannelId);
 
       if (success) {
-        await interaction.reply({ content: `✅ Đã gọi Lữ Khách Thần Bí xuất hiện tại <#${targetChannelId}>!`, ephemeral: true });
+        await interaction.editReply({ content: `✅ Đã gọi Lữ Khách Thần Bí xuất hiện tại <#${targetChannelId}>!`});
       } else {
-        await interaction.reply({ content: '❌ Lỗi khi gọi Lữ Khách.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Lỗi khi gọi Lữ Khách.'});
       }
       return;
     }
@@ -520,7 +522,7 @@ export default class AdminCommand extends Command {
     if (subcommand === 'panel') {
       const embed = await AdminCommand.getPanelEmbed(client);
       const components = AdminCommand.getPanelComponents(userId);
-      await interaction.reply({ embeds: [embed], components, ephemeral: true });
+      await interaction.editReply({ embeds: [embed], components});
       return;
     }
 
@@ -540,9 +542,8 @@ export default class AdminCommand extends Command {
         reason
       });
 
-      await interaction.reply({
-        content: `🔒 **Thiên Đạo Trừng Phạt:** Đã phong ấn linh hồn tu sĩ <@${targetUser.id}> khỏi tam giới!\n📝 **Lý do:** *${reason}*`,
-        ephemeral: true
+      await interaction.editReply({
+        content: `🔒 **Thiên Đạo Trừng Phạt:** Đã phong ấn linh hồn tu sĩ <@${targetUser.id}> khỏi tam giới!\n📝 **Lý do:** *${reason}*`
       });
       return;
     }
@@ -552,9 +553,8 @@ export default class AdminCommand extends Command {
 
       const exists = db.prepare('SELECT 1 FROM banned_users WHERE user_id = ?').get(targetUserId);
       if (!exists) {
-        await interaction.reply({
-          content: `❌ Linh hồn tu sĩ có ID \`${targetUserId}\` không ở trạng thái bị phong ấn.`,
-          ephemeral: true
+        await interaction.editReply({
+          content: `❌ Linh hồn tu sĩ có ID \`${targetUserId}\` không ở trạng thái bị phong ấn.`
         });
         return;
       }
@@ -565,9 +565,8 @@ export default class AdminCommand extends Command {
         targetUserId
       });
 
-      await interaction.reply({
-        content: `🔓 **Thiên Đạo Xá Tội:** Đã hóa giải phong ấn, cho phép tu sĩ có ID \`${targetUserId}\` (<@${targetUserId}>) quay trở lại tu luyện!`,
-        ephemeral: true
+      await interaction.editReply({
+        content: `🔓 **Thiên Đạo Xá Tội:** Đã hóa giải phong ấn, cho phép tu sĩ có ID \`${targetUserId}\` (<@${targetUserId}>) quay trở lại tu luyện!`
       });
       return;
     }
@@ -578,9 +577,8 @@ export default class AdminCommand extends Command {
 
       const targetProfile = userRepository.get(targetUser.id);
       if (!targetProfile) {
-        await interaction.reply({
-          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật trong hệ thống.`,
-          ephemeral: true
+        await interaction.editReply({
+          content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật trong hệ thống.`
         });
         return;
       }
@@ -600,9 +598,8 @@ export default class AdminCommand extends Command {
         newStamina
       });
 
-      await interaction.reply({
-        content: `🔋 **Thiên Phú Linh Thể:** Đã điều chỉnh thể lực cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>):\n📈 **Thay đổi:** \`${amount >= 0 ? '+' : ''}${amount}\` thể lực.\n⚡ **Thể lực hiện tại:** **${newStamina}/500**`,
-        ephemeral: true
+      await interaction.editReply({
+        content: `🔋 **Thiên Phú Linh Thể:** Đã điều chỉnh thể lực cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>):\n📈 **Thay đổi:** \`${amount >= 0 ? '+' : ''}${amount}\` thể lực.\n⚡ **Thể lực hiện tại:** **${newStamina}/500**`
       });
       return;
     }
@@ -659,7 +656,7 @@ export default class AdminCommand extends Command {
         )
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await interaction.editReply({ embeds: [embed]});
       return;
     }
 
@@ -671,7 +668,7 @@ export default class AdminCommand extends Command {
 
       const color = (colorInput && /^#[0-9A-F]{6}$/i.test(colorInput)) ? colorInput : '#f1c40f';
 
-      await interaction.deferReply({ ephemeral: true });
+
 
       const guilds = db.prepare('SELECT * FROM guild_configs').all() as any[];
       let successCount = 0;
@@ -755,9 +752,8 @@ export default class AdminCommand extends Command {
       const backups = backupService.listBackups();
 
       if (backups.length === 0) {
-        await interaction.reply({
-          content: '❌ Không tìm thấy bản sao lưu (backup) nào trong hệ thống.',
-          ephemeral: true
+        await interaction.editReply({
+          content: '❌ Không tìm thấy bản sao lưu (backup) nào trong hệ thống.'
         });
         return;
       }
@@ -804,12 +800,12 @@ export default class AdminCommand extends Command {
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton, cancelButton);
 
-      await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+      await interaction.editReply({ embeds: [embed], components: [row]});
       return;
     }
 
     if (subcommand === 'fixpets') {
-      await interaction.deferReply({ ephemeral: true });
+
 
       // Quét linh thú có nhiều hơn 2 skill
       const overSkilledPets = db.prepare(
@@ -935,7 +931,7 @@ export default class AdminCommand extends Command {
 
     // ─── KIỂM TRA VẬT PHẨM BẤT THƯỜNG (ORPHAN ITEMS) ──────────
     if (subcommand === 'checkorphan') {
-      await interaction.deferReply({ ephemeral: true });
+
 
       // Quét inventory có item_id không tồn tại trong bảng items
       const orphanItems = db.prepare(`
@@ -1037,6 +1033,88 @@ export default class AdminCommand extends Command {
       }
 
       await interaction.editReply({ embeds: [embed], components });
+      return;
+    }
+
+    if (subcommand === 'checkstats') {
+      const targetId = interaction.options.getString('tuser', true);
+      const targetUser = userRepository.get(targetId);
+
+      if (!targetUser) {
+        await interaction.editReply({ content: '❌ Không tìm thấy người chơi!' });
+        return;
+      }
+
+      // Lấy inventory và equipment
+      const inventory = inventoryRepository.getUserInventory(targetId);
+      const equipped = inventory.filter(i => i.is_equipped === 1);
+      const totalItems = inventory.length;
+      const totalEquipped = equipped.length;
+
+      // Tính tổng stats từ equipment
+      let totalEquipAtk = 0, totalEquipDef = 0, totalEquipHp = 0, totalEquipMp = 0;
+      let equipDetails = '';
+
+      for (const item of equipped) {
+        const baseBonus = JSON.parse(item.base_stats || '{}');
+        const starMult = 1 + (item.stars || 0) * 0.20;
+        const enhanceMult = 1 + (item.enhance_level || 0) * 0.10;
+        const durability = item.durability ?? 100;
+        const durabilityMult = durability > 0 ? 1.0 : 0.5;
+        const boundMult = item.is_life_bound === 1 ? 1 + (item.bound_level || 1) * 0.05 : 1.0;
+
+        const atk = Math.round((baseBonus.atk || 0) * starMult * enhanceMult * durabilityMult * boundMult);
+        const def = Math.round((baseBonus.def || 0) * starMult * enhanceMult * durabilityMult * boundMult);
+        const hp = Math.round((baseBonus.hp || 0) * starMult * enhanceMult * durabilityMult * boundMult);
+        const mp = Math.round((baseBonus.mp || 0) * starMult * enhanceMult * durabilityMult * boundMult);
+
+        totalEquipAtk += atk;
+        totalEquipDef += def;
+        totalEquipHp += hp;
+        totalEquipMp += mp;
+
+        const starStr = item.stars > 0 ? ` ⭐${item.stars}` : '';
+        const enhanceStr = item.enhance_level > 0 ? ` +${item.enhance_level}` : '';
+        const durabilityStr = durability <= 0 ? ' ⚠️HẾT' : '';
+        equipDetails += `• **${item.name || item.item_id}**${starStr}${enhanceStr}${durabilityStr}: ATK +${atk} | DEF +${def} | HP +${hp}\n`;
+      }
+
+      // Tính total stats hiện tại
+      const { inventoryService } = require('../../services/InventoryService');
+      const currentStats = inventoryService.getActiveStats(targetId);
+      const totalAtk = currentStats ? currentStats.atk : targetUser.base_atk;
+      const totalDef = currentStats ? currentStats.def : targetUser.base_def;
+      const totalHp = currentStats ? currentStats.hp : targetUser.base_hp;
+      const totalMp = currentStats ? currentStats.mp : targetUser.base_mp;
+
+      // Lực chiến ước tính
+      const combatPower = currentStats ? Math.round(
+        currentStats.hp * 0.2 + currentStats.mp * 0.1 + currentStats.atk * 3 + currentStats.def * 5 +
+        currentStats.crit * 1000 + currentStats.critRes * 1000 + currentStats.luck * 10 +
+        currentStats.speed * 10 + currentStats.dodge * 1000
+      ) : 0;
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🔍 Kiểm Tra Chỉ Số: ${targetUser.name}`)
+        .setColor('#3498db')
+        .setDescription(
+          `**👤 Nhân Vật:** ${targetUser.name} (ID: ${targetId})\n` +
+          `**📊 Level:** ${targetUser.level} | **Cảnh Giới:** ${getRealmDetails(targetUser.level).realmName}\n\n` +
+          `**💪 Chỉ Số Tổng:**\n` +
+          `• HP: **${totalHp}** (Base: ${targetUser.base_hp} + Equip: ${totalEquipHp})\n` +
+          `• MP: **${totalMp}** (Base: ${targetUser.base_mp} + Equip: ${totalEquipMp})\n` +
+          `• ATK: **${totalAtk}** (Base: ${targetUser.base_atk} + Equip: ${totalEquipAtk})\n` +
+          `• DEF: **${totalDef}** (Base: ${targetUser.base_def} + Equip: ${totalEquipDef})\n` +
+          `• Crit: ${currentStats ? (currentStats.crit * 100).toFixed(1) : 0}% | CritRes: ${currentStats ? (currentStats.critRes * 100).toFixed(1) : 0}%\n` +
+          `• Luck: ${currentStats ? currentStats.luck : 0} | Speed: ${currentStats ? currentStats.speed : 0}\n` +
+          `• Dodge: ${currentStats ? (currentStats.dodge * 100).toFixed(1) : 0}%\n\n` +
+          `**⚔️ Lực Chiến:** ${combatPower.toLocaleString()}\n\n` +
+          `**🎒 Trang Bị Đang Đeo (${totalEquipped}/${totalItems}物品):**\n` +
+          (equipDetails || '*Không có trang bị*')
+        )
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
   }
@@ -1266,7 +1344,7 @@ export default class AdminCommand extends Command {
   ): Promise<void> {
     const adminId = interaction.user.id;
     if (adminId !== BOT_OWNER_ID) {
-      await interaction.reply({ content: '❌ Cấm địa Thiên Đạo, đạo hữu không đủ quyền hạn!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Cấm địa Thiên Đạo, đạo hữu không đủ quyền hạn!'});
       return;
     }
 
@@ -1297,7 +1375,7 @@ export default class AdminCommand extends Command {
       else if (subAction === 'spawntraveler') {
         const guildId = interaction.guildId;
         if (!guildId) {
-          await interaction.reply({ content: '❌ Lập đàn gọi lữ khách phải thực hiện trong Server.', ephemeral: true });
+          await interaction.editReply({ content: '❌ Lập đàn gọi lữ khách phải thực hiện trong Server.'});
           return;
         }
 
@@ -1354,7 +1432,7 @@ export default class AdminCommand extends Command {
       else if (subAction === 'killboss') {
         const boss = db.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get() as any;
         if (!boss || boss.hp <= 0 || boss.status !== 'active') {
-          await interaction.reply({ content: '❌ Hiện không có Boss Thế Giới nào đang hoạt động để tiêu diệt!', ephemeral: true });
+          await interaction.editReply({ content: '❌ Hiện không có Boss Thế Giới nào đang hoạt động để tiêu diệt!'});
           return;
         }
 
@@ -1968,7 +2046,7 @@ export default class AdminCommand extends Command {
       else if (subAction === 'heal') {
         const targetProfile = userRepository.get(targetUserId);
         if (!targetProfile) {
-          await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+          await interaction.editReply({ content: '❌ Tu sĩ không tồn tại.'});
           return;
         }
 
@@ -1990,7 +2068,7 @@ export default class AdminCommand extends Command {
       else if (subAction === 'resetweekly') {
         const targetProfile = userRepository.get(targetUserId);
         if (!targetProfile) {
-          await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+          await interaction.editReply({ content: '❌ Tu sĩ không tồn tại.'});
           return;
         }
 
@@ -2032,7 +2110,7 @@ export default class AdminCommand extends Command {
   ): Promise<void> {
     const adminId = interaction.user.id;
     if (adminId !== BOT_OWNER_ID) {
-      await interaction.reply({ content: '❌ Cấm địa Thiên Đạo, đạo hữu không đủ quyền hạn!', ephemeral: true });
+      await interaction.editReply({ content: '❌ Cấm địa Thiên Đạo, đạo hữu không đủ quyền hạn!'});
       return;
     }
 
@@ -2043,7 +2121,7 @@ export default class AdminCommand extends Command {
       const level = parseInt(lvlStr, 10);
 
       if (isNaN(level) || level <= 0) {
-        await interaction.reply({ content: '❌ Cấp độ Boss phải là số nguyên lớn hơn 0!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Cấp độ Boss phải là số nguyên lớn hơn 0!'});
         return;
       }
 
@@ -2081,7 +2159,7 @@ export default class AdminCommand extends Command {
       const user = userRepository.get(targetUserId);
 
       if (!user) {
-        await interaction.reply({ content: `❌ Không tìm thấy tu sĩ có ID \`${targetUserId}\` trong danh sách Tiên Bản.`, ephemeral: true });
+        await interaction.editReply({ content: `❌ Không tìm thấy tu sĩ có ID \`${targetUserId}\` trong danh sách Tiên Bản.`});
         return;
       }
 
@@ -2101,12 +2179,12 @@ export default class AdminCommand extends Command {
 
       const targetProfile = userRepository.get(targetUserId);
       if (!targetProfile) {
-        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Tu sĩ không tồn tại.'});
         return;
       }
 
       if (isNaN(amount)) {
-        await interaction.reply({ content: '❌ Số lượng Linh Thạch không hợp lệ.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Số lượng Linh Thạch không hợp lệ.'});
         return;
       }
 
@@ -2136,12 +2214,12 @@ export default class AdminCommand extends Command {
 
       const targetProfile = userRepository.get(targetUserId);
       if (!targetProfile) {
-        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Tu sĩ không tồn tại.'});
         return;
       }
 
       if (isNaN(amount)) {
-        await interaction.reply({ content: '❌ Số lượng KNB không hợp lệ.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Số lượng KNB không hợp lệ.'});
         return;
       }
 
@@ -2172,18 +2250,18 @@ export default class AdminCommand extends Command {
 
       const targetProfile = userRepository.get(targetUserId);
       if (!targetProfile) {
-        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Tu sĩ không tồn tại.'});
         return;
       }
 
       const itemCheck = db.prepare('SELECT name FROM items WHERE id = ?').get(itemId) as { name: string } | undefined;
       if (!itemCheck) {
-        await interaction.reply({ content: `❌ Vật phẩm ID \`${itemId}\` không tồn tại.`, ephemeral: true });
+        await interaction.editReply({ content: `❌ Vật phẩm ID \`${itemId}\` không tồn tại.`});
         return;
       }
 
       if (isNaN(qty) || qty <= 0) {
-        await interaction.reply({ content: '❌ Số lượng vật phẩm phải lớn hơn 0.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Số lượng vật phẩm phải lớn hơn 0.'});
         return;
       }
 
@@ -2213,12 +2291,12 @@ export default class AdminCommand extends Command {
 
       const targetProfile = userRepository.get(targetUserId);
       if (!targetProfile) {
-        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Tu sĩ không tồn tại.'});
         return;
       }
 
       if (isNaN(targetLevel) || targetLevel < 1 || targetLevel > 380) {
-        await interaction.reply({ content: '❌ Cấp độ phải nằm trong khoảng từ 1 tới 380.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Cấp độ phải nằm trong khoảng từ 1 tới 380.'});
         return;
       }
 
@@ -2235,7 +2313,8 @@ export default class AdminCommand extends Command {
         base_def: newStats.def,
         base_crit: newStats.crit,
         base_crit_res: newStats.critRes,
-        base_luck: targetProfile.base_luck
+        base_luck: targetProfile.base_luck,
+        base_speed: newStats.speed
       });
 
       systemConfigService.writeAuditLog(adminId, 'admin_setlevel_panel', {
@@ -2260,14 +2339,14 @@ export default class AdminCommand extends Command {
 
       const targetProfile = userRepository.get(targetUserId);
       if (!targetProfile) {
-        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Tu sĩ không tồn tại.'});
         return;
       }
 
       try {
         JSON.parse(lcJsonStr);
       } catch (e) {
-        await interaction.reply({ content: '❌ Chuỗi Linh Căn không hợp lệ (không đúng định dạng JSON).', ephemeral: true });
+        await interaction.editReply({ content: '❌ Chuỗi Linh Căn không hợp lệ (không đúng định dạng JSON).'});
         return;
       }
 
@@ -2298,7 +2377,7 @@ export default class AdminCommand extends Command {
 
       const color = (colorInput && /^#[0-9A-F]{6}$/i.test(colorInput)) ? colorInput : '#f1c40f';
 
-      await interaction.deferReply({ ephemeral: true });
+
 
       const guilds = db.prepare('SELECT * FROM guild_configs').all() as any[];
       let successCount = 0;
@@ -2368,8 +2447,7 @@ export default class AdminCommand extends Command {
       });
 
       await interaction.followUp({
-        content: `📢 **Thiên Đạo Truyền Âm Hoàn Tất:**\n✅ Gửi thành công: **${successCount}** kênh.\n❌ Thất bại/Bỏ qua: **${failCount}** kênh.`,
-        ephemeral: true
+        content: `📢 **Thiên Đạo Truyền Âm Hoàn Tất:**\n✅ Gửi thành công: **${successCount}** kênh.\n❌ Thất bại/Bỏ qua: **${failCount}** kênh.`
       });
     }
 
@@ -2380,12 +2458,12 @@ export default class AdminCommand extends Command {
 
       const targetProfile = userRepository.get(targetUserId);
       if (!targetProfile) {
-        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Tu sĩ không tồn tại.'});
         return;
       }
 
       if (isNaN(amount)) {
-        await interaction.reply({ content: '❌ Lượng thể lực không hợp lệ.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Lượng thể lực không hợp lệ.'});
         return;
       }
 
@@ -2419,7 +2497,7 @@ export default class AdminCommand extends Command {
 
       const targetProfile = userRepository.get(targetUserId);
       if (!targetProfile) {
-        await interaction.reply({ content: '❌ Tu sĩ không tồn tại.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Tu sĩ không tồn tại.'});
         return;
       }
 

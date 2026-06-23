@@ -93,7 +93,7 @@ class NotificationService {
       ).all(userId) as any[];
 
       if (plots.length > 0) {
-        const message = `🌾 **Linh Điện Đã Chín!** Bạn có ${plots.length} ô linh điện đã sẵn sàng thu hoạch. Hãy thu hoạch ngay để tránh lãng phí!`;
+        const message = `🌾 **Linh Điện Đã Chín!** Đạo hữu có ${plots.length} ô linh điện đã sẵn sàng thu hoạch. Hãy thu hoạch ngay để tránh lãng phí!`;
         await this.sendNotification(userId, NOTIFICATION_TYPES.LINHDIEN_RIPE, message, client);
       }
     } catch (error) {
@@ -163,7 +163,7 @@ class NotificationService {
       const milestones = [25, 40, 50];
       for (const level of milestones) {
         if (apprentice.level === level) {
-          const message = `🎓 **Chúc Mừng Đệ Tử!** Bạn đã đạt cấp độ ${level}! Một bước tiến quan trọng trên con đường tu luyện. Hãy tiếp tục cố gắng!`;
+          const message = `🎓 **Chúc Mừng Đệ Tử!** Đạo hữu đã đạt cấp độ ${level}! Một bước tiến quan trọng trên con đường tu luyện. Hãy tiếp tục cố gắng!`;
           await this.sendNotification(userId, NOTIFICATION_TYPES.APPRENTICE_MILESTONE, message, client);
           break;
         }

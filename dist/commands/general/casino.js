@@ -36,7 +36,7 @@ class CasinoCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Chưa tạo nhân vật! Dùng `/taonhanvat` trước.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Chưa tạo nhân vật! Dùng `/taonhanvat` trước.' });
             return;
         }
         const subcommand = interaction.options.getSubcommand(true);
@@ -46,11 +46,10 @@ class CasinoCommand extends Command_1.Command {
             const lastActive = exports.casinoCooldowns.get(userId) || 0;
             if (now - lastActive < 8000) {
                 const remaining = Math.ceil((8000 - (now - lastActive)) / 1000);
-                await interaction.reply({ content: `⏳ Chờ **${remaining}** giây giữa các ván!`, ephemeral: true });
+                await interaction.editReply({ content: `⏳ Chờ **${remaining}** giây giữa các ván!` });
                 return;
             }
         }
-        await interaction.deferReply();
         if (subcommand === 'taixiu') {
             const bet = interaction.options.getInteger('cuoc', true);
             const rawChoice = interaction.options.getString('loai', true);

@@ -6,6 +6,7 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import { soulImprintRepository } from '../../database/repositories/SoulImprintRepository';
 import { soulImprintService } from '../../services/SoulImprintService';
 import { getProgressBar } from '../../utils/constants';
+import { ITEMS } from '../../config/itemConstants';
 
 const GROUP_NAMES: Record<string, string> = {
   'weapon': '⚔️ Bộ Vũ Khí Thượng Cổ',
@@ -16,25 +17,25 @@ const GROUP_NAMES: Record<string, string> = {
 
 const SET_ITEMS: Record<string, { id: string, name: string }[]> = {
   'weapon': [
-    { id: 'weapon_sword_c', name: 'Kiếm Sắt (C)' },
-    { id: 'weapon_sword_b', name: 'Thanh Phong Kiếm (B)' },
-    { id: 'weapon_sword_a', name: 'Thanh Quang Bảo Kiếm (A)' },
-    { id: 'weapon_sword_s', name: 'Vô Ảnh Kiếm (S)' },
-    { id: 'weapon_sword_ss', name: 'Huyền Thiên Linh Kiếm (SS)' },
-    { id: 'weapon_sword_sss', name: 'Thần Ma Trảm Tiên Kiếm (SSS)' }
+    { id: ITEMS.WEAPON_SWORD_C, name: 'Kiếm Sắt (C)' },
+    { id: ITEMS.WEAPON_SWORD_B, name: 'Thanh Phong Kiếm (B)' },
+    { id: ITEMS.WEAPON_SWORD_A, name: 'Thanh Quang Bảo Kiếm (A)' },
+    { id: ITEMS.WEAPON_SWORD_S, name: 'Vô Ảnh Kiếm (S)' },
+    { id: ITEMS.WEAPON_SWORD_SS, name: 'Huyền Thiên Linh Kiếm (SS)' },
+    { id: ITEMS.WEAPON_SWORD_SSS, name: 'Thần Ma Trảm Tiên Kiếm (SSS)' }
   ],
   'armor': [
-    { id: 'armor_robe_c', name: 'Đạo Bào Thô (C)' },
-    { id: 'armor_robe_b', name: 'Tụ Linh Y (B)' },
-    { id: 'armor_robe_a', name: 'Huyền Vũ Bào (A)' },
-    { id: 'armor_robe_s', name: 'Hỗn Nguyên Đạo Y (S)' },
-    { id: 'armor_robe_ss', name: 'Thái Cực Huyền Y (SS)' },
-    { id: 'armor_robe_sss', name: 'Cửu Thiên Phượng Vũ Y (SSS)' }
+    { id: ITEMS.ARMOR_ROBE_C, name: 'Đạo Bào Thô (C)' },
+    { id: ITEMS.ARMOR_ROBE_B, name: 'Tụ Linh Y (B)' },
+    { id: ITEMS.ARMOR_ROBE_A, name: 'Huyền Vũ Bào (A)' },
+    { id: ITEMS.ARMOR_ROBE_S, name: 'Hỗn Nguyên Đạo Y (S)' },
+    { id: ITEMS.ARMOR_ROBE_SS, name: 'Thái Cực Huyền Y (SS)' },
+    { id: ITEMS.ARMOR_ROBE_SSS, name: 'Cửu Thiên Phượng Vũ Y (SSS)' }
   ],
   'accessory': [
-    { id: 'ring_1', name: 'Nhẫn Trữ Vật' },
-    { id: 'necklace_1', name: 'Dây Chuyền Linh Lực' },
-    { id: 'amulet_1', name: 'Bùa Hộ Mệnh' }
+    { id: ITEMS.RING_1, name: 'Nhẫn Trữ Vật' },
+    { id: ITEMS.NECKLACE_1, name: 'Dây Chuyền Linh Lực' },
+    { id: ITEMS.AMULET_1, name: 'Bùa Hộ Mệnh' }
   ]
 };
 
@@ -132,9 +133,8 @@ export default class AnkyCommand extends Command {
     const user = userRepository.get(discordId);
 
     if (!user) {
-      await interaction.reply({
-        content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!',
-        ephemeral: true
+      await interaction.editReply({
+        content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh \`/taonhanvat\` để bắt đầu!'
       });
       return;
     }
@@ -143,7 +143,7 @@ export default class AnkyCommand extends Command {
 
     if (sub === 'danhsach') {
       const embed = buildImprintListEmbed(discordId);
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
     
     else if (sub === 'anky') {
@@ -153,9 +153,9 @@ export default class AnkyCommand extends Command {
         // Thực hiện ấn ký trực tiếp
         const result = soulImprintService.imprintItem(discordId, targetId);
         if (result.success) {
-          await interaction.reply({ content: result.message });
+          await interaction.editReply({ content: result.message });
         } else {
-          await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.editReply({ content: `❌ ${result.message}`});
         }
       } else {
         // Hiển thị danh sách các món đủ điều kiện để chọn qua dropdown
@@ -163,9 +163,8 @@ export default class AnkyCommand extends Command {
         const candidates = userInventory.filter(item => item.equipable === 1 && item.is_equipped === 0 && item.stars === 5);
 
         if (candidates.length === 0) {
-          await interaction.reply({
-            content: '❌ Đạo hữu không có trang bị nào đạt **5 Sao** (và chưa trang bị) trong túi đồ để tiến hành Ấn Ký Linh Hồn!',
-            ephemeral: true
+          await interaction.editReply({
+            content: '❌ Đạo hữu không có trang bị nào đạt **5 Sao** (và chưa trang bị) trong túi đồ để tiến hành Ấn Ký Linh Hồn!'
           });
           return;
         }
@@ -184,10 +183,9 @@ export default class AnkyCommand extends Command {
         });
 
         const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-        await interaction.reply({
+        await interaction.editReply({
           content: '🧘 **Đúc Luyện Ấn Ký Linh Hồn**\n*Hãy chọn một trang bị 5 Sao bên dưới để tiêu hủy và lưu giữ chỉ số vĩnh viễn (Chi phí: 5,000 LT + 10 Mảnh Trang Bị):*',
-          components: [row],
-          ephemeral: true
+          components: [row]
         });
       }
     }
@@ -232,7 +230,7 @@ export default class AnkyCommand extends Command {
         inline: false
       });
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     }
 
     else if (sub === 'trade') {
@@ -241,15 +239,15 @@ export default class AnkyCommand extends Command {
       const targetUserId = targetUser.id;
 
       if (targetUserId === discordId) {
-        await interaction.reply({ content: '❌ Đạo hữu không thể tự giao dịch Ấn Ký với bản thân!', ephemeral: true });
+        await interaction.editReply({ content: '❌ Đạo hữu không thể tự giao dịch Ấn Ký với bản thân!'});
         return;
       }
 
       const result = soulImprintService.tradeImprint(discordId, targetUserId, imprintId);
       if (result.success) {
-        await interaction.reply({ content: result.message });
+        await interaction.editReply({ content: result.message });
       } else {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${result.message}`});
       }
     }
   }

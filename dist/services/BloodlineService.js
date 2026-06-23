@@ -8,6 +8,7 @@ const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 const AchievementService_1 = require("./AchievementService");
+const itemConstants_1 = require("../config/itemConstants");
 class BloodlineService {
     getAllBloodlines() {
         return database_1.default.prepare('SELECT * FROM bloodlines').all();
@@ -31,7 +32,7 @@ class BloodlineService {
     chooseBloodline(userId, bloodlineId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         if (user.level < 10)
             return { success: false, message: 'Cần đạt Cấp 10 để giác tỉnh Huyết Mạch!' };
         const existing = database_1.default.prepare('SELECT * FROM user_bloodlines WHERE user_id = ?').get(userId);
@@ -57,14 +58,14 @@ class BloodlineService {
     changeBloodline(userId, newBloodlineId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         const existing = database_1.default.prepare('SELECT * FROM user_bloodlines WHERE user_id = ?').get(userId);
         if (!existing)
             return { success: false, message: 'Đạo hữu chưa giác tỉnh Huyết Mạch! Dùng /huyetmach chon để giác tỉnh.' };
         const bloodline = database_1.default.prepare('SELECT * FROM bloodlines WHERE id = ?').get(newBloodlineId);
         if (!bloodline)
             return { success: false, message: 'Huyết mạch mới không tồn tại!' };
-        const requiredItem = 'item_bloodline_pill'; // ID của Huyết Mạch Chuyển Hóa Đan
+        const requiredItem = itemConstants_1.ITEMS.ITEM_BLOODLINE_PILL;
         const inv = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
         const item = inv.find(i => i.item_id === requiredItem && i.is_equipped === 0);
         if (!item || item.quantity < 1) {

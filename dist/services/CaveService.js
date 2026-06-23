@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.caveService = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
+const itemConstants_1 = require("../config/itemConstants");
 class CaveService {
     getCave(userId) {
         let cave = database_1.default.prepare('SELECT * FROM user_caves WHERE user_id = ?').get(userId);
@@ -39,7 +40,7 @@ class CaveService {
         if (level === 1)
             return { lt: 1000, knb: 0, reqItems: [] };
         if (level === 2)
-            return { lt: 5000, knb: 0, reqItems: [{ id: 'material_iron_1', quantity: 10 }] };
+            return { lt: 5000, knb: 0, reqItems: [{ id: itemConstants_1.ITEMS.MATERIAL_IRON_1, quantity: 10 }] };
         if (level === 3)
             return { lt: 20000, knb: 0, reqItems: [{ id: 'material_herb_1', quantity: 20 }] };
         if (level === 4)
@@ -55,7 +56,7 @@ class CaveService {
         cultivationService.claimIdleCultivation(userId);
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return { success: false, message: 'Nhân vật không tồn tại!' };
+            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         // Tính % Tu vi dựa theo cấp động phủ
         let expPercent = 0.05;
         if (cave.level >= 5)
