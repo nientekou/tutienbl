@@ -1,4 +1,4 @@
-import { ButtonInteraction, StringSelectMenuInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
+import { ButtonInteraction, StringSelectMenuInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags } from 'discord.js';
 import { cultivationService } from '../../services/CultivationService';
 import { tribulationService } from '../../services/TribulationService';
 import { userRepository } from '../../database/repositories/UserRepository';
@@ -10,6 +10,7 @@ import { dailyQuestService } from '../../services/DailyQuestService';
 import { inventoryService } from '../../services/InventoryService';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { ITEMS } from '../../config/itemConstants';
+import { EMBED_COLORS, toLegacyUpdate } from '../../utils/uiSystem';
 
 // Cần quản lý cooldown chung cho thiền định
 export const practiceCooldowns = new Map<string, number>();
@@ -33,38 +34,38 @@ export class CultivationInteractionHandler {
   ) {
     const user = userRepository.get(targetUserId);
     if (!user) {
-      await interaction.reply({ content: '❌ Không tìm thấy nhân vật.', ephemeral: true });
+      await interaction.reply({ content: '❌ Không tìm thấy nhân vật.', flags: MessageFlags.Ephemeral });
       return;
     }
 
     if (action === 'luanhoiconfirm') {
       const result = cultivationService.reincarnate(targetUserId);
       if (!result.success) {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
         return;
       }
       const embed = getLuanHoiEmbed(targetUserId);
       const row = getLuanHoiComponents(targetUserId, false);
-      await interaction.update({ embeds: [embed], components: [row] as any[] });
-      await interaction.followUp({ content: result.message, ephemeral: false });
+      await interaction.update(toLegacyUpdate([embed], [row], interaction));
+      await interaction.followUp({ content: result.message });
       return;
     }
 
     if (action === 'luanhoicancel') {
-      await interaction.update({ content: 'Đạo hữu đã chọn tiếp tục tu hành ở kiếp này.', embeds: [], components: [] });
+      await interaction.update(toLegacyUpdate([new EmbedBuilder().setDescription('Đạo hữu đã chọn tiếp tục tu hành ở kiếp này.')], []));
       return;
     }
 
     if (action === 'ycanhawaken') {
       const result = cultivationService.awakenYCanh(targetUserId);
       if (!result.success) {
-        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
         return;
       }
       const embed = getYCanhEmbed(targetUserId);
       const row = getYCanhComponents(targetUserId);
-      await interaction.update({ embeds: [embed], components: [row] as any[] });
-      await interaction.followUp({ content: result.message, ephemeral: true });
+      await interaction.update(toLegacyUpdate([embed], [row], interaction));
+      await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
       return;
     }
 
@@ -72,20 +73,20 @@ export class CultivationInteractionHandler {
       // Nhận Tu Vi offline trước để tránh bị reset mất khi thực hiện các update khác
       const result = cultivationService.claimIdleCultivation(targetUserId);
       if (!result || !result.user) {
-        await interaction.reply({ content: 'Không tìm thấy nhân vật.', ephemeral: true });
+        await interaction.reply({ content: 'Không tìm thấy nhân vật.', flags: MessageFlags.Ephemeral });
         return;
       }
 
       // Nếu Tu Vi đã đầy, thông báo cần đột phá
       if (result.gained === 0 && result.message) {
-        await interaction.reply({ content: `🔔 ${result.message}`, ephemeral: true });
+        await interaction.reply({ content: `🔔 ${result.message}`, flags: MessageFlags.Ephemeral });
         return;
       }
 
       const freshUser = result.user;
 
       if (freshUser.stamina < 1) {
-        await interaction.reply({ content: `❌ Đạo hữu đã cạn kiệt Thể Lực! Việc khiên cưỡng vận công sẽ tẩu hỏa nhập ma. Hãy nghỉ ngơi chờ phục hồi.`, ephemeral: true });
+        await interaction.reply({ content: `❌ Đạo hữu đã cạn kiệt Thể Lực! Việc khiên cưỡng vận công sẽ tẩu hỏa nhập ma. Hãy nghỉ ngơi chờ phục hồi.`, flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -93,7 +94,7 @@ export class CultivationInteractionHandler {
       const lastPractice = practiceCooldowns.get(targetUserId) || 0;
       if (now - lastPractice < 10000) {
         const remaining = Math.ceil((10000 - (now - lastPractice)) / 1000);
-        await interaction.reply({ content: `⏳ Tĩnh tâm nào! Đạo hữu đang hấp thu linh khí quá nhanh, cần đợi **${remaining} giây** để ổn định đan điền!`, ephemeral: true });
+        await interaction.reply({ content: `⏳ Tĩnh tâm nào! Đạo hữu đang hấp thu linh khí quá nhanh, cần đợi **${remaining} giây** để ổn định đan điền!`, flags: MessageFlags.Ephemeral });
         return;
       }
       practiceCooldowns.set(targetUserId, now);
@@ -104,11 +105,11 @@ export class CultivationInteractionHandler {
       const updatedEmbed = getHoSoTabEmbed(targetUserId, 'chiso');
       const allComponents = getHoSoAllComponents(targetUserId, 'chiso');
 
-      await interaction.update({ embeds: [updatedEmbed], components: allComponents });
+      await interaction.update(toLegacyUpdate([updatedEmbed], allComponents, interaction));
       dailyQuestService.updateProgress(targetUserId, 'daily_tuluyen', 1);
 
       const msg = practiceRes.success ? practiceRes.message : `🧘 **Thiền Định:** Đạo hữu thiền định tu luyện thành công!`;
-      await interaction.followUp({ content: msg, ephemeral: true });
+      await interaction.followUp({ content: msg, flags: MessageFlags.Ephemeral });
       return;
     }
 
@@ -116,7 +117,7 @@ export class CultivationInteractionHandler {
       if (parts.length === 2) {
         // Đột phá chính
         if (user.tu_vi < user.exp_needed) {
-          await interaction.reply({ content: `❌ Tu vi chưa đủ tích lũy để đột phá! (Cần **${user.tu_vi}/${user.exp_needed}** Tu Vi)`, ephemeral: true });
+          await interaction.reply({ content: `❌ Tu vi chưa đủ tích lũy để đột phá! (Cần **${user.tu_vi}/${user.exp_needed}** Tu Vi)`, flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -128,8 +129,8 @@ export class CultivationInteractionHandler {
           const updatedEmbed = getHoSoTabEmbed(targetUserId, 'chiso');
           const btComponents = getHoSoAllComponents(targetUserId, 'chiso');
 
-          await interaction.update({ embeds: [updatedEmbed], components: btComponents });
-          await interaction.followUp({ content: result.message, ephemeral: true });
+          await interaction.update(toLegacyUpdate([updatedEmbed], btComponents, interaction));
+          await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
         } else {
           const bolts = 3 + majorIndex * 2;
           const damage = Math.round(20 + majorIndex * 15);
@@ -152,7 +153,7 @@ export class CultivationInteractionHandler {
           
           const embed = new EmbedBuilder()
             .setTitle(`⚡ Cảnh Báo Thiên Kiếp: ${user.name}`)
-            .setColor('#e74c3c')
+            .setColor(EMBED_COLORS.ERROR)
             .setDescription(
               `Đạo hữu đã chạm tới **Cực Hạn Đại Viên Mãn** cảnh giới hiện tại. Thiên địa dị biến, lôi vân đang kéo tới dồn dập!\n\n` +
               `• Cảnh giới lớn đột phá: **${fullName}**\n` +
@@ -179,7 +180,7 @@ export class CultivationInteractionHandler {
             new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại').setStyle(ButtonStyle.Secondary)
           );
 
-          await interaction.update({ embeds: [embed], components: [row] });
+          await interaction.update(toLegacyUpdate([embed], [row], interaction));
         }
       } else {
         // Đột phá bằng đan dược (trong /dotpha) hoặc đột phá không đan
@@ -210,8 +211,8 @@ export class CultivationInteractionHandler {
             const reducedRate = Math.max(0, baseTotalRate - 15);
 
             const embed = new EmbedBuilder()
-              .setTitle('⚠️ TÂM MA QUẤY NHIỄU / TÁN TU QUẤY PHÁ ⚠️')
-              .setColor('#e74c3c')
+              .setTitle('⚠️ TÂM MA QUẤY NHIỄU / TÁN TU QUẤY PHÁ')
+              .setColor(EMBED_COLORS.ERROR)
               .setDescription(
                 `⚡ **Biến Cố Đột Phá:** Khi đạo hữu chuẩn bị trùng kích bình cảnh, bỗng dưng tâm ma vây kín (hoặc bị một tên tán tu quấy phá)! Đạo tâm lung lay, đan điền chấn động mạnh.\n\n` +
                 `📉 **Ảnh hưởng:** Tỷ lệ đột phá thành công giảm đi **-15%** (Từ **${baseTotalRate.toFixed(1)}%** còn **${reducedRate.toFixed(1)}%**).\n` +
@@ -236,7 +237,7 @@ export class CultivationInteractionHandler {
                 .setStyle(ButtonStyle.Secondary)
             );
 
-            await interaction.update({ embeds: [embed], components: [row] });
+            await interaction.update(toLegacyUpdate([embed], [row], interaction));
             return;
           }
         }
@@ -244,17 +245,17 @@ export class CultivationInteractionHandler {
         const result = cultivationService.breakthrough(targetUserId, usedPill);
         
         if (!result.success && !result.isMajor && result.message.includes('không có đan dược')) {
-          await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
         const embed = new EmbedBuilder()
-          .setTitle(result.success ? '⚡ ĐỘT PHÁ THÀNH CÔNG ⚡' : '💀 ĐỘT PHÁ THẤT BẠI 💀')
-          .setColor(result.success ? '#2ecc71' : '#e74c3c')
+          .setTitle(result.success ? '⚡ ĐỘT PHÁ THÀNH CÔNG' : '💀 ĐỘT PHÁ THẤT BẠI')
+          .setColor(result.success ? EMBED_COLORS.SUCCESS : EMBED_COLORS.ERROR)
           .setDescription(result.message)
           .setTimestamp();
 
-        await interaction.update({ embeds: [embed], components: [] });
+        await interaction.update(toLegacyUpdate([embed], [], interaction));
       }
       return;
     }
@@ -265,13 +266,13 @@ export class CultivationInteractionHandler {
 
       if (subAction === 'start') {
         const { embed, rows } = tribulationService.start(targetUserId, user.name, majorIndex);
-        await interaction.update({ embeds: [embed], components: rows as any[] });
+        await interaction.update(toLegacyUpdate([embed], rows, interaction));
       } else {
         const res = tribulationService.handleAction(targetUserId, subAction as any);
         if (res.finished) {
-          await interaction.update({ embeds: [res.embed], components: [] });
+          await interaction.update(toLegacyUpdate([res.embed], [], interaction));
         } else {
-          await interaction.update({ embeds: [res.embed], components: res.rows as any[] });
+          await interaction.update(toLegacyUpdate([res.embed], res.rows, interaction));
         }
       }
       return;
@@ -282,7 +283,7 @@ export class CultivationInteractionHandler {
         const formattedLinhCan = formatLinhCan(user.linh_can);
         const embed = new EmbedBuilder()
           .setTitle(`🌀 Tẩy Tủy Linh Căn - ${user.name}`)
-          .setColor('#3498db')
+          .setColor(EMBED_COLORS.INFO)
           .setDescription('Tẩy tủy sẽ thay đổi Linh Căn cốt cách ngẫu nhiên, tác động trực tiếp tới các thuộc tính chiến đấu và hiệu suất tu luyện.')
           .addFields(
             { name: '🔮 Linh Căn Hiện Tại', value: formattedLinhCan },
@@ -297,12 +298,12 @@ export class CultivationInteractionHandler {
           new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
         );
 
-        await interaction.update({ embeds: [embed], components: [row] });
+        await interaction.update(toLegacyUpdate([embed], [row], interaction));
         return;
       }
 
       if (user.coin_ha_pham < 100) {
-        await interaction.reply({ content: `❌ **Không đủ Linh Thạch!** Tẩy tủy cần 100 Hạ Phẩm Linh Thạch (Đạo hữu hiện có **${user.coin_ha_pham}**).`, ephemeral: true });
+        await interaction.reply({ content: `❌ **Không đủ Linh Thạch!** Tẩy tủy cần 100 Hạ Phẩm Linh Thạch (Đạo hữu hiện có **${user.coin_ha_pham}**).`, flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -327,7 +328,7 @@ export class CultivationInteractionHandler {
 
       const embed = new EmbedBuilder()
         .setTitle(`🌀 Tẩy Tủy Thành Công - ${updatedUser.name}`)
-        .setColor('#2ecc71')
+        .setColor(EMBED_COLORS.SUCCESS)
         .setDescription('Căn cốt linh căn đã thay đổi. Các chỉ số cơ bản của đạo hữu đã được tính toán lại theo cơ duyên mới.')
         .addFields(
           { name: '🔮 Linh Căn Mới', value: formattedLinhCan },
@@ -344,8 +345,8 @@ export class CultivationInteractionHandler {
         row.addComponents(new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary));
       }
 
-      await interaction.update({ embeds: [embed], components: [row] });
-      await interaction.followUp({ content: `🌀 **Tẩy Tủy Thành Công!** Linh căn mới của đạo hữu là: ${formattedLinhCan}`, ephemeral: true });
+      await interaction.update(toLegacyUpdate([embed], [row], interaction));
+      await interaction.followUp({ content: `🌀 **Tẩy Tủy Thành Công!** Linh căn mới của đạo hữu là: ${formattedLinhCan}`, flags: MessageFlags.Ephemeral });
       return;
     }
 
@@ -355,11 +356,11 @@ export class CultivationInteractionHandler {
 
       const embed = new EmbedBuilder()
         .setTitle(result.success ? '⚡ ĐỘT PHÁ THÀNH CÔNG ⚡' : '💀 ĐỘT PHÁ THẤT BẠI 💀')
-        .setColor(result.success ? '#2ecc71' : '#e74c3c')
+        .setColor(result.success ? EMBED_COLORS.SUCCESS : EMBED_COLORS.ERROR)
         .setDescription(result.message)
         .setTimestamp();
 
-      await interaction.update({ embeds: [embed], components: [] });
+      await interaction.update(toLegacyUpdate([embed], [], interaction));
       return;
     }
 
@@ -368,7 +369,7 @@ export class CultivationInteractionHandler {
       const cost = user.level * 50;
 
       if (user.coin_ha_pham < cost) {
-        await interaction.reply({ content: `❌ Đạo hữu không đủ Linh Thạch! (Cần ${cost} Hạ Phẩm Linh Thạch).`, ephemeral: true });
+        await interaction.reply({ content: `❌ Đạo hữu không đủ Linh Thạch! (Cần ${cost} Hạ Phẩm Linh Thạch).`, flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -377,18 +378,18 @@ export class CultivationInteractionHandler {
 
       const embed = new EmbedBuilder()
         .setTitle(result.success ? '⚡ ĐỘT PHÁ THÀNH CÔNG ⚡' : '💀 ĐỘT PHÁ THẤT BẠI 💀')
-        .setColor(result.success ? '#2ecc71' : '#e74c3c')
+        .setColor(result.success ? EMBED_COLORS.SUCCESS : EMBED_COLORS.ERROR)
         .setDescription(`✨ Đạo hữu tiêu hao **${cost}** Linh Thạch ổn định đạo tâm, khôi phục nguyên trạng tỷ lệ đột phá thành công!\n\n` + result.message)
         .setTimestamp();
 
-      await interaction.update({ embeds: [embed], components: [] });
+      await interaction.update(toLegacyUpdate([embed], [], interaction));
       return;
     }
 
     if (action === 'select' && parts[1] === 'alignment') {
       const embed = new EmbedBuilder()
-        .setTitle('🎭 LỰA CHỌN ĐẠO THỐNG: CHÍNH ĐẠO vs MA ĐẠO 🎭')
-        .setColor('#9b59b6')
+        .setTitle('🎭 LỰA CHỌN ĐẠO THỐNG: CHÍNH ĐẠO vs MA ĐẠO')
+        .setColor(EMBED_COLORS.MYSTIC)
         .setDescription(
           `Đạo hữu tu hành tới Trúc Cơ Kỳ, tu vi đã có thành tựu, có thể lựa chọn Đạo thống tương lai của mình. Con đường này sẽ ảnh hưởng tới thuộc tính chiến đấu, tu luyện, và tài phú của đạo hữu!\n\n` +
           `⚖️ **CHÍNH ĐẠO (Orthodox):**\n` +
@@ -421,19 +422,19 @@ export class CultivationInteractionHandler {
           .setStyle(ButtonStyle.Secondary)
       );
 
-      await interaction.update({ embeds: [embed], components: [row] });
+      await interaction.update(toLegacyUpdate([embed], [row], interaction));
       return;
     }
 
     if (action === 'confirmalignment') {
       const chosen = parts[1]; // 'orthodox' or 'demonic'
       if (user.alignment && user.alignment !== 'neutral') {
-        await interaction.reply({ content: '❌ Đạo hữu đã chọn Đạo Thống rồi, không thể chọn lại!', ephemeral: true });
+        await interaction.reply({ content: '❌ Đạo hữu đã chọn Đạo Thống rồi, không thể chọn lại!', flags: MessageFlags.Ephemeral });
         return;
       }
 
       if (user.level < 39) {
-        await interaction.reply({ content: '❌ Yêu cầu đạt cấp 39 (Trúc Cơ Kỳ) để chọn Đạo Thống!', ephemeral: true });
+        await interaction.reply({ content: '❌ Yêu cầu đạt cấp 39 (Trúc Cơ Kỳ) để chọn Đạo Thống!', flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -456,8 +457,8 @@ export class CultivationInteractionHandler {
         : `😈 Huyết mạch thức tỉnh, ngạo thị quần hùng! Chúc mừng đạo hữu **${updatedUser.name}** đã chính thức nhập **Ma Đạo 👿**! Chỉ số công kích và chí mạng được gia tăng.`;
 
       const embed = new EmbedBuilder()
-        .setTitle('🎭 ĐẠO THỐNG ĐÃ XÁC ĐỊNH 🎭')
-        .setColor(chosen === 'orthodox' ? '#3498db' : '#e74c3c')
+        .setTitle('🎭 ĐẠO THỐNG ĐÃ XÁC ĐỊNH')
+        .setColor(chosen === 'orthodox' ? EMBED_COLORS.INFO : EMBED_COLORS.ERROR)
         .setDescription(welcomeMsg)
         .setTimestamp();
 
@@ -468,7 +469,7 @@ export class CultivationInteractionHandler {
           .setStyle(ButtonStyle.Secondary)
       );
 
-      await interaction.update({ embeds: [embed], components: [row] });
+      await interaction.update(toLegacyUpdate([embed], [row], interaction));
       return;
     }
   }

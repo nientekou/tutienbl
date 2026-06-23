@@ -1,6 +1,7 @@
 import { ButtonInteraction, StringSelectMenuInteraction, EmbedBuilder } from 'discord.js';
 import { getHoSoTabEmbed, getHoSoAllComponents, HoSoTab } from '../../commands/general/hoso';
 import { leaderboardService } from '../../services/LeaderboardService';
+import { EMBED_COLORS, toLegacyUpdate } from '../../utils/uiSystem';
 
 export class ProfileInteractionHandler {
   public static async handle(
@@ -13,7 +14,7 @@ export class ProfileInteractionHandler {
       const tabName = parts[1] as HoSoTab;
       const embed = getHoSoTabEmbed(targetUserId, tabName);
       const components = getHoSoAllComponents(targetUserId, tabName);
-      await interaction.update({ embeds: [embed], components });
+      await interaction.update(toLegacyUpdate([embed], components, interaction));
       return;
     }
     
@@ -21,7 +22,7 @@ export class ProfileInteractionHandler {
     if (action === 'hosoback') {
       const embed = getHoSoTabEmbed(targetUserId, 'chiso');
       const components = getHoSoAllComponents(targetUserId, 'chiso');
-      await interaction.update({ embeds: [embed], components });
+      await interaction.update(toLegacyUpdate([embed], components, interaction));
       return;
     }
 
@@ -30,7 +31,7 @@ export class ProfileInteractionHandler {
       const lbType = parts[1]; // combatPower, realm, wealth, sectContribution
       const embed = getLeaderboardEmbed(targetUserId, lbType);
       const components = getHoSoAllComponents(targetUserId, 'bangxephang');
-      await interaction.update({ embeds: [embed], components });
+      await interaction.update(toLegacyUpdate([embed], components, interaction));
       return;
     }
   }
@@ -46,7 +47,7 @@ function getLeaderboardEmbed(userId: string, subType: string): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle('👑 Bảng Phong Thần')
-    .setColor(0xFFD700)
+    .setColor(EMBED_COLORS.GOLD)
     .setTimestamp();
 
   const typeMap: Record<string, (limit?: number) => any[]> = {

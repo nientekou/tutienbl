@@ -4,6 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { nineHeavensService } from '../../services/NineHeavensService';
 import db from '../../database/database';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class CuuTrungCommand extends Command {
   constructor() {
@@ -77,11 +78,11 @@ export default class CuuTrungCommand extends Command {
             if (buyRes.success && buyRes.combatResult) {
               const attachment = new AttachmentBuilder(Buffer.from(buyRes.combatResult.log.join('\n'), 'utf-8'), { name: `cuutrung_tang_${nextFloor}.txt` });
               const embed = new EmbedBuilder()
-                .setTitle(`⚔️ CHIẾN BÁO CỬU TRÙNG THÁP - TẦNG ${nextFloor} ⚔️`)
+        .setTitle(`⚔️ CHIẾN BÁO CỬU TRÙNG THÁP - TẦNG ${nextFloor}`)
                 .setTimestamp();
 
               if (buyRes.combatResult.winner === 'player') {
-                embed.setColor('#2ecc71')
+                embed.setColor(EMBED_COLORS.SUCCESS)
                   .setDescription(
                     (nextFloor === 5
                       ? `💔 **TUYỆT CẢNH SINH TỬ!** Đạo hữu đã vượt qua thử thách với chỉ **1 HP** và đánh bại **${floorConfig.name}**! Một chiến tích hiếm có!\n\n`
@@ -90,7 +91,7 @@ export default class CuuTrungCommand extends Command {
                         : `🎉 **Chiến thắng vẻ vang!** Đạo hữu đã đả bại **${floorConfig.name}** ở tầng ${nextFloor}!\n\n`) +
                     `${buyRes.rewardsLog}`);
               } else {
-                embed.setColor('#e74c3c')
+                embed.setColor(EMBED_COLORS.ERROR)
                   .setDescription(
                     nextFloor === 5
                       ? `💔 **TUYỆT CẢNH SINH TỬ!** Chỉ với **1 HP**, đạo hữu đã không thể xoay chuyển tình thế trước **${floorConfig.name}** ở tầng ${nextFloor}.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`
@@ -99,12 +100,7 @@ export default class CuuTrungCommand extends Command {
                         : `💀 **Bại trận!** Thần thức của đạo hữu đã bị trục xuất khỏi Cửu Trùng Tháp sau **${buyRes.combatResult.rounds}** hiệp đấu.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`);
               }
 
-              await i.editReply({
-                content: `📖 Chi tiết trận chiến đã được gửi kèm trong tệp tin dưới đây:`,
-                embeds: [embed],
-                files: [attachment],
-                components: []
-              });
+              await i.editReply({ ...toV2Payload([embed]), files: [attachment] });
             } else {
               await i.editReply({ content: `❌ Có lỗi xảy ra: ${buyRes.message}`, components: [] });
             }
@@ -128,7 +124,7 @@ export default class CuuTrungCommand extends Command {
           .setTimestamp();
 
         if (res.combatResult.winner === 'player') {
-          embed.setColor('#2ecc71')
+          embed.setColor(EMBED_COLORS.SUCCESS)
             .setDescription(
               (nextFloor === 5
                 ? `💔 **TUYỆT CẢNH SINH TỬ!** Đạo hữu đã vượt qua thử thách với chỉ **1 HP** và đánh bại **${floorConfig.name}**! Một chiến tích hiếm có!\n\n`
@@ -137,7 +133,7 @@ export default class CuuTrungCommand extends Command {
                   : `🎉 **Chiến thắng vẻ vang!** Đạo hữu đã đả bại **${floorConfig.name}** ở tầng ${nextFloor}!\n\n`) +
               `${res.rewardsLog}`);
         } else {
-          embed.setColor('#e74c3c')
+          embed.setColor(EMBED_COLORS.ERROR)
             .setDescription(
               nextFloor === 5
                 ? `💔 **TUYỆT CẢNH SINH TỬ!** Chỉ với **1 HP**, đạo hữu đã không thể xoay chuyển tình thế trước **${floorConfig.name}** ở tầng ${nextFloor}.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`
@@ -159,7 +155,7 @@ export default class CuuTrungCommand extends Command {
       const progress = nineHeavensService.getProgress(userId);
       const embed = new EmbedBuilder()
         .setTitle('🏰 TRẠNG THÁI CỬU TRÙNG THÁP')
-        .setColor('#e67e22')
+        .setColor(EMBED_COLORS.ORANGE)
         .setTimestamp()
         .setDescription(`Hồ sơ khiêu chiến tháp thần của đạo hữu:\n\n` +
           `• Tầng cao nhất đã vượt: **Tầng ${progress.highest_floor}/9**\n` +
@@ -203,7 +199,7 @@ export default class CuuTrungCommand extends Command {
       }
 
       embed.addFields({ name: '🌟 Chỉ Số Tẩy Tủy Nhận Được (Vĩnh viễn)', value: statsStr });
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
 
     // ───────────────── BẢNG XẾP HẠNG LEO THÁP ─────────────────
@@ -218,7 +214,7 @@ export default class CuuTrungCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle('🏆 CỬU TRÙNG THÁP BẢNG')
-        .setColor('#f1c40f')
+        .setColor(EMBED_COLORS.GOLD)
         .setTimestamp();
 
       let desc = '';
@@ -232,7 +228,7 @@ export default class CuuTrungCommand extends Command {
       }
 
       embed.setDescription(desc);
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
   }
 }

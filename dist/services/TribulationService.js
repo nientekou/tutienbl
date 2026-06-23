@@ -12,6 +12,7 @@ const InventoryService_1 = require("./InventoryService");
 const CultivationService_1 = require("./CultivationService");
 const constants_1 = require("../utils/constants");
 const itemConstants_1 = require("../config/itemConstants");
+const uiSystem_1 = require("../utils/uiSystem");
 class TribulationService {
     /**
      * Lấy Linh Căn mạnh nhất của người chơi
@@ -394,7 +395,7 @@ class TribulationService {
             });
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('💀 ĐỘT PHÁ THẤT BẠI - THIÊN KIẾP PHẢN PHỆ 💀')
-                .setColor('#c0392b')
+                .setColor(uiSystem_1.EMBED_COLORS.ALERT)
                 .setDescription(`❌ Thiên uy khó lường! Đạo hữu **${state.username}** không trụ vững trước uy lực của lôi kiếp đạo thứ ${state.currentLightningBolt}.\n\n` +
                 `💥 Thần trí mơ màng, nguyên thần bị thương nặng, rơi vào trạng thái **Trọng Thương** trong **1 giờ** (không thể làm việc, đi bí cảnh hay luyện đan).\n` +
                 `📉 Tổn thất tu vi: **-${lostTuVi}** Tu Vi (Hiện tại: **${newTuVi}/${user.exp_needed}**).`)
@@ -416,7 +417,7 @@ class TribulationService {
             }
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('⚡ ĐỘT PHÁ ĐẠI CẢNH GIỚI THÀNH CÔNG! ⚡')
-                .setColor('#2ecc71')
+                .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                 .setDescription(`🎉 **Lôi vân tiêu tán, ngũ sắc hào quang chiếu rọi thiên địa!**\n\n` +
                 `Chúc mừng đạo hữu **${state.username}** đã vượt qua sinh tử lôi kiếp thành công, thăng cấp lên cảnh giới mới!\n\n` +
                 `📜 Cảnh giới mới: **${newRealm.fullName}**\n` +

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
+const uiSystem_1 = require("../../utils/uiSystem");
 const MinigameService_1 = require("../../services/MinigameService");
 const constants_1 = require("../../utils/constants");
 class QueXamCommand extends Command_1.Command {
@@ -73,7 +74,7 @@ class QueXamCommand extends Command_1.Command {
         const fortuneBar = (0, constants_1.getProgressBar)(luckScore, 100, 10);
         const userLuckBar = (0, constants_1.getProgressBar)(result.userLuck, 30, 10);
         const embed = new discord_js_1.EmbedBuilder()
-            .setTitle(`🔮 ĐẠO PHÁP CHIÊM BỐC - QUẺ XĂM HÀNG NGÀY 🔮`)
+            .setTitle(`🔮 ĐẠO PHÁP CHIÊM BỐC - QUẺ XĂM HÀNG NGÀY`)
             .setColor(color)
             .setDescription(`☯️ **Vận Số Hôm Nay:**\n## **${result.title}**\n` +
             `${fortuneBar} *(Chỉ số cát khí: **${luckScore}/100**)*\n\n` +
@@ -99,7 +100,7 @@ class QueXamCommand extends Command_1.Command {
         })
             .setFooter({ text: 'Mỗi ngày đạo hữu chỉ được rút xăm một lần duy nhất!' })
             .setTimestamp();
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
 }
 exports.default = QueXamCommand;

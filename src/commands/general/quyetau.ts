@@ -4,6 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { minigameService } from '../../services/MinigameService';
 import { userRepository } from '../../database/repositories/UserRepository';
 import db from '../../database/database';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class QuyetAuCommand extends Command {
   constructor() {
@@ -36,7 +37,7 @@ export default class QuyetAuCommand extends Command {
   }
 
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
-    await interaction.deferReply();
+    // interactionCreate.ts đã deferReply tự động
     const challengerId = interaction.user.id;
     const action = interaction.options.getString('action');
 
@@ -83,7 +84,7 @@ export default class QuyetAuCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle('🏆 BẢNG XẾP HẠNG QUYẾT ĐẤU - TAM HỒI LINH CHIẾN')
-        .setColor('#f1c40f')
+        .setColor(EMBED_COLORS.GOLD)
         .setDescription(
           '📊 **Xếp hạng tu sĩ theo chiến tích quyết đấu**\n' +
           'Xếp hạng dựa trên: **Số trận thắng** > **Linh Thạch ròng kiếm được** > **Tỉ lệ thắng**\n\n' +
@@ -123,7 +124,7 @@ export default class QuyetAuCommand extends Command {
         });
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -184,7 +185,7 @@ export default class QuyetAuCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle(`📊 THỐNG KÊ QUYẾT ĐẤU — ${titleName}`)
-        .setColor('#3498db')
+        .setColor(EMBED_COLORS.INFO)
         .setDescription(
           `📈 **${stats.totalMatches}** trận • ${winRateEmoji} Winrate **${stats.winRate}%**${streakText}`
         )
@@ -222,7 +223,7 @@ export default class QuyetAuCommand extends Command {
         })
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -233,7 +234,7 @@ export default class QuyetAuCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle('🎁 PHẦN THƯỞNG TOP 3 QUYẾT ĐẤU HÀNG TUẦN')
-        .setColor('#9b59b6')
+        .setColor(EMBED_COLORS.MYSTIC)
         .setTimestamp();
 
       if (currentSeason.season) {
@@ -293,7 +294,7 @@ export default class QuyetAuCommand extends Command {
         .setFooter({ text: 'Tham gia quyết đấu để leo top nhận thưởng!' });
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -345,8 +346,8 @@ export default class QuyetAuCommand extends Command {
     const duel = result.duel;
 
     const embed = new EmbedBuilder()
-      .setTitle('⚔️ THƯ KHIÊU CHIẾN — TAM HỒI LINH CHIẾN ⚔️')
-      .setColor('#e74c3c')
+      .setTitle('⚔️ THƯ KHIÊU CHIẾN — TAM HỒI LINH CHIẾN')
+      .setColor(EMBED_COLORS.ERROR)
       .setDescription(
         `Đạo hữu <@${challengerId}> gửi thư khiêu chiến **Tam Hồi Linh Chiến** đến <@${targetUser.id}>!\n\n` +
         `🪙 **Linh Thạch Đặt Cược:** **${wager}** Hạ Phẩm Linh Thạch 🟤 từ mỗi bên.\n` +
@@ -388,7 +389,7 @@ export default class QuyetAuCommand extends Command {
   private buildDuelHistoryEmbed(records: any[], userId: string, page: number, totalPages: number, totalRecords: number): EmbedBuilder {
     const embed = new EmbedBuilder()
       .setTitle('📜 LỊCH SỬ QUYẾT ĐẤU - TAM HỒI LINH CHIẾN')
-      .setColor('#f39c12')
+      .setColor(EMBED_COLORS.WARNING)
       .setFooter({ text: `Trang ${page}/${totalPages} • Tổng số: ${totalRecords} trận` })
       .setTimestamp();
 

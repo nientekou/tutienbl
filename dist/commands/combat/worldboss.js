@@ -10,6 +10,7 @@ const Command_1 = require("../../structures/Command");
 const CombatService_1 = require("../../services/CombatService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 const database_1 = __importDefault(require("../../database/database"));
 /**
  * Tạo Embed hiển thị thông tin World Boss hiện tại
@@ -19,7 +20,7 @@ function getWorldBossEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`👹 World Boss: ${boss.name} (Cấp ${boss.level})`)
-        .setColor(boss.status === 'active' ? '#e74c3c' : '#7f8c8d')
+        .setColor(boss.status === 'active' ? uiSystem_1.EMBED_COLORS.ERROR : uiSystem_1.EMBED_COLORS.NEUTRAL)
         .setTimestamp();
     if (boss.status === 'active') {
         const hpBar = (0, constants_1.getProgressBar)(boss.hp, boss.maxHp, 15);
@@ -56,8 +57,8 @@ function getWorldBossEmbed(userId) {
         let cdSec = 0;
         if (contrib) {
             const elapsed = now - contrib.last_attack_at;
-            if (elapsed < 400) {
-                cdSec = 400 - elapsed;
+            if (elapsed < 200) {
+                cdSec = 200 - elapsed;
             }
         }
         if (cdSec > 0) {
@@ -88,8 +89,8 @@ function getWorldBossComponents(userId) {
     let cdSec = 0;
     if (contrib) {
         const elapsed = now - contrib.last_attack_at;
-        if (elapsed < 400) {
-            cdSec = 400 - elapsed;
+        if (elapsed < 200) {
+            cdSec = 200 - elapsed;
         }
     }
     const isCd = cdSec > 0;

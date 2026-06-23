@@ -4,6 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { leylineService, LeylineType } from '../../services/LeylineService';
 import { getProgressBar } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 const LEYLINE_NAMES: Record<LeylineType, string> = {
   'tuluyen': 'Tu Luyện (Mộc)',
@@ -36,7 +37,7 @@ export function buildLeylineEmbed(userId: string): EmbedBuilder {
   if (!user) {
     return new EmbedBuilder()
       .setTitle('🌟 LINH MẠCH ĐỊA ĐỒ')
-      .setColor('#e74c3c')
+      .setColor(EMBED_COLORS.ERROR)
       .setDescription('Chưa khởi tạo nhân vật.');
   }
 
@@ -51,7 +52,7 @@ export function buildLeylineEmbed(userId: string): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle(`🌟 LINH MẠCH ĐỊA ĐỒ - THẾ GIỚI TU CHÂN`)
-    .setColor('#2ecc71')
+    .setColor(EMBED_COLORS.SUCCESS)
     .setDescription(desc)
     .setTimestamp();
 
@@ -142,6 +143,6 @@ export default class LinhmachCommand extends Command {
     const embed = buildLeylineEmbed(discordId);
     const components = buildLeylineComponents(discordId);
 
-    await interaction.editReply({ embeds: [embed], components });
+    await interaction.editReply(toV2Payload([embed], components));
   }
 }

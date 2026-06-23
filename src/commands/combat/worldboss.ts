@@ -4,6 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { combatService } from '../../services/CombatService';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { getProgressBar } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import db from '../../database/database';
 
 /**
@@ -15,7 +16,7 @@ export function getWorldBossEmbed(userId: string): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle(`👹 World Boss: ${boss.name} (Cấp ${boss.level})`)
-    .setColor(boss.status === 'active' ? '#e74c3c' : '#7f8c8d')
+    .setColor(boss.status === 'active' ? EMBED_COLORS.ERROR : EMBED_COLORS.NEUTRAL)
     .setTimestamp();
 
   if (boss.status === 'active') {

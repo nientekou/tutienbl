@@ -6,6 +6,7 @@ const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const ExplorationService_1 = require("../../services/ExplorationService");
+const uiSystem_1 = require("../../utils/uiSystem");
 const constants_1 = require("../../utils/constants");
 /**
  * Tạo Embed hiển thị bản đồ dã ngoại
@@ -15,7 +16,7 @@ function getKhamBhaEmbed(userId) {
     const active = ExplorationService_1.explorationService.getActiveExploration(userId);
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle('🗺️ BẢN ĐỒ DÃ NGOẠI - KHÁM PHÁ TIÊN GIỚI')
-        .setColor('#e67e22')
+        .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
         .setTimestamp();
     if (active) {
         const now = Math.floor(Date.now() / 1000);
@@ -137,7 +138,7 @@ class KhamBhaCommand extends Command_1.Command {
         if (subcmd === 'bando') {
             const embed = getKhamBhaEmbed(userId);
             const rows = getKhamBhaComponents(userId);
-            await interaction.editReply({ embeds: [embed], components: rows });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], rows));
         }
         else if (subcmd === 'tangbaodo') {
             const { treasureMapService } = require('../../services/TreasureMapService');
@@ -148,11 +149,11 @@ class KhamBhaCommand extends Command_1.Command {
             }
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🗺️ Danh Sách Tàng Bảo Đồ')
-                .setColor('#f1c40f')
+                .setColor(uiSystem_1.EMBED_COLORS.GOLD)
                 .setDescription('Danh sách các tọa độ kho báu đạo hữu đang nắm giữ:\n\n' +
                 maps.map((m, i) => `**${i + 1}.** Tọa độ: **[X: ${m.coord_x}, Y: ${m.coord_y}]** (Độ hiếm: ${m.rarity.toUpperCase()})`).join('\n'))
                 .setFooter({ text: 'Dùng lệnh /khambha toado [x] [y] để tiến hành đào!' });
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (subcmd === 'toado') {
             const x = interaction.options.getInteger('x', true);

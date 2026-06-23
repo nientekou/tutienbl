@@ -9,6 +9,7 @@ const InventoryRepository_1 = require("../../database/repositories/InventoryRepo
 const InventoryService_1 = require("../../services/InventoryService");
 const constants_1 = require("../../utils/constants");
 const itemConstants_1 = require("../../config/itemConstants");
+const uiSystem_1 = require("../../utils/uiSystem");
 class DotPhaCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -41,7 +42,7 @@ class DotPhaCommand extends Command_1.Command {
             const bequanCost = user.level * 200;
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`🌟 Chuẩn Bị Đột Phá: ${fullName}`)
-                .setColor('#f1c40f')
+                .setColor(uiSystem_1.EMBED_COLORS.GOLD)
                 .setDescription(`Đạo hữu đã tích đủ linh khí, có thể thử nghiệm trùng kích bình cảnh để lên **Tầng ${minorLevel + 1}**.\n\n` +
                 `🌿 **Tu Vi hiện có:** **${user.tu_vi}/${user.exp_needed}**\n` +
                 `${(0, constants_1.getProgressBar)(user.tu_vi, user.exp_needed, 10)}\n\n` +
@@ -72,7 +73,7 @@ class DotPhaCommand extends Command_1.Command {
                 .setLabel(`Bế Quan (${bequanCost} LThạch)`)
                 .setStyle(discord_js_1.ButtonStyle.Danger)
                 .setDisabled(user.coin_ha_pham < bequanCost));
-            await interaction.editReply({ embeds: [embed], components: [row] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
         }
         else {
             // Đột phá cảnh giới lớn -> Nghênh tiếp Lôi Kiếp
@@ -92,7 +93,7 @@ class DotPhaCommand extends Command_1.Command {
             const mpText = stats ? `${stats.mp}/${stats.mp}` : `${user.base_mp}/${user.base_mp}`;
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`⚡ Cảnh Báo Thiên Kiếp: ${user.name}`)
-                .setColor('#e74c3c')
+                .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription(`Đạo hữu đã chạm tới **Cực Hạn Đại Viên Mãn** cảnh giới hiện tại. Thiên địa dị biến, lôi vân đang kéo tới dồn dập!\n\n` +
                 `• Cảnh giới lớn đột phá: **${fullName}**\n` +
                 `• Thiên kiếp sắp tới: **${oncomingKiep.name}**\n` +
@@ -118,7 +119,7 @@ class DotPhaCommand extends Command_1.Command {
                 .setLabel(`Bế Quan (${bequanMajorCost} LThạch)`)
                 .setStyle(discord_js_1.ButtonStyle.Success)
                 .setDisabled(user.coin_ha_pham < bequanMajorCost));
-            await interaction.editReply({ embeds: [embed], components: [row] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
         }
     }
 }

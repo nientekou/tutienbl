@@ -13,6 +13,7 @@ const InventoryRepository_1 = require("../../database/repositories/InventoryRepo
 const database_1 = __importDefault(require("../../database/database"));
 const constants_1 = require("../../utils/constants");
 const itemConstants_1 = require("../../config/itemConstants");
+const uiSystem_1 = require("../../utils/uiSystem");
 /**
  * Tạo Embed hiển thị trạng thái Linh Điền
  */
@@ -21,7 +22,7 @@ function getLinhDienEmbed(userId) {
     if (!user) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('❌ Lỗi')
-            .setColor('#e74c3c')
+            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
             .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
     }
     const plots = FarmingService_1.farmingService.getPlots(userId);
@@ -30,7 +31,7 @@ function getLinhDienEmbed(userId) {
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`🌱 Linh Điền Trồng Trọt - ${user.name}`)
         .setDescription('Đại Đạo Vô Biên, trồng trọt thu hoạch thảo dược rèn đan luyện linh khí.')
-        .setColor('#2ecc71')
+        .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
         .setTimestamp();
     const fields = [];
     for (let i = 0; i < 6; i++) {

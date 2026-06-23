@@ -4,6 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { cultivationService } from '../../services/CultivationService';
 import { formatLinhCan } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import { BACKGROUNDS, DESTINIES, COMBO_BONUSES, getLinhCanFlavorText, getOpeningScene, getDestinyLine, generateProphecy, generateHeirloom } from '../../data/creationLore';
 import db from '../../database/database';
 import { InteractionLock } from '../../services/InteractionLock';
@@ -72,22 +73,22 @@ export default class TaoNhanVatCommand extends Command {
   private async stepEpicPrologue(interaction: ChatInputCommandInteraction): Promise<void> {
     const prologueData = [
       {
-        title: '📜 Chương 1: Hồng Hoang',
+        title: 'Chương 1: Hồng Hoang',
         text: 'Thuở khai thiên lập địa, chín vị Tiên Tổ từ hư vô bước ra, phân chia trời đất thành Cửu Trùng Thiên. Nhân loại khi ấy chỉ là hạt bụi giữa dòng xoáy hỗn mang.',
         color: 0xf1c40f
       },
       {
-        title: '⚔️ Chương 2: Đại Chiến',
+        title: 'Chương 2: Đại Chiến',
         text: '3000 năm trước, Ma Giới xé toang bức tường không gian. 12 vị Chân Tiên ngã xuống. Long tộc suy vong. Nhưng nhân loại... nhân loại đã đứng lên.',
         color: 0xe74c3c
       },
       {
-        title: '🌪️ Chương 3: Thời Đại Mới',
+        title: 'Chương 3: Thời Đại Mới',
         text: 'Ngày nay, linh mạch khô cạn, bí cảnh cổ xưa dần hé lộ. Các tông môn tranh giành địa bàn. Một thời đại hỗn loạn và cũng đầy cơ hội.',
         color: 0x3498db
       },
       {
-        title: '✨ Chương 4: Định Mệnh',
+        title: 'Chương 4: Định Mệnh',
         text: 'Và ngươi... giữa dòng xoáy của số phận, giữa những mảnh ghép của quá khứ và tương lai... ngươi chính là mảnh ghép còn thiếu. Hãy bắt đầu hành trình của mình.',
         color: 0x2ecc71
       }
@@ -100,7 +101,7 @@ export default class TaoNhanVatCommand extends Command {
     );
 
     for (let i = 0; i < embeds.length; i++) {
-      await interaction.editReply({ embeds: [embeds[i]] });
+      await interaction.editReply(toV2Payload([embeds[i]]));
       await new Promise(r => setTimeout(r, 8000));
     }
     
@@ -140,14 +141,14 @@ export default class TaoNhanVatCommand extends Command {
       .setDescription(`Trưởng lão đặt tay lên trán ngươi. Một luồng sáng ${icon} lóe lên!\n\n**${npcReac}**\n*${npcStory}*`)
       .setFooter({ text: `Ngươi sở hữu ${type} Linh Căn.` });
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
     await new Promise(r => setTimeout(r, 10000));
   }
 
   private async stepChooseBackground(interaction: ChatInputCommandInteraction, name: string): Promise<(typeof BACKGROUNDS)[number] | null> {
     const embed = new EmbedBuilder()
-      .setTitle('📜 Bước 1: Xuất Thân Của Ngươi')
-      .setColor(0x9b59b6)
+      .setTitle('Bước 1: Xuất Thân Của Ngươi')
+      .setColor(EMBED_COLORS.MYSTIC)
       .setDescription(`**${name}** — trước khi bước vào con đường tu tiên, hãy chọn xuất thân của ngươi.\n\nMỗi xuất thân mang cho ngươi câu chuyện riêng và ưu thế khởi đầu khác nhau.`)
       .addFields(
         ...BACKGROUNDS.map(b => ({
@@ -166,7 +167,7 @@ export default class TaoNhanVatCommand extends Command {
       )
     );
 
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    await interaction.editReply(toV2Payload([embed], [row] ));
     const replyMsg = await interaction.fetchReply();
 
     const filter = (i: any) => i.user.id === interaction.user.id && i.customId.startsWith('bg_');
@@ -188,10 +189,10 @@ export default class TaoNhanVatCommand extends Command {
     // Show intro story
     const storyEmbed = new EmbedBuilder()
       .setTitle(`${background.emoji} ${background.name}`)
-      .setColor(0xe67e22)
+      .setColor(EMBED_COLORS.ORANGE)
       .setDescription(background.intro)
       .setFooter({ text: '— Ngươi đã chọn xuất thân. Hãy bước tiếp...' });
-    await interaction.editReply({ embeds: [storyEmbed], components: [] });
+    await interaction.editReply(toV2Payload([storyEmbed], [] ));
 
     // Brief delay for dramatic effect
     await new Promise(r => setTimeout(r, 6000));
@@ -200,8 +201,8 @@ export default class TaoNhanVatCommand extends Command {
 
   private async stepChooseDestiny(interaction: ChatInputCommandInteraction, name: string, background: (typeof BACKGROUNDS)[number]): Promise<(typeof DESTINIES)[number] | null> {
     const embed = new EmbedBuilder()
-      .setTitle('🔮 Bước 2: Định Mệnh Của Ngươi')
-      .setColor(0xe74c3c)
+      .setTitle('Bước 2: Định Mệnh Của Ngươi')
+      .setColor(EMBED_COLORS.ERROR)
       .setDescription(`Dù xuất thân là **${background.name}**, con đường phía trước còn tùy thuộc vào định mệnh ngươi chọn.\n\nMỗi định mệnh ban tặng ưu thế — nhưng cũng kèm theo thách thức.`)
       .addFields(
         ...DESTINIES.map(d => ({
@@ -220,7 +221,7 @@ export default class TaoNhanVatCommand extends Command {
       )
     );
 
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    await interaction.editReply(toV2Payload([embed], [row] ));
     const replyMsg2 = await interaction.fetchReply();
 
     const filter2 = (i: any) => i.user.id === interaction.user.id && i.customId.startsWith('dest_');
@@ -241,9 +242,9 @@ export default class TaoNhanVatCommand extends Command {
     // Show destiny line
     const lineEmbed = new EmbedBuilder()
       .setTitle(`${destiny.emoji} ${destiny.name}`)
-      .setColor(0x2ecc71)
+      .setColor(EMBED_COLORS.SUCCESS)
       .setDescription(`*"${destiny.line}"*`);
-    await interaction.editReply({ embeds: [lineEmbed], components: [] });
+    await interaction.editReply(toV2Payload([lineEmbed], [] ));
 
     await new Promise(r => setTimeout(r, 5000));
     return destiny;
@@ -317,9 +318,9 @@ export default class TaoNhanVatCommand extends Command {
       const destinyLine = getDestinyLine(destiny.id);
 
       const embed = new EmbedBuilder()
-        .setTitle('🔮 Nhân Vật Đã Được Khai Sinh!')
-        .setColor(0xf1c40f)
-        .setDescription(`__****Thế Giới Tu Chân — Niên Hiệu Linh Hư 358****__\n\n*${openingScene}*\n\n__**${destiny.emoji} Định Mệnh**__\n*"${destinyLine}"*\n\n__**📜 Lá Số Tử Vi**__\n*${prophecy}*`)
+        .setTitle('Nhân Vật Đã Được Khai Sinh!')
+      .setColor(EMBED_COLORS.GOLD)
+      .setDescription(`__****Thế Giới Tu Chân — Niên Hiệu Linh Hư 358****__\n\n*${openingScene}*\n\n__**${destiny.emoji} Định Mệnh**__\n*"${destinyLine}"*\n\n__**📜 Lá Số Tử Vi**__\n*${prophecy}*`)
         .addFields(
           { name: '👤 Đạo Hiệu', value: `**${name}** (${background.emoji} ${background.name})`, inline: true },
           { name: '✨ Cảnh Giới', value: 'Luyện Khí Kỳ — Tầng 1/38', inline: true },
@@ -341,7 +342,7 @@ export default class TaoNhanVatCommand extends Command {
         .setFooter({ text: '📖 Hãy dùng lệnh /camnang để xem Cẩm Nang Tiên Lộ hướng dẫn tân thủ!' })
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
 
     } catch (error) {
       console.error('Lỗi tạo nhân vật:', error);

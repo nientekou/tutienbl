@@ -3,6 +3,7 @@ import { userRepository } from '../database/repositories/UserRepository';
 import { getRealmDetails } from '../utils/constants';
 import { ITEMS } from '../config/itemConstants';
 import { Client, TextChannel, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
+import { EMBED_COLORS } from '../utils/uiSystem';
 
 export interface TravelerItem {
   id: string;
@@ -63,7 +64,7 @@ export class TravelerService {
         const embed = new EmbedBuilder()
           .setTitle('👺 Lữ Khách Thần Bí Xuất Hiện!')
           .setDescription('Một gã Lữ Khách bí ẩn mang chiếc mặt nạ quỷ vừa đi ngang qua. Hắn vác theo một túi đồ nặng trĩu. Có vẻ như hắn sẵn sàng bán một số vật phẩm quý hiếm cho những ai trả giá cao!\n\n*(Lữ khách sẽ rời đi sau 1 giờ hoặc khi hết hàng. Đạo hữu cũng có thể liều mạng cướp hàng của hắn!)*')
-          .setColor('#8B008B')
+          .setColor(EMBED_COLORS.DARK_PURPLE)
           .addFields(
             { name: '💰 Hàng Hoá', value: Object.values(inventory).map(i => `- **${i.name}** (Còn: ${i.quantity}) - Giá: ${i.price} LT`).join('\n') }
           )

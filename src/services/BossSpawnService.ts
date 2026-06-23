@@ -3,6 +3,7 @@ import { TuTienClient } from '../client/TuTienClient';
 import db from '../database/database';
 import { getProgressBar } from '../utils/constants';
 import { WorldBossEntity } from '../utils/types';
+import { EMBED_COLORS } from '../utils/uiSystem';
 
 export class BossSpawnService {
   private schedulerInterval: NodeJS.Timeout | null = null;
@@ -143,7 +144,7 @@ export class BossSpawnService {
           if (boss.status === 'defeated') {
             const embed = new EmbedBuilder()
               .setTitle(`💀 WORLD BOSS ĐÃ BỊ TIÊU DIỆT - LEVEL ${boss.level}`)
-              .setColor('#7f8c8d')
+              .setColor(EMBED_COLORS.NEUTRAL)
               .setDescription(`👹 **${boss.name}** đã bị tiêu diệt hoàn toàn! Tinh phách ma thú tan rã. Thiên địa tạm thời quy về thái bình.\n\n*Hồi sinh sau: 1 phút.*`)
               .setTimestamp();
 
@@ -174,7 +175,7 @@ export class BossSpawnService {
 
     const embed = new EmbedBuilder()
       .setTitle(`🏆 BẢNG PHONG THẦN THẢO PHẠT BOSS - LEVEL ${boss.level}`)
-      .setColor('#f1c40f')
+      .setColor(EMBED_COLORS.GOLD)
       .setDescription(
         `👹 **${boss.name}** đã ngã xuống! Linh khí tản mát hóa thành tài bảo ban thưởng cho các đệ tử dũng cảm:\n\n` +
         (rewardsLogs.length > 0 ? rewardsLogs.join('\n') : '*Không có đệ tử nào tham gia thảo phạt.*')
@@ -205,7 +206,7 @@ export class BossSpawnService {
 
     return new EmbedBuilder()
       .setTitle(`👹 WORLD BOSS XUẤT THẾ - LEVEL ${boss.level}`)
-      .setColor('#e74c3c')
+      .setColor(EMBED_COLORS.ERROR)
       .setDescription(
         `⚠️ **CẢNH BÁO TAM GIỚI:** **${boss.name}** đang tàn phá thế giới! Mau liên thủ trảm ma vệ đạo!\n\n` +
         `🩸 **Trạng thái Sinh Lực (HP):** ${progressBar} (\`${boss.hp}/${boss.max_hp}\` HP)\n` +

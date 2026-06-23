@@ -13,6 +13,7 @@ const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const AchievementService_1 = require("../../services/AchievementService");
 const InventoryService_1 = require("../../services/InventoryService");
@@ -102,7 +103,7 @@ function getChiSoTabEmbed(user, activeStats) {
         alignmentStr = 'Ma Đạo 👿';
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`🔮 HỒ SƠ TU SĨ - ${user.name}`)
-        .setColor('#8a2be2')
+        .setColor(uiSystem_1.EMBED_COLORS.PRIMARY)
         .setDescription(`*${greeting}*\n\n` +
         `👤 **Đạo hiệu:** **${user.name}**\n` +
         `${getTitleLine(user)}\n` +
@@ -115,11 +116,11 @@ function getChiSoTabEmbed(user, activeStats) {
     }, {
         name: '✨ Trạng Thái',
         value: [
-            `📜 Cảnh giới: **${realmInfo.fullName}**`,
-            `🎭 Đạo Thống: **${alignmentStr}**`,
-            `🧘 Ngộ Tính: **${user.ngotinh}**`,
-            `⚡ Thể Lực: **${user.stamina}/500**`,
-            `🍀 May Mắn: **${user.base_luck}**`,
+            `Cảnh giới: **${realmInfo.fullName}**`,
+            `Đạo Thống: **${alignmentStr}**`,
+            `Ngộ Tính: **${user.ngotinh}**`,
+            `Thể Lực: **${user.stamina}/500**`,
+            `May Mắn: **${user.base_luck}**`,
         ].join('\n'),
         inline: true,
     }, {
@@ -155,13 +156,13 @@ function getChiSoTabEmbed(user, activeStats) {
         embed.spliceFields(0, 0, {
             name: '📊 Chỉ Số Chiến Đấu (Cơ Bản → Kèm Đồ)',
             value: [
-                `❤️ **Sinh Mệnh (HP):** ${(0, constants_1.formatStatDiff)(user.base_hp, activeStats.hp)}`,
-                `🌀 **Pháp Lực (MP):** ${(0, constants_1.formatStatDiff)(user.base_mp, activeStats.mp)}`,
-                `⚔️ **Tấn Công (ATK):** ${(0, constants_1.formatStatDiff)(user.base_atk, activeStats.atk)}`,
-                `🛡️ **Phòng Ngự (DEF):** ${(0, constants_1.formatStatDiff)(user.base_def, activeStats.def)}`,
-                `💥 **Bạo Kích (CRIT):** ${(0, constants_1.formatStatDiff)(Math.round(user.base_crit * 1000) / 10, Math.round(activeStats.crit * 1000) / 10, '%')} | 🛡️ **Kháng Bạo:** ${(0, constants_1.formatStatDiff)(Math.round(user.base_crit_res * 1000) / 10, Math.round(activeStats.critRes * 1000) / 10, '%')}`,
-                `⚡ **Tốc Độ (SPD):** ${(0, constants_1.formatStatDiff)(user.base_speed ?? 100, activeStats.speed)} | 🌀 **Né Tránh:** ${(0, constants_1.formatStatDiff)(Math.round((user.base_dodge ?? 0.05) * 1000) / 10, Math.round(activeStats.dodge * 1000) / 10, '%')}`,
-                `🍀 **May Mắn (LUCK):** ${(0, constants_1.formatStatDiff)(user.base_luck, activeStats.luck)}`,
+                `**Sinh Mệnh (HP):** ${(0, constants_1.formatStatDiff)(user.base_hp, activeStats.hp)}`,
+                `**Pháp Lực (MP):** ${(0, constants_1.formatStatDiff)(user.base_mp, activeStats.mp)}`,
+                `**Tấn Công (ATK):** ${(0, constants_1.formatStatDiff)(user.base_atk, activeStats.atk)}`,
+                `**Phòng Ngự (DEF):** ${(0, constants_1.formatStatDiff)(user.base_def, activeStats.def)}`,
+                `**Bạo Kích (CRIT):** ${(0, constants_1.formatStatDiff)(Math.round(user.base_crit * 1000) / 10, Math.round(activeStats.crit * 1000) / 10, '%')} | **Kháng Bạo:** ${(0, constants_1.formatStatDiff)(Math.round(user.base_crit_res * 1000) / 10, Math.round(activeStats.critRes * 1000) / 10, '%')}`,
+                `**Tốc Độ (SPD):** ${(0, constants_1.formatStatDiff)(user.base_speed ?? 100, activeStats.speed)} | **Né Tránh:** ${(0, constants_1.formatStatDiff)(Math.round((user.base_dodge ?? 0.05) * 1000) / 10, Math.round(activeStats.dodge * 1000) / 10, '%')}`,
+                `**May Mắn (LUCK):** ${(0, constants_1.formatStatDiff)(user.base_luck, activeStats.luck)}`,
             ].join('\n'),
             inline: false,
         });
@@ -170,11 +171,11 @@ function getChiSoTabEmbed(user, activeStats) {
         embed.spliceFields(0, 0, {
             name: '📊 Chỉ Số Chiến Đấu Cơ Bản',
             value: [
-                `❤️ **Sinh Mệnh (HP):** **${(0, constants_1.formatNumber)(user.base_hp)}** | 🌀 **Pháp Lực (MP):** **${(0, constants_1.formatNumber)(user.base_mp)}**`,
-                `⚔️ **Tấn Công (ATK):** **${(0, constants_1.formatNumber)(user.base_atk)}** | 🛡️ **Phòng Ngự (DEF):** **${(0, constants_1.formatNumber)(user.base_def)}**`,
-                `💥 **Bạo Kích (CRIT):** **${(user.base_crit * 100).toFixed(1)}%** | 🛡️ **Kháng Bạo:** **${(user.base_crit_res * 100).toFixed(1)}%**`,
-                `⚡ **Tốc Độ (SPD):** **${speed}** | 🌀 **Né Tránh:** **${(dodge * 100).toFixed(1)}%**`,
-                `🍀 **May Mắn (LUCK):** **${user.base_luck}**`,
+                `**Sinh Mệnh (HP):** **${(0, constants_1.formatNumber)(user.base_hp)}** | **Pháp Lực (MP):** **${(0, constants_1.formatNumber)(user.base_mp)}**`,
+                `**Tấn Công (ATK):** **${(0, constants_1.formatNumber)(user.base_atk)}** | **Phòng Ngự (DEF):** **${(0, constants_1.formatNumber)(user.base_def)}**`,
+                `**Bạo Kích (CRIT):** **${(user.base_crit * 100).toFixed(1)}%** | **Kháng Bạo:** **${(user.base_crit_res * 100).toFixed(1)}%**`,
+                `**Tốc Độ (SPD):** **${speed}** | **Né Tránh:** **${(dodge * 100).toFixed(1)}%**`,
+                `**May Mắn (LUCK):** **${user.base_luck}**`,
             ].join('\n'),
             inline: false,
         });
@@ -204,7 +205,7 @@ function getTaiSanTabEmbed(user) {
     const spiritCount = database_1.default.prepare('SELECT COUNT(*) as c FROM spirit_weapons WHERE user_id = ?').get(user.discord_id);
     return new discord_js_1.EmbedBuilder()
         .setTitle(`🪙 TÀI SẢN - ${user.name}`)
-        .setColor('#f1c40f')
+        .setColor(uiSystem_1.EMBED_COLORS.GOLD)
         .setDescription(`*Tổng tài sản quy đổi:* 💰 **${(0, constants_1.formatNumber)(totalWealth)}** Hạ Phẩm Linh Thạch`)
         .addFields({
         name: '🪙 Linh Thạch & KNB',
@@ -261,7 +262,7 @@ function getChienTichTabEmbed(user) {
     }
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`🏆 CHIẾN TÍCH - ${user.name}`)
-        .setColor('#e74c3c')
+        .setColor(uiSystem_1.EMBED_COLORS.ERROR)
         .setDescription(`*Hành trình tu đạo của* **${user.name}** *qua những con số*`)
         .addFields({
         name: '⚔️ Chiến Trường PvP',
@@ -317,7 +318,7 @@ function getTrangBiTabEmbed(user) {
     };
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`⚔️ TRANG BỊ - ${user.name}`)
-        .setColor('#8e44ad')
+        .setColor(uiSystem_1.EMBED_COLORS.DARK_PURPLE)
         .setDescription('*Các trang bị đang mặc trên người:*')
         .setTimestamp();
     for (const slot of slotOrder) {
@@ -367,7 +368,7 @@ function getLinhThuTabEmbed(user) {
     const rarityEmoji = { common: '⚪', uncommon: '🟢', rare: '🔵', epic: '🟣', legendary: '🟡' };
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`🐉 LINH THÚ & HUYẾT MẠCH - ${user.name}`)
-        .setColor('#2ecc71')
+        .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
         .setDescription('*Các linh thú, tọa kỵ, khí linh và huyết mạch đang đồng hành cùng đạo hữu*')
         .setTimestamp();
     // Active pet
@@ -498,7 +499,7 @@ function getSoMenhTabEmbed(user) {
     }
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`📜 SỐ MỆNH & KỲ DUYÊN - ${user.name}`)
-        .setColor('#34495e')
+        .setColor(uiSystem_1.EMBED_COLORS.DARK)
         .setDescription(`*Định mệnh đã an bài, hay do tự tay ngươi xoay chuyển?*`)
         .addFields({
         name: '🔮 Lá Số Tử Vi',
@@ -650,7 +651,7 @@ function getInventoryEmbed(userId, page) {
     }
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`💼 HÀNH TRANG (Trang ${cappedPage}/${totalPages})`)
-        .setColor('#f1c40f')
+        .setColor(uiSystem_1.EMBED_COLORS.GOLD)
         .setDescription(description)
         .setFooter({ text: 'Dùng Mã (ID số) cho tất cả lệnh: /dung, /thanhly, /trade, /cuonghoa, /trangbi, /suachua, /khilinh, /loren, /vanbaolau, /dungkynang' })
         .setTimestamp();
@@ -734,7 +735,7 @@ class HoSoCommand extends Command_1.Command {
             embed.setDescription(`✨ **Thu Hoạch Nhàn Rỗi:** Đạo hữu tự động hấp thu thêm **+${idleRes.gained}** Tu Vi!\n\n` + (embed.data.description || ''));
         }
         const rows = getHoSoAllComponents(discordId, 'chiso');
-        await interaction.editReply({ embeds: [embed], components: rows });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], rows));
     }
 }
 exports.default = HoSoCommand;
@@ -757,7 +758,7 @@ function getHoSoTabEmbed(userId, tab) {
         case 'bangxephang': {
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('👑 Bảng Phong Thần')
-                .setColor(0xFFD700)
+                .setColor(uiSystem_1.EMBED_COLORS.GOLD) // ponytail: gold hex, keep numeric for BXH
                 .setDescription('*Chọn một danh mục bên dưới để xem bảng xếp hạng.*\n\nDữ liệu được cập nhật mỗi **5 phút**.\n\n📋 **Các danh mục:**\n⚔️ Lực Chiến\n🌀 Cảnh Giới\n🪙 Tài Sản\n🏛️ Cống Hiến Tông Môn')
                 .setFooter({ text: 'Sử dụng các nút bên dưới để chuyển danh mục.' })
                 .setTimestamp();

@@ -4,6 +4,60 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { achievementService, AchievementWithProgress } from '../../services/AchievementService';
 import { getProgressBar } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+
+const ITEMS_PER_PAGE = 5;
+
+export function getAchievementCategoryEmbed(userId: string, category: string, page: number): { embed: EmbedBuilder; totalPages: number } {
+  const userAchievements = achievementService.getUserAchievements(userId).filter(a => a.category === category);
+  const totalPages = Math.max(Math.ceil(userAchievements.length / ITEMS_PER_PAGE), 1);
+  const cappedPage = Math.min(Math.max(page, 1), totalPages);
+  const offset = (cappedPage - 1) * ITEMS_PER_PAGE;
+  const pageItems = userAchievements.slice(offset, offset + ITEMS_PER_PAGE);
+  const completedCount = userAchievements.filter(a => a.is_completed).length;
+  const catInfo = CATEGORY_LABELS[category];
+
+  const embed = new EmbedBuilder()
+    .setTitle(`🏆 THÀNH TỰU TU SĨ - ${catInfo?.emoji} ${catInfo?.name}`)
+    .setColor(EMBED_COLORS.GOLD)
+    .setDescription([
+      `📊 **Tiến độ:** ${completedCount}/${userAchievements.length} thành tựu`,
+      `*Hoàn thành thành tựu để nhận danh hiệu đặc biệt, EXP và Linh Thạch!*`,
+      userAchievements.length > ITEMS_PER_PAGE ? `\n*Trang ${cappedPage}/${totalPages} (${userAchievements.length} thành tựu)*` : '',
+    ].filter(Boolean).join('\n'))
+    .setFooter({ text: `Danh hiệu hiện tại: ${userRepository.get(userId)?.title || 'Tán Tu'} | Dùng /thanhtuu danhhieu để xem tất cả danh hiệu.` })
+    .setTimestamp();
+
+  for (const a of pageItems) {
+    const status = a.is_completed
+      ? '✅ **HOÀN THÀNH**'
+      : `📊 ${getProgressBar(a.progress, a.target_value, 8)} (${a.progress}/${a.target_value})`;
+
+    const titleBonus = a.reward_title ? `\n🏅 Danh hiệu: **${a.reward_title}**` : '';
+    const rewardText: string[] = [];
+    if (a.reward_exp > 0) rewardText.push(`+${a.reward_exp} Tu Vi`);
+    if (a.reward_coins > 0) rewardText.push(`+${a.reward_coins} LT`);
+    const rewardStr = rewardText.length > 0 ? ` • *Thưởng: ${rewardText.join(', ')}*` : '';
+
+    embed.addFields({
+      name: `${a.icon} **${a.name}** — ${status}`,
+      value: `📖 ${a.description}${titleBonus}${rewardStr}`,
+      inline: false
+    });
+  }
+
+  return { embed, totalPages };
+}
+
+export function getAchievementCategoryComponents(userId: string, category: string, page: number, totalPages: number): ActionRowBuilder<ButtonBuilder>[] {
+  if (totalPages <= 1) return [];
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder().setCustomId(`achprev_${category.replace(/_/g, '.')}_${page}_${userId}`).setEmoji('◀').setStyle(ButtonStyle.Secondary).setDisabled(page <= 1),
+      new ButtonBuilder().setCustomId(`achnext_${category.replace(/_/g, '.')}_${page}_${userId}`).setEmoji('▶').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages),
+    );
+  return [row];
+}
 
 const CATEGORY_LABELS: Record<string, { name: string; emoji: string }> = {
   'tu_luyen': { name: 'Tu Luyện', emoji: '🧘' },
@@ -88,7 +142,7 @@ export default class ThanhTuuCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setTitle('🏆 THÀNH TỰU TU SĨ' + (category ? ` - ${CATEGORY_LABELS[category]?.emoji} ${CATEGORY_LABELS[category]?.name}` : ''))
-      .setColor('#f1c40f')
+      .setColor(EMBED_COLORS.GOLD)
       .setDescription([
         `📊 **Tiến độ:** ${completedCount}/${totalAchievements} thành tựu`,
         `*Hoàn thành thành tựu để nhận danh hiệu đặc biệt, EXP và Linh Thạch!*`,
@@ -111,34 +165,15 @@ export default class ThanhTuuCommand extends Command {
         }
       }
     } else {
-      // Hiển thị chi tiết từng thành tựu trong danh mục
-      for (const a of userAchievements) {
-        const status = a.is_completed
-          ? '✅ **HOÀN THÀNH**'
-          : `📊 ${getProgressBar(a.progress, a.target_value, 8)} (${a.progress}/${a.target_value})`;
-        
-        const titleBonus = a.reward_title ? `\n🏅 Danh hiệu: **${a.reward_title}**` : '';
-        const rewardText = [];
-        if (a.reward_exp > 0) rewardText.push(`+${a.reward_exp} Tu Vi`);
-        if (a.reward_coins > 0) rewardText.push(`+${a.reward_coins} LT`);
-        const rewardStr = rewardText.length > 0 ? ` • *Thưởng: ${rewardText.join(', ')}*` : '';
-
-        embed.addFields({
-          name: `${a.icon} **${a.name}** — ${status}`,
-          value: `📖 ${a.description}${titleBonus}${rewardStr}`,
-          inline: false
-        });
-      }
-
-      // Nếu danh mục có nhiều thành tựu, thêm dòng thông báo
-      if (userAchievements.length > 12) {
-        embed.setDescription(embed.data.description + `\n\n*Hiển thị toàn bộ ${userAchievements.length} thành tựu trong danh mục.*`);
-      }
+      const { embed: categoryEmbed, totalPages } = getAchievementCategoryEmbed(userId, category, 1);
+      const components = getAchievementCategoryComponents(userId, category, 1, totalPages);
+      await interaction.editReply(toV2Payload([categoryEmbed], components));
+      return;
     }
 
     embed.setFooter({ text: `Danh hiệu hiện tại: ${userRepository.get(userId)?.title || 'Tán Tu'} | Dùng /thanhtuu danhhieu để xem tất cả danh hiệu.` });
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 
   /**
@@ -151,7 +186,7 @@ export default class ThanhTuuCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setTitle('🏆 TỔNG QUAN THÀNH TỰU')
-      .setColor('#f1c40f')
+      .setColor(EMBED_COLORS.GOLD)
       .setDescription([
         `**${interaction.user.username}** — Tu sĩ đạo hiệu: **${userRepository.get(userId)?.name || '?'}**`,
         ``,
@@ -187,7 +222,7 @@ export default class ThanhTuuCommand extends Command {
 
     embed.setFooter({ text: 'Dùng /thanhtuu xem để xem chi tiết từng danh mục.' });
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 
   /**
@@ -203,7 +238,7 @@ export default class ThanhTuuCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setTitle(`🏅 DANH HIỆU - ${user.name}`)
-      .setColor('#e67e22')
+      .setColor(EMBED_COLORS.ORANGE)
       .setDescription([
         `**Danh hiệu đang sử dụng:** **${user.title}**`,
         ``,
@@ -264,7 +299,7 @@ export default class ThanhTuuCommand extends Command {
       components.push(...rows);
     }
 
-    await interaction.editReply({ embeds: [embed], components });
+    await interaction.editReply(toV2Payload([embed], components));
   }
 
   /**

@@ -8,6 +8,7 @@ const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const database_1 = __importDefault(require("../../database/database"));
+const uiSystem_1 = require("../../utils/uiSystem");
 class DungKyNangCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -37,7 +38,7 @@ class DungKyNangCommand extends Command_1.Command {
                 await interaction.editReply({ content: result.message });
                 return;
             }
-            await interaction.editReply({ embeds: [result.embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([result.embed]));
             return;
         }
         // Nếu không truyền bookId, tìm tất cả sách kỹ năng trong túi đồ
@@ -45,20 +46,20 @@ class DungKyNangCommand extends Command_1.Command {
         const books = inventory.filter(i => i.type === 'book' && i.is_equipped === 0);
         if (books.length === 0) {
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('✨ TÀNG THƯ ĐIỆN — KHAI NGÔ BÍ TỊCH ✨')
-                .setColor('#e74c3c')
+                .setTitle('✨ TÀNG THƯ ĐIỆN — KHAI NGÔ BÍ TỊCH')
+                .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription(`❌ Đạo hữu **${user.name}** không sở hữu bất kỳ bí tịch sách kỹ năng nào trong hành trang có thể bế quan học tập!\n\n` +
                 `💡 *Đạo hữu có thể thu thập sách kỹ năng qua các cách sau:*\n` +
                 `• Dùng Điểm Cống Hiến để đổi tại **Tiệm Kỹ Năng Tông Môn**.\n` +
                 `• Thử vận khí khi **Săn Yêu Thú Dã Ngoại** hoặc khám phá **Rương Cơ Duyên**.\n` +
                 `• Mua bán trao đổi với các đạo hữu khác thông qua **Chợ Trời**.`)
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('✨ TÀNG THƯ ĐIỆN — KHAI NGÔ BÍ TỊCH ✨')
-            .setColor('#9b59b6')
+            .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
             .setDescription(`Chào mừng đạo hữu **${user.name}** đã ghé thăm Tàng Thư Điện!\n` +
             `Nơi đây cất giữ các bí pháp thất truyền, hỗ trợ đạo hữu dung hợp nguyên thần với thiên địa đạo pháp.\n\n` +
             `🧘 *Vui lòng chọn bí tịch cổ thư muốn đọc hiểu để lĩnh ngộ chiêu thức:*`)
@@ -88,7 +89,7 @@ class DungKyNangCommand extends Command_1.Command {
             .setLabel('Hủy Bỏ')
             .setStyle(discord_js_1.ButtonStyle.Danger);
         const rowButton = new discord_js_1.ActionRowBuilder().addComponents(cancelBtn);
-        await interaction.editReply({ embeds: [embed], components: [row, rowButton] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row, rowButton]));
     }
     /**
      * Logic bế quan lĩnh ngộ kỹ năng từ sách
@@ -138,8 +139,8 @@ class DungKyNangCommand extends Command_1.Command {
         };
         const skillName = skillNames[skillId] || skillId;
         const embed = new discord_js_1.EmbedBuilder()
-            .setTitle('✨ ĐẠO PHÁP THỨC TỈNH ✨')
-            .setColor('#9b59b6')
+            .setTitle('✨ ĐẠO PHÁP THỨC TỈNH')
+            .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
             .setDescription(`🎉 Chúc mừng đạo hữu **${user.name}** đã bế quan đọc hiểu thành công cuốn **${bookItem.name}**!\n\n` +
             `📖 Đạo hữu lĩnh ngộ được kỹ năng chiến đấu mới: **${skillName}**!\n` +
             `📌 Sử dụng lệnh \`/kynang\` để quản lý và trang bị kỹ năng này vào danh sách chiêu thức chiến đấu.`)

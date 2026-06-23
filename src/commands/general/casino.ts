@@ -3,6 +3,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { casinoService } from '../../services/CasinoService';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export const casinoCooldowns = new Map<string, number>();
 export const MIN_BET = 50;
@@ -131,7 +132,7 @@ export default class CasinoCommand extends Command {
           .setDisabled(bet * 2 > maxBet)
       );
 
-      await interaction.editReply({ embeds: [embed], components: [row] });
+      await interaction.editReply(toV2Payload([embed], [row] ));
       return;
     }
 
@@ -168,7 +169,7 @@ export default class CasinoCommand extends Command {
           .setStyle(ButtonStyle.Success)
       );
 
-      await interaction.editReply({ embeds: [embed], components: [row] });
+      await interaction.editReply(toV2Payload([embed], [row] ));
       return;
     }
 
@@ -177,7 +178,7 @@ export default class CasinoCommand extends Command {
       const stats = casinoService.getStats(userId);
       const embed = new EmbedBuilder()
         .setTitle('📜 Lịch Sử Cá Cược — 10 Ván Gần Nhất')
-        .setColor(0x9b59b6)
+        .setColor(EMBED_COLORS.MYSTIC)
         .setTimestamp();
 
       if (history.length === 0) {
@@ -192,15 +193,15 @@ export default class CasinoCommand extends Command {
       }
 
       embed.addFields(
-        { name: '📊 Tổng cược', value: stats.total_bets.toString(), inline: true },
-        { name: '✅ Thắng', value: stats.total_wins.toString(), inline: true },
-        { name: '❌ Thua', value: stats.total_losses.toString(), inline: true },
-        { name: '🎯 Tỉ lệ thắng', value: stats.win_rate, inline: true },
-        { name: '💰 Tổng cược', value: stats.total_bet_amount.toLocaleString() + ' LT', inline: true },
-        { name: '🏆 Lãi/Lỗ', value: `${stats.net >= 0 ? '+' : ''}${stats.net.toLocaleString()} LT`, inline: true },
+        { name: '📊 Tổng cược', value: String(stats.total_bets), inline: true },
+        { name: '✅ Thắng', value: String(stats.total_wins), inline: true },
+        { name: '❌ Thua', value: String(stats.total_losses), inline: true },
+        { name: '🎯 Tỉ lệ thắng', value: String(stats.win_rate), inline: true },
+        { name: '💰 Tổng cược', value: `${String(stats.total_bet_amount)} LT`, inline: true },
+        { name: '🏆 Lãi/Lỗ', value: `${stats.net >= 0 ? '+' : ''}${String(stats.net)} LT`, inline: true },
       );
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -208,20 +209,20 @@ export default class CasinoCommand extends Command {
       const stats = casinoService.getStats(userId);
       const embed = new EmbedBuilder()
         .setTitle('📊 Thống Kê Cá Cược')
-        .setColor(0x3498db)
+        .setColor(EMBED_COLORS.INFO)
         .addFields(
-          { name: '🎰 Tổng số ván', value: stats.total_bets.toLocaleString(), inline: true },
-          { name: '✅ Thắng', value: stats.total_wins.toLocaleString(), inline: true },
-          { name: '❌ Thua', value: stats.total_losses.toLocaleString(), inline: true },
-          { name: '🎯 Tỉ lệ thắng', value: stats.win_rate, inline: true },
-          { name: '💰 Tổng tiền cược', value: stats.total_bet_amount.toLocaleString() + ' LT', inline: true },
-          { name: '🏆 Tổng tiền nhận', value: stats.total_payout.toLocaleString() + ' LT', inline: true },
-          { name: '📈 Lãi/Lỗ ròng', value: `${stats.net >= 0 ? '+' : ''}${stats.net.toLocaleString()} LT`, inline: true },
-          { name: '💎 Thắng lớn nhất', value: stats.biggest_win.toLocaleString() + ' LT', inline: true },
+          { name: '🎰 Tổng số ván', value: String(stats.total_bets), inline: true },
+          { name: '✅ Thắng', value: String(stats.total_wins), inline: true },
+          { name: '❌ Thua', value: String(stats.total_losses), inline: true },
+          { name: '🎯 Tỉ lệ thắng', value: String(stats.win_rate), inline: true },
+          { name: '💰 Tổng tiền cược', value: `${String(stats.total_bet_amount)} LT`, inline: true },
+          { name: '🏆 Tổng tiền nhận', value: `${String(stats.total_payout)} LT`, inline: true },
+          { name: '📈 Lãi/Lỗ ròng', value: `${stats.net >= 0 ? '+' : ''}${String(stats.net)} LT`, inline: true },
+          { name: '💎 Thắng lớn nhất', value: `${String(stats.biggest_win)} LT`, inline: true },
         )
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -229,7 +230,7 @@ export default class CasinoCommand extends Command {
       const jackpot = casinoService.getJackpot();
       const embed = new EmbedBuilder()
         .setTitle('🎰 Quỹ Jackpot')
-        .setColor(0xffd700)
+        .setColor(EMBED_COLORS.GOLD)
         .setDescription([
           `💰 **Quỹ hiện tại:** ${jackpot.toLocaleString()} Linh Thạch`,
           ``,
@@ -243,7 +244,7 @@ export default class CasinoCommand extends Command {
         ].join('\n'))
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
   }

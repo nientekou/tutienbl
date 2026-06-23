@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ValidationUtils = void 0;
+const discord_js_1 = require("discord.js");
 class ValidationUtils {
     /**
      * Xác thực chủ sở hữu của tin nhắn có trùng khớp với người nhấn nút/menu không.
@@ -15,7 +16,7 @@ class ValidationUtils {
             if (showWarning) {
                 const payload = {
                     content: '❌ Nút bấm / Tương tác này không dành cho đạo hữu!',
-                    ephemeral: true
+                    flags: discord_js_1.MessageFlags.Ephemeral
                 };
                 try {
                     if (interaction.deferred || interaction.replied) {

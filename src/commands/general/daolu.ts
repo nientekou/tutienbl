@@ -6,6 +6,7 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import { coupleRepository } from '../../database/repositories/CoupleRepository';
 import { coupleService } from '../../services/CoupleService';
 import { getProgressBar } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import { ITEMS } from '../../config/itemConstants';
 
 export default class DaoLuCommand extends Command {
@@ -54,8 +55,8 @@ export default class DaoLuCommand extends Command {
       const anniversaryMsg = coupleService.checkAnniversaryOnInfo(couple.id);
 
       const embed = new EmbedBuilder()
-        .setTitle('💞 HỒ SƠ ĐẠO LỮ 💞')
-        .setColor('#ff69b4')
+        .setTitle('💞 HỒ SƠ ĐẠO LỮ')
+        .setColor(EMBED_COLORS.ROMANCE)
         .addFields(
           { name: 'Đạo Lữ', value: `**${user.name}** 💍 **${partner ? partner.name : 'Vô Danh'}**`, inline: false },
           { name: 'Độ Hảo Cảm', value: `💖 **${couple.intimacy}** điểm\n${intimacyBar}\n*(Buff: +${Math.min(20, Math.floor(couple.intimacy / 100))}% Công & Máu)*`, inline: true },
@@ -67,7 +68,7 @@ export default class DaoLuCommand extends Command {
         embed.setDescription(anniversaryMsg);
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
 
     } else if (sub === 'cau-hon') {
       const target = interaction.options.getUser('nguoi_choi', true);

@@ -6,6 +6,7 @@ import { RECIPES } from '../../config/recipes';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import db from '../../database/database';
+import { EMBED_COLORS } from '../../utils/uiSystem';
 
 /**
  * Tạo Embed hiển thị Lò Chế Tạo
@@ -15,7 +16,7 @@ export function getCraftingEmbed(userId: string): EmbedBuilder {
   if (!user) {
     return new EmbedBuilder()
       .setTitle('❌ Lỗi')
-      .setColor('#e74c3c')
+      .setColor(EMBED_COLORS.ERROR)
       .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
   }
 
@@ -25,7 +26,7 @@ export function getCraftingEmbed(userId: string): EmbedBuilder {
   const embed = new EmbedBuilder()
     .setTitle(`🧪 Lò Luyện Đan & Rèn Khí - ${user.name}`)
     .setDescription('Luyện hóa linh thảo vạn năm, rèn đúc thần sa tinh thiết tạo nên đan dược nghịch thiên và giáp binh tinh lương.')
-    .setColor('#e67e22')
+    .setColor(EMBED_COLORS.ORANGE)
     .setTimestamp();
 
   // 1. Hiển thị danh mục công thức hiện có (chia nhỏ để tránh vượt 1024 ký tự/field)

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
+const uiSystem_1 = require("../../utils/uiSystem");
 const FeastService_1 = require("../../services/FeastService");
 class YenTiecCommand extends Command_1.Command {
     constructor() {
@@ -17,7 +18,7 @@ class YenTiecCommand extends Command_1.Command {
             .setColor(result.success ? '#2ecc71' : '#e74c3c')
             .setDescription(result.message)
             .setTimestamp();
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
 }
 exports.default = YenTiecCommand;

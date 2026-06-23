@@ -16,6 +16,7 @@ import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { enhanceService } from '../../services/EnhanceService';
 import { ITEMS } from '../../config/itemConstants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class CuongHuaCommand extends Command {
   constructor() {
@@ -45,8 +46,8 @@ export default class CuongHuaCommand extends Command {
     }
 
     const embed = new EmbedBuilder()
-      .setTitle('✨ THẦN THIẾT CỰC DIÊN — ĐẠI TRẬN CƯỜNG HÓA ✨')
-      .setColor('#9b59b6')
+      .setTitle('✨ THẦN THIẾT CỰC DIÊN — ĐẠI TRẬN CƯỜNG HÓA')
+      .setColor(EMBED_COLORS.MYSTIC)
       .setDescription(
         `Chào mừng đạo hữu **${user.name}** đến với Đại Trận Cường Hóa!\n\n` +
         `🧘 **Quy tắc cường hóa:**\n` +
@@ -76,7 +77,7 @@ export default class CuongHuaCommand extends Command {
     });
 
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    await interaction.editReply(toV2Payload([embed], [row] ));
   }
 
   /**

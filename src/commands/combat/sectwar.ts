@@ -4,6 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { sectWarService } from '../../services/SectWarService';
 import db from '../../database/database';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class SectWarCommand extends Command {
   constructor() {
@@ -67,7 +68,7 @@ export default class SectWarCommand extends Command {
         const minesState = sectWarService.getMinesState();
         const embed = new EmbedBuilder()
           .setTitle('🏔️ BẢN ĐỒ MỎ LINH THẠCH')
-          .setColor('#3498db')
+          .setColor(EMBED_COLORS.INFO)
           .setDescription('Các Tông Môn có thể chiếm mỏ để nhận Linh Thạch mỗi 4 giờ.');
 
         const { SECT_MINES } = require('../../services/SectWarService');
@@ -82,7 +83,7 @@ export default class SectWarCommand extends Command {
             value: `Yêu cầu Tông Môn cấp: **${mineDef.level_req}**\nSản lượng: **${mineDef.income} LT/4h**\n${statusStr}`
           });
         }
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply(toV2Payload([embed]));
         return;
       }
 
@@ -112,7 +113,7 @@ export default class SectWarCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle(`⚔️ BANG HỘI CHIẾN - Mùa #${season.season_number}`)
-        .setColor('#e74c3c')
+        .setColor(EMBED_COLORS.ERROR)
         .setDescription(`Trạng thái: **${season.status === 'active' ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc'}**`)
         .addFields(
           { name: '📅 Bắt đầu', value: `<t:${season.started_at}:R>`, inline: true },
@@ -163,7 +164,7 @@ export default class SectWarCommand extends Command {
         });
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -197,14 +198,14 @@ export default class SectWarCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle(`🏆 BẢNG XẾP HẠNG TÔNG MÔN - Mùa #${season.season_number}`)
-        .setColor('#f1c40f')
+        .setColor(EMBED_COLORS.GOLD)
         .setDescription(leaderboard.map((e, i) => {
           const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
           return `${medal} **${e.sect_name}** (Cấp ${e.level})\n   ⚔️ ${e.total_damage} dmg | 🏆 ${e.total_wins} thắng | 📊 ${e.total_battles} trận`;
         }).join('\n'))
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -217,7 +218,7 @@ export default class SectWarCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle(`📜 LỊCH SỬ BANG HỘI CHIẾN`)
-        .setColor('#95a5a6');
+        .setColor(EMBED_COLORS.NEUTRAL);
 
       for (const b of history) {
         const sectNames = b.sect_ids.map((id: number) => {
@@ -235,7 +236,7 @@ export default class SectWarCommand extends Command {
         });
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
   }

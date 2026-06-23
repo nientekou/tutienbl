@@ -5,6 +5,7 @@ const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const BlacksmithService_1 = require("../../services/BlacksmithService");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
+const uiSystem_1 = require("../../utils/uiSystem");
 class LoRenCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -46,10 +47,10 @@ class LoRenCommand extends Command_1.Command {
             if (result.success) {
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('🔨 Tinh Luyện Trang Bị')
-                    .setColor('#f1c40f')
+                    .setColor(uiSystem_1.EMBED_COLORS.GOLD)
                     .setDescription(result.message)
                     .setTimestamp();
-                await interaction.editReply({ embeds: [embed] });
+                await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             }
             else {
                 await interaction.editReply({ content: result.message });

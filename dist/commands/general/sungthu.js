@@ -14,6 +14,7 @@ const AchievementService_1 = require("../../services/AchievementService");
 const sanyeuthu_1 = require("./sanyeuthu");
 const constants_1 = require("../../utils/constants");
 const database_1 = __importDefault(require("../../database/database"));
+const uiSystem_1 = require("../../utils/uiSystem");
 // Định nghĩa kỹ năng linh thú
 exports.PET_SKILLS = {
     crit_bite: { name: 'Cắn Chí Mạng', emoji: '🖥️', description: 'Tăng 3% tỷ lệ bão kích khi trợ chiến.', minLevel: 5 },
@@ -39,7 +40,7 @@ function getSungThuEmbed(userId, page = 1) {
     const allPets = database_1.default.prepare('SELECT * FROM pets WHERE user_id = ?').all(userId);
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`🐾 LINH THÚ CÁC - ${user?.name || 'Không xác định'}`)
-        .setColor('#1abc9c')
+        .setColor(uiSystem_1.EMBED_COLORS.CAVE)
         .setDescription('Sủng thú trợ chiến giúp tăng sát thương khi công kích Boss Thế Giới và vượt phó bản Bí Cảnh.\n\n👯‍♂️ **Thiết Lập:** Dùng `/sungthu xuatchien` để phái xuất chiến | `/sungthu thuctinhkynang` để thức tỉnh kỹ năng | `/sungthu laitao` lai tạo dị biến.')
         .setTimestamp();
     if (allPets.length === 0) {
@@ -205,7 +206,7 @@ class SungThuCommand extends Command_1.Command {
         if (sub === 'danhsach') {
             const embed = getSungThuEmbed(userId);
             const components = getSungThuComponents(userId);
-            await interaction.editReply({ embeds: [embed], components });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
             return;
         }
         if (sub === 'xuatchien') {

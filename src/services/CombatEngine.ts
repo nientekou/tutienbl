@@ -516,7 +516,10 @@ export class CombatEngine {
             if ((elements['Hỏa'] ?? 0) >= 90) {
               enemyDef = Math.round(enemyDef * 0.8);
             }
-            let baseDamage = Math.max(1, player.atk - enemyDef);
+            // ponytail: % giảm sát thương theo DEF/ATK ratio, capped 80%
+            const defRatio = enemyDef / (player.atk + enemyDef);
+            const reduction = Math.min(0.80, defRatio);
+            let baseDamage = Math.max(1, Math.round(player.atk * (1 - reduction)));
             baseDamage = Math.round(baseDamage * (0.9 + Math.random() * 0.2));
 
             let elementText = '';
@@ -656,7 +659,10 @@ export class CombatEngine {
               log.push(`👑 **[Cơ Chế Boss - Cửu Trùng Liên Chiêu]** **${enemy.name}** bộc phát liên chiêu cuồng bạo, tăng gấp đôi Sát Thương đòn đánh!`);
             }
 
-            let monsterDmg = Math.max(1, enemyAtk - playerDef);
+            // ponytail: % giảm sát thương theo DEF/ATK ratio, capped 80%
+            const defRatioP = playerDef / (enemyAtk + playerDef);
+            const reductionP = Math.min(0.80, defRatioP);
+            let monsterDmg = Math.max(1, Math.round(enemyAtk * (1 - reductionP)));
             monsterDmg = Math.round(monsterDmg * (0.9 + Math.random() * 0.2));
 
             if (isPlayerCountered) {

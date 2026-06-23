@@ -7,6 +7,7 @@ const Command_1 = require("../../structures/Command");
 const SectService_1 = require("../../services/SectService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 /**
  * Tạo Embed hiển thị thông tin Tông Môn
  */
@@ -15,7 +16,7 @@ function getSectEmbed(userId) {
     if (!user) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('❌ Lỗi')
-            .setColor('#e74c3c')
+            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
             .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
     }
     // TRƯỜNG HỢP: CHƯA CÓ TÔNG MÔN
@@ -24,7 +25,7 @@ function getSectEmbed(userId) {
             .setTitle('☯️ Tiên Giới Tông Môn - Tán Tu Chí Lộ')
             .setDescription(`Đạo hữu hiện đang là một **Tán Tu** tự do tự tại, chưa gia nhập môn phái nào.\n\n` +
             `Gia nhập Tông Môn giúp đạo hữu kết giao đồng đạo, cống hiến xây dựng môn phái và tăng cấp uy danh môn hạ!`)
-            .setColor('#7f8c8d')
+            .setColor(uiSystem_1.EMBED_COLORS.NEUTRAL)
             .setTimestamp();
         const topSects = SectService_1.sectService.getTopSects();
         if (topSects.length > 0) {
@@ -45,14 +46,14 @@ function getSectEmbed(userId) {
         // Khôi phục an toàn
         return new discord_js_1.EmbedBuilder()
             .setTitle('❌ Lỗi')
-            .setColor('#e74c3c')
+            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
             .setDescription('Không thể truy vấn thông tin Tông Môn.');
     }
     const expBar = (0, constants_1.getProgressBar)(sect.exp, sect.level * 1000, 10);
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`☯️ Môn Phái: ${sect.name} (Cấp ${sect.level})`)
         .setDescription(`*"${sect.description}"*`)
-        .setColor('#3498db')
+        .setColor(uiSystem_1.EMBED_COLORS.INFO)
         .addFields({ name: '👤 Tông Chủ', value: sect.master_name, inline: true }, { name: '👥 Thành Viên', value: `**${sect.member_count}/${sect.member_limit}** đệ tử`, inline: true }, { name: '🪙 Ngân Khố Môn Phái', value: `**${sect.resources}** Linh Thạch`, inline: true }, { name: '🏰 Cơ Sở Vật Chất Tông Môn', value: `• **Tụ Linh Trận:** Cấp **${sect.tu_linh_level}/5** (+${sect.tu_linh_level * 5}% EXP Tu Luyện)\n• **Luyện Đan Đường:** Cấp **${sect.dan_duong_level}/5** (+${sect.dan_duong_level * 2}% Tỷ lệ Luyện Đan)` }, { name: '✨ Tiến Trình Thăng Cấp', value: `${expBar} (${sect.exp}/${sect.level * 1000} XP)` }, { name: '🏵️ Điểm Cống Hiến Cá Nhân', value: `⭐ **${user.sect_contribution}** điểm cống hiến` })
         .setTimestamp();
     // Hiển thị danh sách thành viên (tối đa 10 người)

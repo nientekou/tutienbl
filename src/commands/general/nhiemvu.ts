@@ -13,6 +13,7 @@ import { dailyQuestService } from '../../services/DailyQuestService';
 import { questChainService, QUEST_CHAINS } from '../../services/QuestChainService';
 import { communityQuestService } from '../../services/CommunityQuestService';
 import { getProgressBar } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 const CATEGORY_EMOJI: Record<string, string> = {
   combat: '⚔️',
@@ -27,7 +28,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
 export function getNhiemVuEmbed(userId: string): EmbedBuilder {
   const user = userRepository.get(userId);
   if (!user) {
-    return new EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Đạo hữu chưa khởi tạo nhân vật.');
+    return new EmbedBuilder().setTitle('❌ Lỗi').setColor(EMBED_COLORS.ERROR).setDescription('Đạo hữu chưa khởi tạo nhân vật.');
   }
 
   const quests = dailyQuestService.getOrAssignQuests(userId);
@@ -40,7 +41,7 @@ export function getNhiemVuEmbed(userId: string): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle('📜 THIÊN CƠ CÁC - NHIỆM VỤ HÀNG NGÀY')
-    .setColor('#9b59b6')
+    .setColor(EMBED_COLORS.MYSTIC)
     .setDescription(
       `Tu sĩ tu hành chân chính không chỉ tịnh tọa trong động phủ. Thiên Cơ Các mỗi ngày giao phó 3 nhiệm vụ cho các đạo hữu trong thiên hạ.\n\n` +
       `🎖️ **Đã hoàn thành:** ${completedCount}/3 | ✅ **Đã nhận thưởng:** ${claimedCount}/3\n` +
@@ -130,7 +131,7 @@ export function getNhiemVuComponents(userId: string): ActionRowBuilder<ButtonBui
 export function getQuestChainEmbed(userId: string): EmbedBuilder {
   const user = userRepository.get(userId);
   if (!user) {
-    return new EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Đạo hữu chưa khởi tạo nhân vật.');
+    return new EmbedBuilder().setTitle('❌ Lỗi').setColor(EMBED_COLORS.ERROR).setDescription('Đạo hữu chưa khởi tạo nhân vật.');
   }
 
   const progressData = questChainService.getDetailedProgress(userId);
@@ -138,7 +139,7 @@ export function getQuestChainEmbed(userId: string): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle('⚔️ NHIỆM VỤ CHUỖI - TU TIÊN LỘ')
-    .setColor('#f39c12')
+    .setColor(EMBED_COLORS.WARNING)
     .setDescription('Những thử thách tu tiên trải dài theo từng bước. Hoàn thành tất cả bước trong một chuỗi để nhận phần thưởng cuối cùng!')
     .setTimestamp();
 
@@ -263,11 +264,11 @@ export default class NhiemVuCommand extends Command {
     if (subcommand === 'chuong-trinh') {
       const embed = getQuestChainEmbed(userId);
       const rows = getQuestChainComponents(userId);
-      await interaction.editReply({ embeds: [embed], components: rows });
+      await interaction.editReply(toV2Payload([embed], rows ));
     } else {
       const embed = getNhiemVuEmbed(userId);
       const rows = getNhiemVuComponents(userId);
-      await interaction.editReply({ embeds: [embed], components: rows });
+      await interaction.editReply(toV2Payload([embed], rows ));
     }
   }
 }

@@ -13,6 +13,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import db from '../../database/database';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class DungKyNangCommand extends Command {
   constructor() {
@@ -50,7 +51,7 @@ export default class DungKyNangCommand extends Command {
         await interaction.editReply({ content: result.message});
         return;
       }
-      await interaction.editReply({ embeds: [result.embed!] });
+      await interaction.editReply(toV2Payload([result.embed!]));
       return;
     }
 
@@ -60,8 +61,8 @@ export default class DungKyNangCommand extends Command {
 
     if (books.length === 0) {
       const embed = new EmbedBuilder()
-        .setTitle('✨ TÀNG THƯ ĐIỆN — KHAI NGÔ BÍ TỊCH ✨')
-        .setColor('#e74c3c')
+        .setTitle('✨ TÀNG THƯ ĐIỆN — KHAI NGÔ BÍ TỊCH')
+        .setColor(EMBED_COLORS.ERROR)
         .setDescription(
           `❌ Đạo hữu **${user.name}** không sở hữu bất kỳ bí tịch sách kỹ năng nào trong hành trang có thể bế quan học tập!\n\n` +
           `💡 *Đạo hữu có thể thu thập sách kỹ năng qua các cách sau:*\n` +
@@ -70,13 +71,13 @@ export default class DungKyNangCommand extends Command {
           `• Mua bán trao đổi với các đạo hữu khác thông qua **Chợ Trời**.`
         )
         .setTimestamp();
-      await interaction.editReply({ embeds: [embed]});
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
     const embed = new EmbedBuilder()
       .setTitle('✨ TÀNG THƯ ĐIỆN — KHAI NGÔ BÍ TỊCH ✨')
-      .setColor('#9b59b6')
+      .setColor(EMBED_COLORS.MYSTIC)
       .setDescription(
         `Chào mừng đạo hữu **${user.name}** đã ghé thăm Tàng Thư Điện!\n` +
         `Nơi đây cất giữ các bí pháp thất truyền, hỗ trợ đạo hữu dung hợp nguyên thần với thiên địa đạo pháp.\n\n` +
@@ -117,7 +118,7 @@ export default class DungKyNangCommand extends Command {
       
     const rowButton = new ActionRowBuilder<ButtonBuilder>().addComponents(cancelBtn);
 
-    await interaction.editReply({ embeds: [embed], components: [row, rowButton] });
+    await interaction.editReply(toV2Payload([embed], [row, rowButton] ));
   }
 
   /**
@@ -178,8 +179,8 @@ export default class DungKyNangCommand extends Command {
     const skillName = skillNames[skillId] || skillId;
 
     const embed = new EmbedBuilder()
-      .setTitle('✨ ĐẠO PHÁP THỨC TỈNH ✨')
-      .setColor('#9b59b6')
+      .setTitle('✨ ĐẠO PHÁP THỨC TỈNH')
+      .setColor(EMBED_COLORS.MYSTIC)
       .setDescription(
         `🎉 Chúc mừng đạo hữu **${user.name}** đã bế quan đọc hiểu thành công cuốn **${bookItem.name}**!\n\n` +
         `📖 Đạo hữu lĩnh ngộ được kỹ năng chiến đấu mới: **${skillName}**!\n` +

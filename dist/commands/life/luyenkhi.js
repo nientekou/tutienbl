@@ -10,6 +10,7 @@ const InventoryRepository_1 = require("../../database/repositories/InventoryRepo
 const BlacksmithService_1 = require("../../services/BlacksmithService");
 const database_1 = __importDefault(require("../../database/database"));
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 class LuyenKhiCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -30,7 +31,7 @@ class LuyenKhiCommand extends Command_1.Command {
         const expBar = (0, constants_1.getProgressBar)(exp, expNeeded, 10);
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('🛠️ PHÒNG RÈN ĐÚC (LUYỆN KHÍ SƯ)')
-            .setColor('#e67e22')
+            .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
             .setDescription(`Đạo hiệu: **${user.name}**\n` +
             `Cảnh Giới Luyện Khí: **Cấp ${level} Luyện Khí Sư**\n` +
             `Tiến Trình EXP: ${expBar} **(${exp}/${expNeeded})**\n\n` +
@@ -44,7 +45,7 @@ class LuyenKhiCommand extends Command_1.Command {
         const visibleRecipes = recipes.filter(r => user.level >= Math.max(1, r.minLevel - 20)).slice(0, 25);
         if (visibleRecipes.length === 0) {
             embed.addFields({ name: 'Trống', value: 'Chưa có công thức rèn nào phù hợp với cảnh giới của đạo hữu.' });
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         visibleRecipes.forEach(r => {
@@ -76,7 +77,7 @@ class LuyenKhiCommand extends Command_1.Command {
                 .setDescription(`Tốn ${r.cost} LT & 15 Thể Lực.`));
         }
         const row = new discord_js_1.ActionRowBuilder().addComponents(selectMenu);
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
     }
 }
 exports.default = LuyenKhiCommand;

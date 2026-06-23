@@ -4,6 +4,7 @@ import { inventoryRepository } from '../database/repositories/InventoryRepositor
 import { systemConfigService } from './SystemConfigService';
 import { leylineService } from './LeylineService';
 import { getRealmDetails } from '../utils/constants';
+import { achievementService } from './AchievementService';
 
 export interface MarketListing {
   id: number;
@@ -280,6 +281,20 @@ class MarketService {
 
       this.recordCompletedSale(listing.seller_id, listing.price, tax);
     })();
+
+    // Thành tựu giao dịch thị trường
+    const buyerTxCount = (db.prepare("SELECT COUNT(*) as c FROM market_transaction_history WHERE user_id = ?").get(userId) as { c: number }).c;
+    achievementService.setProgress(userId, 'sh_11', buyerTxCount);
+    achievementService.setProgress(userId, 'sh_12', buyerTxCount);
+    achievementService.setProgress(userId, 'sh_13', buyerTxCount);
+    const sellerTxCount = (db.prepare("SELECT COUNT(*) as c FROM market_transaction_history WHERE user_id = ?").get(listing.seller_id) as { c: number }).c;
+    achievementService.setProgress(listing.seller_id, 'sh_11', sellerTxCount);
+    achievementService.setProgress(listing.seller_id, 'sh_12', sellerTxCount);
+    achievementService.setProgress(listing.seller_id, 'sh_13', sellerTxCount);
+
+    // Thành tựu bán hàng 1M LT
+    const sellerTotalSales = (db.prepare("SELECT COALESCE(SUM(total_sales), 0) as c FROM market_daily_tracking WHERE user_id = ?").get(listing.seller_id) as { c: number }).c;
+    achievementService.setProgress(listing.seller_id, 'sh_17', sellerTotalSales);
 
     return { success: true, message: `🎉 Mua thành công **${listing.quantity}x ${itemName}** giá **${listing.price} LT** (thuế: ${tax} LT)!` };
   }

@@ -4,6 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { sectService, SectDetails } from '../../services/SectService';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { getProgressBar } from '../../utils/constants';
+import { EMBED_COLORS } from '../../utils/uiSystem';
 
 /**
  * Tạo Embed hiển thị thông tin Tông Môn
@@ -13,7 +14,7 @@ export function getSectEmbed(userId: string): EmbedBuilder {
   if (!user) {
     return new EmbedBuilder()
       .setTitle('❌ Lỗi')
-      .setColor('#e74c3c')
+      .setColor(EMBED_COLORS.ERROR)
       .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
   }
 
@@ -25,7 +26,7 @@ export function getSectEmbed(userId: string): EmbedBuilder {
         `Đạo hữu hiện đang là một **Tán Tu** tự do tự tại, chưa gia nhập môn phái nào.\n\n` +
         `Gia nhập Tông Môn giúp đạo hữu kết giao đồng đạo, cống hiến xây dựng môn phái và tăng cấp uy danh môn hạ!`
       )
-      .setColor('#7f8c8d')
+      .setColor(EMBED_COLORS.NEUTRAL)
       .setTimestamp();
 
     const topSects = sectService.getTopSects();
@@ -48,7 +49,7 @@ export function getSectEmbed(userId: string): EmbedBuilder {
     // Khôi phục an toàn
     return new EmbedBuilder()
       .setTitle('❌ Lỗi')
-      .setColor('#e74c3c')
+      .setColor(EMBED_COLORS.ERROR)
       .setDescription('Không thể truy vấn thông tin Tông Môn.');
   }
 
@@ -57,7 +58,7 @@ export function getSectEmbed(userId: string): EmbedBuilder {
   const embed = new EmbedBuilder()
     .setTitle(`☯️ Môn Phái: ${sect.name} (Cấp ${sect.level})`)
     .setDescription(`*"${sect.description}"*`)
-    .setColor('#3498db')
+    .setColor(EMBED_COLORS.INFO)
     .addFields(
       { name: '👤 Tông Chủ', value: sect.master_name, inline: true },
       { name: '👥 Thành Viên', value: `**${sect.member_count}/${sect.member_limit}** đệ tử`, inline: true },

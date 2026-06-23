@@ -9,6 +9,7 @@ const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 const database_1 = __importDefault(require("../../database/database"));
 const shop_1 = require("./shop");
 class DoiTienCommand extends Command_1.Command {
@@ -170,8 +171,8 @@ class DoiTienCommand extends Command_1.Command {
     static buildResultEmbed(res, userId) {
         const updatedUser = UserRepository_1.userRepository.get(userId);
         return new discord_js_1.EmbedBuilder()
-            .setTitle('⚖️ ĐỔI TIỀN TỆ THÀNH CÔNG ⚖️')
-            .setColor('#f1c40f')
+            .setTitle('⚖️ ĐỔI TIỀN TỆ THÀNH CÔNG')
+            .setColor(uiSystem_1.EMBED_COLORS.GOLD)
             .setDescription(`Đạo hữu đã thực hiện chuyển đổi tiền tệ tại Phường Thị!`)
             .addFields({ name: '📉 Tiêu hao', value: `**-${(0, constants_1.formatNumber)(res.sourceCost)}** ${res.sourceName}`, inline: true }, { name: '📈 Nhận được', value: `**+${(0, constants_1.formatNumber)(res.targetGain)}** ${res.targetName}`, inline: true }, { name: '\u200B', value: '\u200B', inline: false }, {
             name: '💼 Tài sản sau khi đổi',
@@ -204,12 +205,12 @@ class DoiTienCommand extends Command_1.Command {
                 return;
             }
             const embed = DoiTienCommand.buildResultEmbed(res, userId);
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else {
             const embed = getDoiTienEmbed(userId);
             const components = getDoiTienComponents(userId);
-            await interaction.editReply({ embeds: [embed], components });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
         }
     }
 }

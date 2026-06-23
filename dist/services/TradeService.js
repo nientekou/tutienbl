@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tradeService = exports.TradeService = void 0;
 const discord_js_1 = require("discord.js");
+const uiSystem_1 = require("../utils/uiSystem");
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 const database_1 = __importDefault(require("../database/database"));
@@ -255,7 +256,7 @@ class TradeService {
             return null;
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('🤝 GIAO DỊCH TRỰC TIẾP')
-            .setColor(trade.status === 'pending' ? '#e67e22' : '#2ecc71')
+            .setColor(trade.status === 'pending' ? uiSystem_1.EMBED_COLORS.ORANGE : uiSystem_1.EMBED_COLORS.SUCCESS)
             .setDescription(trade.status === 'pending'
             ? `Đang chờ **${trade.target.name}** chấp nhận giao dịch...`
             : `Giao dịch giữa **${trade.initiator.name}** và **${trade.target.name}**`)

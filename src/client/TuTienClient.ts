@@ -18,7 +18,9 @@ export class TuTienClient extends Client {
     super(options || {
       intents: [
         GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildVoiceStates
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
       ]
     });
     TuTienClient.instance = this;

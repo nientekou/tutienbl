@@ -2,13 +2,14 @@ import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionR
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export function getYCanhEmbed(userId: string): EmbedBuilder {
   const user = userRepository.get(userId);
   if (!user) {
     return new EmbedBuilder()
       .setTitle('🔮 CẢNH GIỚI Ý CẢNH')
-      .setColor('#d35400')
+      .setColor(EMBED_COLORS.REINCARNATION)
       .setDescription('Chưa khởi tạo nhân vật.');
   }
 
@@ -31,7 +32,7 @@ export function getYCanhEmbed(userId: string): EmbedBuilder {
 
   return new EmbedBuilder()
     .setTitle(`🔮 THÁP Ý CẢNH & ĐẠO QUẢ - ${user.name}`)
-    .setColor('#9b59b6')
+    .setColor(EMBED_COLORS.MYSTIC)
     .setDescription(desc)
     .addFields(
       {
@@ -86,6 +87,6 @@ export default class YCanhCommand extends Command {
     const embed = getYCanhEmbed(discordId);
     const row = getYCanhComponents(discordId);
 
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    await interaction.editReply(toV2Payload([embed], [row] ));
   }
 }

@@ -3,13 +3,14 @@ import { InteractionLock } from '../services/InteractionLock';
 import { systemConfigService } from '../services/SystemConfigService';
 import { TuTienClient } from '../client/TuTienClient';
 import db from '../database/database';
-import { Interaction, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
+import { Interaction, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, MessageFlags, Routes } from 'discord.js';
 import { userRepository } from '../database/repositories/UserRepository';
 import { cultivationService } from '../services/CultivationService';
 import { inventoryService } from '../services/InventoryService';
 import { minigameService } from '../services/MinigameService';
 import { getHoSoTabEmbed, getHoSoAllComponents, getInventoryEmbed, getInventoryComponents, HoSoTab } from '../commands/general/hoso';
 import { formatLinhCan, getRealmDetails } from '../utils/constants';
+import { EMBED_COLORS, toV2Payload, toV2Update, toV2TextUpdate, toLegacyUpdate, embedToV2, V2_FLAG } from '../utils/uiSystem';
 import { tribulationService } from '../services/TribulationService';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
 import { combatService } from '../services/CombatService';
@@ -47,6 +48,9 @@ import { pvpService } from '../services/PvPService';
 import { guildWarService } from '../services/GuildWarService';
 import { leylineService } from '../services/LeylineService';
 import { mountService } from '../services/MountService';
+import { getMountListEmbed, getMountListComponents } from '../commands/general/toaky';
+import { getSpiritListEmbed, getSpiritListComponents } from '../commands/general/khilinh';
+import { getAchievementCategoryEmbed, getAchievementCategoryComponents } from '../commands/general/thanhtuu';
 
 // Cooldown trong bộ nhớ cho hành động Tu Luyện (Thiền Định)
 const practiceCooldowns = new Map<string, number>();
@@ -76,6 +80,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
   }
 
   public async execute(client: TuTienClient, interaction: Interaction): Promise<void> {
+
     // 0. Xử lý Autocomplete trước tiên (không cần lock, không cần check ban/bảo trì/activity)
     if (interaction.isAutocomplete()) {
       const command = client.commands.get(interaction.commandName);
@@ -99,7 +104,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         if (interaction.isRepliable()) {
           await interaction.reply({
             content: `🔒 **Trục Xuất Tam Giới:**\n\nLinh hồn của đạo hữu đã bị Thiên Đạo phong ấn (Ban).\n📝 **Lý do:** *${banCheck.reason || 'Không rõ lý do'}*\n\n*Ngươi không thể can thiệp hay thực hiện bất kỳ hành động nào trong tam giới.*`,
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
         return;
@@ -145,7 +150,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         if (interaction.isRepliable()) {
           await interaction.reply({
             content: '⚠️ **Hệ Thống Tu Chân Bảo Trì:** Linh khí thiên địa hỗn loạn, đại trận bảo trì đang được kích hoạt. Đạo hữu vui lòng quay lại sau!',
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
         return;
@@ -169,7 +174,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           try {
             await interaction.reply({
               content: '❌ **Thao tác quá nhanh:** Hệ thống đang xử lý hành động trước đó của đạo hữu, vui lòng không spam!',
-              ephemeral: true
+              flags: MessageFlags.Ephemeral
             });
           } catch (lockErr: any) {
             // Bỏ qua nếu interaction đã được collector xử lý trước (40060) hoặc hết hạn (10062)
@@ -204,7 +209,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const command = client.commands.get(interaction.commandName);
         if (!command) {
           console.warn(`[Interaction] Lệnh /${interaction.commandName} không tìm thấy trong bộ nhớ.`);
-          await interaction.reply({ content: 'Lệnh không tồn tại hoặc đã bị gỡ bỏ.', ephemeral: true });
+          await interaction.reply({ content: 'Lệnh không tồn tại hoặc đã bị gỡ bỏ.', flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -217,7 +222,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           if (interaction.replied || interaction.deferred) {
             try { await interaction.editReply({ content: errorMessage }); } catch (_) {}
           } else {
-            try { await interaction.reply({ content: errorMessage, ephemeral: true }); } catch (_) {}
+            try { await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral }); } catch (_) {}
           }
         }
         return;
@@ -271,7 +276,9 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           'adminpanel',
           'adminuser',
           'adminfixpets',
-          'titleswitch'
+          'titleswitch',
+          'ngotinh_activate',
+          'ngotinh_reroll_execute'
         ];
 
         let action = '';
@@ -300,6 +307,12 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
       // QUY TẮC: userId luôn là PHẦN TỬ CUỐI CÙNG trong parts (trừ các nút public)
       if (action === 'invprev' || action === 'invnext') {
         pageNum = Math.max(1, parseInt(parts[1], 10) || 1);
+        targetUserId = parts[parts.length - 1];
+      } else if (action === 'mountprev' || action === 'mountnext' || action === 'spiritprev' || action === 'spiritnext') {
+        pageNum = Math.max(1, parseInt(parts[1], 10) || 1);
+        targetUserId = parts[parts.length - 1];
+      } else if (action === 'achprev' || action === 'achnext') {
+        pageNum = Math.max(1, parseInt(parts[2], 10) || 1);
         targetUserId = parts[parts.length - 1];
       } else if (action === 'loi') {
         targetUserId = parts[parts.length - 1];
@@ -332,7 +345,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
       if (!user) {
         await interaction.reply({
           content: '❌ Đạo hữu chưa khởi tạo nhân vật hoặc đã bị xóa khỏi thế giới.',
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         });
         return;
       }
@@ -347,13 +360,13 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           
           const boss = db.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get() as any;
           if (!boss || boss.status === 'defeated') {
-            await interaction.reply({ content: '❌ World Boss đã bị tiêu diệt hoặc chưa xuất thế!', ephemeral: true });
+            await interaction.reply({ content: '❌ World Boss đã bị tiêu diệt hoặc chưa xuất thế!', flags: MessageFlags.Ephemeral });
             return;
           }
 
           const user = userRepository.get(interaction.user.id);
           if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!', ephemeral: true });
+            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!', flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -363,7 +376,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           if (user.injury_end_time && user.injury_end_time > now) {
             const remain = user.injury_end_time - now;
             const minutes = Math.ceil(remain / 60);
-            await interaction.reply({ content: `❌ Đạo hữu đang bị **Trọng Thương**! Cần tĩnh dưỡng thêm **${minutes} phút** mới có thể tiếp tục khiêu chiến World Boss.`, ephemeral: true });
+            await interaction.reply({ content: `❌ Đạo hữu đang bị **Trọng Thương**! Cần tĩnh dưỡng thêm **${minutes} phút** mới có thể tiếp tục khiêu chiến World Boss.`, flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -372,14 +385,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             
           if (contrib && now - contrib.last_attack_at < 200) {
             const cdSec = 200 - (now - contrib.last_attack_at);
-            await interaction.reply({ content: `⏳ Đạo hữu đang kiệt sức. Cần **${cdSec} giây** nữa để hồi phục!`, ephemeral: true });
+            await interaction.reply({ content: `⏳ Đạo hữu đang kiệt sức. Cần **${cdSec} giây** nữa để hồi phục!`, flags: MessageFlags.Ephemeral });
             return;
           }
 
           // Lấy chỉ số chiến đấu thực tế của người chơi
           const activeStats = inventoryService.getActiveStats(interaction.user.id);
           if (!activeStats) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!', ephemeral: true });
+            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!', flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -429,7 +442,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const txResult = bossTx();
           if ('error' in txResult) {
-            await interaction.reply({ content: '❌ World Boss đã bị tiêu diệt hoặc chưa xuất thế!', ephemeral: true });
+            await interaction.reply({ content: '❌ World Boss đã bị tiêu diệt hoặc chưa xuất thế!', flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -513,8 +526,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const injuryText = isInjured ? `\n🚨 **Chấn Thương:** Phản phệ chấn động kinh mạch, bị **Trọng Thương trong 10 phút**!` : '';
           
           await interaction.reply({
-            content: `💥 Đạo hữu **${updatedUser.name}** vung đòn tấn công Boss thế giới, gây **-${totalDmg}** sát thương lên Boss${critText}${rankText}!${petText}${reflectText}${injuryText}\n🧘 Nhận được **+${ngoTinhBonus}** Điểm Ngộ Tính!${rewardsText}`,
-            ephemeral: false
+            content: `💥 Đạo hữu **${updatedUser.name}** vung đòn tấn công Boss thế giới, gây **-${totalDmg}** sát thương lên Boss${critText}${rankText}!${petText}${reflectText}${injuryText}\n🧘 Nhận được **+${ngoTinhBonus}** Điểm Ngộ Tính!${rewardsText}`
           });
           return;
         }
@@ -524,7 +536,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const eventId = parseInt(parts[1], 10);
           const event = db.prepare('SELECT * FROM traveler_events WHERE id = ?').get(eventId) as any;
           if (!event || event.status !== 'active') {
-            await interaction.reply({ content: '❌ Lữ Khách đã không còn ở đây nữa!', ephemeral: true });
+            await interaction.reply({ content: '❌ Lữ Khách đã không còn ở đây nữa!', flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -543,7 +555,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           }
 
           if (options.length === 0) {
-            await interaction.reply({ content: '❌ Lữ Khách đã hết sạch hàng!', ephemeral: true });
+            await interaction.reply({ content: '❌ Lữ Khách đã hết sạch hàng!', flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -554,7 +566,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             .addOptions(options);
 
           const row = new ActionRowBuilder().addComponents(selectMenu);
-          await interaction.reply({ content: 'Đạo hữu muốn mua gì?', components: [row], ephemeral: true });
+          await interaction.reply({ content: 'Đạo hữu muốn mua gì?', components: [row], flags: MessageFlags.Ephemeral });
         }
         else if (action === 'traveler_buy_item' && interaction.isStringSelectMenu()) {
           const eventId = parseInt(parts[1], 10);
@@ -584,11 +596,11 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
                       embed.setTitle('👺 Lữ Khách Thần Bí (Đã Rời Đi)');
                       embed.setDescription('Lữ Khách đã bán hết sạch hàng và rời đi.');
                       embed.setFields([]); // clear fields
-                      await msg.edit({ embeds: [embed], components: [] });
+                      await interaction.client.rest.patch(Routes.channelMessage(event.channel_id, event.message_id), { body: { components: [embedToV2(embed)], flags: V2_FLAG } });
                     } else {
                       const newFields = { name: '💰 Hàng Hoá', value: Object.values(inv).map((i: any) => `- **${i.name}** (Còn: ${i.quantity}) - Giá: ${i.price} LT`).join('\n') };
                       embed.setFields([newFields]);
-                      await msg.edit({ embeds: [embed] });
+                      await interaction.client.rest.patch(Routes.channelMessage(event.channel_id, event.message_id), { body: { components: [embedToV2(embed)], flags: V2_FLAG } });
                     }
                   }
                 }
@@ -603,9 +615,9 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             console.error('[TravelerBuy] Lỗi mua hàng:', buyErr);
             try {
               if (interaction.deferred || interaction.replied) {
-                await interaction.followUp({ content: '❌ Có lỗi xảy ra khi mua hàng từ Lữ Khách!', ephemeral: true });
+                await interaction.followUp({ content: '❌ Có lỗi xảy ra khi mua hàng từ Lữ Khách!', flags: MessageFlags.Ephemeral });
               } else {
-                await interaction.reply({ content: '❌ Có lỗi xảy ra khi mua hàng từ Lữ Khách!', ephemeral: true });
+                await interaction.reply({ content: '❌ Có lỗi xảy ra khi mua hàng từ Lữ Khách!', flags: MessageFlags.Ephemeral });
               }
             } catch (_) {}
           }
@@ -630,7 +642,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
                     embed.setTitle('👺 Lữ Khách Thần Bí (Đã Bỏ Chạy)');
                     embed.setDescription(`Lữ Khách đã bị **${interaction.user.username}** đánh bại và cướp sạch hàng hoá!`);
                     embed.setFields([]);
-                    await msg.edit({ embeds: [embed], components: [] });
+                    await interaction.client.rest.patch(Routes.channelMessage(event.channel_id, event.message_id), { body: { components: [embedToV2(embed)], flags: V2_FLAG } });
                   }
                 }
               }
@@ -645,7 +657,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const inventoryId = parseInt(interaction.values[0], 10);
           const CuongHuaCommand = require('../commands/general/cuonghoa').default;
           const preview = CuongHuaCommand.buildEnhancePreview(targetUserId, inventoryId);
-          await interaction.update({ embeds: [preview.embed], components: preview.rows });
+          await interaction.update(toLegacyUpdate([preview.embed], preview.rows, interaction as any));
         }
         else if (action === 'enhance_confirm') {
           const inventoryId = parseInt(parts[1], 10);
@@ -655,10 +667,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const CuongHuaCommand = require('../commands/general/cuonghoa').default;
           const preview = CuongHuaCommand.buildEnhancePreview(targetUserId, inventoryId, result);
           
-          await interaction.update({ embeds: [preview.embed], components: preview.rows });
+          await interaction.update(toLegacyUpdate([preview.embed], preview.rows, interaction as any));
         }
         else if (action === 'enhance_cancel') {
-          await interaction.update({ content: '📴 Đã đóng giao diện cường hóa trang bị.', embeds: [], components: [] });
+          await interaction.update({ content: '📴 Đã đóng giao diện cường hóa trang bị.', components: [] });
         }
         else if (action === 'linhmach_select' && interaction.isStringSelectMenu()) {
           const selected = interaction.values[0];
@@ -670,24 +682,24 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const updatedEmbed = buildLeylineEmbed(targetUserId);
           const updatedComponents = buildLeylineComponents(targetUserId);
 
-          await interaction.update({ embeds: [updatedEmbed], components: updatedComponents });
+          await interaction.update(toLegacyUpdate([updatedEmbed], updatedComponents, interaction as any));
           if (result.success) {
-            await interaction.followUp({ content: `✅ ${result.message}`, ephemeral: true });
+            await interaction.followUp({ content: `✅ ${result.message}`, flags: MessageFlags.Ephemeral });
           } else {
-            await interaction.followUp({ content: `❌ ${result.message}`, ephemeral: true });
+            await interaction.followUp({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           }
         }
         else if (action === 'linhmach_close') {
-          await interaction.update({ content: '📴 Đã đóng giao diện Linh Mạch Địa Đồ.', embeds: [], components: [] });
+          await interaction.update({ content: '📴 Đã đóng giao diện Linh Mạch Địa Đồ.', components: [] });
         }
         else if (action === 'anky_select' && interaction.isStringSelectMenu()) {
           const inventoryId = parseInt(interaction.values[0], 10);
           const { soulImprintService } = require('../services/SoulImprintService');
           const result = soulImprintService.imprintItem(targetUserId, inventoryId);
           if (result.success) {
-            await interaction.update({ content: `✅ ${result.message}`, embeds: [], components: [] });
+            await interaction.update({ content: `✅ ${result.message}`, components: [] });
           } else {
-            await interaction.update({ content: `❌ ${result.message}`, embeds: [], components: [] });
+            await interaction.update({ content: `❌ ${result.message}`, components: [] });
           }
         }
         else if (action === 'dungkynang_select' && interaction.isStringSelectMenu()) {
@@ -695,13 +707,13 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const result = DungKyNangCommand.learnSkill(targetUserId, bookId);
 
           if (!result.success) {
-            await interaction.update({ content: result.message, embeds: [], components: [] });
+            await interaction.update({ content: result.message, components: [] });
           } else {
-            await interaction.update({ embeds: [result.embed!], components: [] });
+            await interaction.update(toLegacyUpdate([result.embed!], interaction as any));
           }
         }
         else if (action === 'dungkynang_cancel') {
-          await interaction.update({ content: '📴 Đã đóng giao diện Lĩnh Ngộ Kỹ Năng.', embeds: [], components: [] });
+          await interaction.update({ content: '📴 Đã đóng giao diện Lĩnh Ngộ Kỹ Năng.', components: [] });
         }
         else if (action === 'doitienselect' && interaction.isStringSelectMenu()) {
           const selectedValue = interaction.values[0];
@@ -741,7 +753,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               const equipped = destinyRepository.getUserDestinies(targetUserId).filter((d: any) => d.is_equipped === 1);
               
               if (equipped.length >= maxSlots) {
-                await interaction.reply({ content: `❌ Đạo hữu chỉ có tối đa ${maxSlots} khe cắm Mệnh Cách ở cảnh giới hiện tại.`, ephemeral: true });
+                await interaction.reply({ content: `❌ Đạo hữu chỉ có tối đa ${maxSlots} khe cắm Mệnh Cách ở cảnh giới hiện tại.`, flags: MessageFlags.Ephemeral });
                 return;
               }
               
@@ -755,12 +767,12 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               }
               
               destinyRepository.update(destinyIdToEquip, { is_equipped: 1, slot: emptySlot });
-              await interaction.reply({ content: `✅ Đã trang bị Mệnh Cách vào khe cắm [${emptySlot}]!`, ephemeral: true });
+              await interaction.reply({ content: `✅ Đã trang bị Mệnh Cách vào khe cắm [${emptySlot}]!`, flags: MessageFlags.Ephemeral });
               
             } else if (action === 'destiny_unequip') {
               const slotToUnequip = parseInt(value.replace('unequip_', ''));
               destinyRepository.unequipSlot(targetUserId, slotToUnequip);
-              await interaction.reply({ content: `✅ Đã tháo Mệnh Cách ở khe cắm [${slotToUnequip}]!`, ephemeral: true });
+              await interaction.reply({ content: `✅ Đã tháo Mệnh Cách ở khe cắm [${slotToUnequip}]!`, flags: MessageFlags.Ephemeral });
             }
           }
           return;
@@ -773,10 +785,107 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           
           const result = achievementService.setTitle(targetUserId, titleName);
           if (result.success) {
-            await interaction.reply({ content: result.message, ephemeral: true });
+            await interaction.reply({ content: result.message, flags: MessageFlags.Ephemeral });
           } else {
-            await interaction.reply({ content: result.message, ephemeral: true });
+            await interaction.reply({ content: result.message, flags: MessageFlags.Ephemeral });
           }
+          return;
+        }
+
+        // --- NGỘ TÍNH BUFF ACTIVATE ---
+        else if (action === 'ngotinh_activate') {
+          const buffId = parts[1];
+          const targetUserId = parts[2];
+          if (interaction.user.id !== targetUserId) {
+            await interaction.reply({ content: '❌ Chỉ người sở hữu mới có thể kích hoạt buff!', flags: MessageFlags.Ephemeral });
+            return;
+          }
+          const { ngoTinhService } = require('../services/NgoTinhService');
+          const result = ngoTinhService.activateBuff(targetUserId, buffId);
+          if (result.success) {
+            await interaction.reply({ content: result.message, flags: MessageFlags.Ephemeral });
+          } else {
+            await interaction.reply({ content: result.message, flags: MessageFlags.Ephemeral });
+          }
+          return;
+        }
+
+        // --- NGỘ TÍNH REROLL LINH CĂN ---
+        else if (action === 'ngotinh_reroll_execute') {
+          const targetUserId = parts[1];
+          const lockElement = parts[2] === 'none' ? null : parts.slice(2).join('_');
+          if (interaction.user.id !== targetUserId) {
+            await interaction.reply({ content: '❌ Chỉ người sở hữu mới có thể reroll!', flags: MessageFlags.Ephemeral });
+            return;
+          }
+
+          const user = userRepository.get(targetUserId);
+          if (!user) {
+            await interaction.reply({ content: '❌ Không tìm thấy nhân vật!', flags: MessageFlags.Ephemeral });
+            return;
+          }
+
+          const baseCost = 20;
+          const lockCost = lockElement ? 10 : 0;
+          const totalCost = baseCost + lockCost;
+          const ngotinh = user.ngotinh || 0;
+
+          if (ngotinh < totalCost) {
+            await interaction.reply({ content: `❌ Không đủ Ngộ Tính! Cần: ${totalCost}, Có: ${ngotinh}`, flags: MessageFlags.Ephemeral });
+            return;
+          }
+
+          // Tạo linh căn mới
+          const elements = ['Hỏa', 'Thủy', 'Mộc', 'Thổ', 'Lôi', 'Phong'];
+          let oldLinhCan: Record<string, number> = {};
+          try { oldLinhCan = JSON.parse(user.linh_can || '{}'); } catch {}
+
+          let newLinhCan: Record<string, number> = {};
+          if (lockElement && oldLinhCan[lockElement]) {
+            // Giữ nguyên element được lock, reroll phần còn lại
+            const lockedValue = oldLinhCan[lockElement];
+            const remaining = 100 - lockedValue;
+            const otherElements = elements.filter(e => e !== lockElement);
+            let allocated = 0;
+            for (let i = 0; i < otherElements.length - 1; i++) {
+              const maxAlloc = remaining - allocated - (otherElements.length - 1 - i);
+              const val = Math.floor(Math.random() * Math.max(1, maxAlloc + 1));
+              newLinhCan[otherElements[i]] = val;
+              allocated += val;
+            }
+            newLinhCan[otherElements[otherElements.length - 1]] = remaining - allocated;
+            newLinhCan[lockElement] = lockedValue;
+          } else {
+            // Reroll toàn bộ
+            let allocated = 0;
+            for (let i = 0; i < elements.length - 1; i++) {
+              const maxAlloc = 100 - allocated - (elements.length - 1 - i);
+              const val = Math.floor(Math.random() * Math.max(1, maxAlloc + 1));
+              newLinhCan[elements[i]] = val;
+              allocated += val;
+            }
+            newLinhCan[elements[elements.length - 1]] = 100 - allocated;
+          }
+
+          userRepository.update(targetUserId, {
+            linh_can: JSON.stringify(newLinhCan),
+            ngotinh: ngotinh - totalCost
+          });
+
+          const { formatLinhCan } = require('../utils/constants');
+          const oldFormatted = formatLinhCan(JSON.stringify(oldLinhCan));
+          const newFormatted = formatLinhCan(JSON.stringify(newLinhCan));
+
+          const embed = new EmbedBuilder()
+            .setTitle('💡 Reroll Linh Căn Thành Công!')
+            .setColor(EMBED_COLORS.SUCCESS)
+            .addFields(
+              { name: '🔮 Linh Căn Cũ', value: oldFormatted },
+              { name: '✨ Linh Căn Mới', value: newFormatted },
+              { name: '💡 Chi Phí', value: `**${totalCost}** NT` }
+            );
+
+          await interaction.reply({ embeds: [embed] });
           return;
         }
 
@@ -830,10 +939,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const page = parseInt(parts[2], 10) || 1;
           const targetUserId = parts[parts.length - 1];
 
-          const { buildLeaderboardMessage } = require('../commands/general/bangphongthan');
-          const messageOptions = buildLeaderboardMessage(targetUserId, subType, page);
+          const { buildLeaderboardUpdate } = require('../commands/general/bangphongthan');
+          const updateOptions = buildLeaderboardUpdate(targetUserId, subType, page);
 
-          await interaction.update(messageOptions);
+          await interaction.update(updateOptions);
           return;
         }
 
@@ -842,10 +951,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const category = interaction.values[0];
           const targetUserId = parts[1];
 
-          const { buildLeaderboardMessage } = require('../commands/general/bangphongthan');
-          const messageOptions = buildLeaderboardMessage(targetUserId, category, 1);
+          const { buildLeaderboardUpdate } = require('../commands/general/bangphongthan');
+          const updateOptions = buildLeaderboardUpdate(targetUserId, category, 1);
 
-          await interaction.update(messageOptions);
+          await interaction.update(updateOptions);
           return;
         }
 
@@ -872,10 +981,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           if (result.success) {
             const updatedEmbed = buildDongPhuEmbed(targetUserId);
             const updatedComponents = buildDongPhuComponents(targetUserId);
-            await interaction.update({ embeds: [updatedEmbed], components: updatedComponents });
-            await interaction.followUp({ content: result.message, ephemeral: true });
+            await interaction.update(toLegacyUpdate([updatedEmbed], updatedComponents, interaction as any));
+            await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
           } else {
-            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           }
           return;
         }
@@ -886,7 +995,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             await interaction.deferUpdate();
             const { embed, totalPages, itemsOnPage } = getInventoryEmbed(targetUserId, 1);
             const components = getInventoryComponents(targetUserId, 1, totalPages, itemsOnPage);
-            await interaction.editReply({ embeds: [embed], components: components });
+            await interaction.editReply(toV2Payload([embed], components));
           } catch (e: any) {
             console.error('[tuido] Lỗi mở túi đồ:', e?.message || e);
           }
@@ -898,9 +1007,63 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             await interaction.deferUpdate();
             const { embed, totalPages, itemsOnPage } = getInventoryEmbed(targetUserId, pageNum);
             const components = getInventoryComponents(targetUserId, pageNum, totalPages, itemsOnPage);
-            await interaction.editReply({ embeds: [embed], components: components });
+            await interaction.editReply(toV2Payload([embed], components));
           } catch (e: any) {
             console.error('[invpage] Lỗi phân trang túi đồ:', e?.message || e);
+          }
+        }
+
+        // --- Nút: PHÂN TRANG TỌA KỴ ---
+        else if (action === 'mountprev' || action === 'mountnext') {
+          try {
+            await interaction.deferUpdate();
+            const mounts = mountService.getMounts(targetUserId);
+            const active = mountService.getActiveMount(targetUserId);
+            const ropeInv = db.prepare('SELECT quantity FROM inventories WHERE user_id = ? AND item_id = ?').get(targetUserId, 'thung_bat_thu') as { quantity: number } | undefined;
+            const ropesCount = ropeInv ? ropeInv.quantity : 0;
+            const feedableItems = db.prepare(`
+              SELECT i.id as inv_id, i.item_id, item.name, item.rarity, i.quantity
+              FROM inventories i JOIN items item ON i.item_id = item.id
+              WHERE i.user_id = ? AND (item.type = 'material' OR item.type = 'pill')
+              ORDER BY i.quantity DESC LIMIT 5
+            `).all(targetUserId) as any[];
+            const user = userRepository.get(targetUserId);
+            if (!user) return;
+            const { embed, totalPages } = getMountListEmbed(user, mounts, active, ropesCount, feedableItems, pageNum);
+            const components = getMountListComponents(targetUserId, pageNum, totalPages);
+            await interaction.editReply(toV2Payload([embed], components));
+          } catch (e: any) {
+            console.error('[mountpage] Lỗi phân trang tọa kỵ:', e?.message || e);
+          }
+        }
+
+        // --- Nút: PHÂN TRANG KHÍ LINH ---
+        else if (action === 'spiritprev' || action === 'spiritnext') {
+          try {
+            await interaction.deferUpdate();
+            const { spiritWeaponService } = require('../services/SpiritWeaponService');
+            const spiritWeapons = spiritWeaponService.getSpiritWeapons(targetUserId);
+            if (spiritWeapons.length === 0) return;
+            const user = userRepository.get(targetUserId);
+            if (!user) return;
+            const { embed, totalPages } = getSpiritListEmbed(targetUserId, user, spiritWeapons, pageNum);
+            const components = getSpiritListComponents(targetUserId, pageNum, totalPages);
+            await interaction.editReply(toV2Payload([embed], components));
+          } catch (e: any) {
+            console.error('[spiritpage] Lỗi phân trang khí linh:', e?.message || e);
+          }
+        }
+
+        // --- Nút: PHÂN TRANG THÀNH TỰU ---
+        else if (action === 'achprev' || action === 'achnext') {
+          try {
+            await interaction.deferUpdate();
+            const category = parts[1].replace(/\./g, '_');
+            const { embed, totalPages } = getAchievementCategoryEmbed(targetUserId, category, pageNum);
+            const components = getAchievementCategoryComponents(targetUserId, category, pageNum, totalPages);
+            await interaction.editReply(toV2Payload([embed], components));
+          } catch (e: any) {
+            console.error('[achpage] Lỗi phân trang thành tựu:', e?.message || e);
           }
         }
 
@@ -909,7 +1072,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           // Tính toán lại chỉ số active khi quay lại để cập nhật thay đổi trang bị
           const embed = getHoSoTabEmbed(targetUserId, 'chiso');
           const rows = getHoSoAllComponents(targetUserId, 'chiso');
-          await interaction.update({ embeds: [embed], components: rows });
+          await interaction.update(toLegacyUpdate([embed], rows, interaction as any));
         }
         
         // --- Nút: KHIÊU CHIẾN BÍ CẢNH (Chọn phó bản) ---
@@ -918,7 +1081,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           
           const dungeon = DUNGEONS[dungeonId];
           if (!dungeon) {
-            await interaction.reply({ content: '❌ Bí Cảnh này không tồn tại!', ephemeral: true });
+            await interaction.reply({ content: '❌ Bí Cảnh này không tồn tại!', flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -938,7 +1101,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           if (entriesToday >= dungeon.maxDailyEntries) {
             await interaction.reply({ 
               content: `❌ Đạo hữu đã cạn kiệt linh lực khiêu chiến Bí Cảnh này hôm nay! (Giới hạn: **${dungeon.maxDailyEntries}/${dungeon.maxDailyEntries}** lượt/ngày)`, 
-              ephemeral: true 
+              flags: MessageFlags.Ephemeral 
             });
             return;
           }
@@ -967,7 +1130,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const embed = new EmbedBuilder()
             .setTitle(`🔮 BÍ CẢNH QUYẾT SÁCH: ${dungeon.name}`)
-            .setColor('#e67e22')
+            .setColor(EMBED_COLORS.ORANGE)
             .setDescription(
               `⚔️ **Độ khó ngẫu nhiên:** **${difficulty.toUpperCase()}**\n\n` +
               `${hintText}\n\n` +
@@ -993,7 +1156,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setStyle(ButtonStyle.Danger)
           );
 
-          await interaction.update({ embeds: [embed], components: [row] });
+          await interaction.update(toLegacyUpdate([embed], [row], interaction as any));
         }
 
         // --- Nút: PHẢN ỨNG RA CHIÊU BÍ CẢNH (Thực chiến quyết định) ---
@@ -1020,7 +1183,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const result = combatService.challengeDungeon(targetUserId, dungeonId, difficulty, playerBuff, monsterBuff);
 
           if (!result.success) {
-            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -1031,7 +1194,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           leylineService.addEnergy(targetUserId, 'chiendau', 15);
 
           const isWin = result.message === 'Chiến Thắng';
-          const color = isWin ? '#2ecc71' : '#e74c3c';
+          const color = isWin ? '#2ecc71' : EMBED_COLORS.ERROR;
           const title = isWin ? '⚔️ VIỄN CỔ CHIẾN THẮNG ⚔️' : '💀 BẠI VONG TRONG BÍ CẢNH 💀';
 
           const embed = new EmbedBuilder()
@@ -1075,8 +1238,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             const coinsLost = result.rewards?.coins || 0;
             const dropText = result.artifactMessage ? `\n⚠️ **Kiếp Nạn:** ${result.artifactMessage}` : '';
 
-            embed.setTitle('💀 HỒN PHI PHÁCH TÁN 💀')
-              .setColor('#7f8c8d')
+            embed.setTitle('💀 HỒN PHI PHÁCH TÁN')
+              .setColor(EMBED_COLORS.NEUTRAL)
               .setDescription(
                 `${reactionFeedback}\n\n` +
                 `☠️ Đạo hữu quá yếu ớt, đã bị **${monsterName}** tung chiêu chí mạng đánh **Tử Vong** sau **${combatResult.rounds}** hiệp đấu!\n\n` +
@@ -1110,7 +1273,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           dailyQuestService.updateProgress(targetUserId, 'daily_bicanh', 1);
           questChainService.updateProgress(targetUserId, 'kill', 1);
 
-          await interaction.update({ embeds: [embed], components: [row] });
+          await interaction.update(toLegacyUpdate([embed], [row], interaction as any));
         }
 
         // --- Nút: XEM NHẬT KÝ CHIẾN ĐẤU BÍ CẢNH ---
@@ -1123,7 +1286,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         else if (action === 'bicanhback') {
           const embed = getDungeonEmbed(targetUserId);
           const row = getDungeonComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: [row] });
+          await interaction.update(toLegacyUpdate([embed], [row], interaction as any));
         }
 
         // --- Nút: TẤN CÔNG WORLD BOSS (đã hợp nhất vào handler phía trên) ---
@@ -1145,7 +1308,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         else if (action === 'worldbossrefresh') {
           const embed = getWorldBossEmbed(targetUserId);
           const row = getWorldBossComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: [row] });
+          await interaction.update(toLegacyUpdate([embed], [row], interaction as any));
         }
 
         // --- Nút: THU HOẠCH LINH ĐIỀN ---
@@ -1161,7 +1324,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             }
           }
           if (harvested.length === 0) {
-            await interaction.reply({ content: '❌ Không có linh thực nào chín để thu hoạch!', ephemeral: true });
+            await interaction.reply({ content: '❌ Không có linh thực nào chín để thu hoạch!', flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -1171,29 +1334,29 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const embed = getLinhDienEmbed(targetUserId);
           const components = getLinhDienComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: components });
-          await interaction.followUp({ content: `✨ Đạo hữu thu hoạch thành công: ${harvested.map(h => `**${h}**`).join(', ')}!`, ephemeral: true });
+          await interaction.update(toLegacyUpdate([embed], components, interaction as any));
+          await interaction.followUp({ content: `✨ Đạo hữu thu hoạch thành công: ${harvested.map(h => `**${h}**`).join(', ')}!`, flags: MessageFlags.Ephemeral });
         }
 
         // --- Nút: KHAI KHẨN LINH ĐIỀN ---
         else if (action === 'linhdienunlock') {
           const result = farmingService.unlockPlot(targetUserId);
           if (!result.success) {
-            await interaction.reply({ content: result.message, ephemeral: true });
+            await interaction.reply({ content: result.message, flags: MessageFlags.Ephemeral });
             return;
           }
 
           const embed = getLinhDienEmbed(targetUserId);
           const components = getLinhDienComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: components });
-          await interaction.followUp({ content: result.message, ephemeral: true });
+          await interaction.update(toLegacyUpdate([embed], components, interaction as any));
+          await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
         }
 
         // --- Nút: LÀM MỚI LINH ĐIỀN ---
         else if (action === 'linhdienrefresh') {
           const embed = getLinhDienEmbed(targetUserId);
           const components = getLinhDienComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: components });
+          await interaction.update(toLegacyUpdate([embed], components, interaction as any));
         }
 
         // --- Nút: ĐỘNG PHỦ - NGÂM LINH TUYỀN ---
@@ -1201,7 +1364,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const { caveService } = require('../services/CaveService');
           const result = caveService.collectSpring(targetUserId);
           if (!result.success) {
-            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -1210,8 +1373,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const updatedEmbed = buildCaveEmbed(targetUserId);
           const updatedComponents = buildCaveComponents(targetUserId);
 
-          await interaction.update({ embeds: [updatedEmbed], components: updatedComponents });
-          await interaction.followUp({ content: result.message, ephemeral: true });
+          await interaction.update(toLegacyUpdate([updatedEmbed], updatedComponents, interaction as any));
+          await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
         }
 
         // --- Nút: ĐỘNG PHỦ - NÂNG CẤP ---
@@ -1221,16 +1384,16 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const cost = caveService.getUpgradeCost(cave.level);
           
           if (!cost) {
-            await interaction.reply({ content: '❌ Động Phủ của đạo hữu đã đạt cấp tối đa!', ephemeral: true });
+            await interaction.reply({ content: '❌ Động Phủ của đạo hữu đã đạt cấp tối đa!', flags: MessageFlags.Ephemeral });
             return;
           }
 
           if (cost.lt > 0 && user.coin_ha_pham < cost.lt) {
-            await interaction.reply({ content: `❌ Cần **${cost.lt}** Linh Thạch để nâng cấp!`, ephemeral: true });
+            await interaction.reply({ content: `❌ Cần **${cost.lt}** Linh Thạch để nâng cấp!`, flags: MessageFlags.Ephemeral });
             return;
           }
           if (cost.knb > 0 && user.knb < cost.knb) {
-            await interaction.reply({ content: `❌ Cần **${cost.knb}** KNB để nâng cấp!`, ephemeral: true });
+            await interaction.reply({ content: `❌ Cần **${cost.knb}** KNB để nâng cấp!`, flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -1250,7 +1413,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           }
 
           if (missingItems) {
-            await interaction.reply({ content: `❌ Thiếu nguyên liệu! ${reqText}`, ephemeral: true });
+            await interaction.reply({ content: `❌ Thiếu nguyên liệu! ${reqText}`, flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -1276,8 +1439,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const updatedEmbed = buildCaveEmbed(targetUserId);
           const updatedComponents = buildCaveComponents(targetUserId);
 
-          await interaction.update({ embeds: [updatedEmbed], components: updatedComponents });
-          await interaction.followUp({ content: `🎉 Chúc mừng! Đạo hữu đã nâng cấp thành công Động Phủ lên **Cấp ${cave.level + 1}**!`, ephemeral: true });
+          await interaction.update(toLegacyUpdate([updatedEmbed], updatedComponents, interaction as any));
+          await interaction.followUp({ content: `🎉 Chúc mừng! Đạo hữu đã nâng cấp thành công Động Phủ lên **Cấp ${cave.level + 1}**!`, flags: MessageFlags.Ephemeral });
         }
 
         // --- Nút: MỞ MODAL THÀNH LẬP TÔNG MÔN ---
@@ -1310,21 +1473,21 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         else if (action === 'sectleave') {
           const result = sectService.leaveSect(targetUserId);
           if (!result.success) {
-            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
             return;
           }
 
           const embed = getSectEmbed(targetUserId);
           const components = getSectComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: components });
-          await interaction.followUp({ content: result.message, ephemeral: true });
+          await interaction.update(toLegacyUpdate([embed], components, interaction as any));
+          await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
         }
 
         // --- Nút: LÀM MỚI TÔNG MÔN ---
         else if (action === 'sectrefresh') {
           const embed = getSectEmbed(targetUserId);
           const components = getSectComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: components });
+          await interaction.update(toLegacyUpdate([embed], components, interaction as any));
         }
 
         // --- Nút: TÔNG CHỦ NÂNG CẤP KIẾN TRÚC TÔNG MÔN ---
@@ -1332,21 +1495,21 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const facility = parts[1] as 'tuling' | 'danduong';
           const result = sectService.upgradeFacility(targetUserId, facility);
           if (!result.success) {
-            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
             return;
           }
 
           const embed = getSectEmbed(targetUserId);
           const components = getSectComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: components });
-          await interaction.followUp({ content: result.message, ephemeral: true });
+          await interaction.update(toLegacyUpdate([embed], components, interaction as any));
+          await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
         }
 
         // --- Nút: NHẬN THÀNH PHẨM CHẾ TẠO (THU LÒ) ---
         else if (action === 'craftclaim') {
           const result = craftingService.claimCraftedItems(targetUserId);
           if (!result.success) {
-            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -1355,15 +1518,15 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const embed = getCraftingEmbed(targetUserId);
           const components = getCraftingComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: components });
-          await interaction.followUp({ content: result.message, ephemeral: true });
+          await interaction.update(toLegacyUpdate([embed], components, interaction as any));
+          await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
         }
 
         // --- Nút: LÀM MỚI LÒ CHẾ TẠO ---
         else if (action === 'craftrefresh') {
           const embed = getCraftingEmbed(targetUserId);
           const components = getCraftingComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: components });
+          await interaction.update(toLegacyUpdate([embed], components, interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN LUYỆN ĐAN (từ hồ sơ) ---
@@ -1379,7 +1542,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
                 .setStyle(ButtonStyle.Secondary)
             );
           }
-          await interaction.update({ embeds: [embed], components: row });
+          await interaction.update(toLegacyUpdate([embed], row, interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN TÔNG MÔN (từ hồ sơ) ---
@@ -1392,14 +1555,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setLabel('🔙 Quay Lại Hồ Sơ')
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({ embeds: [embed], components: [...sectComps, backRow] });
+          await interaction.update(toLegacyUpdate([embed], [...sectComps, backRow], interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN BÍ CẢNH (từ hồ sơ) ---
         else if (action === 'bicanhnaav') {
           const embed = getDungeonEmbed(targetUserId);
           const row = getDungeonComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: [row] });
+          await interaction.update(toLegacyUpdate([embed], [row], interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN LEO THÁP (từ hồ sơ) ---
@@ -1413,14 +1576,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setStyle(ButtonStyle.Secondary)
           );
           const rowsArr = Array.isArray(rows) ? rows : [rows];
-          await interaction.update({ embeds: [embed], components: [...rowsArr, backRow] });
+          await interaction.update(toLegacyUpdate([embed], [...rowsArr, backRow], interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN LÀM VIỆC (từ hồ sơ) ---
         else if (action === 'lamviecnav') {
           const embed = new EmbedBuilder()
             .setTitle('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch')
-            .setColor('#95a5a6')
+            .setColor(EMBED_COLORS.NEUTRAL)
             .setDescription(
               `Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.\n\n` +
               `⏰ **Cooldown:** 60 giây (mỗi lần làm việc)\n` +
@@ -1453,7 +1616,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setLabel('🔙 Quay Lại Hồ Sơ')
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({ embeds: [embed], components: [workRow, backRow] });
+          await interaction.update(toLegacyUpdate([embed], [workRow, backRow], interaction as any));
         }
 
         // --- Nút: THỰC THI LÀM VIỆC (từ menu Làm Việc trong hồ sơ) ---
@@ -1463,13 +1626,13 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const workTargetId = parts[2];
 
           if (interaction.user.id !== workTargetId) {
-            await interaction.reply({ content: '❌ Đạo hữu không thể lao động thay tu sĩ khác!', ephemeral: true });
+            await interaction.reply({ content: '❌ Đạo hữu không thể lao động thay tu sĩ khác!', flags: MessageFlags.Ephemeral });
             return;
           }
 
           const result = performWork(workTargetId, jobType);
           if (!result.success) {
-            await interaction.reply({ content: result.message!, ephemeral: true });
+            await interaction.reply({ content: result.message!, flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -1477,7 +1640,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const refreshedUser = userRepository.get(workTargetId)!;
           const embed = new EmbedBuilder()
             .setTitle('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch')
-            .setColor('#95a5a6')
+            .setColor(EMBED_COLORS.NEUTRAL)
             .setDescription(
               `Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.\n\n` +
               `⏰ **Cooldown:** 60 giây (mỗi lần làm việc)\n` +
@@ -1529,8 +1692,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             resultComponents.push(row);
           }
 
-          await interaction.update({ embeds: [embed], components: [workRow, backRow] });
-          await interaction.followUp({ embeds: [result.embed!], components: resultComponents, ephemeral: true });
+          await interaction.update(toLegacyUpdate([embed], [workRow, backRow], interaction as any));
+          await interaction.followUp(toV2Payload([result.embed!], resultComponents, MessageFlags.Ephemeral));
         }
 
         // --- Nút: ĐI ĐẾN ĐỘNG PHỦ (từ hồ sơ) ---
@@ -1544,7 +1707,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setLabel('🔙 Quay Lại Hồ Sơ')
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({ embeds: [embed], components: [...comps, backRow] });
+          await interaction.update(toLegacyUpdate([embed], [...comps, backRow], interaction as any));
         }
 
         // --- Đại Hệ Thống: BẢN MỆNH PHÁP BẢO ---
@@ -1562,14 +1725,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             if (eligible.length === 0) {
               await interaction.reply({
                 content: '❌ Hành trang của đạo hữu không có trang bị/pháp bảo nào phù hợp để liên kết Huyết Tế!',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
               });
               return;
             }
 
             const embed = new EmbedBuilder()
-              .setTitle('🩸 TIẾN HÀNH HUYẾT TẾ BẢN MỆNH 🩸')
-              .setColor('#c0392b')
+              .setTitle('🩸 TIẾN HÀNH HUYẾT TẾ BẢN MỆNH')
+              .setColor(EMBED_COLORS.ALERT)
               .setDescription(
                 `Hãy chọn một trang bị hoặc pháp bảo trong danh sách dưới đây để liên kết Huyết Tế với Nguyên Thần.\n\n` +
                 `⚠️ **Cảnh báo:** Vật phẩm được chọn sẽ trở thành Bản Mệnh, không thể giao dịch hay vứt bỏ!`
@@ -1599,7 +1762,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
                 .setStyle(ButtonStyle.Secondary)
             );
 
-            await interaction.update({ embeds: [embed], components: [row1, row2] });
+            await interaction.update(toLegacyUpdate([embed], [row1, row2], interaction as any));
           }
 
           // --- 2. pb_bind_select_<userId>: Thực thi liên kết Huyết Tế ---
@@ -1608,14 +1771,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             const res = inventoryService.bindLifeArtifact(targetUserId, inventoryId);
 
             if (!res.success) {
-              await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+              await interaction.reply({ content: `❌ ${res.message}`, flags: MessageFlags.Ephemeral });
               return;
             }
 
             const embed = getBanMenhEmbed(targetUserId);
             const comps = getBanMenhComponents(targetUserId);
-            await interaction.update({ embeds: [embed], components: comps });
-            await interaction.followUp({ content: `✅ ${res.message}`, ephemeral: true });
+            await interaction.update(toLegacyUpdate([embed], comps, interaction as any));
+            await interaction.followUp({ content: `✅ ${res.message}`, flags: MessageFlags.Ephemeral });
           }
 
           // --- 3. pb_swap_nav_<userId>: Hiển thị danh sách vật phẩm hoán đổi Bản Mệnh (Yêu cầu Huyết Tế Ma Bảng) ---
@@ -1625,7 +1788,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             if (!scroll) {
               await interaction.reply({
                 content: '❌ Đạo hữu cần có **Huyết Tế Ma Bảng** trong hành trang để tiến hành hoán đổi Bản Mệnh Pháp Bảo!',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
               });
               return;
             }
@@ -1635,14 +1798,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             if (eligible.length === 0) {
               await interaction.reply({
                 content: '❌ Hành trang của đạo hữu không có trang bị/pháp bảo nào khác để hoán đổi!',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
               });
               return;
             }
 
             const embed = new EmbedBuilder()
-              .setTitle('🔄 HOÁN ĐỔI BẢN MỆNH PHÁP BẢO 🔄')
-              .setColor('#e67e22')
+              .setTitle('🔄 HOÁN ĐỔI BẢN MỆNH PHÁP BẢO')
+              .setColor(EMBED_COLORS.ORANGE)
               .setDescription(
                 `Tiêu hao **1x Huyết Tế Ma Bảng** để hoán đổi liên kết nguyên thần sang Pháp Bảo mới.\n` +
                 `Bản Mệnh mới sẽ kế thừa **80% tích lũy EXP** của Pháp Bảo cũ.\n\n` +
@@ -1673,7 +1836,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
                 .setStyle(ButtonStyle.Secondary)
             );
 
-            await interaction.update({ embeds: [embed], components: [row1, row2] });
+            await interaction.update(toLegacyUpdate([embed], [row1, row2], interaction as any));
           }
 
           // --- 4. pb_swap_select_<userId>: Thực thi hoán đổi Bản Mệnh ---
@@ -1685,14 +1848,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             if (!scroll) {
               await interaction.reply({
                 content: '❌ Đạo hữu đã đánh mất **Huyết Tế Ma Bảng** nửa chừng, không thể tiến hành hoán đổi!',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
               });
               return;
             }
 
             const oldBound = inv.find(i => i.is_life_bound === 1);
             if (!oldBound) {
-              await interaction.reply({ content: '❌ Đạo hữu chưa có Bản Mệnh Pháp Bảo cũ để hoán đổi!', ephemeral: true });
+              await interaction.reply({ content: '❌ Đạo hữu chưa có Bản Mệnh Pháp Bảo cũ để hoán đổi!', flags: MessageFlags.Ephemeral });
               return;
             }
 
@@ -1700,7 +1863,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             const res = inventoryService.swapLifeArtifact(targetUserId, oldBound.id, newInvId);
 
             if (!res.success) {
-              await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+              await interaction.reply({ content: `❌ ${res.message}`, flags: MessageFlags.Ephemeral });
               return;
             }
 
@@ -1709,15 +1872,15 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
             const embed = getBanMenhEmbed(targetUserId);
             const comps = getBanMenhComponents(targetUserId);
-            await interaction.update({ embeds: [embed], components: comps });
-            await interaction.followUp({ content: `✅ ${res.message}`, ephemeral: true });
+            await interaction.update(toLegacyUpdate([embed], comps, interaction as any));
+            await interaction.followUp({ content: `✅ ${res.message}`, flags: MessageFlags.Ephemeral });
           }
 
           // --- 5. pb_banmenh_nav_<userId>: Quay lại màn hình Bản Mệnh chính ---
           else if (pbSub === 'banmenh' && pbType === 'nav') {
             const embed = getBanMenhEmbed(targetUserId);
             const comps = getBanMenhComponents(targetUserId);
-            await interaction.update({ embeds: [embed], components: comps });
+            await interaction.update(toLegacyUpdate([embed], comps, interaction as any));
           }
         }
 
@@ -1731,7 +1894,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setLabel('🔙 Quay Lại Hồ Sơ')
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({ embeds: [embed], components: [...linhComps, backRow] });
+          await interaction.update(toLegacyUpdate([embed], [...linhComps, backRow], interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN CHẾ TẠO (từ hồ sơ) ---
@@ -1744,7 +1907,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setLabel('🔙 Quay Lại Hồ Sơ')
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({ embeds: [embed], components: [...craftComps, backRow] });
+          await interaction.update(toLegacyUpdate([embed], [...craftComps, backRow], interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN SHOP KỸ NĂNG (từ hồ sơ) ---
@@ -1752,7 +1915,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const embed = getShopKyNangEmbed(targetUserId);
           const sknComps = getShopKyNangComponents(targetUserId);
           const rowsArr = Array.isArray(sknComps) ? sknComps : [sknComps];
-          await interaction.update({ embeds: [embed], components: rowsArr });
+          await interaction.update(toLegacyUpdate([embed], rowsArr, interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN WORLD BOSS (từ hồ sơ) ---
@@ -1765,7 +1928,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setLabel('🔙 Quay Lại Hồ Sơ')
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({ embeds: [embed], components: [wbRow, backRow] });
+          await interaction.update(toLegacyUpdate([embed], [wbRow, backRow], interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN VẠN BẢO LÂU (từ hồ sơ) ---
@@ -1781,8 +1944,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           `).all() as any[];
 
           const embed = new EmbedBuilder()
-            .setTitle('🏛️ VẠN BẢO LÂU - SÀN GIAO DỊCH PHƯỜNG THỊ 🏛️')
-            .setColor('#e67e22')
+            .setTitle('🏛️ VẠN BẢO LÂU - SÀN GIAO DỊCH PHƯỜNG THỊ')
+            .setColor(EMBED_COLORS.ORANGE)
             .setDescription('Nơi giao lưu vật phẩm tự do giữa các tu sĩ. Mọi giao dịch chịu 5% thuế bảo hộ tông môn.')
             .setFooter({ text: 'Dùng /vanbaolau ban | mua | huy để giao dịch chi tiết.' })
             .setTimestamp();
@@ -1804,7 +1967,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setLabel('🔙 Quay Lại Hồ Sơ')
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({ embeds: [embed], components: [backRow] });
+          await interaction.update(toLegacyUpdate([embed], [backRow], interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN NGỘ Ý CẢNH (từ hồ sơ) ---
@@ -1817,7 +1980,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setLabel('🔙 Quay Lại Hồ Sơ')
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({ embeds: [embed], components: [row, backRow] as any[] });
+          await interaction.update(toLegacyUpdate([embed], [row, backRow] as any[], interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN LUÂN HỒI (từ hồ sơ) ---
@@ -1830,7 +1993,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setLabel('🔙 Quay Lại Hồ Sơ')
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({ embeds: [embed], components: [row, backRow] as any[] });
+          await interaction.update(toLegacyUpdate([embed], [row, backRow] as any[], interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN SỦNG THÚ (từ hồ sơ) ---
@@ -1844,7 +2007,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setStyle(ButtonStyle.Secondary)
           );
           const rowsArr = Array.isArray(rows) ? rows : [rows];
-          await interaction.update({ embeds: [embed], components: [...rowsArr, backRow] });
+          await interaction.update(toLegacyUpdate([embed], [...rowsArr, backRow], interaction as any));
         }
 
         // --- Nút: PHÂN TRANG SỦNG THÚ ---
@@ -1859,7 +2022,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setStyle(ButtonStyle.Secondary)
           );
           const rowsArr = Array.isArray(rows) ? rows : [rows];
-          await interaction.update({ embeds: [embed], components: [...rowsArr, backRow] });
+          await interaction.update(toLegacyUpdate([embed], [...rowsArr, backRow], interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN CỬA HÀNG (từ hồ sơ) ---
@@ -1867,7 +2030,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const embed = getShopEmbed(targetUserId);
           const rows = getShopComponents(targetUserId);
           const rowsArr = Array.isArray(rows) ? rows : [rows];
-          await interaction.update({ embeds: [embed], components: rowsArr });
+          await interaction.update(toLegacyUpdate([embed], rowsArr, interaction as any));
         }
         // --- Nút: CỬA HÀNG PHÂN KHU (Shop Revamp) ---
         else if (action === 'shop') {
@@ -1889,7 +2052,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const embed = getShopEmbed(targetUserId, primaryId, subId, page);
           const rows = getShopComponents(targetUserId, primaryId, subId, page);
           const rowsArr = Array.isArray(rows) ? rows : [rows];
-          await interaction.update({ embeds: [embed], components: rowsArr });
+          await interaction.update(toLegacyUpdate([embed], rowsArr, interaction as any));
         }
         // --- Nút: TÌM KIẾM CỬA HÀNG ---
         else if (action === 'shopsearch') {
@@ -1923,10 +2086,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             // Re-render hunt menu
             const embed = getSanYeuThuEmbed(targetUserId);
             const rows = getSanYeuThuComponents(targetUserId);
-            await interaction.update({ embeds: [embed], components: rows as any[] });
+            await interaction.update(toLegacyUpdate([embed], rows as any[], interaction as any));
 
             if (!huntResult.success) {
-              await interaction.followUp({ content: `❌ ${huntResult.message}`, ephemeral: true });
+              await interaction.followUp({ content: `❌ ${huntResult.message}`, flags: MessageFlags.Ephemeral });
               return;
             }
 
@@ -1958,20 +2121,20 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             );
             huntRows.push(logRow);
 
-            await interaction.followUp({ embeds: [huntResult.embed!], components: huntRows as any[], ephemeral: true });
+            await interaction.followUp(toV2Payload([huntResult.embed!], huntRows as any[], MessageFlags.Ephemeral));
           } else {
             // Mở menu săn yêu thú (màn hình xác nhận)
             const embed = getSanYeuThuEmbed(targetUserId);
             const rows = getSanYeuThuComponents(targetUserId);
-            await interaction.update({ embeds: [embed], components: rows as any[] });
+            await interaction.update(toLegacyUpdate([embed], rows as any[], interaction as any));
           }
         }
 
         // --- Nút: ĐI ĐẾN TRANG BỊ (từ hồ sơ) ---
         else if (action === 'trangbinaav') {
           const embed = new EmbedBuilder()
-            .setTitle('🛡️ TRANG BỊ ĐIỀN KỸ 🛡️')
-            .setColor('#8e44ad')
+            .setTitle('🛡️ TRANG BỊ ĐIỀN KỸ')
+            .setColor(EMBED_COLORS.DARK_PURPLE)
             .setDescription(
               `Kho trang bị tu luyện giúp đạo hữu gia tăng chiến lực toàn diện.\n\n` +
               `🔧 **Các tính năng khả dụng:**\n` +
@@ -1994,14 +2157,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setLabel('🔙 Quay Lại Hồ Sơ')
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({ embeds: [embed], components: [row] });
+          await interaction.update(toLegacyUpdate([embed], [row], interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN QUYẾT ĐẤU (từ hồ sơ) ---
         else if (action === 'quyetau') {
           const embed = new EmbedBuilder()
-            .setTitle('⚔️ QUYẾT ĐẤU LINH THẠCH ⚔️')
-            .setColor('#e74c3c')
+            .setTitle('⚔️ QUYẾT ĐẤU LINH THẠCH')
+            .setColor(EMBED_COLORS.ERROR)
             .setDescription(
               `Khiêu chiến người chơi khác quyết đấu kéo búa bao (oẳn tù tì) đặt cược Linh Thạch.\n\n` +
               `🔮 **Quy luật khắc chế ngũ hành:**\n` +
@@ -2021,13 +2184,13 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setLabel('🔙 Quay Lại Hồ Sơ')
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({ embeds: [embed], components: [row] });
+          await interaction.update(toLegacyUpdate([embed], [row], interaction as any));
         }
         // --- Nút: ĐI ĐẾN KHÁM PHÁ DÃ NGOẠI (từ hồ sơ) ---
         else if (action === 'khambhanav') {
           const embed = getKhamBhaEmbed(targetUserId);
           const rows = getKhamBhaComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: rows });
+          await interaction.update(toLegacyUpdate([embed], rows, interaction as any));
         }
 
         // --- Nút: BẮT ĐẦU THÁM HIỂM (chọn địa điểm) ---
@@ -2036,14 +2199,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const result = explorationService.startExploration(targetUserId, locationId);
 
           if (!result.success) {
-            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
             return;
           }
 
           const embed = getKhamBhaEmbed(targetUserId);
           const rows = getKhamBhaComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: rows });
-          await interaction.followUp({ content: result.message, ephemeral: true });
+          await interaction.update(toLegacyUpdate([embed], rows, interaction as any));
+          await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
         }
 
         // --- Nút: VỀ LẤY THƯỞNG THÁM HIỂM ---
@@ -2051,7 +2214,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const result = explorationService.claimExploration(targetUserId);
 
           if (!result.success) {
-            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -2060,7 +2223,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             const event = result.event;
             const embed = new EmbedBuilder()
               .setTitle(`✨ KỲ NGỘ: ${event.title}`)
-              .setColor('#e74c3c')
+              .setColor(EMBED_COLORS.ERROR)
               .setDescription(event.description)
               .setTimestamp();
 
@@ -2073,15 +2236,15 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
                   .setStyle(ButtonStyle.Primary)
               );
             }
-            await interaction.update({ embeds: [embed], components: [choiceRow] });
+            await interaction.update(toLegacyUpdate([embed], [choiceRow], interaction as any));
           } else {
             // Thu hoạch bình thường
             dailyQuestService.updateProgress(targetUserId, 'daily_khambha', 1);
             questChainService.updateProgress(targetUserId, 'explore', 1);
             const embed = getKhamBhaEmbed(targetUserId);
             const rows = getKhamBhaComponents(targetUserId);
-            await interaction.update({ embeds: [embed], components: rows });
-            await interaction.followUp({ content: result.message, ephemeral: false });
+            await interaction.update(toLegacyUpdate([embed], rows, interaction as any));
+            await interaction.followUp({ content: result.message });
           }
         }
 
@@ -2096,15 +2259,15 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const embed = getKhamBhaEmbed(targetUserId);
           const rows = getKhamBhaComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: rows });
-          await interaction.followUp({ content: result.message, ephemeral: false });
+          await interaction.update(toLegacyUpdate([embed], rows, interaction as any));
+          await interaction.followUp({ content: result.message });
         }
 
         // --- Nút: ĐI ĐẾN NHIỆM VỤ HÀNG NGÀY (từ hồ sơ) ---
         else if (action === 'nhiemvunav') {
           const embed = getNhiemVuEmbed(targetUserId);
           const rows = getNhiemVuComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: rows });
+          await interaction.update(toLegacyUpdate([embed], rows, interaction as any));
         }
 
         // --- Nút: NHẬN THƯỞNG NHIỆM VỤ ---
@@ -2113,14 +2276,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const result = dailyQuestService.claimQuest(targetUserId, questId);
 
           if (!result.success) {
-            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
             return;
           }
 
           const embed = getNhiemVuEmbed(targetUserId);
           const rows = getNhiemVuComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: rows });
-          await interaction.followUp({ content: result.message, ephemeral: true });
+          await interaction.update(toLegacyUpdate([embed], rows, interaction as any));
+          await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
         }
 
         // --- Nút: BẮT ĐẦU CHUỖI NHIỆM VỤ ---
@@ -2130,9 +2293,9 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const embed = getQuestChainEmbed(targetUserId);
           const rows = getQuestChainComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: rows });
+          await interaction.update(toLegacyUpdate([embed], rows, interaction as any));
           if (result.message) {
-            await interaction.followUp({ content: result.message, ephemeral: true });
+            await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
           }
         }
 
@@ -2143,8 +2306,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const embed = getQuestChainEmbed(targetUserId);
           const rows = getQuestChainComponents(targetUserId);
-          await interaction.update({ embeds: [embed], components: rows });
-          await interaction.followUp({ content: result.message, ephemeral: true });
+          await interaction.update(toLegacyUpdate([embed], rows, interaction as any));
+          await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
         }
 
         // --- Nút: LAPDOI - TẤT CẢ HÀNH ĐỘNG (ready/start/leave/disband/refresh) ---
@@ -2155,7 +2318,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           if (lapdoiAction === 'ready') {
             const room = db.prepare("SELECT * FROM party_rooms WHERE id = ? AND status != 'closed'").get(roomId) as any;
             if (!room) {
-              await interaction.reply({ content: '❌ Phòng không tồn tại hoặc đã đóng!', ephemeral: true });
+              await interaction.reply({ content: '❌ Phòng không tồn tại hoặc đã đóng!', flags: MessageFlags.Ephemeral });
               return;
             }
 
@@ -2171,13 +2334,13 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             const embed = getPartyRoomEmbed(room, host);
             const components = getPartyRoomComponents(room, userId);
 
-            await interaction.update({ embeds: [embed], components });
+            await interaction.update(toLegacyUpdate([embed], components, interaction as any));
           }
 
           else if (lapdoiAction === 'start') {
             const room = db.prepare("SELECT * FROM party_rooms WHERE id = ? AND host_id = ? AND status = 'waiting'").get(roomId, userId) as any;
             if (!room) {
-              await interaction.reply({ content: '❌ Chỉ chủ phòng mới có thể bắt đầu!', ephemeral: true });
+              await interaction.reply({ content: '❌ Chỉ chủ phòng mới có thể bắt đầu!', flags: MessageFlags.Ephemeral });
               return;
             }
 
@@ -2186,7 +2349,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             const allReady = members.length >= 2 && members.every(m => readySet.has(m));
 
             if (!allReady) {
-              await interaction.reply({ content: '❌ Chưa đủ thành viên sẵn sàng! (Cần ít nhất 2 người)', ephemeral: true });
+              await interaction.reply({ content: '❌ Chưa đủ thành viên sẵn sàng! (Cần ít nhất 2 người)', flags: MessageFlags.Ephemeral });
               return;
             }
 
@@ -2279,7 +2442,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
             const embed = new EmbedBuilder()
               .setTitle(`⚔️ BÁO CÁO TỔ ĐỘI: ${room.dungeon_id === 'coop_dungeon_1' ? 'Sơn Cốc Yêu Thú' : 'Di Tích Viễn Cổ'}`)
-              .setColor(result.victory ? '#2ecc71' : '#e74c3c')
+              .setColor(result.victory ? '#2ecc71' : EMBED_COLORS.ERROR)
               .setDescription(
                 `**Kết quả:** ${result.victory ? 'Thắng Lợi 🎉' : 'Đội Hình Diệt Vong 💀'} (Sau ${result.rounds} hiệp)\n` +
                 `**Boss:** ${bossConfig.name} (${result.victory ? 0 : result.bossHpRemaining}/${bossConfig.maxHp} HP)\n\n` +
@@ -2291,15 +2454,15 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
             let logStr = result.log.join('\n');
             if (logStr.length > 3000) logStr = logStr.substring(0, 3000) + '\n... (Rút gọn)';
-            const logEmbed = new EmbedBuilder().setTitle('📜 Diễn Biến').setDescription(logStr).setColor('#34495e');
+            const logEmbed = new EmbedBuilder().setTitle('📜 Diễn Biến').setDescription(logStr).setColor(EMBED_COLORS.DARK);
 
-            await interaction.update({ embeds: [embed, logEmbed], components: [] });
+            await interaction.update(toLegacyUpdate([embed, logEmbed], interaction as any));
           }
 
           else if (lapdoiAction === 'leave') {
             const room = db.prepare("SELECT * FROM party_rooms WHERE id = ? AND status != 'closed'").get(roomId) as any;
             if (!room) {
-              await interaction.reply({ content: '❌ Phòng không tồn tại!', ephemeral: true });
+              await interaction.reply({ content: '❌ Phòng không tồn tại!', flags: MessageFlags.Ephemeral });
               return;
             }
 
@@ -2309,7 +2472,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             if (room.host_id === userId || updatedMembers.length === 0) {
               db.prepare("UPDATE party_rooms SET status = 'closed' WHERE id = ?").run(roomId);
               readyStates.delete(roomId);
-              await interaction.update({ content: '💥 Phòng đã được giải tán!', embeds: [], components: [] });
+              await interaction.update({ content: '💥 Phòng đã được giải tán!', components: [] });
             } else {
               db.prepare("UPDATE party_rooms SET member_ids = ? WHERE id = ?")
                 .run(JSON.stringify(updatedMembers), roomId);
@@ -2322,26 +2485,26 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               const embed = getPartyRoomEmbed(updatedRoom, host);
               const components = getPartyRoomComponents(updatedRoom, userId);
 
-              await interaction.update({ embeds: [embed], components });
+              await interaction.update(toLegacyUpdate([embed], components, interaction as any));
             }
           }
 
           else if (lapdoiAction === 'disband') {
             const room = db.prepare("SELECT * FROM party_rooms WHERE id = ? AND host_id = ?").get(roomId, userId) as any;
             if (!room) {
-              await interaction.reply({ content: '❌ Chỉ chủ phòng mới có thể giải tán!', ephemeral: true });
+              await interaction.reply({ content: '❌ Chỉ chủ phòng mới có thể giải tán!', flags: MessageFlags.Ephemeral });
               return;
             }
 
             db.prepare("UPDATE party_rooms SET status = 'closed' WHERE id = ?").run(roomId);
             readyStates.delete(roomId);
-            await interaction.update({ content: '💥 Phòng đã được giải tán!', embeds: [], components: [] });
+            await interaction.update({ content: '💥 Phòng đã được giải tán!', components: [] });
           }
 
           else if (lapdoiAction === 'refresh') {
             const room = db.prepare("SELECT * FROM party_rooms WHERE id = ? AND status != 'closed'").get(roomId) as any;
             if (!room) {
-              await interaction.reply({ content: '❌ Phòng không tồn tại hoặc đã đóng!', ephemeral: true });
+              await interaction.reply({ content: '❌ Phòng không tồn tại hoặc đã đóng!', flags: MessageFlags.Ephemeral });
               return;
             }
 
@@ -2350,7 +2513,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             const { getPartyRoomComponents } = require('./interactionCreate'); // Re-import or use local function if available
             // Let's just require the components function directly since it's exported in interactionCreate.ts
             const components = module.exports.getPartyRoomComponents ? module.exports.getPartyRoomComponents(room, userId) : getPartyRoomComponents(room, userId);
-            await interaction.update({ embeds: [embed], components });
+            await interaction.update(toLegacyUpdate([embed], components, interaction as any));
           }
         }
 
@@ -2361,7 +2524,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           
           const party = partyService.getParty(partyId);
           if (!party) {
-            await interaction.reply({ content: '❌ Tổ đội không tồn tại hoặc đã bị giải tán!', ephemeral: true });
+            await interaction.reply({ content: '❌ Tổ đội không tồn tại hoặc đã bị giải tán!', flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -2384,7 +2547,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             if (entriesToday >= maxCoopEntries) {
               await interaction.reply({
                 content: `❌ Đạo hữu đã cạn kiệt linh lực khiêu chiến Bí Cảnh này hôm nay! (Giới hạn: **${maxCoopEntries}/${maxCoopEntries}** lượt/ngày)`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
               });
               return;
             }
@@ -2392,7 +2555,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const res = partyService.joinParty(partyId, userId);
           if (!res.success) {
-            await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ ${res.message}`, flags: MessageFlags.Ephemeral });
             return;
           }
           
@@ -2400,9 +2563,9 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           if (updatedParty) {
             const { buildCoopPartyEmbed } = require('../commands/combat/bicanh');
             const embed = buildCoopPartyEmbed(partyId);
-            await interaction.update({ embeds: [embed] });
+            await interaction.update(toLegacyUpdate([embed], interaction as any));
           } else {
-            await interaction.update({ content: '✅ Đã tham gia.' });
+            await interaction.update({ content: '✅ Đã tham gia.', components: [] });
           }
         }
 
@@ -2411,16 +2574,16 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const { partyService } = require('../services/PartyService');
           const res = partyService.leaveParty(partyId, userId);
           if (!res.success) {
-            await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ ${res.message}`, flags: MessageFlags.Ephemeral });
             return;
           }
           const party = partyService.getParty(partyId);
           if (!party) {
-            await interaction.update({ content: '💥 Đội đã giải tán!', embeds: [], components: [] });
+            await interaction.update({ content: '💥 Đội đã giải tán!', components: [] });
           } else {
             const { buildCoopPartyEmbed } = require('../commands/combat/bicanh');
             const embed = buildCoopPartyEmbed(partyId);
-            await interaction.update({ embeds: [embed] });
+            await interaction.update(toLegacyUpdate([embed], interaction as any));
           }
         }
 
@@ -2429,14 +2592,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const { partyService } = require('../services/PartyService');
           const partyObj = partyService.getParty(partyId);
           if (!partyObj) {
-            await interaction.reply({ content: '❌ Tổ đội không tồn tại!', ephemeral: true });
+            await interaction.reply({ content: '❌ Tổ đội không tồn tại!', flags: MessageFlags.Ephemeral });
             return;
           }
 
           const { COOP_DUNGEONS } = require('../commands/combat/bicanh');
           const dungeon = COOP_DUNGEONS.find((d: any) => d.id === partyObj.dungeonId);
           if (!dungeon) {
-            await interaction.reply({ content: '❌ Bí cảnh không hợp lệ!', ephemeral: true });
+            await interaction.reply({ content: '❌ Bí cảnh không hợp lệ!', flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -2458,7 +2621,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               const u = userRepository.get(mId);
               await interaction.reply({
                 content: `❌ Không thể xuất phát! Tu sĩ **${u ? u.name : mId}** (<@${mId}>) đã hết lượt khiêu chiến Bí Cảnh này hôm nay! (Tối đa: ${maxCoopEntries} lượt/ngày).`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
               });
               return;
             }
@@ -2466,7 +2629,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const res = partyService.startParty(partyId, userId);
           if (!res.success) {
-            await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ ${res.message}`, flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -2494,7 +2657,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             `).run(mId, dungeon.id, entriesToday + 1, now);
           }
 
-          await interaction.update({ content: '⚔️ **ĐANG CHUẨN BỊ TRẬN CHIẾN...**', embeds: [], components: [] });
+          await interaction.update({ content: '⚔️ **ĐANG CHUẨN BỊ TRẬN CHIẾN...**', components: [] });
 
           try {
           // Chuẩn bị team
@@ -2529,7 +2692,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           }
 
           if (partyMembers.length === 0) {
-            await interaction.editReply({ content: '❌ Không thể chuẩn bị đội hình! Không có thành viên hợp lệ.', embeds: [], components: [] });
+            await interaction.editReply({ content: null, ...toV2TextUpdate('❌ Không thể chuẩn bị đội hình! Không có thành viên hợp lệ.') });
             partyService.endParty(partyId);
             return;
           }
@@ -2607,7 +2770,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const embed = new EmbedBuilder()
             .setTitle(`⚔️ BÁO CÁO BÍ CẢNH: ${dungeon.name}`)
-            .setColor(result.victory ? '#2ecc71' : '#e74c3c')
+            .setColor(result.victory ? '#2ecc71' : EMBED_COLORS.ERROR)
             .setDescription(
               `**Kết quả:** ${result.victory ? 'Thắng Lợi 🎉' : 'Đội Hình Diệt Vong 💀'} (Sau ${result.rounds} hiệp)\n` +
               `**Boss:** ${bossConfig.name} (${result.victory ? 0 : result.bossHpRemaining}/${bossConfig.maxHp} HP)\n\n` +
@@ -2619,13 +2782,13 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           let logStr = result.log.join('\n');
           if (logStr.length > 3000) logStr = logStr.substring(logStr.length - 3000) + '\n... (Rút gọn)';
-          const logEmbed = new EmbedBuilder().setTitle('📜 Diễn Biến').setDescription(logStr).setColor('#34495e');
+          const logEmbed = new EmbedBuilder().setTitle('📜 Diễn Biến').setDescription(logStr).setColor(EMBED_COLORS.DARK);
 
-          await interaction.editReply({ content: null, embeds: [embed, logEmbed], components: [] });
+          await interaction.editReply({ content: null, ...toV2Payload([embed, logEmbed]) });
           } catch (combatErr: any) {
             console.error('[BiCanh CoOp] Lỗi chiến đấu tổ đội:', combatErr);
             partyService.endParty(partyId);
-            await interaction.editReply({ content: `❌ Đã xảy ra lỗi trong trận chiến: ${combatErr?.message || 'Lỗi không xác định'}. Tổ đội đã giải tán.`, embeds: [], components: [] });
+            await interaction.editReply({ content: null, ...toV2TextUpdate(`❌ Đã xảy ra lỗi trong trận chiến: ${combatErr?.message || 'Lỗi không xác định'}. Tổ đội đã giải tán.`) });
           }
           return;
         }
@@ -2638,14 +2801,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           if (gwAction === 'attack') {
             const result = guildWarService.attack(warId, userId);
             if (!result.success) {
-              await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+              await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
               return;
             }
-            await interaction.reply({ content: result.message, ephemeral: false });
+            await interaction.reply({ content: result.message });
           } else if (gwAction === 'refresh') {
             const war = guildWarService.getWarDetail(warId);
             if (!war) {
-              await interaction.reply({ content: '❌ Cuộc chiến không tồn tại!', ephemeral: true });
+              await interaction.reply({ content: '❌ Cuộc chiến không tồn tại!', flags: MessageFlags.Ephemeral });
               return;
             }
 
@@ -2665,7 +2828,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
                 `**${defenderSect?.name}**: ${war.defender_hp}❤️\n\n` +
                 `Hiệp: **${war.current_round}/${war.max_rounds}**\n` +
                 `Đến lượt: **${currentUser?.name || 'Không xác định'}**`;
-              color = '#e74c3c';
+              color = EMBED_COLORS.ERROR;
             } else if (war.status === 'pending') {
               statusText = `⏳ **Chờ phản hồi từ ${defenderSect?.name}...**`;
               color = '#f39c12';
@@ -2681,7 +2844,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
                 `\n\n_Dùng \`/guildwar thongtin\` để xem chi tiết đầy đủ._`)
               .setTimestamp();
 
-            await interaction.update({ embeds: [embed], components: [] });
+            await interaction.update(toLegacyUpdate([embed], [], interaction as any));
           }
         }
 
@@ -2691,7 +2854,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const targetId = parts[2];
           
           if (action === 'marriagerefuse') {
-            await interaction.update({ content: `💔 Đạo hữu <@${targetId}> đã uyển chuyển từ chối lời cầu hôn của <@${proposerId}>. Duyên phận chưa tới!`, embeds: [], components: [] });
+            await interaction.update({ content: `💔 Đạo hữu <@${targetId}> đã uyển chuyển từ chối lời cầu hôn của <@${proposerId}>. Duyên phận chưa tới!`, components: [] });
             return;
           }
 
@@ -2700,9 +2863,9 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const result = marriageService.acceptProposal(proposerId, targetId);
 
           if (result.success) {
-            await interaction.update({ content: result.message, embeds: [], components: [] });
+            await interaction.update({ content: result.message, components: [] });
           } else {
-            await interaction.update({ content: `❌ Cầu hôn thất bại: ${result.message}`, embeds: [], components: [] });
+            await interaction.update({ content: `❌ Cầu hôn thất bại: ${result.message}`, components: [] });
           }
         }
 
@@ -2713,7 +2876,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           if (subAction === 'all') {
             const { handleRepairAllButton } = require('../commands/general/suachua');
             const result = handleRepairAllButton(userId);
-            await interaction.reply({ content: result.message, ephemeral: true });
+            await interaction.reply({ content: result.message, flags: MessageFlags.Ephemeral });
           }
           return;
         }
@@ -2723,7 +2886,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const { sectWarService } = require('../services/SectWarService');
           const battleId = parseInt(parts[1], 10);
           const result = sectWarService.attack(battleId, userId);
-          await interaction.reply({ content: result.message, ephemeral: !result.success });
+          await interaction.reply({ content: result.message, flags: !result.success ? MessageFlags.Ephemeral : undefined });
           return;
         }
 
@@ -2733,12 +2896,12 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const battleId = parseInt(parts[1], 10);
           const battle = sectWarService.getBattleDetails(battleId);
           if (!battle) {
-            await interaction.reply({ content: '❌ Trận chiến không tồn tại!', ephemeral: true });
+            await interaction.reply({ content: '❌ Trận chiến không tồn tại!', flags: MessageFlags.Ephemeral });
             return;
           }
           const embed = new EmbedBuilder()
             .setTitle(`⚔️ Tông Môn Chiến #${battle.id}`)
-            .setColor('#e74c3c')
+            .setColor(EMBED_COLORS.ERROR)
             .setDescription(
               `**Trạng thái:** ${battle.status === 'active' ? 'Đang chiến' : 'Kết thúc'}\n` +
               `**Vòng:** ${battle.current_round}/${battle.max_rounds}\n` +
@@ -2748,7 +2911,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               `Dùng \`/combat sectwar tancong\` để tham chiến!`
             )
             .setTimestamp();
-          await interaction.update({ embeds: [embed], components: [] });
+          await interaction.update(toLegacyUpdate([embed], [], interaction as any));
           return;
         }
 
@@ -2756,7 +2919,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         else if (action === 'encounter') {
           const userIdFromParts = parts[parts.length - 1];
           if (interaction.user.id !== userIdFromParts) {
-            await interaction.reply({ content: '❌ Đây không phải kỳ ngộ của đạo hữu!', ephemeral: true });
+            await interaction.reply({ content: '❌ Đây không phải kỳ ngộ của đạo hữu!', flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -2773,13 +2936,13 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const encounter = allEncounters.find((e: any) => e.id === encounterId);
           
           if (!encounter) {
-            await interaction.update({ content: '❌ Kỳ ngộ này không còn tồn tại hoặc bị lỗi.', embeds: [], components: [] });
+            await interaction.update({ content: '❌ Kỳ ngộ này không còn tồn tại hoặc bị lỗi.', components: [] });
             return;
           }
 
           const choice = encounter.choices[choiceIndex];
           if (!choice) {
-            await interaction.update({ content: '❌ Lựa chọn không hợp lệ.', embeds: [], components: [] });
+            await interaction.update({ content: '❌ Lựa chọn không hợp lệ.', components: [] });
             return;
           }
 
@@ -2788,7 +2951,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           // Tạo một Embed hiển thị kết quả
           const embed = new EmbedBuilder()
             .setTitle(result.success ? '✨ KỲ NGỘ THÀNH CÔNG' : '😅 KỲ NGỘ THẤT BẠI')
-            .setColor(result.success ? '#2ecc71' : '#e74c3c')
+            .setColor(result.success ? '#2ecc71' : EMBED_COLORS.ERROR)
             .setDescription(result.message)
             .setTimestamp();
 
@@ -2805,7 +2968,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
             embed.addFields({ name: '🎁 Biến Động Thuộc Tính', value: rewardTexts.join('\n') });
           }
 
-          await interaction.update({ embeds: [embed], components: [] });
+          await interaction.update(toLegacyUpdate([embed], [], interaction as any));
           return;
         }
 
@@ -2813,7 +2976,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         else if (action === 'spiritinteract') {
           const { spiritWeaponService } = require('../services/SpiritWeaponService');
           const result = spiritWeaponService.interact(userId);
-          await interaction.reply({ content: result.message, ephemeral: !result.success });
+          await interaction.reply({ content: result.message, flags: !result.success ? MessageFlags.Ephemeral : undefined });
           return;
         }
 
@@ -2822,7 +2985,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const { eliteDungeonService } = require('../services/EliteDungeonService');
           const dungeonKey = parts.slice(1, -1).join('_');
           const result = eliteDungeonService.startRun(userId, dungeonKey, `party_${userId}_${dungeonKey}`);
-          await interaction.reply({ content: result.message, ephemeral: !result.success });
+          await interaction.reply({ content: result.message, flags: !result.success ? MessageFlags.Ephemeral : undefined });
           return;
         }
 
@@ -2831,12 +2994,12 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const runId = parseInt(parts[1], 10);
           const run = eliteDungeonService.getRunById(runId);
           if (!run) {
-            await interaction.reply({ content: '❌ Run không tồn tại!', ephemeral: true });
+            await interaction.reply({ content: '❌ Run không tồn tại!', flags: MessageFlags.Ephemeral });
             return;
           }
           const partyMembers: any[] = [{ userId, name: user.name, atk: 100, def: 50, hp: 1000, maxHp: 1000, crit: 0.1, speed: 100 }];
           const result = eliteDungeonService.processFloorResult(runId, run.dungeon_id, partyMembers);
-          await interaction.reply({ content: result.message, ephemeral: !result.success });
+          await interaction.reply({ content: result.message, flags: !result.success ? MessageFlags.Ephemeral : undefined });
           return;
         }
 
@@ -2845,11 +3008,11 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const runId = parseInt(parts[1], 10);
           const run = eliteDungeonService.getRunById(runId);
           if (!run) {
-            await interaction.reply({ content: '❌ Run không tồn tại!', ephemeral: true });
+            await interaction.reply({ content: '❌ Run không tồn tại!', flags: MessageFlags.Ephemeral });
             return;
           }
           db.prepare("UPDATE elite_dungeon_runs SET status = 'failed' WHERE id = ?").run(runId);
-          await interaction.reply({ content: `🏳️ Đã rút lui khỏi bí cảnh tinh anh.`, ephemeral: true });
+          await interaction.reply({ content: `🏳️ Đã rút lui khỏi bí cảnh tinh anh.`, flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -2859,7 +3022,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const weapons = spiritWeaponService.getSpiritWeapons(targetUserId);
           const embed = new EmbedBuilder()
             .setTitle('⚡ KHÍ LINH - PHÁP BẢO THỨC TỈNH')
-            .setColor('#9b59b6')
+            .setColor(EMBED_COLORS.MYSTIC)
             .setDescription('Trang bị Epic+ có thể thức tỉnh khí linh, cung cấp skill bị động chiến đấu.');
 
           if (weapons.length > 0) {
@@ -2880,7 +3043,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setLabel('🔙 Quay Lại Hồ Sơ')
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({ embeds: [embed], components: [row] });
+          await interaction.update(toLegacyUpdate([embed], [row], interaction as any));
         }
 
         // --- Nút: ĐI ĐẾN TỌA KỴ (từ hồ sơ) ---
@@ -2895,7 +3058,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
           const embed = new EmbedBuilder()
             .setTitle('🐎 TỌA KỴ')
-            .setColor('#e67e22')
+            .setColor(EMBED_COLORS.ORANGE)
             .setDescription(desc);
 
           if (mounts.length > 0) {
@@ -2915,7 +3078,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
               .setLabel('🔙 Quay Lại Hồ Sơ')
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({ embeds: [embed], components: [row] });
+          await interaction.update(toLegacyUpdate([embed], [row], interaction as any));
         }
 
       } catch (error: any) {
@@ -2926,9 +3089,9 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         console.error('[Button Error] Lỗi xử lý nút bấm:', error);
         try {
           if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
-            await interaction.reply({ content: '❌ Có lỗi xảy ra khi xử lý hành động này!', ephemeral: true });
+            await interaction.reply({ content: '❌ Có lỗi xảy ra khi xử lý hành động này!', flags: MessageFlags.Ephemeral });
           } else {
-            await interaction.followUp({ content: '❌ Có lỗi xảy ra khi xử lý hành động này!', ephemeral: true });
+            await interaction.followUp({ content: '❌ Có lỗi xảy ra khi xử lý hành động này!', flags: MessageFlags.Ephemeral });
           }
         } catch (replyError: any) {
           if (replyError?.code !== 10062 && replyError?.rawError?.code !== 10062) {
@@ -2954,7 +3117,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const actionLabel = actionType === 'bptselect' ? 'bảng xếp hạng' : 'túi đồ';
         await interaction.reply({
           content: `❌ **Cảnh báo:** Đạo hữu không thể tương tác với ${actionLabel} của tu sĩ khác!`,
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         });
         return;
       }
@@ -2989,7 +3152,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const inventoryId = parseInt(selectedValue.substring(firstUnderscore + 1), 10);
 
         if (isNaN(inventoryId)) {
-          await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', ephemeral: true });
+          await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -3012,7 +3175,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         }
 
         if (!success) {
-          await interaction.reply({ content: `❌ ${resultMessage}`, ephemeral: true });
+          await interaction.reply({ content: `❌ ${resultMessage}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -3020,10 +3183,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const { embed, totalPages, itemsOnPage } = getInventoryEmbed(targetUserId, page);
         const components = getInventoryComponents(targetUserId, page, totalPages, itemsOnPage);
 
-        await interaction.update({ embeds: [embed], components: components });
+        await interaction.update(toLegacyUpdate([embed], components, interaction as any));
 
         // Gửi thông báo nổi xác thực hành động thành công
-        await interaction.followUp({ content: `💼 ${resultMessage}`, ephemeral: true });
+        await interaction.followUp({ content: `💼 ${resultMessage}`, flags: MessageFlags.Ephemeral });
       }
       
       else if (actionType === 'linhdiengieoselect') {
@@ -3032,19 +3195,19 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const emptyPlot = plots.find(p => p.status === 'empty');
 
         if (!emptyPlot) {
-          await interaction.reply({ content: '❌ Linh điền không còn ô đất trống để gieo hạt!', ephemeral: true });
+          await interaction.reply({ content: '❌ Linh điền không còn ô đất trống để gieo hạt!', flags: MessageFlags.Ephemeral });
           return;
         }
 
         const result = farmingService.plantSeed(targetUserId, emptyPlot.plot_index, seedItemId);
         if (!result.success) {
-          await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
         const embed = getLinhDienEmbed(targetUserId);
         const components = getLinhDienComponents(targetUserId);
-        await interaction.update({ embeds: [embed], components: components });
+        await interaction.update(toLegacyUpdate([embed], components, interaction as any));
       }
 
       else if (actionType === 'linhdienspeedupselect') {
@@ -3052,14 +3215,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const result = farmingService.speedupPlot(targetUserId, plotIndex);
 
         if (!result.success) {
-          await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
         const embed = getLinhDienEmbed(targetUserId);
         const components = getLinhDienComponents(targetUserId);
-        await interaction.update({ embeds: [embed], components: components });
-        await interaction.followUp({ content: result.message, ephemeral: true });
+        await interaction.update(toLegacyUpdate([embed], components, interaction as any));
+        await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
       }
 
       else if (actionType === 'linhdiencareselect') {
@@ -3075,19 +3238,19 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         } else if (careType === 'catchpests') {
           result = farmingService.catchPests(targetUserId, plotIndex);
         } else {
-          await interaction.reply({ content: '❌ Thao tác không hợp lệ!', ephemeral: true });
+          await interaction.reply({ content: '❌ Thao tác không hợp lệ!', flags: MessageFlags.Ephemeral });
           return;
         }
 
         if (!result.success) {
-          await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
         const embed = getLinhDienEmbed(targetUserId);
         const components = getLinhDienComponents(targetUserId);
-        await interaction.update({ embeds: [embed], components: components });
-        await interaction.followUp({ content: result.message, ephemeral: true });
+        await interaction.update(toLegacyUpdate([embed], components, interaction as any));
+        await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
       }
 
       else if (actionType === 'sectjoinselect') {
@@ -3095,14 +3258,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const result = sectService.joinSect(targetUserId, sectId);
 
         if (!result.success) {
-          await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
         const embed = getSectEmbed(targetUserId);
         const components = getSectComponents(targetUserId);
-        await interaction.update({ embeds: [embed], components: components });
-        await interaction.followUp({ content: result.message, ephemeral: true });
+        await interaction.update(toLegacyUpdate([embed], components, interaction as any));
+        await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
       }
 
       else if (actionType === 'sectdonateselect') {
@@ -3110,7 +3273,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const result = sectService.donateToSect(targetUserId, amount);
 
         if (!result.success) {
-          await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -3122,8 +3285,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
         const embed = getSectEmbed(targetUserId);
         const components = getSectComponents(targetUserId);
-        await interaction.update({ embeds: [embed], components: components });
-        await interaction.followUp({ content: result.message, ephemeral: true });
+        await interaction.update(toLegacyUpdate([embed], components, interaction as any));
+        await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
       }
 
       else if (actionType === 'luyenkhiselect') {
@@ -3132,14 +3295,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const { blacksmithService } = require('../services/BlacksmithService');
         const res = blacksmithService.forgeItem(targetUserId, recipeId);
         
-        await interaction.reply({ content: res.success ? res.message : `❌ ${res.message}`, ephemeral: false });
+        await interaction.reply({ content: res.success ? res.message : `❌ ${res.message}` });
 
         // Cập nhật lại UI Luyện Khí
         const user = userRepository.get(targetUserId);
         if (user) {
           const embed = interaction.message.embeds[0];
           const newEmbed = EmbedBuilder.from(embed).setFooter({ text: `Thể lực hiện tại: ${user.stamina}/500 | Linh Thạch: ${user.coin_ha_pham}` });
-          await interaction.message.edit({ embeds: [newEmbed] });
+          await interaction.message.edit(toV2Payload([newEmbed]));
         }
       }
 
@@ -3148,14 +3311,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const result = craftingService.startCrafting(targetUserId, recipeId);
 
         if (!result.success) {
-          await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
         const embed = getCraftingEmbed(targetUserId);
         const components = getCraftingComponents(targetUserId);
-        await interaction.update({ embeds: [embed], components: components });
-        await interaction.followUp({ content: result.message, ephemeral: true });
+        await interaction.update(toLegacyUpdate([embed], components, interaction as any));
+        await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
       }
 
 
@@ -3167,7 +3330,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const buyer = userRepository.get(targetUserId);
 
         if (!item || !buyer) {
-          await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', ephemeral: true });
+          await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -3201,14 +3364,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const buyer = userRepository.get(targetUserId);
 
         if (!book || !buyer) {
-          await interaction.reply({ content: '❌ Bí tịch không hợp lệ!', ephemeral: true });
+          await interaction.reply({ content: '❌ Bí tịch không hợp lệ!', flags: MessageFlags.Ephemeral });
           return;
         }
 
         if (buyer.coin_ha_pham < book.price) {
           await interaction.reply({
             content: `❌ Đạo hữu không đủ Linh Thạch! (Giá: **${book.price}**, hiện có: **${buyer.coin_ha_pham}**).`,
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
           return;
         }
@@ -3221,8 +3384,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const embed = getShopEmbed(targetUserId, primaryId, undefined, pageNum);
         const sknComps = getShopComponents(targetUserId, primaryId, undefined, pageNum);
         const rowsArr = Array.isArray(sknComps) ? sknComps : [sknComps];
-        await interaction.update({ embeds: [embed], components: rowsArr });
-        await interaction.followUp({ content: `📚 Thỉnh thành công **1x ${book.name}** (−${book.price} Linh Thạch)! Dùng \`/dungkynang item_id: ${book.id}\` để lĩnh ngộ.`, ephemeral: true });
+        await interaction.update(toLegacyUpdate([embed], rowsArr, interaction as any));
+        await interaction.followUp({ content: `📚 Thỉnh thành công **1x ${book.name}** (−${book.price} Linh Thạch)! Dùng \`/dungkynang item_id: ${book.id}\` để lĩnh ngộ.`, flags: MessageFlags.Ephemeral });
       }
       return;
     }
@@ -3244,7 +3407,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
       if (interaction.user.id !== targetUserId) {
         await interaction.reply({
           content: '❌ **Cảnh báo:** Đạo hữu không thể can thiệp vào hành động của tu sĩ khác!',
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         });
         return;
       }
@@ -3255,14 +3418,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
         const result = sectService.createSect(targetUserId, name, desc);
         if (!result.success) {
-          await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.reply({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
         const embed = getSectEmbed(targetUserId);
         const components = getSectComponents(targetUserId);
-        await (interaction as any).update({ embeds: [embed], components: components });
-        await interaction.followUp({ content: result.message, ephemeral: true });
+        await (interaction as any).update(toV2Update([embed], components, interaction as any));
+        await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
       }
       
       else if (action === 'doitienmodal') {
@@ -3271,7 +3434,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const qty = parseInt(qtyStr, 10);
 
         if (isNaN(qty) || qty <= 0) {
-          await interaction.reply({ content: '❌ Số lượng lần đổi phải là số nguyên lớn hơn 0!', ephemeral: true });
+          await interaction.reply({ content: '❌ Số lượng lần đổi phải là số nguyên lớn hơn 0!', flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -3280,7 +3443,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
         const res = DoiTienCommand.performConversion(targetUserId, type, qty);
         if (!res.success) {
-          await interaction.reply({ content: res.message, ephemeral: true });
+          await interaction.reply({ content: res.message, flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -3288,10 +3451,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const components = getDoiTienComponents(targetUserId);
 
         if ((interaction as any).update) {
-          await (interaction as any).update({ embeds: [embed], components: components });
-          await interaction.followUp({ content: `✅ Quy đổi thành công! ${res.message}`, ephemeral: true });
+          await (interaction as any).update(toV2Update([embed], components, interaction as any));
+          await interaction.followUp({ content: `✅ Quy đổi thành công! ${res.message}`, flags: MessageFlags.Ephemeral });
         } else {
-          await interaction.reply({ content: `✅ Quy đổi thành công! ${res.message}`, ephemeral: true });
+          await interaction.reply({ content: `✅ Quy đổi thành công! ${res.message}`, flags: MessageFlags.Ephemeral });
         }
       }
 
@@ -3306,14 +3469,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const qty = parseInt(qtyStr, 10);
 
         if (isNaN(qty) || qty <= 0) {
-          await interaction.reply({ content: '❌ Số lượng mua phải là số nguyên lớn hơn 0!', ephemeral: true });
+          await interaction.reply({ content: '❌ Số lượng mua phải là số nguyên lớn hơn 0!', flags: MessageFlags.Ephemeral });
           return;
         }
 
         const item = SHOP_ITEMS.find(i => i.id === itemId);
 
         if (!item) {
-          await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', ephemeral: true });
+          await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -3336,7 +3499,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           try {
             tx();
           } catch (error: any) {
-            await interaction.reply({ content: `❌ Mua nhanh thất bại: ${error.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ Mua nhanh thất bại: ${error.message}`, flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -3345,10 +3508,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const rowsArr = Array.isArray(shopComps) ? shopComps : [shopComps];
 
           if ((interaction as any).update) {
-            await (interaction as any).update({ embeds: [embed], components: rowsArr });
-            await interaction.followUp({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} KNB)!`, ephemeral: true });
+            await (interaction as any).update(toV2Update([embed], rowsArr, interaction as any));
+            await interaction.followUp({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} KNB)!`, flags: MessageFlags.Ephemeral });
           } else {
-            await interaction.reply({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} KNB)!`, ephemeral: true });
+            await interaction.reply({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} KNB)!`, flags: MessageFlags.Ephemeral });
           }
         } else {
           const tx = db.transaction(() => {
@@ -3363,7 +3526,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           try {
             tx();
           } catch (error: any) {
-            await interaction.reply({ content: `❌ Mua nhanh thất bại: ${error.message}`, ephemeral: true });
+            await interaction.reply({ content: `❌ Mua nhanh thất bại: ${error.message}`, flags: MessageFlags.Ephemeral });
             return;
           }
 
@@ -3372,10 +3535,10 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           const rowsArr = Array.isArray(shopComps) ? shopComps : [shopComps];
 
           if ((interaction as any).update) {
-            await (interaction as any).update({ embeds: [embed], components: rowsArr });
-            await interaction.followUp({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} Linh Thạch)!`, ephemeral: true });
+            await (interaction as any).update(toV2Update([embed], rowsArr, interaction as any));
+            await interaction.followUp({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} Linh Thạch)!`, flags: MessageFlags.Ephemeral });
           } else {
-            await interaction.reply({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} Linh Thạch)!`, ephemeral: true });
+            await interaction.reply({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} Linh Thạch)!`, flags: MessageFlags.Ephemeral });
           }
         }
       }
@@ -3386,9 +3549,9 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         const embed = getShopEmbed(targetUserId, undefined, undefined, 1, searchQuery);
         const rows = getShopComponents(targetUserId, undefined, undefined, 1, searchQuery);
         if ((interaction as any).update) {
-          await (interaction as any).update({ embeds: [embed], components: rows });
+          await (interaction as any).update(toV2Update([embed], rows, interaction as any));
         } else {
-          await interaction.reply({ embeds: [embed], components: rows });
+          await interaction.reply(toV2Payload([embed], rows));
         }
       }
       return;
@@ -3406,9 +3569,9 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
       try {
         if (interaction.isRepliable()) {
           if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ content: errorMsg, ephemeral: true });
+            await interaction.followUp({ content: errorMsg, flags: MessageFlags.Ephemeral });
           } else {
-            await interaction.reply({ content: errorMsg, ephemeral: true });
+            await interaction.reply({ content: errorMsg, flags: MessageFlags.Ephemeral });
           }
         }
       } catch (replyError: any) {

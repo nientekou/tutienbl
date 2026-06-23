@@ -3,6 +3,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import db from '../../database/database';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 interface UserSkill {
   skill_id: string;
@@ -88,7 +89,7 @@ export default class KyNangCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle(`📖 TÀNG BÍ THƯ KỸ NĂNG - ${user.name}`)
-        .setColor('#8e44ad')
+        .setColor(EMBED_COLORS.DARK_PURPLE)
         .setDescription('Kỹ năng tu chân thức tỉnh linh căn nguyên thủy giúp đạo hữu xoay chuyển càn khôn trong combat.')
         .setTimestamp();
 
@@ -119,7 +120,7 @@ export default class KyNangCommand extends Command {
         }
       );
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 

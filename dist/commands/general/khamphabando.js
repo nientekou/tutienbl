@@ -4,6 +4,7 @@ const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const MapFragmentService_1 = require("../../services/MapFragmentService");
+const uiSystem_1 = require("../../utils/uiSystem");
 const RARITY_EMOJI = {
     common: '🟤',
     rare: '🔵',
@@ -54,7 +55,7 @@ class KhamPhaBanDoCommand extends Command_1.Command {
         const activeLocations = MapFragmentService_1.mapFragmentService.getActiveLocations(userId);
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('🗺️ MẢNH BẢN ĐỒ')
-            .setColor('#e67e22')
+            .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
             .setDescription(`**Mảnh Bản Đồ hiện có:** **${fragmentCount}/5**\n` +
             `*Thu thập Mảnh Bản Đồ qua công việc **Phiêu Lưu (/lamviec adventure)** và ghép chúng để tìm kho báu!*\n\n` +
             `**Hướng dẫn:**\n` +
@@ -99,7 +100,7 @@ class KhamPhaBanDoCommand extends Command_1.Command {
             });
         }
         embed.setFooter({ text: 'Mảnh Bản Đồ có thể nhận được khi làm công việc Phiêu Lưu.' });
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
     async handleCombine(interaction, userId) {
         const result = MapFragmentService_1.mapFragmentService.combineFragments(userId);
@@ -110,20 +111,20 @@ class KhamPhaBanDoCommand extends Command_1.Command {
         const result = MapFragmentService_1.mapFragmentService.claimLocation(userId, locationId);
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle(result.success ? '🎉 Khai Thác Kho Báu' : '❌ Thất Bại')
-            .setColor(result.success ? '#f1c40f' : '#e74c3c')
+            .setColor(result.success ? uiSystem_1.EMBED_COLORS.GOLD : uiSystem_1.EMBED_COLORS.ERROR)
             .setDescription(result.message)
             .setTimestamp();
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
     async handleSteal(interaction, userId) {
         const locationId = interaction.options.getInteger('id', true);
         const result = MapFragmentService_1.mapFragmentService.stealLocation(userId, locationId);
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle(result.success ? '⚔️ Cướp Thành Công' : '💢 Cướp Thất Bại')
-            .setColor(result.success ? '#e74c3c' : '#95a5a6')
+            .setColor(result.success ? uiSystem_1.EMBED_COLORS.ERROR : uiSystem_1.EMBED_COLORS.NEUTRAL)
             .setDescription(result.message)
             .setTimestamp();
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
 }
 exports.default = KhamPhaBanDoCommand;

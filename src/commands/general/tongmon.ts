@@ -5,6 +5,7 @@ import { userRepository } from '../../database/repositories/UserRepository';
 import db from '../../database/database';
 import { sectService } from '../../services/SectService';
 import { guildWarService } from '../../services/GuildWarService';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 interface SectEntity {
   id: number;
@@ -239,7 +240,7 @@ export default class TongMonCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle(`🏰 TÔNG MÔN: ${sect.name} (Cấp ${sect.level})`)
-        .setColor('#e67e22')
+        .setColor(EMBED_COLORS.ORANGE)
         .setDescription(`📜 **Tôn Chỉ:** *${sect.description}*\n👑 **Tông Chủ:** ${master?.name || 'Vô Danh'}\n👥 **Thành Viên:** ${memberCount.c} người\n💰 **Quỹ Tông Môn:** ${sect.resources} Điểm`)
         .addFields({
           name: '🏗️ Lãnh Địa Tông Môn',
@@ -248,7 +249,7 @@ export default class TongMonCommand extends Command {
                  `📚 **Tàng Kinh Các** (Cấp ${buildings.tangkinhcac || 0}): *${BUILDINGS_INFO.tangkinhcac.desc}*`
         });
       
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -406,7 +407,7 @@ export default class TongMonCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle(`📊 THỐNG KÊ TÔNG MÔN: ${sect.name}`)
-        .setColor('#f1c40f')
+        .setColor(EMBED_COLORS.GOLD)
         .addFields(
           { name: '🥇 Top Đóng Góp EXP', value: topExp.map((m, i) => `#${i + 1} **${m.name}** (Cấp ${m.level}): ${m.sect_contribution} điểm`).join('\n') || '*Chưa có dữ liệu*', inline: true },
           { name: '💎 Top Đóng Góp Linh Thạch', value: topLT.map((m, i) => `#${i + 1} **${m.name}** (Cấp ${m.level}): ${m.coin_ha_pham} LT`).join('\n') || '*Chưa có dữ liệu*', inline: true },
@@ -419,7 +420,7 @@ export default class TongMonCommand extends Command {
         embed.setDescription(bonusMsg);
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -466,10 +467,10 @@ export default class TongMonCommand extends Command {
         const statusText = info.status === 'open' ? '🟢 Đang mở đăng ký' : info.status === 'fighting' ? '⚔️ Đang diễn ra' : '🏁 Đã kết thúc';
         const embed = new EmbedBuilder()
           .setTitle('🏟️ Giải Đấu Nội Bộ')
-          .setColor('#9b59b6')
+          .setColor(EMBED_COLORS.MYSTIC)
           .setDescription(`**Trạng thái:** ${statusText}\n**Người tham gia (${info.participants.length}):** ${info.participants.join(', ') || 'Chưa có'}`)
           .setFooter({ text: info.winnerName ? `🏆 Quán quân: ${info.winnerName}` : 'Chưa có quán quân' });
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply(toV2Payload([embed]));
         return;
       }
 
@@ -518,7 +519,7 @@ export default class TongMonCommand extends Command {
         }
         const embed = new EmbedBuilder()
           .setTitle('🤝 Liên Minh Tông Môn')
-          .setColor('#3498db')
+          .setColor(EMBED_COLORS.INFO)
           .setDescription(`**${data.partnerSect.name}**`)
           .addFields(
             { name: '👑 Tông Chủ', value: data.partnerSect.master_name, inline: true },
@@ -526,7 +527,7 @@ export default class TongMonCommand extends Command {
             { name: '👥 Thành Viên', value: `${data.partnerSect.member_count}`, inline: true },
             { name: '📅 Kết Minh Từ', value: `<t:${data.alliance.formed_at}:R>` }
           );
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply(toV2Payload([embed]));
         return;
       }
 

@@ -8,6 +8,7 @@ const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const NineHeavensService_1 = require("../../services/NineHeavensService");
 const database_1 = __importDefault(require("../../database/database"));
+const uiSystem_1 = require("../../utils/uiSystem");
 class CuuTrungCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -59,10 +60,10 @@ class CuuTrungCommand extends Command_1.Command {
                         if (buyRes.success && buyRes.combatResult) {
                             const attachment = new discord_js_1.AttachmentBuilder(Buffer.from(buyRes.combatResult.log.join('\n'), 'utf-8'), { name: `cuutrung_tang_${nextFloor}.txt` });
                             const embed = new discord_js_1.EmbedBuilder()
-                                .setTitle(`⚔️ CHIẾN BÁO CỬU TRÙNG THÁP - TẦNG ${nextFloor} ⚔️`)
+                                .setTitle(`⚔️ CHIẾN BÁO CỬU TRÙNG THÁP - TẦNG ${nextFloor}`)
                                 .setTimestamp();
                             if (buyRes.combatResult.winner === 'player') {
-                                embed.setColor('#2ecc71')
+                                embed.setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                                     .setDescription((nextFloor === 5
                                     ? `💔 **TUYỆT CẢNH SINH TỬ!** Đạo hữu đã vượt qua thử thách với chỉ **1 HP** và đánh bại **${floorConfig.name}**! Một chiến tích hiếm có!\n\n`
                                     : nextFloor === 9
@@ -71,19 +72,14 @@ class CuuTrungCommand extends Command_1.Command {
                                     `${buyRes.rewardsLog}`);
                             }
                             else {
-                                embed.setColor('#e74c3c')
+                                embed.setColor(uiSystem_1.EMBED_COLORS.ERROR)
                                     .setDescription(nextFloor === 5
                                     ? `💔 **TUYỆT CẢNH SINH TỬ!** Chỉ với **1 HP**, đạo hữu đã không thể xoay chuyển tình thế trước **${floorConfig.name}** ở tầng ${nextFloor}.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`
                                     : nextFloor === 9
                                         ? `👑 **CỬU TRÙNG ĐỈNH!** Đạo hữu suýt chạm tới đỉnh cao nhưng đã gục ngã trước **${floorConfig.name}** ở tầng ${nextFloor}. Hãy tu luyện thêm và thử lại!`
                                         : `💀 **Bại trận!** Thần thức của đạo hữu đã bị trục xuất khỏi Cửu Trùng Tháp sau **${buyRes.combatResult.rounds}** hiệp đấu.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`);
                             }
-                            await i.editReply({
-                                content: `📖 Chi tiết trận chiến đã được gửi kèm trong tệp tin dưới đây:`,
-                                embeds: [embed],
-                                files: [attachment],
-                                components: []
-                            });
+                            await i.editReply({ ...(0, uiSystem_1.toV2Payload)([embed]), files: [attachment] });
                         }
                         else {
                             await i.editReply({ content: `❌ Có lỗi xảy ra: ${buyRes.message}`, components: [] });
@@ -106,7 +102,7 @@ class CuuTrungCommand extends Command_1.Command {
                     .setTitle(`⚔️ CHIẾN BÁO CỬU TRÙNG THÁP - TẦNG ${nextFloor} ⚔️`)
                     .setTimestamp();
                 if (res.combatResult.winner === 'player') {
-                    embed.setColor('#2ecc71')
+                    embed.setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                         .setDescription((nextFloor === 5
                         ? `💔 **TUYỆT CẢNH SINH TỬ!** Đạo hữu đã vượt qua thử thách với chỉ **1 HP** và đánh bại **${floorConfig.name}**! Một chiến tích hiếm có!\n\n`
                         : nextFloor === 9
@@ -115,7 +111,7 @@ class CuuTrungCommand extends Command_1.Command {
                         `${res.rewardsLog}`);
                 }
                 else {
-                    embed.setColor('#e74c3c')
+                    embed.setColor(uiSystem_1.EMBED_COLORS.ERROR)
                         .setDescription(nextFloor === 5
                         ? `💔 **TUYỆT CẢNH SINH TỬ!** Chỉ với **1 HP**, đạo hữu đã không thể xoay chuyển tình thế trước **${floorConfig.name}** ở tầng ${nextFloor}.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`
                         : nextFloor === 9
@@ -134,7 +130,7 @@ class CuuTrungCommand extends Command_1.Command {
             const progress = NineHeavensService_1.nineHeavensService.getProgress(userId);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🏰 TRẠNG THÁI CỬU TRÙNG THÁP')
-                .setColor('#e67e22')
+                .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
                 .setTimestamp()
                 .setDescription(`Hồ sơ khiêu chiến tháp thần của đạo hữu:\n\n` +
                 `• Tầng cao nhất đã vượt: **Tầng ${progress.highest_floor}/9**\n` +
@@ -183,7 +179,7 @@ class CuuTrungCommand extends Command_1.Command {
                 statsStr = '*Chưa vượt qua tầng nào để nhận thuộc tính vĩnh viễn.*';
             }
             embed.addFields({ name: '🌟 Chỉ Số Tẩy Tủy Nhận Được (Vĩnh viễn)', value: statsStr });
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         // ───────────────── BẢNG XẾP HẠNG LEO THÁP ─────────────────
         else if (sub === 'bangxephang') {
@@ -196,7 +192,7 @@ class CuuTrungCommand extends Command_1.Command {
       `).all();
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🏆 CỬU TRÙNG THÁP BẢNG')
-                .setColor('#f1c40f')
+                .setColor(uiSystem_1.EMBED_COLORS.GOLD)
                 .setTimestamp();
             let desc = '';
             if (topPlayers.length > 0) {
@@ -209,7 +205,7 @@ class CuuTrungCommand extends Command_1.Command {
                 desc = '*Chưa có đạo hữu nào ghi tên lên bia đá.*';
             }
             embed.setDescription(desc);
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
     }
 }

@@ -1,5 +1,6 @@
 import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, User } from 'discord.js';
 import { Command } from '../../structures/Command';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import { TuTienClient } from '../../client/TuTienClient';
 import { tradeService } from '../../services/TradeService';
 import { userRepository } from '../../database/repositories/UserRepository';
@@ -69,7 +70,7 @@ export default class TradeCommand extends Command {
       
       const ui = tradeService.renderTradeUI(res.tradeId!);
       if (ui) {
-        await interaction.editReply({ content: `<@${targetUser.id}>, đạo hữu <@${userId}> muốn giao dịch với bạn!`, embeds: ui.embeds, components: ui.components });
+        await interaction.editReply({ content: `<@${targetUser.id}>, đạo hữu <@${userId}> muốn giao dịch với bạn!`, ...toV2Payload(ui.embeds, ui.components) });
       } else {
         await interaction.editReply({ content: `✅ Đã gửi yêu cầu giao dịch đến ${targetUser.username}.` });
       }
@@ -127,7 +128,7 @@ export default class TradeCommand extends Command {
     if (sub === 'hienthi') {
       const ui = tradeService.renderTradeUI(tradeId);
       if (ui) {
-        await interaction.editReply({ embeds: ui.embeds, components: ui.components });
+        await interaction.editReply(toV2Payload(ui.embeds, ui.components ));
       } else {
         await interaction.editReply({ content: '❌ Giao dịch đã kết thúc hoặc bị hủy.' });
       }
@@ -150,7 +151,7 @@ export default class TradeCommand extends Command {
   private async updateTradeUI(interaction: ChatInputCommandInteraction, tradeId: string) {
     const ui = tradeService.renderTradeUI(tradeId);
     if (ui) {
-      await interaction.editReply({ embeds: ui.embeds, components: ui.components });
+      await interaction.editReply(toV2Payload(ui.embeds, ui.components ));
     } else {
       await interaction.editReply({ content: 'Giao dịch đã kết thúc.' });
     }

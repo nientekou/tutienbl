@@ -1,4 +1,5 @@
-import { ButtonInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { ButtonInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import { casinoCooldowns, MIN_BET } from '../../commands/general/casino';
 import { casinoService } from '../../services/CasinoService';
 import { userRepository } from '../../database/repositories/UserRepository';
@@ -14,13 +15,13 @@ export class CasinoInteractionHandler {
     const lastActive = casinoCooldowns.get(targetUserId) || 0;
     if (now - lastActive < 8000) {
       const remaining = Math.ceil((8000 - (now - lastActive)) / 1000);
-      await interaction.reply({ content: `⏳ Chờ **${remaining}** giây!`, ephemeral: true });
+      await interaction.reply({ content: `⏳ Chờ **${remaining}** giây!`, flags: MessageFlags.Ephemeral });
       return;
     }
 
     const user = userRepository.get(targetUserId);
     if (!user) {
-      await interaction.reply({ content: '❌ Chưa tạo nhân vật!', ephemeral: true });
+      await interaction.reply({ content: '❌ Chưa tạo nhân vật!', flags: MessageFlags.Ephemeral });
       return;
     }
 
@@ -46,12 +47,12 @@ export class CasinoInteractionHandler {
       const result = await runCasinoGame(targetUserId, subcommand, bet, choice);
 
       if (!result.success) {
-        await interaction.followUp({ content: `❌ ${result.message}`, ephemeral: true });
+        await interaction.followUp({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
         return;
       }
 
       const row = getCasinoButtons(subcommand, bet, choice, targetUserId);
-      await interaction.editReply({ embeds: [result.embed!], components: row ? [row] : [] });
+      await interaction.editReply(toV2Payload([result.embed!], row ? [row] : [] ));
       return;
     }
 
@@ -65,7 +66,7 @@ export class CasinoInteractionHandler {
         const choice = parts[2];
 
         if (bet > 200000) {
-          await interaction.reply({ content: `❌ Vượt quá hạn mức tối đa!`, ephemeral: true });
+          await interaction.reply({ content: `❌ Vượt quá hạn mức tối đa!`, flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -76,12 +77,12 @@ export class CasinoInteractionHandler {
         const result = await runCasinoGame(targetUserId, subcommand, bet, choice);
 
         if (!result.success) {
-          await interaction.followUp({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.followUp({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
         const row = getCasinoButtons(subcommand, bet, choice, targetUserId);
-        await interaction.editReply({ embeds: [result.embed!], components: row ? [row] : [] });
+        await interaction.editReply(toV2Payload([result.embed!], row ? [row] : [] ));
         return;
       }
 
@@ -93,7 +94,7 @@ export class CasinoInteractionHandler {
         const maxBet = casinoService.getMaxBetForLevel(user.level);
 
         if (bet > maxBet) {
-          await interaction.reply({ content: `❌ Vượt quá hạn mức **${maxBet.toLocaleString()} LT** theo cảnh giới của đạo hữu!`, ephemeral: true });
+          await interaction.reply({ content: `❌ Vượt quá hạn mức **${maxBet.toLocaleString()} LT** theo cảnh giới của đạo hữu!`, flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -114,13 +115,13 @@ export class CasinoInteractionHandler {
 
         const result = casinoService.playSicBo(targetUserId, bet, betType, choice);
         if (!result.success) {
-          await interaction.followUp({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.followUp({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
         const embed = buildSicBoEmbed(result, user.level);
         const row = buildSicBoButtons(rawChoice, bet, user.level, targetUserId);
-        await interaction.editReply({ embeds: [embed], components: row ? [row] : [] });
+        await interaction.editReply(toV2Payload([embed], row ? [row] : [] ));
         return;
       }
 
@@ -131,7 +132,7 @@ export class CasinoInteractionHandler {
         const maxBet = casinoService.getMaxBetForLevel(user.level);
 
         if (bet > maxBet) {
-          await interaction.reply({ content: `❌ Vượt quá hạn mức **${maxBet.toLocaleString()} LT**!`, ephemeral: true });
+          await interaction.reply({ content: `❌ Vượt quá hạn mức **${maxBet.toLocaleString()} LT**!`, flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -140,7 +141,7 @@ export class CasinoInteractionHandler {
 
         const result = casinoService.playBlackjack(targetUserId, bet);
         if (!result.success) {
-          await interaction.followUp({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.followUp({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -156,7 +157,7 @@ export class CasinoInteractionHandler {
             .setStyle(ButtonStyle.Success)
             .setDisabled(bet * 2 > maxBet)
         );
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        await interaction.editReply(toV2Payload([embed], [row] ));
         return;
       }
     }
@@ -186,13 +187,13 @@ export class CasinoInteractionHandler {
 
         const result = casinoService.playSicBo(targetUserId, bet, betType, choice);
         if (!result.success) {
-          await interaction.followUp({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.followUp({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
         const embed = buildSicBoEmbed(result, user.level);
         const row = buildSicBoButtons(rawChoice, bet, user.level, targetUserId);
-        await interaction.editReply({ embeds: [embed], components: row ? [row] : [] });
+        await interaction.editReply(toV2Payload([embed], row ? [row] : [] ));
         return;
       }
 
@@ -204,7 +205,7 @@ export class CasinoInteractionHandler {
 
         const result = casinoService.playBlackjack(targetUserId, bet);
         if (!result.success) {
-          await interaction.followUp({ content: `❌ ${result.message}`, ephemeral: true });
+          await interaction.followUp({ content: `❌ ${result.message}`, flags: MessageFlags.Ephemeral });
           return;
         }
 
@@ -221,12 +222,12 @@ export class CasinoInteractionHandler {
             .setStyle(ButtonStyle.Success)
             .setDisabled(bet * 2 > maxBet)
         );
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        await interaction.editReply(toV2Payload([embed], [row] ));
         return;
       }
     }
 
-    await interaction.reply({ content: '❌ Hành động không hợp lệ!', ephemeral: true });
+    await interaction.reply({ content: '❌ Hành động không hợp lệ!', flags: MessageFlags.Ephemeral });
   }
 }
 

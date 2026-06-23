@@ -12,6 +12,7 @@ const CultivationService_1 = require("../../services/CultivationService");
 const database_1 = __importDefault(require("../../database/database"));
 const config_1 = require("../../config");
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 /**
  * ID Discord của Bot Owner — người DUY NHẤT được phép dùng lệnh /admin
  * Không phân quyền qua guild admin roles để tránh mất cân bằng game
@@ -58,6 +59,17 @@ class AdminCommand extends Command_1.Command {
             .addIntegerOption(option => option
             .setName('amount')
             .setDescription('Số lượng KNB phát (có thể âm để trừ).')
+            .setRequired(true)))
+            .addSubcommand(subcommand => subcommand
+            .setName('givent')
+            .setDescription('[Owner Only] Phát Ngộ Tính cho tu sĩ.')
+            .addUserOption(option => option
+            .setName('tuser')
+            .setDescription('Tu sĩ nhận Ngộ Tính.')
+            .setRequired(true))
+            .addIntegerOption(option => option
+            .setName('amount')
+            .setDescription('Số lượng Ngộ Tính phát (có thể âm để trừ).')
             .setRequired(true)))
             .addSubcommand(subcommand => subcommand
             .setName('setlevel')
@@ -222,11 +234,11 @@ class AdminCommand extends Command_1.Command {
                 const uptimeStr = `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`;
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('⚙️ THIÊN ĐẠO HỆ THỐNG — THÔNG TIN VẬN HÀNH')
-                    .setColor('#9b59b6')
+                    .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
                     .addFields({ name: '🤖 Bot', value: `Tag: **${client.user?.tag}**\nUptime: **${uptimeStr}**\nGuilds: **${guilds}**`, inline: true }, { name: '👥 Tu Sĩ', value: `Tổng: **${totalPlayers}** người\nTông Môn: **${totalSects}**\nVật phẩm: **${totalItems}**`, inline: true }, { name: '🏆 Cao Thủ Nhất', value: topPlayer ? `**${topPlayer.name}** (Cấp ${topPlayer.level})` : 'Chưa có', inline: true }, { name: '🛠️ Bảo Trì', value: maintenanceMode ? '🔴 **ĐANG BẢO TRÌ**' : '🟢 **HOẠT ĐỘNG BÌNH THƯỜNG**', inline: true }, { name: '💾 Memory', value: `Heap: **${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB**`, inline: true })
                     .setFooter({ text: `Chỉ dành cho Thiên Đạo Chủ • ID: ${BOT_OWNER_ID}` })
                     .setTimestamp();
-                await interaction.editReply({ embeds: [embed] });
+                await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             }
             catch (error) {
                 await interaction.editReply({ content: `❌ Lỗi khi lấy thông tin hệ thống: ${error}` });
@@ -368,6 +380,32 @@ class AdminCommand extends Command_1.Command {
             });
             return;
         }
+        // ─── PHÁT NGỘ TÍNH ──────────────────────────────────────────
+        if (subcommand === 'givent') {
+            const targetUser = interaction.options.getUser('tuser', true);
+            const amount = interaction.options.getInteger('amount', true);
+            const targetProfile = UserRepository_1.userRepository.get(targetUser.id);
+            if (!targetProfile) {
+                await interaction.editReply({
+                    content: `❌ Tu sĩ <@${targetUser.id}> chưa khởi tạo nhân vật trong hệ thống.`
+                });
+                return;
+            }
+            const currentNT = targetProfile.ngotinh || 0;
+            const newNT = Math.max(0, currentNT + amount);
+            UserRepository_1.userRepository.update(targetUser.id, {
+                ngotinh: newNT
+            });
+            SystemConfigService_1.systemConfigService.writeAuditLog(userId, 'admin_givent', {
+                targetUserId: targetUser.id,
+                targetName: targetProfile.name,
+                amount
+            });
+            await interaction.editReply({
+                content: `💡 **Ngộ Tính:** Đã điều chỉnh **${amount.toLocaleString()} NT** cho tu sĩ **${targetProfile.name}** (<@${targetUser.id}>)!\n✨ Số dư mới: **${newNT.toLocaleString()}** NT.`
+            });
+            return;
+        }
         // ─── GỌI LỮ KHÁCH THẦN BÍ ──────────────────────────────────
         if (subcommand === 'spawntraveler') {
             const guildId = interaction.guildId;
@@ -400,7 +438,7 @@ class AdminCommand extends Command_1.Command {
         if (subcommand === 'panel') {
             const embed = await AdminCommand.getPanelEmbed(client);
             const components = AdminCommand.getPanelComponents(userId);
-            await interaction.editReply({ embeds: [embed], components });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
             return;
         }
         if (subcommand === 'ban') {
@@ -489,7 +527,7 @@ class AdminCommand extends Command_1.Command {
             const logs = database_1.default.prepare(query).all(...params);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('📜 NHẬT KÝ AUDIT THIÊN ĐẠO')
-                .setColor('#e67e22')
+                .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
                 .setDescription(logs.length === 0
                 ? 'Không tìm thấy nhật ký audit tương ứng với điều kiện lọc.'
                 : logs
@@ -509,7 +547,7 @@ class AdminCommand extends Command_1.Command {
                 })
                     .join('\n'))
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         if (subcommand === 'broadcast') {
@@ -614,7 +652,7 @@ class AdminCommand extends Command_1.Command {
             // Xác nhận khôi phục
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('⚠️ THIÊN ĐẠO HỒI QUY — XÁC NHẬN KHÔI PHỤC')
-                .setColor('#e74c3c')
+                .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription(`Đạo hữu đang yêu cầu khôi phục tam giới về thời điểm **${hours} giờ ${minutes} phút trước**.\n\n` +
                 `📂 **Bản sao lưu phù hợp nhất tìm thấy:**\n` +
                 `• Tên tệp: \`${closestBackup.filename}\`\n` +
@@ -635,7 +673,7 @@ class AdminCommand extends Command_1.Command {
                 .setLabel('❌ Hủy Bỏ')
                 .setStyle(discord_js_1.ButtonStyle.Secondary);
             const row = new discord_js_1.ActionRowBuilder().addComponents(confirmButton, cancelButton);
-            await interaction.editReply({ embeds: [embed], components: [row] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
             return;
         }
         if (subcommand === 'fixpets') {
@@ -653,10 +691,10 @@ class AdminCommand extends Command_1.Command {
             if (totalAnomalies === 0) {
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('✅ FIX PETS — KHÔNG CÓ LỖI')
-                    .setColor('#2ecc71')
+                    .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                     .setDescription('Hệ thống không phát hiện bất thường nào với dữ liệu linh thú.')
                     .setTimestamp();
-                await interaction.editReply({ embeds: [embed] });
+                await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
                 return;
             }
             // Chi tiết skill thừa
@@ -696,7 +734,7 @@ class AdminCommand extends Command_1.Command {
             }
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`🔍 FIX PETS — PHÁT HIỆN ${totalAnomalies} BẤT THƯỜNG`)
-                .setColor('#f39c12')
+                .setColor(uiSystem_1.EMBED_COLORS.WARNING)
                 .setDescription('Đây là kết quả quét tự động. Chọn hành động bên dưới để xử lý.')
                 .setTimestamp();
             if (overSkilledPets.length > 0) {
@@ -739,7 +777,7 @@ class AdminCommand extends Command_1.Command {
                     .setStyle(discord_js_1.ButtonStyle.Secondary));
                 components.push(cancelRow);
             }
-            await interaction.editReply({ embeds: [embed], components });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
             return;
         }
         // ─── KIỂM TRA VẬT PHẨM BẤT THƯỜNG (ORPHAN ITEMS) ──────────
@@ -773,15 +811,15 @@ class AdminCommand extends Command_1.Command {
             if (totalAnomalies === 0) {
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('✅ CHECK ORPHAN ITEMS — KHÔNG CÓ LỖI')
-                    .setColor('#2ecc71')
+                    .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                     .setDescription('Hệ thống không phát hiện bất thường nào với dữ liệu vật phẩm trong túi đồ.')
                     .setTimestamp();
-                await interaction.editReply({ embeds: [embed] });
+                await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
                 return;
             }
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`🔍 CHECK ORPHAN ITEMS — PHÁT HIỆN ${totalAnomalies} BẤT THƯỜNG`)
-                .setColor('#f39c12')
+                .setColor(uiSystem_1.EMBED_COLORS.WARNING)
                 .setDescription('Đây là kết quả quét tự động. Chọn hành động bên dưới để xử lý.')
                 .setTimestamp();
             // Chi tiết item không tồn tại trong bảng items
@@ -829,7 +867,7 @@ class AdminCommand extends Command_1.Command {
                     .setStyle(discord_js_1.ButtonStyle.Secondary));
                 components.push(deleteRow);
             }
-            await interaction.editReply({ embeds: [embed], components });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
             return;
         }
         if (subcommand === 'checkstats') {
@@ -880,7 +918,7 @@ class AdminCommand extends Command_1.Command {
                 currentStats.speed * 10 + currentStats.dodge * 1000) : 0;
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`🔍 Kiểm Tra Chỉ Số: ${targetUser.name}`)
-                .setColor('#3498db')
+                .setColor(uiSystem_1.EMBED_COLORS.INFO)
                 .setDescription(`**👤 Nhân Vật:** ${targetUser.name} (ID: ${targetId})\n` +
                 `**📊 Level:** ${targetUser.level} | **Cảnh Giới:** ${(0, constants_1.getRealmDetails)(targetUser.level).realmName}\n\n` +
                 `**💪 Chỉ Số Tổng:**\n` +
@@ -895,7 +933,7 @@ class AdminCommand extends Command_1.Command {
                 `**🎒 Trang Bị Đang Đeo (${totalEquipped}/${totalItems}物品):**\n` +
                 (equipDetails || '*Không có trang bị*'))
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
     }
@@ -924,7 +962,7 @@ class AdminCommand extends Command_1.Command {
         const doubleExpActive = eventService.isDoubleExpActive();
         return new discord_js_1.EmbedBuilder()
             .setTitle('⚙️ THIÊN ĐẠO PANEL — TRUNG TÂM QUẢN TRỊ')
-            .setColor('#8e44ad')
+            .setColor(uiSystem_1.EMBED_COLORS.DARK_PURPLE)
             .setDescription(`Chào mừng **Thiên Đạo Chủ** trở lại. Bảng điều khiển này cung cấp khả năng can thiệp trực tiếp vào đại trận vận hành tam giới.\n\n` +
             `🤖 **Trạng Thái Bot:**\n` +
             `• Tag: **${client.user?.tag}**\n` +
@@ -981,6 +1019,9 @@ class AdminCommand extends Command_1.Command {
             .setStyle(discord_js_1.ButtonStyle.Success), new discord_js_1.ButtonBuilder()
             .setCustomId(`adminpanel_backupmgr_${adminId}`)
             .setLabel('🗄️ Quản Lý Backup')
+            .setStyle(discord_js_1.ButtonStyle.Secondary), new discord_js_1.ButtonBuilder()
+            .setCustomId(`adminpanel_testmax_${adminId}`)
+            .setLabel('🧪 Test Max')
             .setStyle(discord_js_1.ButtonStyle.Danger));
         return [row1, row2, row3];
     }
@@ -989,7 +1030,7 @@ class AdminCommand extends Command_1.Command {
         if (!user) {
             return new discord_js_1.EmbedBuilder()
                 .setTitle('❌ Không tìm thấy tu sĩ')
-                .setColor('#e74c3c')
+                .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription(`Không tìm thấy nhân vật của tu sĩ có ID: \`${targetUserId}\`.`);
         }
         const inventoryCount = database_1.default.prepare('SELECT COUNT(*) as c FROM inventories WHERE user_id = ?').get(targetUserId)?.c || 0;
@@ -1009,7 +1050,7 @@ class AdminCommand extends Command_1.Command {
         }
         return new discord_js_1.EmbedBuilder()
             .setTitle(`👤 HỒ SƠ TU SĨ — ĐẠO HỮU: ${user.name}`)
-            .setColor(banInfo ? '#e74c3c' : '#3498db')
+            .setColor(banInfo ? uiSystem_1.EMBED_COLORS.ERROR : uiSystem_1.EMBED_COLORS.INFO)
             .setDescription(`Đang xem thông tin quản trị của tu sĩ <@${targetUserId}> (ID: \`${targetUserId}\`):\n\n` +
             `⚠️ **Trạng thái:** ${statusText}\n` +
             `🩹 **Chấn thương:** ${injuryText}\n\n` +
@@ -1078,7 +1119,7 @@ class AdminCommand extends Command_1.Command {
             if (subAction === 'refresh') {
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
-                await interaction.update({ embeds: [embed], components });
+                await interaction.update((0, uiSystem_1.toV2Update)([embed], components));
             }
             else if (subAction === 'maintenance') {
                 const currentMode = SystemConfigService_1.systemConfigService.isMaintenanceMode();
@@ -1087,11 +1128,7 @@ class AdminCommand extends Command_1.Command {
                 SystemConfigService_1.systemConfigService.writeAuditLog(adminId, 'admin_maintenance', { status: nextMode });
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
-                await interaction.update({
-                    content: `🛠️ **Đại Trận Bảo Trì:** Đã ${nextMode ? '🔴 BẬT' : '🟢 TẮT'}!`,
-                    embeds: [embed],
-                    components
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
             }
             else if (subAction === 'spawntraveler') {
                 const guildId = interaction.guildId;
@@ -1116,18 +1153,10 @@ class AdminCommand extends Command_1.Command {
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
                 if (success) {
-                    await interaction.update({
-                        content: `✅ Triệu hồi Lữ Khách Thần Bí thành công tại <#${targetChannelId}>!`,
-                        embeds: [embed],
-                        components
-                    });
+                    await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
                 }
                 else {
-                    await interaction.update({
-                        content: '❌ Lỗi khi triệu hồi Lữ Khách Thần Bí.',
-                        embeds: [embed],
-                        components
-                    });
+                    await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
                 }
             }
             else if (subAction === 'spawnboss') {
@@ -1163,11 +1192,7 @@ class AdminCommand extends Command_1.Command {
                 SystemConfigService_1.systemConfigService.writeAuditLog(adminId, 'admin_killboss', { bossLevel: boss.level });
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
-                await interaction.update({
-                    content: `💀 **Lệnh Thiên Đạo:** Đã kết liễu Boss Thế Giới cấp **${boss.level}** và kết toán phát thưởng thành công!`,
-                    embeds: [embed],
-                    components
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
             }
             else if (subAction === 'searchuser') {
                 const modal = new discord_js_1.ModalBuilder()
@@ -1201,11 +1226,7 @@ class AdminCommand extends Command_1.Command {
                 SystemConfigService_1.systemConfigService.writeAuditLog(adminId, 'admin_resetweekly', { affectedUsers: count });
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
-                await interaction.update({
-                    content: `✅ Đã đặt lại giới hạn mua hàng tuần của **${count}** tu sĩ thành công!`,
-                    embeds: [embed],
-                    components
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
             }
             else if (subAction === 'dbcleanup') {
                 const { dataCleanupService } = require('../../services/DataCleanupService');
@@ -1220,11 +1241,7 @@ class AdminCommand extends Command_1.Command {
                         `• ${stats.marketListings} tin đăng Vạn Bảo Lâu\n` +
                         `• ${stats.dungeons} bản ghi cooldown bí cảnh`;
                 }
-                await interaction.update({
-                    content: repContent,
-                    embeds: [embed],
-                    components
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
             }
             else if (subAction === 'doubleexp') {
                 const { eventService } = require('../../services/EventService');
@@ -1233,17 +1250,13 @@ class AdminCommand extends Command_1.Command {
                 SystemConfigService_1.systemConfigService.writeAuditLog(adminId, 'admin_doubleexp', { status: nextMode });
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
-                await interaction.update({
-                    content: `⚡ **Sự Kiện Nhân Đôi EXP:** Đã ${nextMode ? '🔴 BẬT' : '🟢 TẮT'}!`,
-                    embeds: [embed],
-                    components
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
             }
             else if (subAction === 'auditlog') {
                 const logs = database_1.default.prepare('SELECT * FROM audit_logs ORDER BY id DESC LIMIT 10').all();
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('📜 NHẬT KÝ AUDIT THIÊN ĐẠO')
-                    .setColor('#e67e22')
+                    .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
                     .setDescription(logs.length === 0
                     ? 'Không có lịch sử nhật ký vận hành.'
                     : logs.map(l => {
@@ -1259,7 +1272,7 @@ class AdminCommand extends Command_1.Command {
                     .setCustomId(`adminuser_back_null_${adminId}`)
                     .setLabel('🔙 Quay Lại Panel')
                     .setStyle(discord_js_1.ButtonStyle.Secondary));
-                await interaction.update({ content: '', embeds: [embed], components: [row] });
+                await interaction.update((0, uiSystem_1.toV2Update)([embed], [row], interaction));
             }
             else if (subAction === 'broadcast') {
                 const modal = new discord_js_1.ModalBuilder()
@@ -1303,7 +1316,7 @@ class AdminCommand extends Command_1.Command {
                 catch (e) { }
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('🗄️ QUẢN TRỊ SAO LƯU & PHỤC HỒI HỆ THỐNG')
-                    .setColor('#c0392b')
+                    .setColor(uiSystem_1.EMBED_COLORS.ALERT)
                     .setDescription(`Trung tâm quản lý các bản sao lưu SQLite Database. Đạo hữu có thể khôi phục (rollback) dữ liệu tu sĩ tại đây.\n\n` +
                     `📂 **Cơ Sở Dữ Liệu Hiện Tại:**\n` +
                     `• Đường dẫn: \`${configPath}\`\n` +
@@ -1336,7 +1349,7 @@ class AdminCommand extends Command_1.Command {
                     .setLabel('🔙 Quay Lại Panel')
                     .setStyle(discord_js_1.ButtonStyle.Secondary));
                 rows.push(buttonsRow);
-                await interaction.update({ content: '', embeds: [embed], components: rows });
+                await interaction.update((0, uiSystem_1.toV2Update)([embed], rows, interaction));
             }
             else if (subAction === 'createbackup') {
                 const { backupService } = require('../../services/BackupService');
@@ -1352,7 +1365,7 @@ class AdminCommand extends Command_1.Command {
                 catch (e) { }
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('🗄️ QUẢN TRỊ SAO LƯU & PHỤC HỒI HỆ THỐNG')
-                    .setColor('#c0392b')
+                    .setColor(uiSystem_1.EMBED_COLORS.ALERT)
                     .setDescription(`✅ **Đã tạo sao lưu thủ công thành công!**\n\n` +
                     `📂 **Cơ Sở Dữ Liệu Hiện Tại:**\n` +
                     `• Đường dẫn: \`${configPath}\`\n` +
@@ -1382,13 +1395,13 @@ class AdminCommand extends Command_1.Command {
                     .setLabel('🔙 Quay Lại Panel')
                     .setStyle(discord_js_1.ButtonStyle.Secondary));
                 rows.push(buttonsRow);
-                await interaction.update({ content: '', embeds: [embed], components: rows });
+                await interaction.update((0, uiSystem_1.toV2Update)([embed], rows, interaction));
             }
             else if (subAction === 'restoreselect' && interaction.isStringSelectMenu()) {
                 const selectedBackup = interaction.values[0];
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('⚠️ THIÊN ĐẠO HỒI QUY — XÁC NHẬN KHÔI PHỤC')
-                    .setColor('#e74c3c')
+                    .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                     .setDescription(`Đạo hữu đang yêu cầu khôi phục toàn bộ tam giới về phiên bản sao lưu:\n\n` +
                     `📂 **Tên tệp:** \`${selectedBackup}\`\n\n` +
                     `⚠️ **LƯU Ý QUAN TRỌNG:**\n` +
@@ -1406,17 +1419,84 @@ class AdminCommand extends Command_1.Command {
                     .setLabel('❌ Hủy Bỏ')
                     .setStyle(discord_js_1.ButtonStyle.Secondary);
                 const row = new discord_js_1.ActionRowBuilder().addComponents(confirmButton, cancelButton);
-                await interaction.update({ content: '', embeds: [embed], components: [row] });
+                await interaction.update((0, uiSystem_1.toV2Update)([embed], [row], interaction));
             }
             else if (subAction === 'confirmrestore') {
                 const backupFilename = parts.slice(2, -1).join('_');
-                await interaction.update({
-                    content: `🔄 **Đang thực hiện khôi phục dữ liệu từ: \`${backupFilename}\`...**\nBot sẽ tự động khởi động lại trong giây lát!`,
-                    embeds: [],
-                    components: []
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([], [], interaction));
                 const { backupService } = require('../../services/BackupService');
                 await backupService.rollbackToBackup(backupFilename, adminId);
+            }
+            else if (subAction === 'testmax') {
+                // Give admin max everything for testing
+                const adminUser = UserRepository_1.userRepository.get(adminId);
+                if (!adminUser) {
+                    await interaction.editReply({ content: '❌ Admin chưa tạo nhân vật!' });
+                    return;
+                }
+                UserRepository_1.userRepository.update(adminId, {
+                    level: 380,
+                    tu_vi: 0,
+                    exp_needed: 100,
+                    coin_ha_pham: 999999999,
+                    coin_trung_pham: 999999,
+                    coin_thuong_pham: 99999,
+                    knb: 99999,
+                    ngotinh: 9999,
+                    stamina: 99999,
+                    luan_hoi_count: 5,
+                    pvp_points: 9999,
+                    pvp_wins: 999
+                });
+                // Give max equipment (EX grade +15 5-star)
+                const { ITEMS } = require('../../config/itemConstants');
+                const maxItems = [
+                    { id: ITEMS.WEAPON_EX, name: 'EX Weapon' },
+                    { id: ITEMS.ARMOR_EX, name: 'EX Armor' }
+                ];
+                for (const item of maxItems) {
+                    if (item.id) {
+                        try {
+                            InventoryRepository_1.inventoryRepository.addItem(adminId, item.id, 1);
+                            const inv = database_1.default.prepare("SELECT id FROM inventories WHERE user_id = ? AND item_id = ? ORDER BY id DESC LIMIT 1").get(adminId, item.id);
+                            if (inv) {
+                                database_1.default.prepare("UPDATE inventories SET enhance_level = 15, stars = 5, durability = 100, max_durability = 100 WHERE id = ?").run(inv.id);
+                            }
+                        }
+                        catch (e) {
+                            console.error(`[testmax] Failed to add ${item.name} (${item.id}):`, e);
+                        }
+                    }
+                }
+                // Give common consumables
+                const consumables = [
+                    { id: ITEMS.PILL_HP_2, qty: 999 },
+                    { id: ITEMS.PILL_STAMINA_3, qty: 999 },
+                    { id: ITEMS.PILL_BREAK_1, qty: 999 },
+                    { id: ITEMS.LUCKY_CHEST, qty: 999 },
+                    { id: ITEMS.SERVER_RAID_CHEST, qty: 999 },
+                    { id: ITEMS.TINH_THACH_SHARD, qty: 999 }
+                ];
+                for (const c of consumables) {
+                    try {
+                        InventoryRepository_1.inventoryRepository.addItem(adminId, c.id, c.qty);
+                    }
+                    catch (e) {
+                        console.error(`[testmax] Failed to add ${c.id}:`, e);
+                    }
+                }
+                SystemConfigService_1.systemConfigService.writeAuditLog(adminId, 'admin_testmax', { targetUserId: adminId });
+                await interaction.reply({
+                    content: `🧪 **Test Max hoàn tất!**\n` +
+                        `• Level: 380 (Đăng Tiên)\n` +
+                        `• KNB: 99,999 | LT: 999,999,999\n` +
+                        `• Ngộ Tính: 9,999\n` +
+                        `• Equipment: EX +15 5-star\n` +
+                        `• Luân Hồi: 5 lần\n` +
+                        `• Tiêu hao: 999x mỗi loại`,
+                    ephemeral: true
+                });
+                return;
             }
         }
         else if (action === 'adminfixpets') {
@@ -1436,11 +1516,7 @@ class AdminCommand extends Command_1.Command {
                         fixedCount++;
                     }
                 }
-                await interaction.update({
-                    content: `✅ Đã sửa **${fixedCount}** linh thú có skill thừa (>2 skill).`,
-                    embeds: [],
-                    components: []
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([], [], interaction));
             }
             else if (subAction === 'delete') {
                 const brokenPets = database_1.default.prepare("SELECT * FROM pets WHERE name IS NULL OR name = '' OR rarity NOT IN ('common','uncommon','rare','epic','legendary') OR level < 0").all();
@@ -1458,18 +1534,10 @@ class AdminCommand extends Command_1.Command {
                     database_1.default.prepare('DELETE FROM pets WHERE id = ?').run(orphan.id);
                     deletedCount++;
                 }
-                await interaction.update({
-                    content: `✅ Đã xoá **${deletedCount}** linh thú lỗi/orphan (${brokenPets.length} lỗi data + ${orphanPets.length} orphan).`,
-                    embeds: [],
-                    components: []
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([], [], interaction));
             }
             else if (subAction === 'cancel') {
-                await interaction.update({
-                    content: '❌ Đã huỷ thao tác fix pets.',
-                    embeds: [],
-                    components: []
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([], [], interaction));
             }
         }
         // ─── XỬ LÝ BUTTON CHECK ORPHAN ITEMS ──────────────────────
@@ -1511,18 +1579,10 @@ class AdminCommand extends Command_1.Command {
                     invalidQty: invalidQty.length,
                     total: deletedCount
                 });
-                await interaction.update({
-                    content: `✅ Đã xoá **${deletedCount}** vật phẩm bất thường (${orphanItems.length} item không tồn tại + ${orphanByUser.length} user không tồn tại + ${invalidQty.length} quantity lỗi).`,
-                    embeds: [],
-                    components: []
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([], [], interaction));
             }
             else if (subAction === 'cancel') {
-                await interaction.update({
-                    content: '❌ Đã huỷ thao tác check orphan items.',
-                    embeds: [],
-                    components: []
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([], [], interaction));
             }
         }
         else if (action === 'adminuser') {
@@ -1530,7 +1590,7 @@ class AdminCommand extends Command_1.Command {
             if (subAction === 'back') {
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
-                await interaction.update({ content: '', embeds: [embed], components });
+                await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
             }
             else if (subAction === 'givecoin') {
                 const modal = new discord_js_1.ModalBuilder()
@@ -1627,11 +1687,7 @@ class AdminCommand extends Command_1.Command {
                 });
                 const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
                 const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-                await interaction.update({
-                    content: `🔓 Đã giải phóng phong ấn cho tu sĩ <@${targetUserId}> thành công!`,
-                    embeds: [userEmbed],
-                    components: userComponents
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
             }
             else if (subAction === 'giveknb') {
                 const modal = new discord_js_1.ModalBuilder()
@@ -1659,11 +1715,7 @@ class AdminCommand extends Command_1.Command {
                 });
                 const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
                 const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-                await interaction.update({
-                    content: `❤️ Đã trị thương thành công, phục hồi thể trạng khỏe mạnh cho tu sĩ **${targetProfile.name}**!`,
-                    embeds: [userEmbed],
-                    components: userComponents
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
             }
             else if (subAction === 'resetweekly') {
                 const targetProfile = UserRepository_1.userRepository.get(targetUserId);
@@ -1690,13 +1742,7 @@ class AdminCommand extends Command_1.Command {
                 });
                 const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
                 const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-                await interaction.update({
-                    content: resetDone
-                        ? `🔄 Đã reset giới hạn mua hàng tuần của tu sĩ **${targetProfile.name}** thành công!`
-                        : `⚠️ Tu sĩ **${targetProfile.name}** hiện chưa mua vật phẩm giới hạn tuần nào để reset.`,
-                    embeds: [userEmbed],
-                    components: userComponents
-                });
+                await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
             }
         }
     }
@@ -1730,11 +1776,7 @@ class AdminCommand extends Command_1.Command {
             await tempService.broadcastBossSpawn(client, updatedBoss);
             const panelEmbed = await AdminCommand.getPanelEmbed(client);
             const components = AdminCommand.getPanelComponents(adminId);
-            await interaction.update({
-                content: `👹 **Lệnh Thiên Đạo:** Đã triệu hồi Boss Thế Giới **Cấp ${level}** thành công!`,
-                embeds: [panelEmbed],
-                components
-            });
+            await interaction.update((0, uiSystem_1.toV2Update)([panelEmbed], components, interaction));
         }
         else if (subAction === 'searchuser') {
             const targetUserId = interaction.fields.getTextInputValue('target_user_id').trim();
@@ -1745,11 +1787,7 @@ class AdminCommand extends Command_1.Command {
             }
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update({
-                content: '',
-                embeds: [userEmbed],
-                components: userComponents
-            });
+            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
         }
         else if (subAction === 'givecoin') {
             const targetUserId = parts[3];
@@ -1774,11 +1812,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update({
-                content: `🪙 Đã ban phát **${amount.toLocaleString()} Linh Thạch** cho tu sĩ **${targetProfile.name}**!`,
-                embeds: [userEmbed],
-                components: userComponents
-            });
+            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
         }
         else if (subAction === 'giveknb') {
             const targetUserId = parts[3];
@@ -1803,11 +1837,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update({
-                content: `💎 Đã điều chỉnh **${amount.toLocaleString()} KNB** cho tu sĩ **${targetProfile.name}**!`,
-                embeds: [userEmbed],
-                components: userComponents
-            });
+            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
         }
         else if (subAction === 'giveitem') {
             const targetUserId = parts[3];
@@ -1838,11 +1868,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update({
-                content: `🎁 Đã phát **${qty}x ${itemCheck.name}** cho tu sĩ **${targetProfile.name}**!`,
-                embeds: [userEmbed],
-                components: userComponents
-            });
+            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
         }
         else if (subAction === 'setlevel') {
             const targetUserId = parts[3];
@@ -1880,11 +1906,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update({
-                content: `⚡ Đã cập nhật cảnh giới tu sĩ **${targetProfile.name}** thành **Cấp ${targetLevel}**!`,
-                embeds: [userEmbed],
-                components: userComponents
-            });
+            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
         }
         else if (subAction === 'editlinhcan') {
             const targetUserId = parts[3];
@@ -1911,11 +1933,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update({
-                content: `🧬 Đã cập nhật Linh Căn cho tu sĩ **${targetProfile.name}** thành công!`,
-                embeds: [userEmbed],
-                components: userComponents
-            });
+            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
         }
         else if (subAction === 'broadcast') {
             const title = interaction.fields.getTextInputValue('bc_title');
@@ -2020,11 +2038,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update({
-                content: `🔋 Đã điều chỉnh thể lực cho tu sĩ **${targetProfile.name}**:\n📈 Thay đổi: \`${amount >= 0 ? '+' : ''}${amount}\` thể lực (Mới: **${newStamina}/500**).`,
-                embeds: [userEmbed],
-                components: userComponents
-            });
+            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
         }
         else if (subAction === 'ban') {
             const targetUserId = parts[3];
@@ -2046,11 +2060,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update({
-                content: `🔒 Đã trục xuất linh hồn tu sĩ **${targetProfile.name}** khỏi tam giới!\n📝 Lý do: *${reason}*`,
-                embeds: [userEmbed],
-                components: userComponents
-            });
+            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
         }
     }
     async autocomplete(client, interaction) {

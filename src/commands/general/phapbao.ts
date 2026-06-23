@@ -7,6 +7,7 @@ import { soulWeaponService } from '../../services/SoulWeaponService';
 import { getRealmDetails, getProgressBar } from '../../utils/constants';
 import db from '../../database/database';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class PhapBaoCommand extends Command {
   constructor() {
@@ -51,7 +52,7 @@ export default class PhapBaoCommand extends Command {
     if (sub === 'banmenh') {
       const embed = getBanMenhEmbed(userId);
       const components = getBanMenhComponents(userId);
-      await interaction.editReply({ embeds: [embed], components });
+      await interaction.editReply(toV2Payload([embed], components));
       return;
     }
 
@@ -75,7 +76,7 @@ export default class PhapBaoCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle(`🛡️ PHÁP BẢO BẢN MỆNH: ${sw.name}`)
-        .setColor('#8e44ad')
+        .setColor(EMBED_COLORS.DARK_PURPLE)
         .setDescription(
           `🔮 **Phân Loại:** **${types[sw.type]}**\n` +
           `⭐ **Cấp Độ:** Cấp **${sw.level}**\n` +
@@ -85,7 +86,7 @@ export default class PhapBaoCommand extends Command {
         .setFooter({ text: 'Dùng lệnh /phapbao te-luyen <id,id...> để Pháp Bảo nuốt trang bị rác!' })
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
 
     } else if (sub === 'ngung-tu') {
       const sw = soulWeaponRepository.getByUserId(userId);
@@ -113,8 +114,8 @@ export default class PhapBaoCommand extends Command {
 
       const types: Record<string, string> = { kiem: '🗡️ Kiếm (Công, Bạo Kích)', dinh: '🛡️ Đỉnh (Máu, Thủ, Kháng Bạo)', an: '💠 Ấn (Máu, Tốc, Né)' };
       const embed = new EmbedBuilder()
-        .setTitle('🎉 NGƯNG TỤ PHÁP BẢO THÀNH CÔNG! 🎉')
-        .setColor('#8e44ad')
+        .setTitle('🎉 NGƯNG TỤ PHÁP BẢO THÀNH CÔNG!')
+        .setColor(EMBED_COLORS.DARK_PURPLE)
         .setDescription(
           `*Tinh huyết dung hợp, đất trời biến sắc, một luồng dị quang phóng thẳng lên chín tầng mây!*\n\n` +
           `Đạo hữu **${user.name}** đã ngưng tụ thành công Pháp Bảo Bản Mệnh:\n` +
@@ -125,7 +126,7 @@ export default class PhapBaoCommand extends Command {
         )
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
 
     } else if (sub === 'te-luyen') {
       const idsStr = interaction.options.getString('ids', true);
@@ -147,8 +148,8 @@ export default class PhapBaoCommand extends Command {
       const expBar = getProgressBar(sw.exp, sw.level >= 100 ? 1 : expNeeded);
 
       const embed = new EmbedBuilder()
-        .setTitle('🔥 TẾ LUYỆN PHÁP BẢO THÀNH CÔNG 🔥')
-        .setColor('#e67e22')
+        .setTitle('🔥 TẾ LUYỆN PHÁP BẢO THÀNH CÔNG')
+        .setColor(EMBED_COLORS.ORANGE)
         .setDescription(
           `Đạo hữu ném các vật phẩm thừa vào chân hỏa lò luyện, chắt lọc tinh túy dung hợp vào Pháp Bảo Bản Mệnh...\n\n` +
           `🛡️ **Pháp Bảo:** **${sw.name}**\n` +
@@ -158,7 +159,7 @@ export default class PhapBaoCommand extends Command {
         )
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
   }
 }
@@ -168,8 +169,8 @@ export function getBanMenhEmbed(userId: string): EmbedBuilder {
   const boundItem = db.prepare('SELECT * FROM inventories WHERE user_id = ? AND is_life_bound = 1').get(userId) as any;
 
   const embed = new EmbedBuilder()
-    .setTitle('🩸 BẢN MỆNH PHÁP BẢO - NGUYÊN THẦN LIÊN KẾT 🩸')
-    .setColor('#c0392b')
+    .setTitle('🩸 BẢN MỆNH PHÁP BẢO - NGUYÊN THẦN LIÊN KẾT')
+    .setColor(EMBED_COLORS.ALERT)
     .setTimestamp();
 
   if (!boundItem) {

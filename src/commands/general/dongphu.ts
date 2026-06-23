@@ -5,6 +5,7 @@ import { userRepository } from '../../database/repositories/UserRepository';
 import { caveService } from '../../services/CaveService';
 import { caveEnhancementService } from '../../services/CaveEnhancementService';
 import { getProgressBar } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 const CAVE_RANKS = [
   'Bình Thường',
@@ -32,7 +33,7 @@ export function buildDongPhuEmbed(userId: string): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle(`🏰 ĐỘNG PHỦ TIÊN GIA - ${user.name}`)
-    .setColor('#1abc9c')
+    .setColor(EMBED_COLORS.CAVE)
     .setDescription(
       `*Nơi tụ hội linh khí thiên địa, bồi đắp căn cơ và khai thác tiên thạch tự nhiên của tu sĩ.*\n\n` +
       `🏛️ **Phẩm cấp Động Phủ:** **Cấp ${cave.level} — ${rankName}**\n` +
@@ -154,7 +155,7 @@ export default class DongPhuCommand extends Command {
     if (sub === 'trangthai') {
       const embed = buildDongPhuEmbed(discordId);
       const components = buildDongPhuComponents(discordId);
-      await interaction.editReply({ embeds: [embed], components });
+      await interaction.editReply(toV2Payload([embed], components));
     }
 
     else if (sub === 'thuhoach') {

@@ -5,12 +5,13 @@ exports.getLuanHoiComponents = getLuanHoiComponents;
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
+const uiSystem_1 = require("../../utils/uiSystem");
 function getLuanHoiEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('🌌 LUÂN HỒI CHUYỂN THẾ')
-            .setColor('#d35400')
+            .setColor(uiSystem_1.EMBED_COLORS.REINCARNATION)
             .setDescription('Chưa khởi tạo nhân vật.');
     }
     const currentLuanHoi = user.luan_hoi_count || 0;
@@ -59,7 +60,7 @@ class LuanHoiCommand extends Command_1.Command {
         }
         const embed = getLuanHoiEmbed(discordId);
         const row = getLuanHoiComponents(discordId, user.level >= 380);
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
     }
 }
 exports.default = LuanHoiCommand;

@@ -8,6 +8,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { pvpService } from '../../services/PvPService';
 import { getRealmDetails } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class PvPBangXepHangCommand extends Command {
   constructor() {
@@ -47,8 +48,8 @@ export default class PvPBangXepHangCommand extends Command {
       const leaderboard = pvpService.getLeaderboard(10);
 
       const embed = new EmbedBuilder()
-        .setTitle('🏆 PHONG THẦN BẢNG - ĐẤU TRƯỜNG PVP 🏆')
-        .setColor('#f1c40f')
+        .setTitle('🏆 PHONG THẦN BẢNG - ĐẤU TRƯỜNG PVP')
+        .setColor(EMBED_COLORS.GOLD)
         .setDescription(
           `**Mùa giải:** #${season.season_number} | **Bắt đầu:** ${seasonStart}\n\n` +
           `Bảng xếp hạng những tu sĩ có thực lực chiến đấu PvP mạnh nhất tiên giới. Hãy tham gia quyết đấu để leo hạng và nhận thưởng cuối mùa!\n` +
@@ -73,7 +74,7 @@ export default class PvPBangXepHangCommand extends Command {
         embed.addFields({ name: '📊 Bảng Xếp Hạng', value: rankingText });
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
 
     else if (sub === 'thongtin') {
@@ -92,7 +93,7 @@ export default class PvPBangXepHangCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle(`⚔️ THÔNG TIN PVP - ${user.name}`)
-        .setColor('#9b59b6')
+        .setColor(EMBED_COLORS.MYSTIC)
         .setDescription(
           `**Cảnh giới:** ${fullName}\n` +
           `**Xếp hạng hiện tại:** ${rankText}\n` +
@@ -106,7 +107,7 @@ export default class PvPBangXepHangCommand extends Command {
         .setFooter({ text: `Mùa giải #${pvpService.getCurrentSeason().season_number}` })
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
   }
 }

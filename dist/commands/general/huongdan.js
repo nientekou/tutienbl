@@ -5,6 +5,7 @@ exports.buildHuongDanMenu = buildHuongDanMenu;
 exports.handleHuongDanSelect = handleHuongDanSelect;
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
+const uiSystem_1 = require("../../utils/uiSystem");
 const GUIDES = {
     batdau: {
         title: '🌱 BẮT ĐẦU TU TIÊN',
@@ -193,7 +194,7 @@ class HuongDanCommand extends Command_1.Command {
     async execute(client, interaction) {
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('📜 HƯỚNG DẪN TU TIÊN')
-            .setColor('#9b59b6')
+            .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
             .setDescription('Chào mừng đạo hữu đến với **Hệ Thống Tu Chân**!\n\n' +
             'Dưới đây là các chủ đề hướng dẫn, hãy chọn từ menu thả xuống để xem chi tiết.\n\n' +
             '🌱 **Bắt Đầu Tu Tiên** — Tạo nhân vật, làm quen giao diện\n' +
@@ -210,7 +211,7 @@ class HuongDanCommand extends Command_1.Command {
             .setCustomId(`huongdan_${interaction.user.id}`)
             .setPlaceholder('📖 Chọn chủ đề hướng dẫn...')
             .addOptions(new discord_js_1.StringSelectMenuOptionBuilder().setLabel('🌱 Bắt Đầu Tu Tiên').setValue('batdau').setDescription('Tạo nhân vật, các bước đầu tiên'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('⛏️ Làm Việc & Kiếm Tài Nguyên').setValue('lamviec').setDescription('Công việc hàng ngày, thủ thuật'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('⚔️ Chiến Đấu & PvP').setValue('chientran').setDescription('Săn quái, boss, bí cảnh, quyết đấu'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('🛡️ Trang Bị & Cường Hóa').setValue('trangbi').setDescription('Trang bị, nâng sao, chế tạo, khí linh'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('🪙 Kinh Tế & Tài Nguyên').setValue('taimat').setDescription('Tiền tệ, giao dịch, linh điền'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('🌟 Nâng Cao & Đặc Biệt').setValue('nangcao').setDescription('Ý cảnh, luân hồi, tông môn, tọa kỵ'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('☯️ Ngũ Hành Linh Căn').setValue('linhcan').setDescription('Tôi luyện, phân phẩm và thiên phú chiến đấu'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('⚙️ Hệ Thống & Mẹo').setValue('vanhanh').setDescription('Lệnh tiện ích, mẹo hàng ngày')));
-        await interaction.editReply({ embeds: [embed], components: [menu] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [menu]));
     }
 }
 exports.default = HuongDanCommand;
@@ -219,7 +220,7 @@ function getHuongDanEmbed(topic) {
     if (!guide) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('📜 HƯỚNG DẪN TU TIÊN')
-            .setColor('#9b59b6')
+            .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
             .setDescription('Chủ đề không tồn tại. Vui lòng chọn từ menu bên dưới.');
     }
     return new discord_js_1.EmbedBuilder()
@@ -239,5 +240,5 @@ async function handleHuongDanSelect(interaction) {
     const topic = interaction.values[0];
     const embed = getHuongDanEmbed(topic);
     const menu = buildHuongDanMenu(interaction.user.id);
-    await interaction.update({ embeds: [embed], components: [menu] });
+    await interaction.update((0, uiSystem_1.toV2Update)([embed], [menu]));
 }

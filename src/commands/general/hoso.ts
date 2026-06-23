@@ -3,6 +3,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository, UserEntity } from '../../database/repositories/UserRepository';
 import { getRealmDetails, getProgressBar, formatLinhCan, formatNumber, formatStatDiff } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload, type EmbedColor } from '../../utils/uiSystem';
 import { inventoryRepository, InventoryItem } from '../../database/repositories/InventoryRepository';
 import { achievementService } from '../../services/AchievementService';
 import { inventoryService, ActiveStats } from '../../services/InventoryService';
@@ -110,7 +111,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
 
   const embed = new EmbedBuilder()
     .setTitle(`🔮 HỒ SƠ TU SĨ - ${user.name}`)
-    .setColor('#8a2be2')
+    .setColor(EMBED_COLORS.PRIMARY)
     .setDescription(
       `*${greeting}*\n\n` +
       `👤 **Đạo hiệu:** **${user.name}**\n` +
@@ -127,11 +128,11 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
       {
         name: '✨ Trạng Thái',
         value: [
-          `📜 Cảnh giới: **${realmInfo.fullName}**`,
-          `🎭 Đạo Thống: **${alignmentStr}**`,
-          `🧘 Ngộ Tính: **${user.ngotinh}**`,
-          `⚡ Thể Lực: **${user.stamina}/500**`,
-          `🍀 May Mắn: **${user.base_luck}**`,
+          `Cảnh giới: **${realmInfo.fullName}**`,
+          `Đạo Thống: **${alignmentStr}**`,
+          `Ngộ Tính: **${user.ngotinh}**`,
+          `Thể Lực: **${user.stamina}/500**`,
+          `May Mắn: **${user.base_luck}**`,
         ].join('\n'),
         inline: true,
       },
@@ -173,13 +174,13 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
     embed.spliceFields(0, 0, {
       name: '📊 Chỉ Số Chiến Đấu (Cơ Bản → Kèm Đồ)',
       value: [
-        `❤️ **Sinh Mệnh (HP):** ${formatStatDiff(user.base_hp, activeStats.hp)}`,
-        `🌀 **Pháp Lực (MP):** ${formatStatDiff(user.base_mp, activeStats.mp)}`,
-        `⚔️ **Tấn Công (ATK):** ${formatStatDiff(user.base_atk, activeStats.atk)}`,
-        `🛡️ **Phòng Ngự (DEF):** ${formatStatDiff(user.base_def, activeStats.def)}`,
-        `💥 **Bạo Kích (CRIT):** ${formatStatDiff(Math.round(user.base_crit * 1000) / 10, Math.round(activeStats.crit * 1000) / 10, '%')} | 🛡️ **Kháng Bạo:** ${formatStatDiff(Math.round(user.base_crit_res * 1000) / 10, Math.round(activeStats.critRes * 1000) / 10, '%')}`,
-        `⚡ **Tốc Độ (SPD):** ${formatStatDiff(user.base_speed ?? 100, activeStats.speed)} | 🌀 **Né Tránh:** ${formatStatDiff(Math.round((user.base_dodge ?? 0.05) * 1000) / 10, Math.round(activeStats.dodge * 1000) / 10, '%')}`,
-        `🍀 **May Mắn (LUCK):** ${formatStatDiff(user.base_luck, activeStats.luck)}`,
+        `**Sinh Mệnh (HP):** ${formatStatDiff(user.base_hp, activeStats.hp)}`,
+        `**Pháp Lực (MP):** ${formatStatDiff(user.base_mp, activeStats.mp)}`,
+        `**Tấn Công (ATK):** ${formatStatDiff(user.base_atk, activeStats.atk)}`,
+        `**Phòng Ngự (DEF):** ${formatStatDiff(user.base_def, activeStats.def)}`,
+        `**Bạo Kích (CRIT):** ${formatStatDiff(Math.round(user.base_crit * 1000) / 10, Math.round(activeStats.crit * 1000) / 10, '%')} | **Kháng Bạo:** ${formatStatDiff(Math.round(user.base_crit_res * 1000) / 10, Math.round(activeStats.critRes * 1000) / 10, '%')}`,
+        `**Tốc Độ (SPD):** ${formatStatDiff(user.base_speed ?? 100, activeStats.speed)} | **Né Tránh:** ${formatStatDiff(Math.round((user.base_dodge ?? 0.05) * 1000) / 10, Math.round(activeStats.dodge * 1000) / 10, '%')}`,
+        `**May Mắn (LUCK):** ${formatStatDiff(user.base_luck, activeStats.luck)}`,
       ].join('\n'),
       inline: false,
     });
@@ -187,11 +188,11 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
     embed.spliceFields(0, 0, {
       name: '📊 Chỉ Số Chiến Đấu Cơ Bản',
       value: [
-        `❤️ **Sinh Mệnh (HP):** **${formatNumber(user.base_hp)}** | 🌀 **Pháp Lực (MP):** **${formatNumber(user.base_mp)}**`,
-        `⚔️ **Tấn Công (ATK):** **${formatNumber(user.base_atk)}** | 🛡️ **Phòng Ngự (DEF):** **${formatNumber(user.base_def)}**`,
-        `💥 **Bạo Kích (CRIT):** **${(user.base_crit * 100).toFixed(1)}%** | 🛡️ **Kháng Bạo:** **${(user.base_crit_res * 100).toFixed(1)}%**`,
-        `⚡ **Tốc Độ (SPD):** **${speed}** | 🌀 **Né Tránh:** **${(dodge * 100).toFixed(1)}%**`,
-        `🍀 **May Mắn (LUCK):** **${user.base_luck}**`,
+        `**Sinh Mệnh (HP):** **${formatNumber(user.base_hp)}** | **Pháp Lực (MP):** **${formatNumber(user.base_mp)}**`,
+        `**Tấn Công (ATK):** **${formatNumber(user.base_atk)}** | **Phòng Ngự (DEF):** **${formatNumber(user.base_def)}**`,
+        `**Bạo Kích (CRIT):** **${(user.base_crit * 100).toFixed(1)}%** | **Kháng Bạo:** **${(user.base_crit_res * 100).toFixed(1)}%**`,
+        `**Tốc Độ (SPD):** **${speed}** | **Né Tránh:** **${(dodge * 100).toFixed(1)}%**`,
+        `**May Mắn (LUCK):** **${user.base_luck}**`,
       ].join('\n'),
       inline: false,
     });
@@ -227,7 +228,7 @@ function getTaiSanTabEmbed(user: UserEntity): EmbedBuilder {
 
   return new EmbedBuilder()
     .setTitle(`🪙 TÀI SẢN - ${user.name}`)
-    .setColor('#f1c40f')
+    .setColor(EMBED_COLORS.GOLD)
     .setDescription(`*Tổng tài sản quy đổi:* 💰 **${formatNumber(totalWealth)}** Hạ Phẩm Linh Thạch`)
     .addFields(
       {
@@ -300,7 +301,7 @@ function getChienTichTabEmbed(user: UserEntity): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle(`🏆 CHIẾN TÍCH - ${user.name}`)
-    .setColor('#e74c3c')
+    .setColor(EMBED_COLORS.ERROR)
     .setDescription(`*Hành trình tu đạo của* **${user.name}** *qua những con số*`)
     .addFields(
       {
@@ -358,7 +359,7 @@ function getTrangBiTabEmbed(user: UserEntity): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle(`⚔️ TRANG BỊ - ${user.name}`)
-    .setColor('#8e44ad')
+    .setColor(EMBED_COLORS.DARK_PURPLE)
     .setDescription('*Các trang bị đang mặc trên người:*')
     .setTimestamp();
 
@@ -407,7 +408,7 @@ function getLinhThuTabEmbed(user: UserEntity): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle(`🐉 LINH THÚ & HUYẾT MẠCH - ${user.name}`)
-    .setColor('#2ecc71')
+    .setColor(EMBED_COLORS.SUCCESS)
     .setDescription('*Các linh thú, tọa kỵ, khí linh và huyết mạch đang đồng hành cùng đạo hữu*')
     .setTimestamp();
 
@@ -538,7 +539,7 @@ function getSoMenhTabEmbed(user: UserEntity): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle(`📜 SỐ MỆNH & KỲ DUYÊN - ${user.name}`)
-    .setColor('#34495e')
+    .setColor(EMBED_COLORS.DARK)
     .setDescription(`*Định mệnh đã an bài, hay do tự tay ngươi xoay chuyển?*`)
     .addFields(
       {
@@ -744,7 +745,7 @@ export function getInventoryEmbed(userId: string, page: number): { embed: EmbedB
 
   const embed = new EmbedBuilder()
     .setTitle(`💼 HÀNH TRANG (Trang ${cappedPage}/${totalPages})`)
-    .setColor('#f1c40f')
+    .setColor(EMBED_COLORS.GOLD)
     .setDescription(description)
     .setFooter({ text: 'Dùng Mã (ID số) cho tất cả lệnh: /dung, /thanhly, /trade, /cuonghoa, /trangbi, /suachua, /khilinh, /loren, /vanbaolau, /dungkynang' })
     .setTimestamp();
@@ -852,7 +853,7 @@ export default class HoSoCommand extends Command {
     }
 
     const rows = getHoSoAllComponents(discordId, 'chiso');
-    await interaction.editReply({ embeds: [embed], components: rows });
+    await interaction.editReply(toV2Payload([embed], rows));
   }
 }
 
@@ -876,7 +877,7 @@ export function getHoSoTabEmbed(userId: string, tab: HoSoTab): EmbedBuilder {
     case 'bangxephang': {
       const embed = new EmbedBuilder()
         .setTitle('👑 Bảng Phong Thần')
-        .setColor(0xFFD700)
+        .setColor(EMBED_COLORS.GOLD) // ponytail: gold hex, keep numeric for BXH
         .setDescription('*Chọn một danh mục bên dưới để xem bảng xếp hạng.*\n\nDữ liệu được cập nhật mỗi **5 phút**.\n\n📋 **Các danh mục:**\n⚔️ Lực Chiến\n🌀 Cảnh Giới\n🪙 Tài Sản\n🏛️ Cống Hiến Tông Môn')
         .setFooter({ text: 'Sử dụng các nút bên dưới để chuyển danh mục.' })
         .setTimestamp();

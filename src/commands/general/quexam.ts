@@ -1,5 +1,6 @@
 import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import { TuTienClient } from '../../client/TuTienClient';
 import { minigameService } from '../../services/MinigameService';
 import { getProgressBar } from '../../utils/constants';
@@ -80,7 +81,7 @@ export default class QueXamCommand extends Command {
     const userLuckBar = getProgressBar(result.userLuck!, 30, 10);
 
     const embed = new EmbedBuilder()
-      .setTitle(`🔮 ĐẠO PHÁP CHIÊM BỐC - QUẺ XĂM HÀNG NGÀY 🔮`)
+      .setTitle(`🔮 ĐẠO PHÁP CHIÊM BỐC - QUẺ XĂM HÀNG NGÀY`)
       .setColor(color as any)
       .setDescription(
         `☯️ **Vận Số Hôm Nay:**\n## **${result.title}**\n` +
@@ -114,6 +115,6 @@ export default class QueXamCommand extends Command {
       .setFooter({ text: 'Mỗi ngày đạo hữu chỉ được rút xăm một lần duy nhất!' })
       .setTimestamp();
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 }

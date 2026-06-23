@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.broadcastService = void 0;
 const discord_js_1 = require("discord.js");
 const database_1 = __importDefault(require("../database/database"));
+const uiSystem_1 = require("../utils/uiSystem");
 class BroadcastService {
     /**
      * Gửi thông báo đến kênh #thông-báo của server
@@ -33,7 +34,7 @@ class BroadcastService {
     async announceMarriage(client, guildId, user1Name, user2Name) {
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('💞 Đạo Lữ Kết Duyên')
-            .setColor('#ff69b4')
+            .setColor(uiSystem_1.EMBED_COLORS.ROMANCE)
             .setDescription(`Chúc mừng **${user1Name}** và **${user2Name}** đã chính thức kết thành Đạo Lữ! Thiên địa chứng giám, âm dương hòa hợp.`)
             .setTimestamp();
         await this.broadcast(client, guildId, embed);
@@ -49,7 +50,7 @@ class BroadcastService {
         };
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle(labels[days] || `🎊 ${days} Ngày Kỷ Niệm`)
-            .setColor('#ffd700')
+            .setColor(uiSystem_1.EMBED_COLORS.GOLD)
             .setDescription(`Cặp đôi **${user1Name}** & **${user2Name}** đã bên nhau trọn **${days} ngày**! Chúc mừng hạnh phúc viên mãn!`)
             .setTimestamp();
         await this.broadcast(client, guildId, embed);
@@ -60,7 +61,7 @@ class BroadcastService {
     async announceGraduation(client, guildId, mentorName, apprenticeName) {
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('🎓 Đệ Tử Tốt Nghiệp')
-            .setColor('#00ff88')
+            .setColor(uiSystem_1.EMBED_COLORS.LIME)
             .setDescription(`Chúc mừng **${apprenticeName}** đã tốt nghiệp dưới sự dẫn dắt của **${mentorName}**! Môn hạ xuất sư, tiền đồ rộng mở!`)
             .setTimestamp();
         await this.broadcast(client, guildId, embed);
@@ -71,7 +72,7 @@ class BroadcastService {
     async announceBossDefeated(client, guildId, bossName, killerName) {
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('🐉 Boss Thế Giới Đã Bị Tiêu Diệt!')
-            .setColor('#ff0000')
+            .setColor(uiSystem_1.EMBED_COLORS.RED)
             .setDescription(`**${bossName}** đã bị đánh bại bởi **${killerName}**! Toàn server nhận thưởng!`)
             .setTimestamp();
         await this.broadcast(client, guildId, embed);

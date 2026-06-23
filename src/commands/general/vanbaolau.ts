@@ -5,6 +5,7 @@ import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { marketService } from '../../services/MarketService';
 import { leylineService } from '../../services/LeylineService';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import db from '../../database/database';
 
 export default class VanBaoLauCommand extends Command {
@@ -180,7 +181,7 @@ export default class VanBaoLauCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setTitle('🏪 VẠN BẢO LÂU - SÀN GIAO DỊCH & ĐẤU GIÁ 🏪')
-      .setColor('#e67e22')
+      .setColor(EMBED_COLORS.ORANGE)
       .setDescription('Nơi giao lưu vật phẩm & đấu giá giữa các tu sĩ. Mọi giao dịch chịu 2% thuế (tối thiểu theo cảnh giới, tối đa 20 tin/ngày).\nDùng `/vanbaolau tim` để tìm kiếm nâng cao.')
       .setTimestamp();
 
@@ -208,7 +209,7 @@ export default class VanBaoLauCommand extends Command {
     }
 
     embed.setFooter({ text: 'Dùng /vanbaolau daugia để tạo đấu giá, /vanbaolau datgia để đặt giá.' });
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 
   private async handleBan(interaction: ChatInputCommandInteraction, userId: string, user: any): Promise<void> {
@@ -260,13 +261,13 @@ export default class VanBaoLauCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setTitle('🔨 PHIÊN ĐẤU GIÁ MỚI')
-      .setColor('#f39c12')
+      .setColor(EMBED_COLORS.WARNING)
       .setDescription(result.message)
       .addFields({ name: 'Mã tin', value: `\`#${result.listingId}\``, inline: true })
       .setFooter({ text: 'Dùng /vanbaolau datgia để đặt giá!' })
       .setTimestamp();
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 
   private async handleDatGia(interaction: ChatInputCommandInteraction, userId: string, user: any): Promise<void> {
@@ -302,7 +303,7 @@ export default class VanBaoLauCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setTitle(`🔍 KẾT QUẢ TÌM KIẾM: ${query || 'Tất cả'}${type ? ` (${type})` : ''}`)
-      .setColor('#3498db')
+      .setColor(EMBED_COLORS.INFO)
       .setDescription(`Tìm thấy **${result.totalCount}** kết quả`)
       .setTimestamp();
 
@@ -349,7 +350,7 @@ export default class VanBaoLauCommand extends Command {
     }
 
     embed.setFooter({ text: 'Dùng /vanbaolau mua hoặc /vanbaolau datgia để giao dịch.' });
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 
   private async handleYeuThich(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
@@ -366,7 +367,7 @@ export default class VanBaoLauCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle('🔔 DANH SÁCH YÊU THÍCH - VẠN BẢO LÂU')
-        .setColor('#e74c3c')
+        .setColor(EMBED_COLORS.ERROR)
         .setDescription('Theo dõi các vật phẩm mong muốn. Khi có tin đăng phù hợp, bạn sẽ được thông báo!')
         .setTimestamp();
 
@@ -381,7 +382,7 @@ export default class VanBaoLauCommand extends Command {
         embed.addFields({ name: `📋 Danh sách (${entries.length} mục)`, value: text });
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     } else if (action === 'them') {
       const inventoryId = interaction.options.getInteger('inventory_id');
       if (!inventoryId) { await interaction.editReply({ content: '❌ Cần nhập ID vật phẩm trong hành trang!'}); return; }
@@ -404,7 +405,7 @@ export default class VanBaoLauCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setTitle('📜 LỊCH SỬ GIAO DỊCH VẠN BẢO LÂU')
-      .setColor('#9b59b6')
+      .setColor(EMBED_COLORS.MYSTIC)
       .setTimestamp();
 
     if (history.length === 0) {
@@ -419,7 +420,7 @@ export default class VanBaoLauCommand extends Command {
       embed.setDescription(text);
     }
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 
   private async handleAutoBid(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
@@ -460,7 +461,7 @@ export default class VanBaoLauCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setTitle('📋 ỦY THÁC THU MUA')
-      .setColor('#3498db')
+      .setColor(EMBED_COLORS.INFO)
       .setTimestamp();
 
     if (orders.length === 0) {
@@ -474,6 +475,6 @@ export default class VanBaoLauCommand extends Command {
       embed.setDescription(text);
     }
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 }

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.achievementService = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
+const SystemConfigService_1 = require("./SystemConfigService");
 class AchievementService {
     /**
      * Lấy thông tin một thành tựu
@@ -71,6 +72,7 @@ class AchievementService {
         if (!user)
             return [];
         const newlyUnlocked = [];
+        const pendingAuditLogs = [];
         const tx = database_1.default.transaction(() => {
             // Lấy hoặc tạo bản ghi user_achievement
             let ua = database_1.default.prepare('SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = ?').get(userId, achievementId);
@@ -93,7 +95,7 @@ class AchievementService {
                 if (ua.completed_at === null) {
                     const now = Math.floor(Date.now() / 1000);
                     database_1.default.prepare('UPDATE user_achievements SET completed_at = ? WHERE user_id = ? AND achievement_id = ?').run(now, userId, achievementId);
-                    this.awardReward(userId, achievement, now);
+                    this.awardReward(userId, achievement, now, pendingAuditLogs);
                     newlyUnlocked.push(achievement);
                 }
                 return;
@@ -106,16 +108,20 @@ class AchievementService {
                 const now = Math.floor(Date.now() / 1000);
                 database_1.default.prepare('UPDATE user_achievements SET is_completed = 1, completed_at = ? WHERE user_id = ? AND achievement_id = ?').run(now, userId, achievementId);
                 // Trao thưởng
-                this.awardReward(userId, achievement, now);
+                this.awardReward(userId, achievement, now, pendingAuditLogs);
                 newlyUnlocked.push(achievement);
             }
         })();
+        // Ghi audit log SAU khi transaction commit — tránh SQLITE_BUSY
+        for (const log of pendingAuditLogs) {
+            SystemConfigService_1.systemConfigService.writeAuditLog(userId, log.action, log.details);
+        }
         return newlyUnlocked;
     }
     /**
      * Trao thưởng khi hoàn thành thành tựu
      */
-    awardReward(userId, achievement, timestamp) {
+    awardReward(userId, achievement, timestamp, pendingAuditLogs) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
             return;
@@ -145,15 +151,20 @@ class AchievementService {
                 }
             }
         }
-        // Ghi audit log
-        const { systemConfigService } = require('./SystemConfigService');
-        systemConfigService.writeAuditLog(userId, 'achievement_unlocked', {
+        // Ghi audit log (deferred nếu có transaction)
+        const auditDetails = {
             achievementId: achievement.id,
             name: achievement.name,
             rewardExp: achievement.reward_exp,
             rewardCoins: achievement.reward_coins,
             rewardTitle: achievement.reward_title
-        });
+        };
+        if (pendingAuditLogs) {
+            pendingAuditLogs.push({ action: 'achievement_unlocked', details: auditDetails });
+        }
+        else {
+            SystemConfigService_1.systemConfigService.writeAuditLog(userId, 'achievement_unlocked', auditDetails);
+        }
     }
     /**
      * Đặt danh hiệu (title) hiện tại cho người dùng

@@ -14,6 +14,7 @@ const BloodlineService_1 = require("./BloodlineService");
 const LeylineService_1 = require("./LeylineService");
 const dungeons_1 = require("../config/dungeons");
 const CombatEngine_1 = require("./CombatEngine");
+const AutoBalanceService_1 = require("./AutoBalanceService");
 const itemConstants_1 = require("../config/itemConstants");
 // Biến dùng để gửi log về durability (dùng trong narrative)
 const durabilityAlertThreshold = 30;
@@ -59,7 +60,7 @@ class CombatService {
             if (elapsed >= respawnCooldown) {
                 // Hồi sinh boss ở Level tiếp theo
                 const nextLevel = boss.level + 1;
-                const newMaxHp = Math.round(5000 * Math.pow(1.3, nextLevel - 1));
+                const newMaxHp = Math.round(5000 * Math.pow(1.2, nextLevel - 1));
                 const newAtk = Math.round(80 * Math.pow(1.15, nextLevel - 1));
                 const newDef = Math.round(50 * Math.pow(1.15, nextLevel - 1));
                 database_1.default.prepare(`
@@ -574,16 +575,18 @@ class CombatService {
             userId: userId,
             level: user.level
         };
+        // Auto-balance PvE: boss scale theo player power
+        const pveScale = AutoBalanceService_1.autoBalanceService.getPvEScaleFactor(userId);
         const enemyCombatant = {
             name: boss.name,
-            hp: boss.hp,
-            maxHp: boss.max_hp,
-            atk: boss.atk,
-            def: boss.def,
+            hp: Math.round(boss.hp * pveScale),
+            maxHp: Math.round(boss.max_hp * pveScale),
+            atk: Math.round(boss.atk * pveScale),
+            def: Math.round(boss.def * pveScale),
             crit: boss.crit,
             critRes: boss.critRes,
             luck: 20,
-            element: 'Hỏa', // Mặc định Boss thế giới hệ Hỏa
+            element: 'Hỏa',
             level: boss.level
         };
         // Khiêu chiến tối đa 15 hiệp với World Boss để giới hạn sát thương mỗi lượt
@@ -592,7 +595,15 @@ class CombatService {
         if (playerCombatant.bloodline && playerCombatant.bloodline.rage_cooldown > 0) {
             BloodlineService_1.bloodlineService.updateRageCooldown(userId, playerCombatant.bloodline.rage_cooldown);
         }
-        const damageDealt = combatResult.totalDamageDealt;
+        let damageDealt = combatResult.totalDamageDealt;
+        // Catch-up buff: player yếu được +50% damage nếu ATK < boss DEF * 0.5
+        const pAtk = playerCombatant.atk;
+        if (pAtk < enemyCombatant.def * 0.5) {
+            damageDealt = Math.round(damageDealt * 1.5);
+        }
+        // Minimum damage: mỗi player gây ít nhất 0.5% HP boss
+        const minDamage = Math.round(boss.max_hp * 0.005);
+        damageDealt = Math.max(minDamage, damageDealt);
         const newBossHp = Math.max(0, boss.hp - damageDealt);
         const isDefeated = newBossHp <= 0;
         // Cập nhật HP của World Boss
@@ -717,73 +728,75 @@ class CombatService {
             }
             if (!pUser)
                 continue;
-            // Thưởng cơ bản cho tất cả người tham gia
-            let gainedExp = 300 * rewardLevelFactor;
-            let gainedCoins = 100 * rewardLevelFactor;
+            // Thưởng cơ bản cho tất cả người tham gia (tăng base để ai cũng có lợi)
+            let gainedExp = 600 * rewardLevelFactor;
+            let gainedCoins = 240 * rewardLevelFactor;
             let gainedKnb = 0;
             const itemsGained = [];
             // Bonus theo % đóng góp (từ 0% đến 100% của base)
             const dmgPercent = totalDamage > 0 ? p.damage / totalDamage : 0;
-            gainedExp += Math.round(200 * rewardLevelFactor * dmgPercent);
-            gainedCoins += Math.round(100 * rewardLevelFactor * dmgPercent);
-            // Phân chia theo hạng đóng góp
+            gainedExp += Math.round(360 * rewardLevelFactor * dmgPercent);
+            gainedCoins += Math.round(180 * rewardLevelFactor * dmgPercent);
+            // Phân chia theo hạng đóng góp (thu hẹp gap, top vẫn hơn nhưng không bỏ xa)
             if (i === 0) { // Top 1
-                gainedExp += 800 * rewardLevelFactor;
-                gainedCoins += 400 * rewardLevelFactor;
-                gainedKnb = Math.min(5 + Math.floor(rewardLevelFactor / 2), 15);
+                gainedExp += 360 * rewardLevelFactor;
+                gainedCoins += 180 * rewardLevelFactor;
+                gainedKnb = Math.min(2 + Math.floor(rewardLevelFactor / 5), 7);
                 itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.SERVER_RAID_CHEST, quantity: 1 });
                 itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.LUCKY_CHEST, quantity: 1 });
-                itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.PILL_BREAK_1, quantity: 2 });
-                itemsGained.push('1x Rương Boss Thế Giới', '1x Rương Cơ Duyên', '2x Trúc Cơ Đan');
+                itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.PILL_BREAK_1, quantity: 1 });
+                itemsGained.push('1x Rương Boss Thế Giới', '1x Rương Cơ Duyên', '1x Trúc Cơ Đan');
             }
             else if (i === 1) { // Top 2
-                gainedExp += 400 * rewardLevelFactor;
-                gainedCoins += 200 * rewardLevelFactor;
-                gainedKnb = Math.min(3 + Math.floor(rewardLevelFactor / 4), 8);
-                itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.LUCKY_CHEST, quantity: 1 });
-                itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.PILL_BREAK_1, quantity: 1 });
-                itemsGained.push('1x Rương Cơ Duyên', '1x Trúc Cơ Đan');
-            }
-            else if (i === 2) { // Top 3
-                gainedExp += 200 * rewardLevelFactor;
-                gainedCoins += 100 * rewardLevelFactor;
+                gainedExp += 240 * rewardLevelFactor;
+                gainedCoins += 120 * rewardLevelFactor;
                 gainedKnb = Math.min(1 + Math.floor(rewardLevelFactor / 6), 4);
                 itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.LUCKY_CHEST, quantity: 1 });
                 itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.PILL_BREAK_1, quantity: 1 });
                 itemsGained.push('1x Rương Cơ Duyên', '1x Trúc Cơ Đan');
             }
+            else if (i === 2) { // Top 3
+                gainedExp += 180 * rewardLevelFactor;
+                gainedCoins += 90 * rewardLevelFactor;
+                gainedKnb = Math.min(1 + Math.floor(rewardLevelFactor / 8), 3);
+                itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.LUCKY_CHEST, quantity: 1 });
+                itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.PILL_BREAK_1, quantity: 1 });
+                itemsGained.push('1x Rương Cơ Duyên', '1x Trúc Cơ Đan');
+            }
             else if (i <= 5) { // Top 4-5
-                gainedExp += 100 * rewardLevelFactor;
-                gainedCoins += 50 * rewardLevelFactor;
-                gainedKnb = 1;
-                if (Math.random() < 0.4) {
+                gainedExp += 120 * rewardLevelFactor;
+                gainedCoins += 60 * rewardLevelFactor;
+                if (Math.random() < 0.5)
+                    gainedKnb = 1;
+                if (Math.random() < 0.5) {
                     itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.LUCKY_CHEST, quantity: 1 });
                     itemsGained.push('1x Rương Cơ Duyên');
                 }
             }
             else if (i <= 10) { // Top 6-10
-                gainedExp += 50 * rewardLevelFactor;
-                gainedCoins += 25 * rewardLevelFactor;
-                if (Math.random() < 0.25) {
+                gainedExp += 60 * rewardLevelFactor;
+                gainedCoins += 30 * rewardLevelFactor;
+                if (Math.random() < 0.35) {
                     itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.LUCKY_CHEST, quantity: 1 });
                     itemsGained.push('1x Rương Cơ Duyên');
                 }
             }
             else {
-                // Top 11+: vẫn nhận reward cơ bản + 15% rương
-                if (Math.random() < 0.15) {
+                // Top 11+: vẫn nhận thêm ít phần thưởng + 25% rương
+                gainedExp += 30 * rewardLevelFactor;
+                gainedCoins += 12 * rewardLevelFactor;
+                if (Math.random() < 0.25) {
                     itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.LUCKY_CHEST, quantity: 1 });
                     itemsGained.push('1x Rương Cơ Duyên');
                 }
             }
             // Thưởng kết liễu (Last Hit)
             if (p.user_id === finalBlowerId) {
-                gainedCoins += 200 * rewardLevelFactor;
-                const lastHitKnb = Math.min(2 + Math.floor(rewardLevelFactor / 4), 6);
+                gainedCoins += 120 * rewardLevelFactor;
+                const lastHitKnb = Math.min(1 + Math.floor(rewardLevelFactor / 8), 3);
                 gainedKnb += lastHitKnb;
                 itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.SERVER_RAID_CHEST, quantity: 1 });
-                itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.PILL_BREAK_1, quantity: 1 });
-                itemsGained.push('1x Rương Boss Thế Giới (Trảm Sát ⚡)', '1x Trúc Cơ Đan');
+                itemsGained.push('1x Rương Boss Thế Giới (Trảm Sát ⚡)');
             }
             // Cập nhật tu vi, coin và KNB
             try {

@@ -7,6 +7,7 @@ const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const database_1 = __importDefault(require("../../database/database"));
+const uiSystem_1 = require("../../utils/uiSystem");
 const SKILL_DETAILS = {
     skill_fire: { name: 'Liệt Diễm Quyết 🔥', element: 'Hỏa', desc: 'Thiêu đốt đối thủ gây 20% công kích sát thương phép mỗi lượt và áp dụng trạng thái hỏa phế trong 2 hiệp.' },
     skill_water: { name: 'Thủy Linh Quyết 💧', element: 'Thủy', desc: 'Thủy triều gột rửa cơ thể, hồi phục 12% sinh lực tối đa.' },
@@ -56,7 +57,7 @@ class KyNangCommand extends Command_1.Command {
             const skills = database_1.default.prepare('SELECT * FROM user_skills WHERE user_id = ?').all(userId);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`📖 TÀNG BÍ THƯ KỸ NĂNG - ${user.name}`)
-                .setColor('#8e44ad')
+                .setColor(uiSystem_1.EMBED_COLORS.DARK_PURPLE)
                 .setDescription('Kỹ năng tu chân thức tỉnh linh căn nguyên thủy giúp đạo hữu xoay chuyển càn khôn trong combat.')
                 .setTimestamp();
             const slots = { 1: 'Trống 🚫', 2: 'Trống 🚫', 3: 'Trống 🚫' };
@@ -78,7 +79,7 @@ class KyNangCommand extends Command_1.Command {
                 value: learnedList.length > 0 ? learnedList.join('\n') : '*Đạo hữu chưa học pháp thuật nào. Hãy mua bí tịch tại `/shopkynang`!*',
                 inline: false
             });
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         if (sub === 'trangbi') {

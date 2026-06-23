@@ -4,20 +4,21 @@ exports.ProfileInteractionHandler = void 0;
 const discord_js_1 = require("discord.js");
 const hoso_1 = require("../../commands/general/hoso");
 const LeaderboardService_1 = require("../../services/LeaderboardService");
+const uiSystem_1 = require("../../utils/uiSystem");
 class ProfileInteractionHandler {
     static async handle(interaction, action, parts, targetUserId) {
         if (action === 'hosotab') {
             const tabName = parts[1];
             const embed = (0, hoso_1.getHoSoTabEmbed)(targetUserId, tabName);
             const components = (0, hoso_1.getHoSoAllComponents)(targetUserId, tabName);
-            await interaction.update({ embeds: [embed], components });
+            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
             return;
         }
         // Nút quay lại hồ sơ từ các menu khác (như tẩy tủy, lôi kiếp)
         if (action === 'hosoback') {
             const embed = (0, hoso_1.getHoSoTabEmbed)(targetUserId, 'chiso');
             const components = (0, hoso_1.getHoSoAllComponents)(targetUserId, 'chiso');
-            await interaction.update({ embeds: [embed], components });
+            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
             return;
         }
         // Nút chuyển danh mục Bảng Phong Thần
@@ -25,7 +26,7 @@ class ProfileInteractionHandler {
             const lbType = parts[1]; // combatPower, realm, wealth, sectContribution
             const embed = getLeaderboardEmbed(targetUserId, lbType);
             const components = (0, hoso_1.getHoSoAllComponents)(targetUserId, 'bangxephang');
-            await interaction.update({ embeds: [embed], components });
+            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
             return;
         }
     }
@@ -40,7 +41,7 @@ function getLeaderboardEmbed(userId, subType) {
     };
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle('👑 Bảng Phong Thần')
-        .setColor(0xFFD700)
+        .setColor(uiSystem_1.EMBED_COLORS.GOLD)
         .setTimestamp();
     const typeMap = {
         combatPower: (l) => LeaderboardService_1.leaderboardService.getTopCombatPower(l || 15),

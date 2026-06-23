@@ -1,6 +1,7 @@
 import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, StringSelectMenuInteraction } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
+import { EMBED_COLORS, toV2Payload, toV2Update } from '../../utils/uiSystem';
 
 const CAMNANG_DATA: Record<string, { title: string; color: `#${string}`; content: string }> = {
   chuong1: {
@@ -76,7 +77,7 @@ export default class CamNangCommand extends Command {
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const embed = new EmbedBuilder()
       .setTitle('📖 CẨM NẠNG TIÊN LỘ')
-      .setColor('#3498db')
+      .setColor(EMBED_COLORS.INFO)
       .setDescription(
         'Chào mừng đạo hữu đến với **Điển Tịch Cẩm Nang Tiên Lộ**!\n\n' +
         'Hãy chọn một chương thư tịch từ menu bên dưới để tìm hiểu về thế giới tu chân huyền bí:\n\n' +
@@ -98,7 +99,7 @@ export default class CamNangCommand extends Command {
         )
     );
 
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    await interaction.editReply(toV2Payload([embed], [row] ));
   }
 }
 
@@ -107,7 +108,7 @@ export function getCamNangEmbed(topic: string): EmbedBuilder {
   if (!guide) {
     return new EmbedBuilder()
       .setTitle('📖 CẨM NẠNG TIÊN LỘ')
-      .setColor('#3498db')
+      .setColor(EMBED_COLORS.INFO)
       .setDescription('Chương thư tịch không tồn tại.');
   }
 
@@ -136,5 +137,5 @@ export async function handleCamNangSelect(interaction: StringSelectMenuInteracti
   const topic = interaction.values[0];
   const embed = getCamNangEmbed(topic);
   const menu = buildCamNangMenu(interaction.user.id);
-  await interaction.update({ embeds: [embed], components: [menu] });
+  await interaction.update(toV2Update([embed], [menu]));
 }

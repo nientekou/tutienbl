@@ -1,5 +1,6 @@
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
+import { achievementService } from './AchievementService';
 
 export interface Mentorship {
   id: number;
@@ -275,6 +276,7 @@ class MentorshipService {
 
       // Kiểm tra danh hiệu "Truyền Thừa Danh Môn" (>= 3 đệ tử tốt nghiệp)
       const graduatedCount = db.prepare("SELECT COUNT(*) as c FROM mentorships WHERE mentor_id = ? AND status = 'graduated'").get(mentorId) as { c: number };
+      achievementService.setProgress(mentorId, 'sh_19', graduatedCount.c);
       if (graduatedCount.c >= 3) {
         const freshMentor = userRepository.get(mentorId);
         if (freshMentor) {

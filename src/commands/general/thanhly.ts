@@ -7,6 +7,7 @@ import { systemConfigService } from '../../services/SystemConfigService';
 import db from '../../database/database';
 import { formatNumber } from '../../utils/constants';
 import { ITEMS } from '../../config/itemConstants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 // Ánh xạ item_id → giá mua lại từ người chơi (50% giá gốc)
 const NPC_BUYBACK_PRICES: Record<string, { price: number; currency?: 'knb' }> = {
@@ -155,7 +156,7 @@ export default class ThanhLyCommand extends Command {
         embeds: [
           new EmbedBuilder()
             .setTitle('🛒 BÁN CHO NPC THÀNH CÔNG')
-            .setColor('#2ecc71')
+            .setColor(EMBED_COLORS.SUCCESS)
             .setDescription(`Đã bán **${qty}x ${itemName?.name || inv.item_id}** cho NPC Thương Nhân.`)
             .addFields(
               { name: '💰 Thu được', value: `**+${formatNumber(totalPrice)}** Hạ Phẩm Linh Thạch`, inline: true },
@@ -170,7 +171,7 @@ export default class ThanhLyCommand extends Command {
   private async handleDanhSach(interaction: ChatInputCommandInteraction): Promise<void> {
     const embed = new EmbedBuilder()
       .setTitle('📋 NPC THU MUA VẬT PHẨM')
-      .setColor('#e67e22')
+      .setColor(EMBED_COLORS.ORANGE)
       .setDescription('Bán vật phẩm cho NPC Thương Nhân để nhận **50%** giá gốc.')
       .setTimestamp();
 
@@ -198,6 +199,6 @@ export default class ThanhLyCommand extends Command {
       embed.addFields({ name: cat, value, inline: true });
     }
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 }

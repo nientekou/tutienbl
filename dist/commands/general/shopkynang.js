@@ -8,6 +8,7 @@ const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const shop_1 = require("./shop");
+const uiSystem_1 = require("../../utils/uiSystem");
 const itemConstants_1 = require("../../config/itemConstants");
 exports.SKILL_BOOKS = [
     { id: itemConstants_1.ITEMS.BOOK_FIRE, name: '🔥 Bí Tịch: Liệt Diễm Quyết', price: 500, element: 'Hỏa', desc: 'Sách hỏa hệ linh lực, dùng học Liệt Diễm Quyết. Sát thương cực mạnh thiêu đốt đối thủ.' },
@@ -56,8 +57,8 @@ class ShopKyNangCommand extends Command_1.Command {
         const sub = interaction.options.getSubcommand();
         if (sub === 'danhsach') {
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('🏪 VẠN PHÁP SƠN TRANG - THỦ THƯ TIÊN CÁC 🏪')
-                .setColor('#8e44ad')
+                .setTitle('🏪 VẠN PHÁP SƠN TRANG - THỦ THƯ TIÊN CÁC')
+                .setColor(uiSystem_1.EMBED_COLORS.DARK_PURPLE)
                 .setDescription('Nơi tu sĩ mua các bản sao cuốn sách cổ ghi chép pháp tắc nguyên thủy để thức tỉnh kỹ năng chiến đấu.')
                 .setFooter({ text: 'Dùng /shopkynang mua [book_id] [số lượng] để thỉnh sách.' })
                 .setTimestamp();
@@ -71,7 +72,7 @@ class ShopKyNangCommand extends Command_1.Command {
                 name: '💼 Hành trang linh thạch',
                 value: `🟤 **${user.coin_ha_pham}** Hạ Phẩm Linh Thạch.`
             });
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         if (sub === 'mua') {
@@ -101,12 +102,12 @@ class ShopKyNangCommand extends Command_1.Command {
             tx();
             const updatedUser = UserRepository_1.userRepository.get(userId);
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('📚 THỈNH SÁCH THÀNH CÔNG 📚')
-                .setColor('#2ecc71')
+                .setTitle('📚 THỈNH SÁCH THÀNH CÔNG')
+                .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                 .setDescription(`Đạo hữu đã đút túi **${qty}x ${book.name}**! Hãy dùng \`/dungkynang item_id: ${book.id}\` để đọc hiểu và lĩnh ngộ pháp tắc.`)
                 .addFields({ name: '🪙 Chi phí', value: `**-${totalCost}** Linh Thạch`, inline: true }, { name: '💼 Số dư hiện tại', value: `**${updatedUser.coin_ha_pham}** Linh Thạch`, inline: true })
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
     }
 }

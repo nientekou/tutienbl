@@ -8,6 +8,7 @@ const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const CronManager_1 = require("../utils/CronManager");
 const discord_js_1 = require("discord.js");
+const uiSystem_1 = require("../utils/uiSystem");
 exports.VOICE_RECOVERY_CONFIG = {
     TARGET_GUILD_ID: '1436366637899976767',
     ACTIVATION_THRESHOLD: 100,
@@ -123,7 +124,7 @@ class VoiceRecoveryService {
                 const vcName = vc ? vc.name : 'Voice Channel';
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('🎵 TỤ LINH HỒI PHỤC')
-                    .setColor('#3498db')
+                    .setColor(uiSystem_1.EMBED_COLORS.INFO)
                     .setDescription(`🧘 **${user.name}** đã vào phòng voice **${vcName}**.\n` +
                     `Bắt đầu hấp thu linh khí hồi phục thể lực!\n\n` +
                     `📊 Thể lực hiện tại: **${user.stamina}/500**\n` +
@@ -171,7 +172,7 @@ class VoiceRecoveryService {
             const seconds = elapsed % 60;
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🎵 KẾT THÚC TỤ LINH')
-                .setColor('#2ecc71')
+                .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                 .setDescription(`🧘 **${user.name}** đã rời khỏi voice.\n\n` +
                 `⏱️ Thời gian tụ linh: **${minutes} phút ${seconds} giây**\n` +
                 `⚡ Thể lực hồi phục: **+${vr.session_bonus_added}** (Tổng: **${vr.total_bonus_today}/${exports.VOICE_RECOVERY_CONFIG.DAILY_BONUS_CAP}** hôm nay)\n` +
@@ -188,8 +189,8 @@ class VoiceRecoveryService {
     async tickAll(client) {
         try {
             const activeSessions = database_1.default.prepare('SELECT * FROM voice_recovery WHERE session_start > 0').all();
-            const guild = client.guilds.cache.get(exports.VOICE_RECOVERY_CONFIG.TARGET_GUILD_ID) ||
-                await client.guilds.fetch(exports.VOICE_RECOVERY_CONFIG.TARGET_GUILD_ID);
+            // ponytail: guild không còn tồn tại → skip toàn bộ tick
+            const guild = client.guilds.cache.get(exports.VOICE_RECOVERY_CONFIG.TARGET_GUILD_ID);
             if (!guild)
                 return;
             const now = Math.floor(Date.now() / 1000);

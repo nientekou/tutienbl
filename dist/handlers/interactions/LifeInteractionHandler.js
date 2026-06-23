@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LifeInteractionHandler = void 0;
+const uiSystem_1 = require("../../utils/uiSystem");
 const AlchemyService_1 = require("../../services/AlchemyService");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
@@ -32,7 +33,7 @@ class LifeInteractionHandler {
                 const luyenDanCmd = new luyendan_1.default();
                 const updatedEmbed = luyenDanCmd.getAlchemyEmbed(targetUserId);
                 const updatedComponents = luyenDanCmd.getAlchemyComponents(targetUserId);
-                await interaction.update({ embeds: [updatedEmbed], components: updatedComponents });
+                await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], updatedComponents, interaction));
                 return;
             }
             if (subAction === 'craft' || subAction === 'select') {
@@ -76,7 +77,7 @@ class LifeInteractionHandler {
                 let resultIcon = res.success ? '✅' : '💥';
                 updatedEmbed.setDescription(`🔔 **Kết quả luyện chế:** ${resultIcon} ${res.message}\n\n${currentDesc}`);
                 const updatedComponents = luyenDanCmd.getAlchemyComponents(targetUserId);
-                await interaction.update({ embeds: [updatedEmbed], components: updatedComponents });
+                await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], updatedComponents, interaction));
             }
             return;
         }

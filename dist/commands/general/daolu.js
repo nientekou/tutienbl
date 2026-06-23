@@ -7,6 +7,7 @@ const InventoryRepository_1 = require("../../database/repositories/InventoryRepo
 const CoupleRepository_1 = require("../../database/repositories/CoupleRepository");
 const CoupleService_1 = require("../../services/CoupleService");
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 const itemConstants_1 = require("../../config/itemConstants");
 class DaoLuCommand extends Command_1.Command {
     constructor() {
@@ -43,14 +44,14 @@ class DaoLuCommand extends Command_1.Command {
             const intimacyBar = (0, constants_1.getProgressBar)(couple.intimacy, 2000, 10);
             const anniversaryMsg = CoupleService_1.coupleService.checkAnniversaryOnInfo(couple.id);
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('💞 HỒ SƠ ĐẠO LỮ 💞')
-                .setColor('#ff69b4')
+                .setTitle('💞 HỒ SƠ ĐẠO LỮ')
+                .setColor(uiSystem_1.EMBED_COLORS.ROMANCE)
                 .addFields({ name: 'Đạo Lữ', value: `**${user.name}** 💍 **${partner ? partner.name : 'Vô Danh'}**`, inline: false }, { name: 'Độ Hảo Cảm', value: `💖 **${couple.intimacy}** điểm\n${intimacyBar}\n*(Buff: +${Math.min(20, Math.floor(couple.intimacy / 100))}% Công & Máu)*`, inline: true }, { name: 'Ngày thành hôn', value: `<t:${couple.marriage_date}:D>`, inline: true })
                 .setFooter({ text: 'Dùng /daolu song-tu mỗi ngày để nhận Tu Vi!' });
             if (anniversaryMsg) {
                 embed.setDescription(anniversaryMsg);
             }
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (sub === 'cau-hon') {
             const target = interaction.options.getUser('nguoi_choi', true);

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.mentorshipService = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
+const AchievementService_1 = require("./AchievementService");
 class MentorshipService {
     /**
      * Lấy mối quan hệ sư đồ đang hoạt động của đệ tử
@@ -256,6 +257,7 @@ class MentorshipService {
                 `• Đệ tử nhận **+5 KNB** & danh hiệu **Môn Đồ**.`);
             // Kiểm tra danh hiệu "Truyền Thừa Danh Môn" (>= 3 đệ tử tốt nghiệp)
             const graduatedCount = database_1.default.prepare("SELECT COUNT(*) as c FROM mentorships WHERE mentor_id = ? AND status = 'graduated'").get(mentorId);
+            AchievementService_1.achievementService.setProgress(mentorId, 'sh_19', graduatedCount.c);
             if (graduatedCount.c >= 3) {
                 const freshMentor = UserRepository_1.userRepository.get(mentorId);
                 if (freshMentor) {

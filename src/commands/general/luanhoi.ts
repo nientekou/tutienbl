@@ -2,13 +2,14 @@ import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionR
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export function getLuanHoiEmbed(userId: string): EmbedBuilder {
   const user = userRepository.get(userId);
   if (!user) {
     return new EmbedBuilder()
       .setTitle('🌌 LUÂN HỒI CHUYỂN THẾ')
-      .setColor('#d35400')
+      .setColor(EMBED_COLORS.REINCARNATION)
       .setDescription('Chưa khởi tạo nhân vật.');
   }
 
@@ -72,6 +73,6 @@ export default class LuanHoiCommand extends Command {
     const embed = getLuanHoiEmbed(discordId);
     const row = getLuanHoiComponents(discordId, user.level >= 380);
 
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    await interaction.editReply(toV2Payload([embed], [row] ));
   }
 }

@@ -3,6 +3,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { heartLawService } from '../../services/HeartLawService';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class TamPhapCommand extends Command {
   constructor() {
@@ -111,7 +112,7 @@ export default class TamPhapCommand extends Command {
       const laws = heartLawService.getUserHeartLaws(userId);
       const embed = new EmbedBuilder()
         .setTitle('📚 TÂM PHÁP TIÊN THƯ')
-        .setColor('#2980b9')
+        .setColor(EMBED_COLORS.DUNGEON)
         .setTimestamp()
         .setFooter({ text: 'Dùng /tamphap linhngo hoặc /tamphap nangcap để đột phá võ học.' });
 
@@ -132,7 +133,7 @@ export default class TamPhapCommand extends Command {
       }
 
       embed.setDescription(listStr || '*Hiện tại hệ thống chưa có tâm pháp nào.*');
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
 
     // ───────────────── TRANG BỊ TÂM PHÁP ĐANG MANG ─────────────────
@@ -142,7 +143,7 @@ export default class TamPhapCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle('🛡️ TÂM PHÁP TRANG BỊ')
-        .setColor('#27ae60')
+        .setColor(EMBED_COLORS.SUCCESS)
         .setTimestamp()
         .setFooter({ text: 'Dùng /tamphap mang hoặc /tamphap thao để cấu hình.' });
 
@@ -192,7 +193,7 @@ export default class TamPhapCommand extends Command {
       }
       embed.addFields({ name: '⚡ Hiệu Ứng Đang Hoạt Động', value: passivesStr });
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
 
     // ───────────────── TRANG BỊ VÀO Ô ─────────────────

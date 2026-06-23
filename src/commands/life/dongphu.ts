@@ -5,13 +5,14 @@ import { caveService } from '../../services/CaveService';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import db from '../../database/database';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export function buildCaveEmbed(userId: string): EmbedBuilder {
   const user = userRepository.get(userId);
   if (!user) {
     return new EmbedBuilder()
       .setTitle('❌ Lỗi')
-      .setColor('#e74c3c')
+      .setColor(EMBED_COLORS.ERROR)
       .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
   }
 
@@ -34,7 +35,7 @@ export function buildCaveEmbed(userId: string): EmbedBuilder {
   const embed = new EmbedBuilder()
     .setTitle(`🏔️ ĐỘNG PHỦ CÁ NHÂN - ${user.name}`)
     .setDescription(`Đây là không gian thiền định và hấp thụ tinh hoa linh khí của đạo hữu. Nâng cấp động phủ giúp tăng tốc độ hấp thu linh khí và số lần ngâm mình Linh Tuyền.`)
-    .setColor('#2ecc71')
+    .setColor(EMBED_COLORS.SUCCESS)
     .setTimestamp();
 
   embed.addFields([
@@ -112,6 +113,6 @@ export default class DongPhuCommand extends Command {
     const embed = buildCaveEmbed(userId);
     const components = buildCaveComponents(userId);
 
-    await interaction.editReply({ embeds: [embed], components });
+    await interaction.editReply(toV2Payload([embed], components));
   }
 }

@@ -3,6 +3,7 @@ import { userRepository } from '../database/repositories/UserRepository';
 import { TuTienClient } from '../client/TuTienClient';
 import { CronManager } from '../utils/CronManager';
 import { EmbedBuilder, TextChannel } from 'discord.js';
+import { EMBED_COLORS } from '../utils/uiSystem';
 
 export const VOICE_RECOVERY_CONFIG = {
   TARGET_GUILD_ID: '1436366637899976767',
@@ -138,7 +139,7 @@ export class VoiceRecoveryService {
 
         const embed = new EmbedBuilder()
           .setTitle('🎵 TỤ LINH HỒI PHỤC')
-          .setColor('#3498db')
+          .setColor(EMBED_COLORS.INFO)
           .setDescription(
             `🧘 **${user.name}** đã vào phòng voice **${vcName}**.\n` +
             `Bắt đầu hấp thu linh khí hồi phục thể lực!\n\n` +
@@ -194,7 +195,7 @@ export class VoiceRecoveryService {
 
       const embed = new EmbedBuilder()
         .setTitle('🎵 KẾT THÚC TỤ LINH')
-        .setColor('#2ecc71')
+        .setColor(EMBED_COLORS.SUCCESS)
         .setDescription(
           `🧘 **${user.name}** đã rời khỏi voice.\n\n` +
           `⏱️ Thời gian tụ linh: **${minutes} phút ${seconds} giây**\n` +
@@ -218,8 +219,8 @@ export class VoiceRecoveryService {
         'SELECT * FROM voice_recovery WHERE session_start > 0'
       ).all() as VoiceRecoveryEntity[];
 
-      const guild = client.guilds.cache.get(VOICE_RECOVERY_CONFIG.TARGET_GUILD_ID) || 
-                    await client.guilds.fetch(VOICE_RECOVERY_CONFIG.TARGET_GUILD_ID);
+      // ponytail: guild không còn tồn tại → skip toàn bộ tick
+      const guild = client.guilds.cache.get(VOICE_RECOVERY_CONFIG.TARGET_GUILD_ID);
       if (!guild) return;
 
       const now = Math.floor(Date.now() / 1000);

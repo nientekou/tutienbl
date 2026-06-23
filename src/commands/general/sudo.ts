@@ -4,6 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { newbieProtectionService, MentorInfo } from '../../services/NewbieProtectionService';
 import { formatNumber } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class SuDoCommand extends Command {
   constructor() {
@@ -52,7 +53,7 @@ export default class SuDoCommand extends Command {
     } else if (sub === 'thongtin') {
       const embed = new EmbedBuilder()
         .setTitle('📜 THÔNG TIN SƯ ĐỒ')
-        .setColor('#3498db')
+        .setColor(EMBED_COLORS.INFO)
         .setTimestamp();
 
       const protectionDays = newbieProtectionService.getRemainingProtectionDays(userId);
@@ -89,7 +90,7 @@ export default class SuDoCommand extends Command {
         });
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     } else if (sub === 'doan') {
       const result = newbieProtectionService.removeMentor(userId);
       await interaction.editReply({ content: result.success ? `✅ ${result.message}` : `❌ ${result.message}` });
@@ -98,7 +99,7 @@ export default class SuDoCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle('👨‍🎓 DANH SÁCH ĐỒ ĐỆ')
-        .setColor('#2ecc71')
+        .setColor(EMBED_COLORS.SUCCESS)
         .setTimestamp();
 
       if (students.length === 0) {
@@ -111,7 +112,7 @@ export default class SuDoCommand extends Command {
         embed.setDescription(list);
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
   }
 }

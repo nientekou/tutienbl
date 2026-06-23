@@ -7,6 +7,7 @@ const UserRepository_1 = require("../../database/repositories/UserRepository");
 const DreamscapeService_1 = require("../../services/DreamscapeService");
 const InventoryService_1 = require("../../services/InventoryService");
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 function getDreamscapeEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
@@ -49,7 +50,7 @@ function getDreamscapeEmbed(userId) {
         `• Phòng Thủ: **${shadowDef}** DEF\n` +
         `• Tốc Độ: **${shadowSpeed}** SPD\n\n` +
         `*Gợi ý: Dùng \`/vongtuong khieuchien\` để leo tháp, hoặc \`/vongtuong dauhang\` để reset máu và quay về tầng 1.*`)
-        .setColor('#9b59b6')
+        .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
         .setTimestamp();
 }
 class VongTuongCommand extends Command_1.Command {
@@ -80,7 +81,7 @@ class VongTuongCommand extends Command_1.Command {
         const dsData = DreamscapeService_1.dreamscapeService.getDreamscapeData(discordId);
         if (subcommand === 'thongtin') {
             const embed = getDreamscapeEmbed(discordId);
-            return interaction.editReply({ embeds: [embed] });
+            return interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         if (subcommand === 'khieuchien') {
             const result = DreamscapeService_1.dreamscapeService.challenge(discordId);
@@ -94,8 +95,8 @@ class VongTuongCommand extends Command_1.Command {
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`🌌 Vọng Tưởng: Tầng ${result.currentFloor}`)
                 .setDescription(`📜 **Chiến báo:**\n${battleLog}\n\n${result.message}`)
-                .setColor(result.isWin ? '#2ecc71' : '#e74c3c');
-            return interaction.editReply({ embeds: [embed] });
+                .setColor(result.isWin ? uiSystem_1.EMBED_COLORS.SUCCESS : uiSystem_1.EMBED_COLORS.ERROR);
+            return interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         if (subcommand === 'dauhang') {
             const result = DreamscapeService_1.dreamscapeService.resetDreamscape(discordId);
@@ -120,9 +121,9 @@ class VongTuongCommand extends Command_1.Command {
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🏆 Bảng Xếp Hạng Vọng Tưởng (Tuần)')
                 .setDescription(desc)
-                .setColor('#f1c40f')
+                .setColor(uiSystem_1.EMBED_COLORS.GOLD)
                 .setFooter({ text: 'Sẽ tự động trao phần thưởng và reset vào sáng Thứ 2 hàng tuần.' });
-            return interaction.editReply({ embeds: [embed] });
+            return interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
     }
 }

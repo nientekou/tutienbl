@@ -12,6 +12,7 @@ const recipes_1 = require("../../config/recipes");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const database_1 = __importDefault(require("../../database/database"));
+const uiSystem_1 = require("../../utils/uiSystem");
 /**
  * Tạo Embed hiển thị Lò Chế Tạo
  */
@@ -20,7 +21,7 @@ function getCraftingEmbed(userId) {
     if (!user) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('❌ Lỗi')
-            .setColor('#e74c3c')
+            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
             .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
     }
     const queue = CraftingService_1.craftingService.getQueue(userId);
@@ -28,7 +29,7 @@ function getCraftingEmbed(userId) {
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`🧪 Lò Luyện Đan & Rèn Khí - ${user.name}`)
         .setDescription('Luyện hóa linh thảo vạn năm, rèn đúc thần sa tinh thiết tạo nên đan dược nghịch thiên và giáp binh tinh lương.')
-        .setColor('#e67e22')
+        .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
         .setTimestamp();
     // 1. Hiển thị danh mục công thức hiện có (chia nhỏ để tránh vượt 1024 ký tự/field)
     const recipeEntries = Object.entries(recipes_1.RECIPES);

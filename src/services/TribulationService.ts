@@ -6,6 +6,7 @@ import { inventoryService } from './InventoryService';
 import { cultivationService } from './CultivationService';
 import { getRealmDetails, getProgressBar } from '../utils/constants';
 import { ITEMS } from '../config/itemConstants';
+import { EMBED_COLORS } from '../utils/uiSystem';
 
 export interface TribulationState {
   userId: string;
@@ -473,7 +474,7 @@ export class TribulationService {
 
       const embed = new EmbedBuilder()
         .setTitle('💀 ĐỘT PHÁ THẤT BẠI - THIÊN KIẾP PHẢN PHỆ 💀')
-        .setColor('#c0392b')
+        .setColor(EMBED_COLORS.ALERT)
         .setDescription(
           `❌ Thiên uy khó lường! Đạo hữu **${state.username}** không trụ vững trước uy lực của lôi kiếp đạo thứ ${state.currentLightningBolt}.\n\n` +
           `💥 Thần trí mơ màng, nguyên thần bị thương nặng, rơi vào trạng thái **Trọng Thương** trong **1 giờ** (không thể làm việc, đi bí cảnh hay luyện đan).\n` +
@@ -503,7 +504,7 @@ export class TribulationService {
 
       const embed = new EmbedBuilder()
         .setTitle('⚡ ĐỘT PHÁ ĐẠI CẢNH GIỚI THÀNH CÔNG! ⚡')
-        .setColor('#2ecc71')
+        .setColor(EMBED_COLORS.SUCCESS)
         .setDescription(
           `🎉 **Lôi vân tiêu tán, ngũ sắc hào quang chiếu rọi thiên địa!**\n\n` +
           `Chúc mừng đạo hữu **${state.username}** đã vượt qua sinh tử lôi kiếp thành công, thăng cấp lên cảnh giới mới!\n\n` +

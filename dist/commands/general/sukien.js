@@ -7,6 +7,7 @@ const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const EventService_1 = require("../../services/EventService");
+const uiSystem_1 = require("../../utils/uiSystem");
 const database_1 = __importDefault(require("../../database/database"));
 class SuKienCommand extends Command_1.Command {
     constructor() {
@@ -45,7 +46,7 @@ class SuKienCommand extends Command_1.Command {
             const endedEvents = database_1.default.prepare("SELECT * FROM events WHERE status = 'ended' ORDER BY ended_at DESC LIMIT 5").all();
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🎪 SỰ KIỆN ĐỊNH KỲ - THIÊN ĐỊA ĐẠI HỘI')
-                .setColor('#9b59b6')
+                .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
                 .setDescription('Các sự kiện đặc biệt diễn ra định kỳ trên toàn server. Tham gia để nhận phần thưởng giá trị!\n' +
                 (EventService_1.eventService.isDoubleExpActive() ? '\n⚠️ **DOUBLE EXP WEEKEND ĐANG HOẠT ĐỘNG!** x2 Tu Vi từ mọi hoạt động!\n' : ''))
                 .setTimestamp();
@@ -81,7 +82,7 @@ class SuKienCommand extends Command_1.Command {
             const templateText = EventService_1.EVENT_TEMPLATES.map(t => `${this.getEventEmoji(t.type)} **${t.name}** - ${t.durationHours}h - ${this.getEventTypeName(t.type)}`).join('\n');
             embed.addFields({ name: '📋 LOẠI SỰ KIỆN', value: templateText });
             embed.setFooter({ text: 'Dùng /sukien tham gia để tham gia sự kiện!' });
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (sub === 'thamgia') {
             const eventId = interaction.options.getString('ma_sukien', true);
@@ -93,10 +94,10 @@ class SuKienCommand extends Command_1.Command {
             const event = EventService_1.eventService.getEvent(eventId);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`🎪 THAM GIA SỰ KIỆN: ${event?.name}`)
-                .setColor('#2ecc71')
+                .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                 .setDescription(result.message)
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (sub === 'nhanthuong') {
             const eventId = interaction.options.getString('ma_sukien', true);
@@ -107,10 +108,10 @@ class SuKienCommand extends Command_1.Command {
             }
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🎁 NHẬN THƯỞNG SỰ KIỆN')
-                .setColor('#f1c40f')
+                .setColor(uiSystem_1.EMBED_COLORS.GOLD)
                 .setDescription(result.message)
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
     }
     getEventEmoji(type) {

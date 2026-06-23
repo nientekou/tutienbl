@@ -5,6 +5,7 @@ const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const PvPService_1 = require("../../services/PvPService");
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 class PvPBangXepHangCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -31,8 +32,8 @@ class PvPBangXepHangCommand extends Command_1.Command {
             const seasonStart = new Date(season.started_at * 1000).toLocaleDateString('vi-VN');
             const leaderboard = PvPService_1.pvpService.getLeaderboard(10);
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('🏆 PHONG THẦN BẢNG - ĐẤU TRƯỜNG PVP 🏆')
-                .setColor('#f1c40f')
+                .setTitle('🏆 PHONG THẦN BẢNG - ĐẤU TRƯỜNG PVP')
+                .setColor(uiSystem_1.EMBED_COLORS.GOLD)
                 .setDescription(`**Mùa giải:** #${season.season_number} | **Bắt đầu:** ${seasonStart}\n\n` +
                 `Bảng xếp hạng những tu sĩ có thực lực chiến đấu PvP mạnh nhất tiên giới. Hãy tham gia quyết đấu để leo hạng và nhận thưởng cuối mùa!\n` +
                 `\n*Xếp hạng dựa trên điểm Phong Thần (ELO).*`)
@@ -54,7 +55,7 @@ class PvPBangXepHangCommand extends Command_1.Command {
                 }
                 embed.addFields({ name: '📊 Bảng Xếp Hạng', value: rankingText });
             }
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (sub === 'thongtin') {
             const profile = PvPService_1.pvpService.getPlayerProfile(userId);
@@ -70,7 +71,7 @@ class PvPBangXepHangCommand extends Command_1.Command {
                 : 'Chưa xếp hạng';
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`⚔️ THÔNG TIN PVP - ${user.name}`)
-                .setColor('#9b59b6')
+                .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
                 .setDescription(`**Cảnh giới:** ${fullName}\n` +
                 `**Xếp hạng hiện tại:** ${rankText}\n` +
                 `**Điểm Phong Thần:** 🎖️ **${profile.points}**\n\n` +
@@ -81,7 +82,7 @@ class PvPBangXepHangCommand extends Command_1.Command {
                 `*Sử dụng /quyetau để khiêu chiến các tu sĩ khác và leo hạng!*`)
                 .setFooter({ text: `Mùa giải #${PvPService_1.pvpService.getCurrentSeason().season_number}` })
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
     }
 }

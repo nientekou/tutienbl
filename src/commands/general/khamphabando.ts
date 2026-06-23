@@ -3,6 +3,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { mapFragmentService } from '../../services/MapFragmentService';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 const RARITY_EMOJI: Record<string, string> = {
   common: '🟤',
@@ -72,7 +73,7 @@ export default class KhamPhaBanDoCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setTitle('🗺️ MẢNH BẢN ĐỒ')
-      .setColor('#e67e22')
+      .setColor(EMBED_COLORS.ORANGE)
       .setDescription(
         `**Mảnh Bản Đồ hiện có:** **${fragmentCount}/5**\n` +
         `*Thu thập Mảnh Bản Đồ qua công việc **Phiêu Lưu (/lamviec adventure)** và ghép chúng để tìm kho báu!*\n\n` +
@@ -125,7 +126,7 @@ export default class KhamPhaBanDoCommand extends Command {
     }
 
     embed.setFooter({ text: 'Mảnh Bản Đồ có thể nhận được khi làm công việc Phiêu Lưu.' });
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 
   private async handleCombine(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
@@ -139,11 +140,11 @@ export default class KhamPhaBanDoCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setTitle(result.success ? '🎉 Khai Thác Kho Báu' : '❌ Thất Bại')
-      .setColor(result.success ? '#f1c40f' : '#e74c3c')
+      .setColor(result.success ? EMBED_COLORS.GOLD : EMBED_COLORS.ERROR)
       .setDescription(result.message)
       .setTimestamp();
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 
   private async handleSteal(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
@@ -152,10 +153,10 @@ export default class KhamPhaBanDoCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setTitle(result.success ? '⚔️ Cướp Thành Công' : '💢 Cướp Thất Bại')
-      .setColor(result.success ? '#e74c3c' : '#95a5a6')
+      .setColor(result.success ? EMBED_COLORS.ERROR : EMBED_COLORS.NEUTRAL)
       .setDescription(result.message)
       .setTimestamp();
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 }

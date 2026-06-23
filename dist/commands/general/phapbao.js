@@ -12,6 +12,7 @@ const SoulWeaponRepository_1 = require("../../database/repositories/SoulWeaponRe
 const SoulWeaponService_1 = require("../../services/SoulWeaponService");
 const constants_1 = require("../../utils/constants");
 const database_1 = __importDefault(require("../../database/database"));
+const uiSystem_1 = require("../../utils/uiSystem");
 class PhapBaoCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -41,7 +42,7 @@ class PhapBaoCommand extends Command_1.Command {
         if (sub === 'banmenh') {
             const embed = getBanMenhEmbed(userId);
             const components = getBanMenhComponents(userId);
-            await interaction.editReply({ embeds: [embed], components });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
             return;
         }
         if (sub === 'thongtin') {
@@ -63,14 +64,14 @@ class PhapBaoCommand extends Command_1.Command {
             const expBar = (0, constants_1.getProgressBar)(sw.exp, sw.level >= 100 ? 1 : expNeeded);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`🛡️ PHÁP BẢO BẢN MỆNH: ${sw.name}`)
-                .setColor('#8e44ad')
+                .setColor(uiSystem_1.EMBED_COLORS.DARK_PURPLE)
                 .setDescription(`🔮 **Phân Loại:** **${types[sw.type]}**\n` +
                 `⭐ **Cấp Độ:** Cấp **${sw.level}**\n` +
                 `📊 **Tiến Trình EXP:** ${expBar} *(${sw.exp}/${sw.level >= 100 ? 'TỐI ĐA' : expNeeded} EXP)*\n\n` +
                 `✨ **Thuộc Tính Cộng Thêm:**\n└ **${buffDesc}**`)
                 .setFooter({ text: 'Dùng lệnh /phapbao te-luyen <id,id...> để Pháp Bảo nuốt trang bị rác!' })
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (sub === 'ngung-tu') {
             const sw = SoulWeaponRepository_1.soulWeaponRepository.getByUserId(userId);
@@ -93,8 +94,8 @@ class PhapBaoCommand extends Command_1.Command {
             SoulWeaponRepository_1.soulWeaponRepository.create(userId, name, type);
             const types = { kiem: '🗡️ Kiếm (Công, Bạo Kích)', dinh: '🛡️ Đỉnh (Máu, Thủ, Kháng Bạo)', an: '💠 Ấn (Máu, Tốc, Né)' };
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('🎉 NGƯNG TỤ PHÁP BẢO THÀNH CÔNG! 🎉')
-                .setColor('#8e44ad')
+                .setTitle('🎉 NGƯNG TỤ PHÁP BẢO THÀNH CÔNG!')
+                .setColor(uiSystem_1.EMBED_COLORS.DARK_PURPLE)
                 .setDescription(`*Tinh huyết dung hợp, đất trời biến sắc, một luồng dị quang phóng thẳng lên chín tầng mây!*\n\n` +
                 `Đạo hữu **${user.name}** đã ngưng tụ thành công Pháp Bảo Bản Mệnh:\n` +
                 `✨ 👉 **${name}** 👈 ✨\n\n` +
@@ -102,7 +103,7 @@ class PhapBaoCommand extends Command_1.Command {
                 `⭐ **Cấp Độ Ban Đầu:** Cấp **1**\n\n` +
                 `*Hãy dùng lệnh \`/phapbao te-luyen\` để hiến tế trang bị thừa giúp Pháp Bảo thăng cấp sức mạnh!*`)
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (sub === 'te-luyen') {
             const idsStr = interaction.options.getString('ids', true);
@@ -120,15 +121,15 @@ class PhapBaoCommand extends Command_1.Command {
             const expNeeded = SoulWeaponService_1.soulWeaponService.getExpRequired(sw.level);
             const expBar = (0, constants_1.getProgressBar)(sw.exp, sw.level >= 100 ? 1 : expNeeded);
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('🔥 TẾ LUYỆN PHÁP BẢO THÀNH CÔNG 🔥')
-                .setColor('#e67e22')
+                .setTitle('🔥 TẾ LUYỆN PHÁP BẢO THÀNH CÔNG')
+                .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
                 .setDescription(`Đạo hữu ném các vật phẩm thừa vào chân hỏa lò luyện, chắt lọc tinh túy dung hợp vào Pháp Bảo Bản Mệnh...\n\n` +
                 `🛡️ **Pháp Bảo:** **${sw.name}**\n` +
                 `✨ **EXP Nhận Được:** **+${result.expGained}** EXP\n` +
                 `📈 **Cấp Độ:** Cấp **${sw.level}**${result.levelUp > 0 ? ` ⬆️ **[TĂNG ${result.levelUp} CẤP!]**` : ''}\n` +
                 `   └ Tiến trình EXP: ${expBar} *(${sw.exp}/${sw.level >= 100 ? 'TỐI ĐA' : expNeeded} EXP)*\n`)
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
     }
 }
@@ -137,8 +138,8 @@ function getBanMenhEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     const boundItem = database_1.default.prepare('SELECT * FROM inventories WHERE user_id = ? AND is_life_bound = 1').get(userId);
     const embed = new discord_js_1.EmbedBuilder()
-        .setTitle('🩸 BẢN MỆNH PHÁP BẢO - NGUYÊN THẦN LIÊN KẾT 🩸')
-        .setColor('#c0392b')
+        .setTitle('🩸 BẢN MỆNH PHÁP BẢO - NGUYÊN THẦN LIÊN KẾT')
+        .setColor(uiSystem_1.EMBED_COLORS.ALERT)
         .setTimestamp();
     if (!boundItem) {
         embed.setDescription(`Đạo hữu hiện tại **chưa liên kết** Bản Mệnh Pháp Bảo nào với Nguyên Thần.\n\n` +

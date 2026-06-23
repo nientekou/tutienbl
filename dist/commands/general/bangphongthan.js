@@ -4,10 +4,12 @@ exports.LABELS = void 0;
 exports.buildLeaderboardEmbed = buildLeaderboardEmbed;
 exports.buildLeaderboardComponents = buildLeaderboardComponents;
 exports.buildLeaderboardMessage = buildLeaderboardMessage;
+exports.buildLeaderboardUpdate = buildLeaderboardUpdate;
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const LeaderboardService_1 = require("../../services/LeaderboardService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
+const uiSystem_1 = require("../../utils/uiSystem");
 exports.LABELS = {
     combatPower: {
         name: 'Lực Chiến',
@@ -67,7 +69,7 @@ function buildLeaderboardEmbed(userId, category, page) {
     if (!getData || !info) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('👑 Bảng Phong Thần')
-            .setColor(0xFFD700)
+            .setColor(uiSystem_1.EMBED_COLORS.GOLD)
             .setDescription('❌ Danh mục không hợp lệ.');
     }
     const entries = getData();
@@ -147,6 +149,10 @@ function buildLeaderboardMessage(userId, category, page) {
     const components = buildLeaderboardComponents(userId, category, page, entries.length);
     return { embeds: [embed], components };
 }
+function buildLeaderboardUpdate(userId, category, page) {
+    const msg = buildLeaderboardMessage(userId, category, page);
+    return (0, uiSystem_1.toV2Update)(msg.embeds, msg.components);
+}
 class BangPhongThanCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -166,8 +172,8 @@ class BangPhongThanCommand extends Command_1.Command {
             return;
         }
         const subType = interaction.options.getString('danhmuc') || 'combatPower';
-        const messageOptions = buildLeaderboardMessage(userId, subType, 1);
-        await interaction.editReply({ ...messageOptions });
+        const msg = buildLeaderboardMessage(userId, subType, 1);
+        await interaction.editReply((0, uiSystem_1.toV2Payload)(msg.embeds, msg.components));
     }
 }
 exports.default = BangPhongThanCommand;

@@ -10,6 +10,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { eventService, EVENT_TEMPLATES } from '../../services/EventService';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import db from '../../database/database';
 
 export default class SuKienCommand extends Command {
@@ -72,7 +73,7 @@ export default class SuKienCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle('🎪 SỰ KIỆN ĐỊNH KỲ - THIÊN ĐỊA ĐẠI HỘI')
-        .setColor('#9b59b6')
+        .setColor(EMBED_COLORS.MYSTIC)
         .setDescription(
           'Các sự kiện đặc biệt diễn ra định kỳ trên toàn server. Tham gia để nhận phần thưởng giá trị!\n' +
           (eventService.isDoubleExpActive() ? '\n⚠️ **DOUBLE EXP WEEKEND ĐANG HOẠT ĐỘNG!** x2 Tu Vi từ mọi hoạt động!\n' : '')
@@ -116,7 +117,7 @@ export default class SuKienCommand extends Command {
 
       embed.setFooter({ text: 'Dùng /sukien tham gia để tham gia sự kiện!' });
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
 
     else if (sub === 'thamgia') {
@@ -131,11 +132,11 @@ export default class SuKienCommand extends Command {
       const event = eventService.getEvent(eventId);
       const embed = new EmbedBuilder()
         .setTitle(`🎪 THAM GIA SỰ KIỆN: ${event?.name}`)
-        .setColor('#2ecc71')
+        .setColor(EMBED_COLORS.SUCCESS)
         .setDescription(result.message)
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
 
     else if (sub === 'nhanthuong') {
@@ -149,11 +150,11 @@ export default class SuKienCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle('🎁 NHẬN THƯỞNG SỰ KIỆN')
-        .setColor('#f1c40f')
+        .setColor(EMBED_COLORS.GOLD)
         .setDescription(result.message)
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
   }
 

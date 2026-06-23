@@ -6,6 +6,7 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import { blacksmithService } from '../../services/BlacksmithService';
 import db from '../../database/database';
 import { getProgressBar } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class LuyenKhiCommand extends Command {
   constructor() {
@@ -32,7 +33,7 @@ export default class LuyenKhiCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setTitle('🛠️ PHÒNG RÈN ĐÚC (LUYỆN KHÍ SƯ)')
-      .setColor('#e67e22')
+      .setColor(EMBED_COLORS.ORANGE)
       .setDescription(
         `Đạo hiệu: **${user.name}**\n` +
         `Cảnh Giới Luyện Khí: **Cấp ${level} Luyện Khí Sư**\n` +
@@ -51,7 +52,7 @@ export default class LuyenKhiCommand extends Command {
 
     if (visibleRecipes.length === 0) {
       embed.addFields({ name: 'Trống', value: 'Chưa có công thức rèn nào phù hợp với cảnh giới của đạo hữu.' });
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -94,6 +95,6 @@ export default class LuyenKhiCommand extends Command {
 
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
 
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    await interaction.editReply(toV2Payload([embed], [row] ));
   }
 }

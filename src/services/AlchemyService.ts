@@ -516,6 +516,7 @@ export class AlchemyService {
       achievementService.setProgress(userId, 'sh_3', newAlchemyCount);
       achievementService.setProgress(userId, 'sh_4', newAlchemyCount);
       achievementService.setProgress(userId, 'sh_5', newAlchemyCount);
+      achievementService.setProgress(userId, 'sh_16', newAlchemyCount);
 
       let responseMsg = `🎉 **Luyện đan hoàn tất!** Đạo hữu đã luyện chế thành công **${successCount}x ${rewardName}**${evolvedCount > 0 ? ` (trong đó có ${evolvedCount} viên Biến Dị 🧬)` : ''}!\n`;
       if (successCount < quantity) {

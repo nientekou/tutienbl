@@ -4,6 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { formatNumber } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import db from '../../database/database';
 import { ITEMS } from '../../config/itemConstants';
 
@@ -232,7 +233,7 @@ export function getShopEmbed(
   const activeCategory = primaryId || 'dan';
 
   const embed = new EmbedBuilder()
-    .setColor('#e67e22')
+    .setColor(EMBED_COLORS.ORANGE)
     .setTimestamp();
 
   if (searchQuery) {
@@ -560,7 +561,7 @@ export default class ShopCommand extends Command {
       const embed = getShopEmbed(userId);
       const components = getShopComponents(userId);
 
-      await interaction.editReply({ embeds: [embed], components });
+      await interaction.editReply(toV2Payload([embed], components));
       return;
     }
 
@@ -615,8 +616,8 @@ export default class ShopCommand extends Command {
         const updatedUser = userRepository.get(userId)!;
 
         const embed = new EmbedBuilder()
-          .setTitle('🛒 MUA HÀNG THÀNH CÔNG 🛒')
-          .setColor('#2ecc71')
+          .setTitle('🛒 MUA HÀNG THÀNH CÔNG')
+          .setColor(EMBED_COLORS.SUCCESS)
           .setDescription(`Đạo hữu mua thành công **${qty}x ${item.name}**!`)
           .addFields(
             { name: '💎 Chi phí', value: `**-${totalCost}** KNB`, inline: true },
@@ -624,7 +625,7 @@ export default class ShopCommand extends Command {
           )
           .setTimestamp();
 
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply(toV2Payload([embed]));
       } else {
         if (user.coin_ha_pham < totalCost) {
           await interaction.editReply({
@@ -649,8 +650,8 @@ export default class ShopCommand extends Command {
         const updatedUser = userRepository.get(userId)!;
 
         const embed = new EmbedBuilder()
-          .setTitle('🛒 MUA HÀNG THÀNH CÔNG 🛒')
-          .setColor('#2ecc71')
+          .setTitle('🛒 MUA HÀNG THÀNH CÔNG')
+          .setColor(EMBED_COLORS.SUCCESS)
           .setDescription(`Đạo hữu mua thành công **${qty}x ${item.name}**!`)
           .addFields(
             { name: '🪙 Chi phí', value: `**-${totalCost}** Linh Thạch Hạ Phẩm`, inline: true },
@@ -658,7 +659,7 @@ export default class ShopCommand extends Command {
           )
           .setTimestamp();
 
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply(toV2Payload([embed]));
       }
     }
   }

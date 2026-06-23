@@ -8,6 +8,7 @@ const Command_1 = require("../../structures/Command");
 const MinigameService_1 = require("../../services/MinigameService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const database_1 = __importDefault(require("../../database/database"));
+const uiSystem_1 = require("../../utils/uiSystem");
 class QuyetAuCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -25,7 +26,7 @@ class QuyetAuCommand extends Command_1.Command {
             .addChoices({ name: '📜 Lịch Sử Quyết Đấu', value: 'lichsu' }, { name: '🏆 Bảng Xếp Hạng Quyết Đấu', value: 'bangxephang' }, { name: '🎁 Top Thưởng Hàng Tuần', value: 'topthuong' }, { name: '📊 Thống Kê Cá Nhân', value: 'thongke' })));
     }
     async execute(client, interaction) {
-        await interaction.deferReply();
+        // interactionCreate.ts đã deferReply tự động
         const challengerId = interaction.user.id;
         const action = interaction.options.getString('action');
         // === XỬ LÝ: XEM LỊCH SỬ QUYẾT ĐẤU ===
@@ -64,7 +65,7 @@ class QuyetAuCommand extends Command_1.Command {
             }
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🏆 BẢNG XẾP HẠNG QUYẾT ĐẤU - TAM HỒI LINH CHIẾN')
-                .setColor('#f1c40f')
+                .setColor(uiSystem_1.EMBED_COLORS.GOLD)
                 .setDescription('📊 **Xếp hạng tu sĩ theo chiến tích quyết đấu**\n' +
                 'Xếp hạng dựa trên: **Số trận thắng** > **Linh Thạch ròng kiếm được** > **Tỉ lệ thắng**\n\n' +
                 '━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
@@ -97,7 +98,7 @@ class QuyetAuCommand extends Command_1.Command {
                     value: `Đạo hữu đang đứng hạng **#${leaderboard.currentUserRank}** trên tổng số **${leaderboard.totalPlayers}** tu sĩ tham gia quyết đấu.`
                 });
             }
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         // === XỬ LÝ: XEM THỐNG KÊ CÁ NHÂN ===
@@ -148,7 +149,7 @@ class QuyetAuCommand extends Command_1.Command {
             };
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`📊 THỐNG KÊ QUYẾT ĐẤU — ${titleName}`)
-                .setColor('#3498db')
+                .setColor(uiSystem_1.EMBED_COLORS.INFO)
                 .setDescription(`📈 **${stats.totalMatches}** trận • ${winRateEmoji} Winrate **${stats.winRate}%**${streakText}`)
                 .addFields({
                 name: '⚔️ KẾT QUẢ',
@@ -175,7 +176,7 @@ class QuyetAuCommand extends Command_1.Command {
                 text: `Trận đầu: ${formatDate(stats.firstMatchAt)} • Gần đây: ${formatDate(stats.lastMatchAt)}`
             })
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         // === XỬ LÝ: XEM TOP THƯỞNG HÀNG TUẦN ===
@@ -184,7 +185,7 @@ class QuyetAuCommand extends Command_1.Command {
             const currentSeason = MinigameService_1.minigameService.getCurrentSeason();
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🎁 PHẦN THƯỞNG TOP 3 QUYẾT ĐẤU HÀNG TUẦN')
-                .setColor('#9b59b6')
+                .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
                 .setTimestamp();
             if (currentSeason.season) {
                 const weekStartDate = new Date(currentSeason.season.week_start * 1000).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -231,7 +232,7 @@ class QuyetAuCommand extends Command_1.Command {
                     '📊 Dùng `/quyetau action: bangxephang` để xem bảng xếp hạng hiện tại!')
                     .setFooter({ text: 'Tham gia quyết đấu để leo top nhận thưởng!' });
             }
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         // === XỬ LÝ: TẠO LỜI KHIÊU CHIẾN ===
@@ -273,8 +274,8 @@ class QuyetAuCommand extends Command_1.Command {
         }
         const duel = result.duel;
         const embed = new discord_js_1.EmbedBuilder()
-            .setTitle('⚔️ THƯ KHIÊU CHIẾN — TAM HỒI LINH CHIẾN ⚔️')
-            .setColor('#e74c3c')
+            .setTitle('⚔️ THƯ KHIÊU CHIẾN — TAM HỒI LINH CHIẾN')
+            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
             .setDescription(`Đạo hữu <@${challengerId}> gửi thư khiêu chiến **Tam Hồi Linh Chiến** đến <@${targetUser.id}>!\n\n` +
             `🪙 **Linh Thạch Đặt Cược:** **${wager}** Hạ Phẩm Linh Thạch 🟤 từ mỗi bên.\n` +
             `⚖️ **Thuế Khấu Trừ:** **5%** phí giao dịch (thu thuế tông môn từ người thắng).\n\n` +
@@ -308,7 +309,7 @@ class QuyetAuCommand extends Command_1.Command {
     buildDuelHistoryEmbed(records, userId, page, totalPages, totalRecords) {
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('📜 LỊCH SỬ QUYẾT ĐẤU - TAM HỒI LINH CHIẾN')
-            .setColor('#f39c12')
+            .setColor(uiSystem_1.EMBED_COLORS.WARNING)
             .setFooter({ text: `Trang ${page}/${totalPages} • Tổng số: ${totalRecords} trận` })
             .setTimestamp();
         for (const record of records) {

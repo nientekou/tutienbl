@@ -6,6 +6,7 @@ import { partyService } from '../../services/PartyService';
 import { DUNGEONS } from '../../config/dungeons';
 import db from '../../database/database';
 import { getRealmDetails, ELEMENT_EMOJIS } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export const COOP_DUNGEONS = [
   {
@@ -51,14 +52,14 @@ export function getDungeonEmbed(userId: string): EmbedBuilder {
   if (!user) {
     return new EmbedBuilder()
       .setTitle('❌ Lỗi')
-      .setColor('#e74c3c')
+      .setColor(EMBED_COLORS.ERROR)
       .setDescription('Đạo hữu chưa khởi tạo nhân vật! Hãy dùng `/taonhanvat` để bắt đầu.');
   }
 
   const embed = new EmbedBuilder()
     .setTitle('🔮 Bí Cảnh Phó Bản - Giới Luật Tu Hành')
     .setDescription('Nơi tu sĩ thử thách võ học bản thân, diệt quái thú linh dị đoạt lấy Tu Vi và bảo vật trời đất.')
-    .setColor('#9b59b6')
+    .setColor(EMBED_COLORS.MYSTIC)
     .setTimestamp();
 
   // Lấy danh sách CD của người chơi hôm nay
@@ -158,7 +159,7 @@ export function buildCoopPartyEmbed(partyId: string): EmbedBuilder {
   if (!party) {
     return new EmbedBuilder()
       .setTitle('❌ Lỗi')
-      .setColor('#e74c3c')
+      .setColor(EMBED_COLORS.ERROR)
       .setDescription('Tổ đội này không tồn tại hoặc đã bị giải tán.');
   }
 
@@ -166,7 +167,7 @@ export function buildCoopPartyEmbed(partyId: string): EmbedBuilder {
   if (!dungeon) {
     return new EmbedBuilder()
       .setTitle('❌ Lỗi')
-      .setColor('#e74c3c')
+      .setColor(EMBED_COLORS.ERROR)
       .setDescription('Bí cảnh không hợp lệ.');
   }
 
@@ -174,7 +175,7 @@ export function buildCoopPartyEmbed(partyId: string): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle(`⛩️ PHÒNG CHỜ BÍ CẢNH: ${dungeon.name}`)
-    .setColor('#e74c3c')
+    .setColor(EMBED_COLORS.ERROR)
     .setDescription(
       `*${dungeon.description}*\n\n` +
       `⚠️ **Cảnh giới tối thiểu:** **${realmReq}** (Cấp ${dungeon.minLevel})\n` +
@@ -248,10 +249,7 @@ export default class BiCanhCommand extends Command {
       const embed = getDungeonEmbed(userId);
       const row = getDungeonComponents(userId);
 
-      await interaction.editReply({
-        embeds: [embed],
-        components: [row]
-      });
+      await interaction.editReply(toV2Payload([embed], [row]));
     }
     else if (subcmd === 'taolap') {
       const dungeonId = interaction.options.getString('dungeon', true);
@@ -294,7 +292,7 @@ export default class BiCanhCommand extends Command {
         new ButtonBuilder().setCustomId(`leaveparty_${party.id}`).setLabel('🚪 Rời Khỏi/Hủy').setStyle(ButtonStyle.Danger)
       );
 
-      await interaction.editReply({ embeds: [embed], components: [row] });
+      await interaction.editReply(toV2Payload([embed], [row] ));
     }
     else if (subcmd === 'bangxephang') {
       const topPlayers = db.prepare(`
@@ -311,14 +309,14 @@ export default class BiCanhCommand extends Command {
       }
 
       const embed = new EmbedBuilder()
-        .setTitle('🏆 BẢNG XẾP HẠNG BÍ CẢNH 🏆')
-        .setColor('#f1c40f')
+        .setTitle('🏆 BẢNG XẾP HẠNG BÍ CẢNH')
+        .setColor(EMBED_COLORS.GOLD)
         .setDescription('Danh sách các đại năng đã chinh phục nhiều Bí Cảnh nhất:\n\n' +
           topPlayers.map((p, i) => `**#${i + 1}** ${p.name} (Cấp ${p.level}) - ⚔️ **${p.dungeon_clears}** lần phá đảo`).join('\n')
         )
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
   }
 }

@@ -8,6 +8,7 @@ exports.handleRepairAllButton = handleRepairAllButton;
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
+const uiSystem_1 = require("../../utils/uiSystem");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const database_1 = __importDefault(require("../../database/database"));
 const itemConstants_1 = require("../../config/itemConstants");
@@ -66,8 +67,8 @@ class SuaChuaCommand extends Command_1.Command {
      */
     async showEquipmentList(interaction, userId, equippedItems) {
         const embed = new discord_js_1.EmbedBuilder()
-            .setTitle('🛡️ DANH SÁCH TRANG BỊ - ĐỘ BỀN 🛡️')
-            .setColor('#3498db')
+            .setTitle('🛡️ DANH SÁCH TRANG BỊ - ĐỘ BỀN')
+            .setColor(uiSystem_1.EMBED_COLORS.INFO)
             .setDescription('Kiểm tra tình trạng pháp bảo của đạo hữu. Trang bị hết độ bền chỉ còn **50%** chỉ số!')
             .setFooter({ text: 'Dùng /suachua trangbi inventory_id: <id> hoặc /suachua tatca để sửa chữa.' })
             .setTimestamp();
@@ -99,7 +100,7 @@ class SuaChuaCommand extends Command_1.Command {
             .setCustomId(`hosoback_${userId}`)
             .setLabel('🔙 Quay Lại Hồ Sơ')
             .setStyle(discord_js_1.ButtonStyle.Secondary));
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
     }
     /**
      * Sửa chữa một trang bị cụ thể

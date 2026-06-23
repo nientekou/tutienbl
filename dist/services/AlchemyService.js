@@ -481,6 +481,7 @@ class AlchemyService {
             AchievementService_1.achievementService.setProgress(userId, 'sh_3', newAlchemyCount);
             AchievementService_1.achievementService.setProgress(userId, 'sh_4', newAlchemyCount);
             AchievementService_1.achievementService.setProgress(userId, 'sh_5', newAlchemyCount);
+            AchievementService_1.achievementService.setProgress(userId, 'sh_16', newAlchemyCount);
             let responseMsg = `🎉 **Luyện đan hoàn tất!** Đạo hữu đã luyện chế thành công **${successCount}x ${rewardName}**${evolvedCount > 0 ? ` (trong đó có ${evolvedCount} viên Biến Dị 🧬)` : ''}!\n`;
             if (successCount < quantity) {
                 responseMsg += `⚠️ Có **${quantity - successCount}** mẻ bị nổ lò thất bại do dược lực không ổn định.\n`;

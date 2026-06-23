@@ -15,6 +15,7 @@ const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 const database_1 = __importDefault(require("../../database/database"));
 const itemConstants_1 = require("../../config/itemConstants");
 exports.SHOP_ITEMS = [
@@ -193,7 +194,7 @@ function getShopEmbed(userId, primaryId, subId, page = 1, searchQuery) {
     description += `Cực phẩm linh thạch: **${knb}** 💎\n\n`;
     const activeCategory = primaryId || 'dan';
     const embed = new discord_js_1.EmbedBuilder()
-        .setColor('#e67e22')
+        .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
         .setTimestamp();
     if (searchQuery) {
         title = '🔍 KẾT QUẢ TÌM KIẾM';
@@ -438,7 +439,7 @@ class ShopCommand extends Command_1.Command {
         if (sub === 'danhsach') {
             const embed = getShopEmbed(userId);
             const components = getShopComponents(userId);
-            await interaction.editReply({ embeds: [embed], components });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
             return;
         }
         if (sub === 'mua') {
@@ -485,12 +486,12 @@ class ShopCommand extends Command_1.Command {
                 }
                 const updatedUser = UserRepository_1.userRepository.get(userId);
                 const embed = new discord_js_1.EmbedBuilder()
-                    .setTitle('🛒 MUA HÀNG THÀNH CÔNG 🛒')
-                    .setColor('#2ecc71')
+                    .setTitle('🛒 MUA HÀNG THÀNH CÔNG')
+                    .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                     .setDescription(`Đạo hữu mua thành công **${qty}x ${item.name}**!`)
                     .addFields({ name: '💎 Chi phí', value: `**-${totalCost}** KNB`, inline: true }, { name: '💼 Số dư hiện tại', value: `**${(0, constants_1.formatNumber)(updatedUser.knb)}** KNB`, inline: true })
                     .setTimestamp();
-                await interaction.editReply({ embeds: [embed] });
+                await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             }
             else {
                 if (user.coin_ha_pham < totalCost) {
@@ -513,12 +514,12 @@ class ShopCommand extends Command_1.Command {
                 }
                 const updatedUser = UserRepository_1.userRepository.get(userId);
                 const embed = new discord_js_1.EmbedBuilder()
-                    .setTitle('🛒 MUA HÀNG THÀNH CÔNG 🛒')
-                    .setColor('#2ecc71')
+                    .setTitle('🛒 MUA HÀNG THÀNH CÔNG')
+                    .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                     .setDescription(`Đạo hữu mua thành công **${qty}x ${item.name}**!`)
                     .addFields({ name: '🪙 Chi phí', value: `**-${totalCost}** Linh Thạch Hạ Phẩm`, inline: true }, { name: '💼 Số dư hiện tại', value: `**${(0, constants_1.formatNumber)(updatedUser.coin_ha_pham)}** Linh Thạch`, inline: true })
                     .setTimestamp();
-                await interaction.editReply({ embeds: [embed] });
+                await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             }
         }
     }

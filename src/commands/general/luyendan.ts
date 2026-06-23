@@ -7,6 +7,7 @@ import { alchemyService, ALCHEMY_RECIPES } from '../../services/AlchemyService';
 import { getProgressBar } from '../../utils/constants';
 import db from '../../database/database';
 import { ITEMS } from '../../config/itemConstants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class LuyenDanCommand extends Command {
   constructor() {
@@ -29,7 +30,7 @@ export default class LuyenDanCommand extends Command {
     const embed = this.getAlchemyEmbed(userId);
     const rows = this.getAlchemyComponents(userId);
 
-    await interaction.editReply({ embeds: [embed], components: rows });
+    await interaction.editReply(toV2Payload([embed], rows ));
   }
 
   /**
@@ -98,8 +99,8 @@ export default class LuyenDanCommand extends Command {
     const hoaBonus = hoaLinhCan * 0.001;
 
     const embed = new EmbedBuilder()
-      .setTitle('🌿 LINH DƯỢC LUYỆN ĐAN PHÒNG 🌿')
-      .setColor('#2ecc71')
+      .setTitle('🌿 LINH DƯỢC LUYỆN ĐAN PHÒNG')
+      .setColor(EMBED_COLORS.SUCCESS)
       .setDescription(
         `Đạo hữu đang ngự tại phòng luyện chế linh đan.\n` +
         `🏆 **Cấp Luyện Đan Sư:** Cấp **${alchemyLevel}**\n` +

@@ -15,6 +15,7 @@ const DailyQuestService_1 = require("../../services/DailyQuestService");
 const constants_1 = require("../../utils/constants");
 const itemConstants_1 = require("../../config/itemConstants");
 const database_1 = __importDefault(require("../../database/database"));
+const uiSystem_1 = require("../../utils/uiSystem");
 // === Helper functions for button handlers ===
 function getTowerEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
@@ -31,7 +32,7 @@ function getTowerEmbed(userId) {
     const hpBar = (0, constants_1.getProgressBar)(Math.round(hpPercent * 100), 100, 10);
     return new discord_js_1.EmbedBuilder()
         .setTitle(`🏰 THÁP VÔ HẠN ROGUELIKE - ${user?.name || 'Không xác định'}`)
-        .setColor('#e74c3c')
+        .setColor(uiSystem_1.EMBED_COLORS.ERROR)
         .setDescription(`Nơi tu sĩ leo tháp cọ xát võ học bản thân. Càng lên cao, yêu tinh thần thú càng bá đạo.\n\n` +
         `🏆 **Tầng Cao Nhất Đạt Được:** Tầng **${maxFloor}**\n` +
         `⚡ **Tầng Hiện Tại:** Tầng **${floor}**\n` +
@@ -74,7 +75,7 @@ class LeoThapCommand extends Command_1.Command {
         let progress = database_1.default.prepare('SELECT * FROM roguelike_progress WHERE user_id = ?').get(userId);
         if (sub === 'trangthai') {
             const embed = getTowerEmbed(userId);
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         // Các hành động chiến đấu/reset tiêu tốn 20 Stamina
@@ -211,8 +212,8 @@ class LeoThapCommand extends Command_1.Command {
                 if (artifactRes && artifactRes.message) {
                     artifactMsg = `\n• ${artifactRes.message}`;
                 }
-                embed.setTitle(`🏆 CHIẾN THẮNG TẦNG ${floor} 🏆`)
-                    .setColor('#2ecc71')
+                embed.setTitle(`🏆 CHIẾN THẮNG TẦNG ${floor}`)
+                    .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                     .setDescription(`Đạo hữu đã đả bại thành công **${enemyCombatant.name}**!\n\n` +
                     `📊 **Thông số sau hiệp đấu:**\n` +
                     `• Sinh lực mang đi tiếp: **${Math.round(endingHpPercent * 100)}%** HP ❤️\n` +
@@ -234,8 +235,8 @@ class LeoThapCommand extends Command_1.Command {
           `).run(newLives, finalHpPercent, userId);
                     UserRepository_1.userRepository.update(userId, { stamina: user.stamina - 20 });
                 })();
-                embed.setTitle(`💀 THẤT BẠI TẦNG ${floor} 💀`)
-                    .setColor('#e74c3c');
+                embed.setTitle(`💀 THẤT BẠI TẦNG ${floor}`)
+                    .setColor(uiSystem_1.EMBED_COLORS.ERROR);
                 if (newLives > 0) {
                     embed.setDescription(`Đạo hữu tử trận tại tầng **${floor}**!\n\n` +
                         `• Sát thương oán khí bạo liệt, đạo hữu hao tổn **-1 sinh mạng** (Còn lại **${newLives}/3** mạng).\n` +
@@ -248,7 +249,7 @@ class LeoThapCommand extends Command_1.Command {
                         `💀 *Đạo hữu bị đẩy văng ra khỏi chân tháp. Hãy dùng lệnh \`/leothap khoi-dau\` để thiết lập run mới từ Tầng 1.*`);
                 }
             }
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
     }
 }

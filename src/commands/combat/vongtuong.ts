@@ -5,6 +5,7 @@ import { userRepository } from '../../database/repositories/UserRepository';
 import { dreamscapeService } from '../../services/DreamscapeService';
 import { inventoryService } from '../../services/InventoryService';
 import { getProgressBar } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export function getDreamscapeEmbed(userId: string): EmbedBuilder {
   const user = userRepository.get(userId);
@@ -54,7 +55,7 @@ export function getDreamscapeEmbed(userId: string): EmbedBuilder {
       `• Tốc Độ: **${shadowSpeed}** SPD\n\n` +
       `*Gợi ý: Dùng \`/vongtuong khieuchien\` để leo tháp, hoặc \`/vongtuong dauhang\` để reset máu và quay về tầng 1.*`
     )
-    .setColor('#9b59b6')
+    .setColor(EMBED_COLORS.MYSTIC)
     .setTimestamp();
 }
 
@@ -102,7 +103,7 @@ export default class VongTuongCommand extends Command {
 
   if (subcommand === 'thongtin') {
     const embed = getDreamscapeEmbed(discordId);
-    return interaction.editReply({ embeds: [embed] });
+    return interaction.editReply(toV2Payload([embed]));
   }
 
   if (subcommand === 'khieuchien') {
@@ -120,9 +121,9 @@ export default class VongTuongCommand extends Command {
     const embed = new EmbedBuilder()
       .setTitle(`🌌 Vọng Tưởng: Tầng ${result.currentFloor}`)
       .setDescription(`📜 **Chiến báo:**\n${battleLog}\n\n${result.message}`)
-      .setColor(result.isWin ? '#2ecc71' : '#e74c3c');
+      .setColor(result.isWin ? EMBED_COLORS.SUCCESS : EMBED_COLORS.ERROR);
 
-    return interaction.editReply({ embeds: [embed] });
+    return interaction.editReply(toV2Payload([embed]));
   }
 
   if (subcommand === 'dauhang') {
@@ -149,10 +150,10 @@ export default class VongTuongCommand extends Command {
     const embed = new EmbedBuilder()
       .setTitle('🏆 Bảng Xếp Hạng Vọng Tưởng (Tuần)')
       .setDescription(desc)
-      .setColor('#f1c40f')
+      .setColor(EMBED_COLORS.GOLD)
       .setFooter({ text: 'Sẽ tự động trao phần thưởng và reset vào sáng Thứ 2 hàng tuần.' });
 
-    return interaction.editReply({ embeds: [embed] });
+    return interaction.editReply(toV2Payload([embed]));
   }
 }
 }

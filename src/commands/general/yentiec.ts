@@ -1,5 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import { TuTienClient } from '../../client/TuTienClient';
 import { feastService } from '../../services/FeastService';
 
@@ -22,6 +23,6 @@ export default class YenTiecCommand extends Command {
       .setDescription(result.message)
       .setTimestamp();
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 }

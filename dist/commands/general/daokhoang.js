@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
+const uiSystem_1 = require("../../utils/uiSystem");
 const lamviec_1 = require("./lamviec");
 class DaoKhoangCommand extends Command_1.Command {
     constructor() {
@@ -28,7 +29,7 @@ class DaoKhoangCommand extends Command_1.Command {
             components.push(row);
         }
         if (result.embed) {
-            await interaction.editReply({ embeds: [result.embed], components });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([result.embed], components));
         }
         else {
             await interaction.editReply({ content: result.message, components });

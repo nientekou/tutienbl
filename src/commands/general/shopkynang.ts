@@ -4,6 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { getShopEmbed, getShopComponents } from './shop';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import { ITEMS } from '../../config/itemConstants';
 
 
@@ -71,8 +72,8 @@ export default class ShopKyNangCommand extends Command {
 
     if (sub === 'danhsach') {
       const embed = new EmbedBuilder()
-        .setTitle('🏪 VẠN PHÁP SƠN TRANG - THỦ THƯ TIÊN CÁC 🏪')
-        .setColor('#8e44ad')
+        .setTitle('🏪 VẠN PHÁP SƠN TRANG - THỦ THƯ TIÊN CÁC')
+        .setColor(EMBED_COLORS.DARK_PURPLE)
         .setDescription('Nơi tu sĩ mua các bản sao cuốn sách cổ ghi chép pháp tắc nguyên thủy để thức tỉnh kỹ năng chiến đấu.')
         .setFooter({ text: 'Dùng /shopkynang mua [book_id] [số lượng] để thỉnh sách.' })
         .setTimestamp();
@@ -89,7 +90,7 @@ export default class ShopKyNangCommand extends Command {
         value: `🟤 **${user.coin_ha_pham}** Hạ Phẩm Linh Thạch.`
       });
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -127,8 +128,8 @@ export default class ShopKyNangCommand extends Command {
       const updatedUser = userRepository.get(userId)!;
 
       const embed = new EmbedBuilder()
-        .setTitle('📚 THỈNH SÁCH THÀNH CÔNG 📚')
-        .setColor('#2ecc71')
+        .setTitle('📚 THỈNH SÁCH THÀNH CÔNG')
+        .setColor(EMBED_COLORS.SUCCESS)
         .setDescription(`Đạo hữu đã đút túi **${qty}x ${book.name}**! Hãy dùng \`/dungkynang item_id: ${book.id}\` để đọc hiểu và lĩnh ngộ pháp tắc.`)
         .addFields(
           { name: '🪙 Chi phí', value: `**-${totalCost}** Linh Thạch`, inline: true },
@@ -136,7 +137,7 @@ export default class ShopKyNangCommand extends Command {
         )
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
   }
 }

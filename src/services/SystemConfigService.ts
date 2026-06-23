@@ -30,15 +30,23 @@ export class SystemConfigService {
    * Ghi nhận log giao dịch nhạy cảm để điều tra nếu cần.
    */
   public writeAuditLog(userId: string, action: string, details: string | object): void {
-    try {
-      const now = Math.floor(Date.now() / 1000);
-      const detailsStr = typeof details === 'string' ? details : JSON.stringify(details);
-      db.prepare(`
-        INSERT INTO audit_logs (user_id, action, details, created_at)
-        VALUES (?, ?, ?, ?)
-      `).run(userId, action, detailsStr, now);
-    } catch (e) {
-      console.error('Lỗi khi ghi log giao dịch:', e);
+    const maxRetries = 2;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const now = Math.floor(Date.now() / 1000);
+        const detailsStr = typeof details === 'string' ? details : JSON.stringify(details);
+        db.prepare(`
+          INSERT INTO audit_logs (user_id, action, details, created_at)
+          VALUES (?, ?, ?, ?)
+        `).run(userId, action, detailsStr, now);
+        return;
+      } catch (e: any) {
+        if (e?.code === 'SQLITE_BUSY' && attempt < maxRetries) {
+          continue;
+        }
+        console.error('Lỗi khi ghi log giao dịch:', e);
+        return;
+      }
     }
   }
 }

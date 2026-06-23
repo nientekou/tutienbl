@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const database_1 = __importDefault(require("../../database/database"));
+const uiSystem_1 = require("../../utils/uiSystem");
 const CHANNELS_CONFIG = [
     { key: 'tuluyen_channel_id', name: '📜-tu-luyện', topic: '🧘 Thiền định, đột phá, xem trạng thái: /taonhanvat, /hoso, /ycanh, /luanhoi' },
     { key: 'linhdien_channel_id', name: '🌿-linh-điền', topic: '🌱 Mở đất, trồng trọt, luyện đan, rèn trang bị: /linhdien, /chetao' },
@@ -78,7 +79,7 @@ class SetupCommand extends Command_1.Command {
         const guild = interaction.guild;
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('📋 CẤU HÌNH ĐẠO TRƯỜNG')
-            .setColor(0x2ecc71)
+            .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
             .setDescription(`Danh sách kênh thuộc **${guild.name}**:`)
             .setTimestamp();
         for (const ch of CHANNELS_CONFIG) {
@@ -89,7 +90,7 @@ class SetupCommand extends Command_1.Command {
                 inline: true,
             });
         }
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
     async confirmReset(client, interaction) {
         const config = getExistingConfig(interaction.guildId);
@@ -157,7 +158,7 @@ class SetupCommand extends Command_1.Command {
             // 4. Embed kết quả
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🌌 KIẾN TẠO ĐẠO TRƯỜNG THÀNH CÔNG!')
-                .setColor(0x2ecc71)
+                .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                 .setDescription('Hệ thống đã thiết lập **10 phân khu tu luyện** tại tông môn này:')
                 .setTimestamp()
                 .setFooter({ text: 'Chư vị đạo hữu hãy di chuyển đến kênh tương ứng!' });
@@ -171,7 +172,7 @@ class SetupCommand extends Command_1.Command {
                 .setLabel('🎮 Bắt Đầu')
                 .setStyle(discord_js_1.ButtonStyle.Primary)
                 .setCustomId('setup_start_game'));
-            await interaction.editReply({ embeds: [embed], components: [row] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
             // 5. Gửi welcome vào channel tu luyện
             const welcomeChannel = guild.channels.cache.get(channelIds['tuluyen_channel_id']);
             if (welcomeChannel?.isTextBased()) {

@@ -5,6 +5,7 @@ exports.buildCamNangMenu = buildCamNangMenu;
 exports.handleCamNangSelect = handleCamNangSelect;
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
+const uiSystem_1 = require("../../utils/uiSystem");
 const CAMNANG_DATA = {
     chuong1: {
         title: '🌱 CHƯƠNG I: PHÀM NHÂN HƯỚNG ĐẠO',
@@ -75,7 +76,7 @@ class CamNangCommand extends Command_1.Command {
     async execute(client, interaction) {
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('📖 CẨM NẠNG TIÊN LỘ')
-            .setColor('#3498db')
+            .setColor(uiSystem_1.EMBED_COLORS.INFO)
             .setDescription('Chào mừng đạo hữu đến với **Điển Tịch Cẩm Nang Tiên Lộ**!\n\n' +
             'Hãy chọn một chương thư tịch từ menu bên dưới để tìm hiểu về thế giới tu chân huyền bí:\n\n' +
             '🌱 **Chương I: Phàm Nhân Hướng Đạo** — Linh Căn, Huyết Mạch, Thiền Định\n' +
@@ -87,7 +88,7 @@ class CamNangCommand extends Command_1.Command {
             .setCustomId(`camnang_${interaction.user.id}`)
             .setPlaceholder('📖 Chọn chương điển tịch...')
             .addOptions(new discord_js_1.StringSelectMenuOptionBuilder().setLabel('🌱 Chương I: Phàm Nhân Hướng Đạo').setValue('chuong1').setDescription('Linh Căn, Huyết Mạch, Thiền Định'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('🔮 Chương II: Pháp Bảo Thần Thông').setValue('chuong2').setDescription('Đúc Rèn, Khảm Ngọc, Khí Linh, Tâm Pháp'), new discord_js_1.StringSelectMenuOptionBuilder().setLabel('⚡ Chương III: Kiếp Số Nhân Quả').setValue('chuong3').setDescription('Lôi Kiếp, Ý Cảnh, Luân Hồi, Đạo Lữ')));
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
     }
 }
 exports.default = CamNangCommand;
@@ -96,7 +97,7 @@ function getCamNangEmbed(topic) {
     if (!guide) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('📖 CẨM NẠNG TIÊN LỘ')
-            .setColor('#3498db')
+            .setColor(uiSystem_1.EMBED_COLORS.INFO)
             .setDescription('Chương thư tịch không tồn tại.');
     }
     return new discord_js_1.EmbedBuilder()
@@ -116,5 +117,5 @@ async function handleCamNangSelect(interaction) {
     const topic = interaction.values[0];
     const embed = getCamNangEmbed(topic);
     const menu = buildCamNangMenu(interaction.user.id);
-    await interaction.update({ embeds: [embed], components: [menu] });
+    await interaction.update((0, uiSystem_1.toV2Update)([embed], [menu]));
 }

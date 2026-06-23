@@ -10,6 +10,7 @@ import {
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import { inventoryRepository, InventoryItem } from '../../database/repositories/InventoryRepository';
 import db from '../../database/database';
 import { ITEMS } from '../../config/itemConstants';
@@ -90,8 +91,8 @@ export default class SuaChuaCommand extends Command {
     equippedItems: InventoryItem[]
   ): Promise<void> {
     const embed = new EmbedBuilder()
-      .setTitle('🛡️ DANH SÁCH TRANG BỊ - ĐỘ BỀN 🛡️')
-      .setColor('#3498db')
+      .setTitle('🛡️ DANH SÁCH TRANG BỊ - ĐỘ BỀN')
+      .setColor(EMBED_COLORS.INFO)
       .setDescription('Kiểm tra tình trạng pháp bảo của đạo hữu. Trang bị hết độ bền chỉ còn **50%** chỉ số!')
       .setFooter({ text: 'Dùng /suachua trangbi inventory_id: <id> hoặc /suachua tatca để sửa chữa.' })
       .setTimestamp();
@@ -129,7 +130,7 @@ export default class SuaChuaCommand extends Command {
         .setStyle(ButtonStyle.Secondary)
     );
 
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    await interaction.editReply(toV2Payload([embed], [row] ));
   }
 
   /**

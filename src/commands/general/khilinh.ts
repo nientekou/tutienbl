@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
@@ -6,6 +6,48 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import { spiritWeaponService } from '../../services/SpiritWeaponService';
 import db from '../../database/database';
 import { getProgressBar } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+
+const ITEMS_PER_PAGE = 5;
+
+export function getSpiritListEmbed(userId: string, user: any, spiritWeapons: any[], page: number): { embed: EmbedBuilder; totalPages: number } {
+  const totalPages = Math.max(Math.ceil(spiritWeapons.length / ITEMS_PER_PAGE), 1);
+  const cappedPage = Math.min(Math.max(page, 1), totalPages);
+  const offset = (cappedPage - 1) * ITEMS_PER_PAGE;
+  const pageItems = spiritWeapons.slice(offset, offset + ITEMS_PER_PAGE);
+
+  const embed = new EmbedBuilder()
+    .setTitle('⚡ Danh Sách Khí Linh Sở Hữu')
+    .setColor(EMBED_COLORS.DARK_PURPLE)
+    .setDescription(spiritWeapons.length > ITEMS_PER_PAGE ? `*Trang ${cappedPage}/${totalPages} (${spiritWeapons.length} khí linh)*` : null)
+    .setTimestamp();
+
+  for (const sw of pageItems) {
+    const itemInfo = db.prepare('SELECT name, rarity FROM items WHERE id = ?').get(sw.item_id) as any;
+    const expBar = getProgressBar(sw.exp, sw.level * 50);
+    const affinityBar = '❤️'.repeat(Math.min(Math.floor(sw.affinity / 20), 5)) + '🖤'.repeat(Math.max(0, 5 - Math.floor(sw.affinity / 20)));
+
+    embed.addFields({
+      name: `🔮 ${sw.spirit_name} (#${sw.id})`,
+      value: `• **Pháp Bảo ký chủ:** **${itemInfo?.name || sw.item_id}** [${itemInfo?.rarity.toUpperCase() || 'UNKNOWN'}]\n` +
+             `• **Cấp độ:** Cấp **${sw.level}** (EXP: ${expBar} - ${sw.exp}/${sw.level * 50})\n` +
+             `• **Thân mật:** ${affinityBar} (${sw.affinity}/100)\n` +
+             `• **Kỹ năng:** **${sw.skill_id || 'Chưa thức tỉnh'}**`
+    });
+  }
+
+  return { embed, totalPages };
+}
+
+export function getSpiritListComponents(userId: string, page: number, totalPages: number): ActionRowBuilder<ButtonBuilder>[] {
+  if (totalPages <= 1) return [];
+  const row = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder().setCustomId(`spiritprev_${page}_${userId}`).setEmoji('◀').setStyle(ButtonStyle.Secondary).setDisabled(page <= 1),
+      new ButtonBuilder().setCustomId(`spiritnext_${page}_${userId}`).setEmoji('▶').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages),
+    );
+  return [row];
+}
 
 export default class KhiLinhCommand extends Command {
   constructor() {
@@ -84,8 +126,8 @@ export default class KhiLinhCommand extends Command {
       const affinityBar = getProgressBar(spirit.affinity, 100);
 
       const embed = new EmbedBuilder()
-        .setTitle('✨ THỨC TỈNH KHÍ LINH THÀNH CÔNG! ✨')
-        .setColor('#8e44ad')
+        .setTitle('✨ THỨC TỈNH KHÍ LINH THÀNH CÔNG!')
+        .setColor(EMBED_COLORS.DARK_PURPLE)
         .setDescription(
           `*Từ trong thần phong sắc bén của pháp bảo, một tia linh trí bỗng chốc thức tỉnh...*\n\n` +
           `🔮 **Khí Linh:** **${spirit.spirit_name}** (#${spirit.id})\n` +
@@ -102,7 +144,7 @@ export default class KhiLinhCommand extends Command {
         })
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
     else if (subcmd === 'nuoiduong') {
       const spiritId = interaction.options.getInteger('spirit_id', true);
@@ -129,8 +171,8 @@ export default class KhiLinhCommand extends Command {
       const expBar = getProgressBar(res.remainingExp || 0, res.expNeeded || 50);
 
       const embed = new EmbedBuilder()
-        .setTitle('🍽️ NUÔI DƯỠNG KHÍ LINH 🍽️')
-        .setColor('#e67e22')
+        .setTitle('🍽️ NUÔI DƯỠNG KHÍ LINH')
+        .setColor(EMBED_COLORS.ORANGE)
         .setDescription(
           `**${res.spiritName}** hấp thụ nguyên liệu **${res.materialName}**, nhận thêm **+${res.expGain}** EXP!\n\n` +
           `⚡ **Cấp Độ:** Cấp **${res.newLevel}** ${res.leveledUp ? ' ⬆️ **[THĂNG CẤP!]**' : ''}\n` +
@@ -145,7 +187,7 @@ export default class KhiLinhCommand extends Command {
         });
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
     else if (subcmd === 'tuongtac') {
       const spiritId = interaction.options.getInteger('spirit_id', true);
@@ -170,8 +212,8 @@ export default class KhiLinhCommand extends Command {
       const quote = dialogues[Math.floor(Math.random() * dialogues.length)];
 
       const embed = new EmbedBuilder()
-        .setTitle('💬 TƯƠNG TÁC KHÍ LINH 💬')
-        .setColor('#e91e63')
+        .setTitle('💬 TƯƠNG TÁC KHÍ LINH')
+        .setColor(EMBED_COLORS.ROMANCE)
         .setDescription(
           `*Đạo hữu mở ra linh thức, ôn nhu đàm đạo cùng khí linh của pháp bảo...*\n\n` +
           `💬 **${res.spiritName}:**\n*${quote}*\n\n` +
@@ -179,7 +221,7 @@ export default class KhiLinhCommand extends Command {
         )
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
     else if (subcmd === 'tienhoa') {
       const spiritId = interaction.options.getInteger('spirit_id', true);
@@ -195,8 +237,8 @@ export default class KhiLinhCommand extends Command {
       }
 
       const embed = new EmbedBuilder()
-        .setTitle('🐉 KHÍ LINH TIẾN HÓA THÀNH CÔNG! 🐉')
-        .setColor('#9b59b6')
+        .setTitle('🐉 KHÍ LINH TIẾN HÓA THÀNH CÔNG!')
+        .setColor(EMBED_COLORS.MYSTIC)
         .setDescription(
           `*Thiên địa bỗng hiện ngũ sắc tường vân, linh khí bàng bạc hội tụ giáng xuống pháp bảo...*\n\n` +
           `🔥 Khí linh **${res.oldName}** đã lột xác niết bàn, tiến hóa thăng hoa thành:\n` +
@@ -205,7 +247,7 @@ export default class KhiLinhCommand extends Command {
         )
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
     else if (subcmd === 'kynang') {
       const spiritId = interaction.options.getInteger('spirit_id', true);
@@ -223,7 +265,7 @@ export default class KhiLinhCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle(`✨ Thông Tin Khí Linh: ${spirit.spirit_name} (#${spirit.id})`)
-        .setColor('#8e44ad')
+        .setColor(EMBED_COLORS.DARK_PURPLE)
         .setDescription(
           `⚔️ **Pháp Bảo Ký Chủ:** **${itemInfo?.name || spirit.item_id}** [${itemInfo?.rarity.toUpperCase()}]\n\n` +
           `⚡ **Cấp Độ:** Cấp **${spirit.level}**\n` +
@@ -249,7 +291,7 @@ export default class KhiLinhCommand extends Command {
         )
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
     else if (subcmd === 'danhsach') {
       const spiritWeapons = spiritWeaponService.getSpiritWeapons(userId);
@@ -260,26 +302,9 @@ export default class KhiLinhCommand extends Command {
         return;
       }
 
-      const embed = new EmbedBuilder()
-        .setTitle('⚡ Danh Sách Khí Linh Sở Hữu ⚡')
-        .setColor('#8e44ad')
-        .setTimestamp();
-
-      spiritWeapons.forEach(sw => {
-        const itemInfo = db.prepare('SELECT name, rarity FROM items WHERE id = ?').get(sw.item_id) as any;
-        const expBar = getProgressBar(sw.exp, sw.level * 50);
-        const affinityBar = '❤️'.repeat(Math.min(Math.floor(sw.affinity / 20), 5)) + '🖤'.repeat(Math.max(0, 5 - Math.floor(sw.affinity / 20)));
-        
-        embed.addFields({
-          name: `🔮 ${sw.spirit_name} (#${sw.id})`,
-          value: `• **Pháp Bảo ký chủ:** **${itemInfo?.name || sw.item_id}** [${itemInfo?.rarity.toUpperCase() || 'UNKNOWN'}]\n` +
-                 `• **Cấp độ:** Cấp **${sw.level}** (EXP: ${expBar} - ${sw.exp}/${sw.level * 50})\n` +
-                 `• **Thân mật:** ${affinityBar} (${sw.affinity}/100)\n` +
-                 `• **Kỹ năng:** **${sw.skill_id || 'Chưa thức tỉnh'}**`
-        });
-      });
-
-      await interaction.editReply({ embeds: [embed] });
+      const { embed, totalPages } = getSpiritListEmbed(userId, user, spiritWeapons, 1);
+      const components = getSpiritListComponents(userId, 1, totalPages);
+      await interaction.editReply(toV2Payload([embed], components));
     }
   }
 }

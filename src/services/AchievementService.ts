@@ -1,5 +1,6 @@
 import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
+import { systemConfigService } from './SystemConfigService';
 
 export interface Achievement {
   id: string;
@@ -106,6 +107,7 @@ class AchievementService {
     if (!user) return [];
 
     const newlyUnlocked: Achievement[] = [];
+    const pendingAuditLogs: Array<{ action: string; details: object }> = [];
 
     const tx = db.transaction(() => {
       // Lấy hoặc tạo bản ghi user_achievement
@@ -135,7 +137,7 @@ class AchievementService {
           db.prepare(
             'UPDATE user_achievements SET completed_at = ? WHERE user_id = ? AND achievement_id = ?'
           ).run(now, userId, achievementId);
-          this.awardReward(userId, achievement, now);
+          this.awardReward(userId, achievement, now, pendingAuditLogs);
           newlyUnlocked.push(achievement);
         }
         return;
@@ -155,10 +157,15 @@ class AchievementService {
         ).run(now, userId, achievementId);
 
         // Trao thưởng
-        this.awardReward(userId, achievement, now);
+        this.awardReward(userId, achievement, now, pendingAuditLogs);
         newlyUnlocked.push(achievement);
       }
     })();
+
+    // Ghi audit log SAU khi transaction commit — tránh SQLITE_BUSY
+    for (const log of pendingAuditLogs) {
+      systemConfigService.writeAuditLog(userId, log.action, log.details);
+    }
 
     return newlyUnlocked;
   }
@@ -166,7 +173,7 @@ class AchievementService {
   /**
    * Trao thưởng khi hoàn thành thành tựu
    */
-  private awardReward(userId: string, achievement: Achievement, timestamp: number): void {
+  private awardReward(userId: string, achievement: Achievement, timestamp: number, pendingAuditLogs?: Array<{ action: string; details: object }>): void {
     const user = userRepository.get(userId);
     if (!user) return;
 
@@ -203,15 +210,19 @@ class AchievementService {
       }
     }
 
-    // Ghi audit log
-    const { systemConfigService } = require('./SystemConfigService');
-    systemConfigService.writeAuditLog(userId, 'achievement_unlocked', {
+    // Ghi audit log (deferred nếu có transaction)
+    const auditDetails = {
       achievementId: achievement.id,
       name: achievement.name,
       rewardExp: achievement.reward_exp,
       rewardCoins: achievement.reward_coins,
       rewardTitle: achievement.reward_title
-    });
+    };
+    if (pendingAuditLogs) {
+      pendingAuditLogs.push({ action: 'achievement_unlocked', details: auditDetails });
+    } else {
+      systemConfigService.writeAuditLog(userId, 'achievement_unlocked', auditDetails);
+    }
   }
 
   /**

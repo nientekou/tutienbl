@@ -7,6 +7,7 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import db from '../../database/database';
 import { getProgressBar } from '../../utils/constants';
 import { ITEMS } from '../../config/itemConstants';
+import { EMBED_COLORS } from '../../utils/uiSystem';
 
 /**
  * Tạo Embed hiển thị trạng thái Linh Điền
@@ -16,7 +17,7 @@ export function getLinhDienEmbed(userId: string): EmbedBuilder {
   if (!user) {
     return new EmbedBuilder()
       .setTitle('❌ Lỗi')
-      .setColor('#e74c3c')
+      .setColor(EMBED_COLORS.ERROR)
       .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
   }
 
@@ -27,7 +28,7 @@ export function getLinhDienEmbed(userId: string): EmbedBuilder {
   const embed = new EmbedBuilder()
     .setTitle(`🌱 Linh Điền Trồng Trọt - ${user.name}`)
     .setDescription('Đại Đạo Vô Biên, trồng trọt thu hoạch thảo dược rèn đan luyện linh khí.')
-    .setColor('#2ecc71')
+    .setColor(EMBED_COLORS.SUCCESS)
     .setTimestamp();
 
   const fields: { name: string; value: string; inline?: boolean }[] = [];

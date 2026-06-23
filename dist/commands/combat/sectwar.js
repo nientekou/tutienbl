@@ -8,6 +8,7 @@ const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const SectWarService_1 = require("../../services/SectWarService");
 const database_1 = __importDefault(require("../../database/database"));
+const uiSystem_1 = require("../../utils/uiSystem");
 class SectWarCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -44,7 +45,7 @@ class SectWarCommand extends Command_1.Command {
                 const minesState = SectWarService_1.sectWarService.getMinesState();
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('🏔️ BẢN ĐỒ MỎ LINH THẠCH')
-                    .setColor('#3498db')
+                    .setColor(uiSystem_1.EMBED_COLORS.INFO)
                     .setDescription('Các Tông Môn có thể chiếm mỏ để nhận Linh Thạch mỗi 4 giờ.');
                 const { SECT_MINES } = require('../../services/SectWarService');
                 for (const mineDef of SECT_MINES) {
@@ -58,7 +59,7 @@ class SectWarCommand extends Command_1.Command {
                         value: `Yêu cầu Tông Môn cấp: **${mineDef.level_req}**\nSản lượng: **${mineDef.income} LT/4h**\n${statusStr}`
                     });
                 }
-                await interaction.editReply({ embeds: [embed] });
+                await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
                 return;
             }
             if (sub === 'chiem') {
@@ -85,7 +86,7 @@ class SectWarCommand extends Command_1.Command {
             const leaderboard = SectWarService_1.sectWarService.getSectLeaderboard();
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`⚔️ BANG HỘI CHIẾN - Mùa #${season.season_number}`)
-                .setColor('#e74c3c')
+                .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription(`Trạng thái: **${season.status === 'active' ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc'}**`)
                 .addFields({ name: '📅 Bắt đầu', value: `<t:${season.started_at}:R>`, inline: true }, { name: '🏆 Top 5 Tông Môn', value: leaderboard.slice(0, 5).map((e, i) => `${i + 1}. **${e.sect_name}** (Cấp ${e.level}) - ${e.total_damage} dmg | ${e.total_wins} thắng`).join('\n') || '*Chưa có dữ liệu*' });
             if (user.sect_id) {
@@ -124,7 +125,7 @@ class SectWarCommand extends Command_1.Command {
                     ].join('\n'),
                 });
             }
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         if (sub === 'thamgia') {
@@ -151,13 +152,13 @@ class SectWarCommand extends Command_1.Command {
             }
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`🏆 BẢNG XẾP HẠNG TÔNG MÔN - Mùa #${season.season_number}`)
-                .setColor('#f1c40f')
+                .setColor(uiSystem_1.EMBED_COLORS.GOLD)
                 .setDescription(leaderboard.map((e, i) => {
                 const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
                 return `${medal} **${e.sect_name}** (Cấp ${e.level})\n   ⚔️ ${e.total_damage} dmg | 🏆 ${e.total_wins} thắng | 📊 ${e.total_battles} trận`;
             }).join('\n'))
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         if (sub === 'lichsu') {
@@ -168,7 +169,7 @@ class SectWarCommand extends Command_1.Command {
             }
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`📜 LỊCH SỬ BANG HỘI CHIẾN`)
-                .setColor('#95a5a6');
+                .setColor(uiSystem_1.EMBED_COLORS.NEUTRAL);
             for (const b of history) {
                 const sectNames = b.sect_ids.map((id) => {
                     const s = database_1.default.prepare('SELECT name FROM sects WHERE id = ?').get(id);
@@ -182,7 +183,7 @@ class SectWarCommand extends Command_1.Command {
                     value: `Các bên: **${sectNames.join(' vs ')}**\nĐiểm số: ${scoresStr}\nTrạng thái: Đã kết thúc <t:${b.ended_at}:R>`
                 });
             }
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
     }

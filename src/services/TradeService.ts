@@ -1,4 +1,5 @@
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
+import { EMBED_COLORS } from '../utils/uiSystem';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
 import db from '../database/database';
@@ -307,7 +308,7 @@ export class TradeService {
 
     const embed = new EmbedBuilder()
       .setTitle('🤝 GIAO DỊCH TRỰC TIẾP')
-      .setColor(trade.status === 'pending' ? '#e67e22' : '#2ecc71')
+      .setColor(trade.status === 'pending' ? EMBED_COLORS.ORANGE : EMBED_COLORS.SUCCESS)
       .setDescription(trade.status === 'pending' 
         ? `Đang chờ **${trade.target.name}** chấp nhận giao dịch...`
         : `Giao dịch giữa **${trade.initiator.name}** và **${trade.target.name}**`)

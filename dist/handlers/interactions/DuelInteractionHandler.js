@@ -8,13 +8,14 @@ const DailyQuestService_1 = require("../../services/DailyQuestService");
 const QuestChainService_1 = require("../../services/QuestChainService");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const itemConstants_1 = require("../../config/itemConstants");
+const uiSystem_1 = require("../../utils/uiSystem");
 class DuelInteractionHandler {
     static async handle(interaction, action, parts) {
         if (action === 'duelaccept') {
             const duelId = parts[1];
             const res = MinigameService_1.minigameService.acceptChallenge(duelId, interaction.user.id);
             if (!res.success) {
-                await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                await interaction.reply({ content: `❌ ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             const duel = res.duel;
@@ -23,8 +24,8 @@ class DuelInteractionHandler {
                 return '🟩'.repeat(Math.max(0, filled)) + '⬛'.repeat(Math.max(0, 10 - filled));
             };
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('⚔️ TAM HỒI LINH CHIẾN — ĐÃ KHAI TRẬN ⚔️')
-                .setColor('#3498db')
+                .setTitle('⚔️ TAM HỒI LINH CHIẾN — ĐÃ KHAI TRẬN')
+                .setColor(uiSystem_1.EMBED_COLORS.INFO)
                 .setDescription(`Đạo hữu <@${duel.targetId}> đã chấp nhận lời khiêu chiến **Tam Hồi Linh Chiến** của <@${duel.challengerId}>!\n\n` +
                 `🪙 **Hũ Cược:** **${duel.wager * 2}** Hạ Phẩm Linh Thạch (mỗi bên cược **${duel.wager}**).\n` +
                 `🌀 **Hiệp ${duel.currentRound}/${duel.maxRounds}** — Hãy chọn chiêu thức!\n\n` +
@@ -51,12 +52,12 @@ class DuelInteractionHandler {
             const duelId = parts[1];
             const res = MinigameService_1.minigameService.refuseChallenge(duelId, interaction.user.id);
             if (!res.success) {
-                await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                await interaction.reply({ content: `❌ ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('❌ QUYẾT ĐẤU BỊ KHƯỚC TỪ ❌')
-                .setColor('#7f8c8d')
+                .setTitle('❌ QUYẾT ĐẤU BỊ KHƯỚC TỪ')
+                .setColor(uiSystem_1.EMBED_COLORS.NEUTRAL)
                 .setDescription(`Đạo hữu <@${interaction.user.id}> đã khước từ lời khiêu chiến quyết đấu của <@${res.duel.challengerId}>.`)
                 .setTimestamp();
             await interaction.update({ embeds: [embed], components: [] });
@@ -85,7 +86,7 @@ class DuelInteractionHandler {
                 const combatPills = invItems.filter(i => i.type === 'pill' &&
                     [itemConstants_1.ITEMS.PILL_HP_1, itemConstants_1.ITEMS.PILL_HP_2, itemConstants_1.ITEMS.PILL_TU_VI_LOW].includes(i.item_id));
                 if (combatPills.length === 0) {
-                    await interaction.reply({ content: '❌ Đạo hữu không có Đan Dược nào có thể dùng trong chiến đấu! (Cần Hồi Huyết Đan hoặc Tụ Khí Đan)', ephemeral: true });
+                    await interaction.reply({ content: '❌ Đạo hữu không có Đan Dược nào có thể dùng trong chiến đấu! (Cần Hồi Huyết Đan hoặc Tụ Khí Đan)', flags: discord_js_1.MessageFlags.Ephemeral });
                     return;
                 }
                 const selectMenu = new discord_js_1.StringSelectMenuBuilder()
@@ -101,7 +102,7 @@ class DuelInteractionHandler {
                 await interaction.reply({
                     content: '💊 **Chọn Đan Dược để sử dụng trong hiệp này:**\n*(Sử dụng đan dược sẽ tiêu hao 1 lượt ra chiêu của đạo hữu)*',
                     components: [rowSelect],
-                    ephemeral: true
+                    flags: discord_js_1.MessageFlags.Ephemeral
                 });
                 return;
             }
@@ -111,17 +112,17 @@ class DuelInteractionHandler {
             };
             const res = MinigameService_1.minigameService.chooseMove(duelId, interaction.user.id, choiceRaw);
             if (!res.success) {
-                await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                await interaction.reply({ content: `❌ ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             const duel = res.duel;
             if (duel.status === 'completed') {
                 const embed = new discord_js_1.EmbedBuilder()
-                    .setTitle('⚔️ TAM HỒI LINH CHIẾN — KẾT THÚC ⚔️')
+                    .setTitle('⚔️ TAM HỒI LINH CHIẾN — KẾT THÚC')
                     .setTimestamp();
                 const logsText = duel.roundLogs.slice(-3).join('\n\n');
                 if (res.isTie) {
-                    embed.setColor('#f1c40f')
+                    embed.setColor(uiSystem_1.EMBED_COLORS.GOLD)
                         .setDescription(`🔥 **BẤT PHÂN THẮNG BẠI!** Sau ${duel.currentRound} hiệp đấu kịch liệt, cả hai đều kiệt sức không phân cao thấp!\n\n` +
                         `${logsText}\n\n` +
                         `💰 Lời khiêu chiến bị hủy bỏ, Linh Thạch đặt cược hoàn trả nguyên vẹn cho hai bên!`);
@@ -136,7 +137,7 @@ class DuelInteractionHandler {
                     if (pvpResult.coinsStolen > 0) {
                         stolenText = `\n🩸 **Cướp Đoạt:** <@${winnerId}> đã cướp thêm được **${pvpResult.coinsStolen}** Hạ Phẩm Linh Thạch từ túi đồ của kẻ bại trận!`;
                     }
-                    embed.setColor('#2ecc71')
+                    embed.setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                         .setDescription(`🏆 **CHIẾN THẮNG VINH QUANG!** Sau ${duel.currentRound} hiệp đọ sức, kẻ mạnh đã được phân định!\n\n` +
                         `${logsText}\n\n` +
                         `━━━ **KẾT QUẢ CHUNG CUỘC** ━━━\n` +
@@ -151,7 +152,7 @@ class DuelInteractionHandler {
                     await interaction.update({ embeds: [embed], components: [] });
                 }
                 else {
-                    await interaction.followUp({ embeds: [embed], components: [] });
+                    await interaction.followUp((0, uiSystem_1.toV2Payload)([embed], []));
                 }
                 return;
             }
@@ -159,8 +160,8 @@ class DuelInteractionHandler {
                 const prevRound = duel.currentRound - 1;
                 const lastLog = duel.roundLogs[duel.roundLogs.length - 1] || '';
                 const embed = new discord_js_1.EmbedBuilder()
-                    .setTitle(`⚔️ TAM HỒI LINH CHIẾN — HIỆP ${duel.currentRound}/${duel.maxRounds} ⚔️`)
-                    .setColor('#3498db')
+                    .setTitle(`⚔️ TAM HỒI LINH CHIẾN — HIỆP ${duel.currentRound}/${duel.maxRounds}`)
+                    .setColor(uiSystem_1.EMBED_COLORS.INFO)
                     .setDescription(`${lastLog}\n\n` +
                     `━━━ **HIỆP ${duel.currentRound} — CHỌN CHIÊU THỨC** ━━━\n` +
                     `⚔️ **Xuất Kiếm** — Mạnh vs 💫 Tụ Khí, Yếu vs 🛡️ Phòng Thủ\n` +
@@ -178,16 +179,16 @@ class DuelInteractionHandler {
                     await interaction.update({ embeds: [embed], components: [row1, row2, row3] });
                 }
                 else {
-                    await interaction.message.edit({ embeds: [embed], components: [row1, row2, row3] });
+                    await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(interaction.channelId, interaction.message.id), { body: { components: [(0, uiSystem_1.embedToV2)(embed), row1, row2, row3], flags: uiSystem_1.V2_FLAG } });
                 }
                 let choiceName = actionMeta[choiceRaw]?.name || 'Vật Phẩm';
-                await interaction.followUp({ content: `✅ Đạo hữu ra chiêu thành công! Đạo hữu chọn **${choiceName}** cho hiệp ${prevRound}. Hãy chọn chiêu hiệp ${duel.currentRound}!`, ephemeral: true });
+                await interaction.followUp({ content: `✅ Đạo hữu ra chiêu thành công! Đạo hữu chọn **${choiceName}** cho hiệp ${prevRound}. Hãy chọn chiêu hiệp ${duel.currentRound}!`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             if (duel.roundStatus === 'waiting') {
                 const embed = new discord_js_1.EmbedBuilder()
-                    .setTitle(`⚔️ TAM HỒI LINH CHIẾN — HIỆP ${duel.currentRound}/${duel.maxRounds} ⚔️`)
-                    .setColor('#3498db')
+                    .setTitle(`⚔️ TAM HỒI LINH CHIẾN — HIỆP ${duel.currentRound}/${duel.maxRounds}`)
+                    .setColor(uiSystem_1.EMBED_COLORS.INFO)
                     .setDescription(`🪙 **Hũ Cược:** **${duel.wager * 2}** Hạ Phẩm Linh Thạch\n\n` +
                     `📊 **Trạng thái hiện tại:**\n` +
                     `<@${duel.challengerId}>: ${hpBar(duel.challengerHp, duel.challengerMaxHp)} **${duel.challengerHp}/${duel.challengerMaxHp}**\n` +
@@ -203,12 +204,12 @@ class DuelInteractionHandler {
                     await interaction.update({ embeds: [embed], components: [row1, row2, row3] });
                 }
                 else {
-                    await interaction.message.edit({ embeds: [embed], components: [row1, row2, row3] });
+                    await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(interaction.channelId, interaction.message.id), { body: { components: [(0, uiSystem_1.embedToV2)(embed), row1, row2, row3], flags: uiSystem_1.V2_FLAG } });
                 }
-                await interaction.followUp({ content: `✅ Đạo hữu ra chiêu thành công! Hãy chờ đối thủ!`, ephemeral: true });
+                await interaction.followUp({ content: `✅ Đạo hữu ra chiêu thành công! Hãy chờ đối thủ!`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
-            await interaction.reply({ content: '⚠️ Trạng thái quyết đấu không xác định.', ephemeral: true });
+            await interaction.reply({ content: '⚠️ Trạng thái quyết đấu không xác định.', flags: discord_js_1.MessageFlags.Ephemeral });
             return;
         }
         if (action === 'duellichsu') {
@@ -216,12 +217,12 @@ class DuelInteractionHandler {
             const targetPage = parseInt(parts[2], 10) || 1;
             const history = MinigameService_1.minigameService.getDuelHistory(targetId, targetPage);
             if (history.records.length === 0) {
-                await interaction.update({ content: '📜 **Không còn dữ liệu lịch sử nào.**', embeds: [], components: [] });
+                await interaction.update({ embeds: [new discord_js_1.EmbedBuilder().setDescription('📜 **Không còn dữ liệu lịch sử nào.**')], components: [] });
                 return;
             }
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('📜 LỊCH SỬ QUYẾT ĐẤU - TAM HỒI LINH CHIẾN')
-                .setColor('#f39c12')
+                .setColor(uiSystem_1.EMBED_COLORS.WARNING)
                 .setFooter({ text: `Trang ${history.currentPage}/${history.totalPages} • Tổng số: ${history.totalRecords} trận` })
                 .setTimestamp();
             for (const record of history.records) {

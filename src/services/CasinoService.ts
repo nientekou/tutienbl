@@ -435,7 +435,7 @@ export class CasinoService {
       return {
         total_bets: 0, total_wins: 0, total_losses: 0,
         total_bet_amount: 0, total_payout: 0, biggest_win: 0,
-        win_rate: 0, net: 0,
+        win_rate: '0%', net: 0,
       };
     }
     return {

@@ -3,6 +3,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { brotherhoodService } from '../../services/BrotherhoodService';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class KetNghiaCommand extends Command {
   constructor() {
@@ -63,11 +64,11 @@ export default class KetNghiaCommand extends Command {
       if (result.success) {
         const embed = new EmbedBuilder()
           .setTitle('🌸 Kết Nghĩa - Lời Mời')
-          .setColor(0x9b59b6)
+          .setColor(EMBED_COLORS.MYSTIC)
           .setDescription(`${interaction.user.username} gửi lời kết nghĩa đến **${targetUser.username}**!\n\n${result.message}`)
           .setFooter({ text: 'Hãy dùng /ketnghia chapnhan để chấp nhận.' })
           .setTimestamp();
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply(toV2Payload([embed]));
       } else {
         await interaction.editReply({ content: `❌ ${result.message}` });
       }
@@ -87,11 +88,11 @@ export default class KetNghiaCommand extends Command {
       if (result.success) {
         const embed = new EmbedBuilder()
           .setTitle('🎉 Kết Nghĩa Thành Công!')
-          .setColor(0xf1c40f)
+          .setColor(EMBED_COLORS.GOLD)
           .setDescription(result.message)
           .setFooter({ text: 'Huynh đệ đồng tâm, vạn sự hưng long!' })
           .setTimestamp();
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply(toV2Payload([embed]));
       } else {
         await interaction.editReply({ content: `❌ ${result.message}` });
       }
@@ -137,7 +138,7 @@ export default class KetNghiaCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle('🤝 Tình Huynh Đệ')
-        .setColor(0x9b59b6)
+        .setColor(EMBED_COLORS.MYSTIC)
         .setDescription(`**${user.name}** và **${partnerName}** đã kết nghĩa huynh đệ!`)
         .addFields(
           {
@@ -162,7 +163,7 @@ export default class KetNghiaCommand extends Command {
         )
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
   }

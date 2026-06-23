@@ -12,6 +12,7 @@ const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryService_1 = require("../services/InventoryService");
 const hoso_1 = require("../commands/general/hoso");
 const constants_1 = require("../utils/constants");
+const uiSystem_1 = require("../utils/uiSystem");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 const CombatService_1 = require("../services/CombatService");
 const bicanh_1 = require("../commands/combat/bicanh");
@@ -45,6 +46,9 @@ const dungkynang_1 = __importDefault(require("../commands/general/dungkynang"));
 const GuildWarService_1 = require("../services/GuildWarService");
 const LeylineService_1 = require("../services/LeylineService");
 const MountService_1 = require("../services/MountService");
+const toaky_1 = require("../commands/general/toaky");
+const khilinh_1 = require("../commands/general/khilinh");
+const thanhtuu_1 = require("../commands/general/thanhtuu");
 // Cooldown trong bộ nhớ cho hành động Tu Luyện (Thiền Định)
 const practiceCooldowns = new Map();
 // Bộ nhớ tạm lưu trữ nhật ký chiến đấu của người chơi để xem chi tiết (có TTL 10 phút)
@@ -91,7 +95,7 @@ class InteractionCreateEvent extends Event_1.Event {
                 if (interaction.isRepliable()) {
                     await interaction.reply({
                         content: `🔒 **Trục Xuất Tam Giới:**\n\nLinh hồn của đạo hữu đã bị Thiên Đạo phong ấn (Ban).\n📝 **Lý do:** *${banCheck.reason || 'Không rõ lý do'}*\n\n*Ngươi không thể can thiệp hay thực hiện bất kỳ hành động nào trong tam giới.*`,
-                        ephemeral: true
+                        flags: discord_js_1.MessageFlags.Ephemeral
                     });
                 }
                 return;
@@ -132,7 +136,7 @@ class InteractionCreateEvent extends Event_1.Event {
                 if (interaction.isRepliable()) {
                     await interaction.reply({
                         content: '⚠️ **Hệ Thống Tu Chân Bảo Trì:** Linh khí thiên địa hỗn loạn, đại trận bảo trì đang được kích hoạt. Đạo hữu vui lòng quay lại sau!',
-                        ephemeral: true
+                        flags: discord_js_1.MessageFlags.Ephemeral
                     });
                 }
                 return;
@@ -155,7 +159,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     try {
                         await interaction.reply({
                             content: '❌ **Thao tác quá nhanh:** Hệ thống đang xử lý hành động trước đó của đạo hữu, vui lòng không spam!',
-                            ephemeral: true
+                            flags: discord_js_1.MessageFlags.Ephemeral
                         });
                     }
                     catch (lockErr) {
@@ -189,7 +193,7 @@ class InteractionCreateEvent extends Event_1.Event {
                 const command = client.commands.get(interaction.commandName);
                 if (!command) {
                     console.warn(`[Interaction] Lệnh /${interaction.commandName} không tìm thấy trong bộ nhớ.`);
-                    await interaction.reply({ content: 'Lệnh không tồn tại hoặc đã bị gỡ bỏ.', ephemeral: true });
+                    await interaction.reply({ content: 'Lệnh không tồn tại hoặc đã bị gỡ bỏ.', flags: discord_js_1.MessageFlags.Ephemeral });
                     return;
                 }
                 try {
@@ -207,7 +211,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     }
                     else {
                         try {
-                            await interaction.reply({ content: errorMessage, ephemeral: true });
+                            await interaction.reply({ content: errorMessage, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         catch (_) { }
                     }
@@ -257,7 +261,9 @@ class InteractionCreateEvent extends Event_1.Event {
                     'adminpanel',
                     'adminuser',
                     'adminfixpets',
-                    'titleswitch'
+                    'titleswitch',
+                    'ngotinh_activate',
+                    'ngotinh_reroll_execute'
                 ];
                 let action = '';
                 let parts = [];
@@ -282,6 +288,14 @@ class InteractionCreateEvent extends Event_1.Event {
                 // QUY TẮC: userId luôn là PHẦN TỬ CUỐI CÙNG trong parts (trừ các nút public)
                 if (action === 'invprev' || action === 'invnext') {
                     pageNum = Math.max(1, parseInt(parts[1], 10) || 1);
+                    targetUserId = parts[parts.length - 1];
+                }
+                else if (action === 'mountprev' || action === 'mountnext' || action === 'spiritprev' || action === 'spiritnext') {
+                    pageNum = Math.max(1, parseInt(parts[1], 10) || 1);
+                    targetUserId = parts[parts.length - 1];
+                }
+                else if (action === 'achprev' || action === 'achnext') {
+                    pageNum = Math.max(1, parseInt(parts[2], 10) || 1);
                     targetUserId = parts[parts.length - 1];
                 }
                 else if (action === 'loi') {
@@ -314,7 +328,7 @@ class InteractionCreateEvent extends Event_1.Event {
                 if (!user) {
                     await interaction.reply({
                         content: '❌ Đạo hữu chưa khởi tạo nhân vật hoặc đã bị xóa khỏi thế giới.',
-                        ephemeral: true
+                        flags: discord_js_1.MessageFlags.Ephemeral
                     });
                     return;
                 }
@@ -327,12 +341,12 @@ class InteractionCreateEvent extends Event_1.Event {
                         const isPay = parts[2] === 'pay';
                         const boss = database_1.default.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get();
                         if (!boss || boss.status === 'defeated') {
-                            await interaction.reply({ content: '❌ World Boss đã bị tiêu diệt hoặc chưa xuất thế!', ephemeral: true });
+                            await interaction.reply({ content: '❌ World Boss đã bị tiêu diệt hoặc chưa xuất thế!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const user = UserRepository_1.userRepository.get(interaction.user.id);
                         if (!user) {
-                            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         // Kiểm tra Cooldown cho đòn đánh (áp dụng cho cả Global button)
@@ -340,20 +354,20 @@ class InteractionCreateEvent extends Event_1.Event {
                         if (user.injury_end_time && user.injury_end_time > now) {
                             const remain = user.injury_end_time - now;
                             const minutes = Math.ceil(remain / 60);
-                            await interaction.reply({ content: `❌ Đạo hữu đang bị **Trọng Thương**! Cần tĩnh dưỡng thêm **${minutes} phút** mới có thể tiếp tục khiêu chiến World Boss.`, ephemeral: true });
+                            await interaction.reply({ content: `❌ Đạo hữu đang bị **Trọng Thương**! Cần tĩnh dưỡng thêm **${minutes} phút** mới có thể tiếp tục khiêu chiến World Boss.`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const contrib = database_1.default.prepare("SELECT last_attack_at FROM world_boss_contributions WHERE user_id = ? AND boss_id = 'world_boss_current'")
                             .get(interaction.user.id);
-                        if (contrib && now - contrib.last_attack_at < 600) {
-                            const cdSec = 600 - (now - contrib.last_attack_at);
-                            await interaction.reply({ content: `⏳ Đạo hữu đang kiệt sức. Cần **${cdSec} giây** nữa để hồi phục!`, ephemeral: true });
+                        if (contrib && now - contrib.last_attack_at < 200) {
+                            const cdSec = 200 - (now - contrib.last_attack_at);
+                            await interaction.reply({ content: `⏳ Đạo hữu đang kiệt sức. Cần **${cdSec} giây** nữa để hồi phục!`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         // Lấy chỉ số chiến đấu thực tế của người chơi
                         const activeStats = InventoryService_1.inventoryService.getActiveStats(interaction.user.id);
                         if (!activeStats) {
-                            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         // Chạy lượt đánh nhanh (Live Raid Hit) — wrapped in transaction to prevent race condition
@@ -398,7 +412,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         });
                         const txResult = bossTx();
                         if ('error' in txResult) {
-                            await interaction.reply({ content: '❌ World Boss đã bị tiêu diệt hoặc chưa xuất thế!', ephemeral: true });
+                            await interaction.reply({ content: '❌ World Boss đã bị tiêu diệt hoặc chưa xuất thế!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const { boss: currentBossData, isCrit, totalDmg, isDefeated, pet, petDmg } = txResult;
@@ -407,29 +421,29 @@ class InteractionCreateEvent extends Event_1.Event {
                             .all();
                         const currentRank = allContribs.findIndex(c => c.user_id === interaction.user.id) + 1;
                         // Phản phệ dựa trên % máu tối đa theo thứ hạng World Boss
-                        // Ponytail: hardcoded rank brackets — nếu có nhiều người chơi hơn, mở rộng hoặc dùng công thức độ dốc
+                        // Ponytail: hardcoded rank brackets — có thể chuyển sang công thức độ dốc nếu mở rộng
                         const reflectPctByRank = {
-                            1: [0.35, 0.50],
-                            2: [0.28, 0.40],
-                            3: [0.22, 0.32],
-                            4: [0.18, 0.26],
-                            5: [0.14, 0.20],
+                            1: [0.20, 0.30],
+                            2: [0.16, 0.25],
+                            3: [0.12, 0.20],
+                            4: [0.10, 0.16],
+                            5: [0.08, 0.13],
                         };
-                        const range = reflectPctByRank[currentRank] ?? [0.05, 0.12];
+                        const range = reflectPctByRank[currentRank] ?? [0.03, 0.08];
                         const pct = range[0] + Math.random() * (range[1] - range[0]);
                         const reflectDmg = Math.round(activeStats.hp * pct);
-                        // HP thấp (dưới boss.atk * 5) -> 25% tỷ lệ chấn thương, ngược lại 8%
-                        // Top 1-3 tăng thêm 10% tỷ lệ chấn thương
-                        const baseInjuryChance = activeStats.hp < (currentBossData.atk * 5) ? 0.25 : 0.08;
-                        const rankInjuryBonus = currentRank <= 3 ? 0.10 : 0;
-                        const injuryChance = Math.min(baseInjuryChance + rankInjuryBonus, 0.50);
-                        const isInjured = Math.random() < injuryChance;
+                        // Chấn thương xảy ra khi phản phệ vượt ngưỡng 25% máu tối đa — có thể dự đoán được, không random
+                        // Ponytail: ngưỡng cố định 25%, có thể điều chỉnh theo boss level nếu cần
+                        const injuryThreshold = Math.round(activeStats.hp * 0.25);
+                        const isInjured = reflectDmg >= injuryThreshold;
+                        // Thưởng Ngộ Tính theo hạng: top 3 nhận nhiều hơn vì chịu phản phệ lớn hơn
+                        const ngoTinhBonus = currentRank <= 3 ? 5 : 3;
                         const updatedUser = UserRepository_1.userRepository.get(interaction.user.id);
                         const updates = {
-                            ngotinh: updatedUser.ngotinh + 3
+                            ngotinh: updatedUser.ngotinh + ngoTinhBonus
                         };
                         if (isInjured) {
-                            updates.injury_end_time = now + 900; // 15 phút trọng thương
+                            updates.injury_end_time = now + 600; // 10 phút trọng thương (giảm từ 15 xuống vì dễ đoán hơn)
                         }
                         UserRepository_1.userRepository.update(interaction.user.id, updates);
                         // Cập nhật tiến trình nhiệm vụ hàng ngày
@@ -467,10 +481,9 @@ class InteractionCreateEvent extends Event_1.Event {
                         const rankText = ` 🏆 **(Hạng #${currentRank})**`;
                         const reflectPctShow = Math.round(pct * 100);
                         const reflectText = `\n⚡ **Phản Phệ:** Đạo hữu chịu **-${reflectDmg}** sát thương phản chấn [hạng #${currentRank} — ${reflectPctShow}% HP] từ Boss thế giới!`;
-                        const injuryText = isInjured ? `\n🚨 **Chấn Thương:** Đạo hữu sinh lực cạn kiệt, chấn động kinh mạch, bị **Trọng Thương trong 15 phút**!` : '';
+                        const injuryText = isInjured ? `\n🚨 **Chấn Thương:** Phản phệ chấn động kinh mạch, bị **Trọng Thương trong 10 phút**!` : '';
                         await interaction.reply({
-                            content: `💥 Đạo hữu **${updatedUser.name}** vung đòn tấn công Boss thế giới, gây **-${totalDmg}** sát thương lên Boss${critText}${rankText}!${petText}${reflectText}${injuryText}\n🧘 Nhận được **+3** Điểm Ngộ Tính!${rewardsText}`,
-                            ephemeral: false
+                            content: `💥 Đạo hữu **${updatedUser.name}** vung đòn tấn công Boss thế giới, gây **-${totalDmg}** sát thương lên Boss${critText}${rankText}!${petText}${reflectText}${injuryText}\n🧘 Nhận được **+${ngoTinhBonus}** Điểm Ngộ Tính!${rewardsText}`
                         });
                         return;
                     }
@@ -479,7 +492,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const eventId = parseInt(parts[1], 10);
                         const event = database_1.default.prepare('SELECT * FROM traveler_events WHERE id = ?').get(eventId);
                         if (!event || event.status !== 'active') {
-                            await interaction.reply({ content: '❌ Lữ Khách đã không còn ở đây nữa!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Lữ Khách đã không còn ở đây nữa!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         let inventory = {};
@@ -498,7 +511,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             }
                         }
                         if (options.length === 0) {
-                            await interaction.reply({ content: '❌ Lữ Khách đã hết sạch hàng!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Lữ Khách đã hết sạch hàng!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const { StringSelectMenuBuilder, ActionRowBuilder } = require('discord.js');
@@ -507,7 +520,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setPlaceholder('Chọn vật phẩm muốn mua')
                             .addOptions(options);
                         const row = new ActionRowBuilder().addComponents(selectMenu);
-                        await interaction.reply({ content: 'Đạo hữu muốn mua gì?', components: [row], ephemeral: true });
+                        await interaction.reply({ content: 'Đạo hữu muốn mua gì?', components: [row], flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     else if (action === 'traveler_buy_item' && interaction.isStringSelectMenu()) {
                         const eventId = parseInt(parts[1], 10);
@@ -536,12 +549,12 @@ class InteractionCreateEvent extends Event_1.Event {
                                                     embed.setTitle('👺 Lữ Khách Thần Bí (Đã Rời Đi)');
                                                     embed.setDescription('Lữ Khách đã bán hết sạch hàng và rời đi.');
                                                     embed.setFields([]); // clear fields
-                                                    await msg.edit({ embeds: [embed], components: [] });
+                                                    await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(event.channel_id, event.message_id), { body: { components: [(0, uiSystem_1.embedToV2)(embed)], flags: uiSystem_1.V2_FLAG } });
                                                 }
                                                 else {
                                                     const newFields = { name: '💰 Hàng Hoá', value: Object.values(inv).map((i) => `- **${i.name}** (Còn: ${i.quantity}) - Giá: ${i.price} LT`).join('\n') };
                                                     embed.setFields([newFields]);
-                                                    await msg.edit({ embeds: [embed] });
+                                                    await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(event.channel_id, event.message_id), { body: { components: [(0, uiSystem_1.embedToV2)(embed)], flags: uiSystem_1.V2_FLAG } });
                                                 }
                                             }
                                         }
@@ -559,10 +572,10 @@ class InteractionCreateEvent extends Event_1.Event {
                             console.error('[TravelerBuy] Lỗi mua hàng:', buyErr);
                             try {
                                 if (interaction.deferred || interaction.replied) {
-                                    await interaction.followUp({ content: '❌ Có lỗi xảy ra khi mua hàng từ Lữ Khách!', ephemeral: true });
+                                    await interaction.followUp({ content: '❌ Có lỗi xảy ra khi mua hàng từ Lữ Khách!', flags: discord_js_1.MessageFlags.Ephemeral });
                                 }
                                 else {
-                                    await interaction.reply({ content: '❌ Có lỗi xảy ra khi mua hàng từ Lữ Khách!', ephemeral: true });
+                                    await interaction.reply({ content: '❌ Có lỗi xảy ra khi mua hàng từ Lữ Khách!', flags: discord_js_1.MessageFlags.Ephemeral });
                                 }
                             }
                             catch (_) { }
@@ -587,7 +600,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                             embed.setTitle('👺 Lữ Khách Thần Bí (Đã Bỏ Chạy)');
                                             embed.setDescription(`Lữ Khách đã bị **${interaction.user.username}** đánh bại và cướp sạch hàng hoá!`);
                                             embed.setFields([]);
-                                            await msg.edit({ embeds: [embed], components: [] });
+                                            await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(event.channel_id, event.message_id), { body: { components: [(0, uiSystem_1.embedToV2)(embed)], flags: uiSystem_1.V2_FLAG } });
                                         }
                                     }
                                 }
@@ -603,7 +616,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const inventoryId = parseInt(interaction.values[0], 10);
                         const CuongHuaCommand = require('../commands/general/cuonghoa').default;
                         const preview = CuongHuaCommand.buildEnhancePreview(targetUserId, inventoryId);
-                        await interaction.update({ embeds: [preview.embed], components: preview.rows });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([preview.embed], preview.rows, interaction));
                     }
                     else if (action === 'enhance_confirm') {
                         const inventoryId = parseInt(parts[1], 10);
@@ -611,10 +624,10 @@ class InteractionCreateEvent extends Event_1.Event {
                         const result = enhanceService.enhanceItem(targetUserId, inventoryId);
                         const CuongHuaCommand = require('../commands/general/cuonghoa').default;
                         const preview = CuongHuaCommand.buildEnhancePreview(targetUserId, inventoryId, result);
-                        await interaction.update({ embeds: [preview.embed], components: preview.rows });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([preview.embed], preview.rows, interaction));
                     }
                     else if (action === 'enhance_cancel') {
-                        await interaction.update({ content: '📴 Đã đóng giao diện cường hóa trang bị.', embeds: [], components: [] });
+                        await interaction.update({ content: '📴 Đã đóng giao diện cường hóa trang bị.', components: [] });
                     }
                     else if (action === 'linhmach_select' && interaction.isStringSelectMenu()) {
                         const selected = interaction.values[0];
@@ -624,40 +637,40 @@ class InteractionCreateEvent extends Event_1.Event {
                         const { buildLeylineEmbed, buildLeylineComponents } = require('../commands/general/linhmach');
                         const updatedEmbed = buildLeylineEmbed(targetUserId);
                         const updatedComponents = buildLeylineComponents(targetUserId);
-                        await interaction.update({ embeds: [updatedEmbed], components: updatedComponents });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], updatedComponents, interaction));
                         if (result.success) {
-                            await interaction.followUp({ content: `✅ ${result.message}`, ephemeral: true });
+                            await interaction.followUp({ content: `✅ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         else {
-                            await interaction.followUp({ content: `❌ ${result.message}`, ephemeral: true });
+                            await interaction.followUp({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                     }
                     else if (action === 'linhmach_close') {
-                        await interaction.update({ content: '📴 Đã đóng giao diện Linh Mạch Địa Đồ.', embeds: [], components: [] });
+                        await interaction.update({ content: '📴 Đã đóng giao diện Linh Mạch Địa Đồ.', components: [] });
                     }
                     else if (action === 'anky_select' && interaction.isStringSelectMenu()) {
                         const inventoryId = parseInt(interaction.values[0], 10);
                         const { soulImprintService } = require('../services/SoulImprintService');
                         const result = soulImprintService.imprintItem(targetUserId, inventoryId);
                         if (result.success) {
-                            await interaction.update({ content: `✅ ${result.message}`, embeds: [], components: [] });
+                            await interaction.update({ content: `✅ ${result.message}`, components: [] });
                         }
                         else {
-                            await interaction.update({ content: `❌ ${result.message}`, embeds: [], components: [] });
+                            await interaction.update({ content: `❌ ${result.message}`, components: [] });
                         }
                     }
                     else if (action === 'dungkynang_select' && interaction.isStringSelectMenu()) {
                         const bookId = interaction.values[0];
                         const result = dungkynang_1.default.learnSkill(targetUserId, bookId);
                         if (!result.success) {
-                            await interaction.update({ content: result.message, embeds: [], components: [] });
+                            await interaction.update({ content: result.message, components: [] });
                         }
                         else {
-                            await interaction.update({ embeds: [result.embed], components: [] });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([result.embed], interaction));
                         }
                     }
                     else if (action === 'dungkynang_cancel') {
-                        await interaction.update({ content: '📴 Đã đóng giao diện Lĩnh Ngộ Kỹ Năng.', embeds: [], components: [] });
+                        await interaction.update({ content: '📴 Đã đóng giao diện Lĩnh Ngộ Kỹ Năng.', components: [] });
                     }
                     else if (action === 'doitienselect' && interaction.isStringSelectMenu()) {
                         const selectedValue = interaction.values[0];
@@ -686,7 +699,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                 const maxSlots = destinyService.getMaxSlotsByRealm(realmDetails.realmName);
                                 const equipped = destinyRepository.getUserDestinies(targetUserId).filter((d) => d.is_equipped === 1);
                                 if (equipped.length >= maxSlots) {
-                                    await interaction.reply({ content: `❌ Đạo hữu chỉ có tối đa ${maxSlots} khe cắm Mệnh Cách ở cảnh giới hiện tại.`, ephemeral: true });
+                                    await interaction.reply({ content: `❌ Đạo hữu chỉ có tối đa ${maxSlots} khe cắm Mệnh Cách ở cảnh giới hiện tại.`, flags: discord_js_1.MessageFlags.Ephemeral });
                                     return;
                                 }
                                 // Tìm slot trống đầu tiên
@@ -698,12 +711,12 @@ class InteractionCreateEvent extends Event_1.Event {
                                     }
                                 }
                                 destinyRepository.update(destinyIdToEquip, { is_equipped: 1, slot: emptySlot });
-                                await interaction.reply({ content: `✅ Đã trang bị Mệnh Cách vào khe cắm [${emptySlot}]!`, ephemeral: true });
+                                await interaction.reply({ content: `✅ Đã trang bị Mệnh Cách vào khe cắm [${emptySlot}]!`, flags: discord_js_1.MessageFlags.Ephemeral });
                             }
                             else if (action === 'destiny_unequip') {
                                 const slotToUnequip = parseInt(value.replace('unequip_', ''));
                                 destinyRepository.unequipSlot(targetUserId, slotToUnequip);
-                                await interaction.reply({ content: `✅ Đã tháo Mệnh Cách ở khe cắm [${slotToUnequip}]!`, ephemeral: true });
+                                await interaction.reply({ content: `✅ Đã tháo Mệnh Cách ở khe cắm [${slotToUnequip}]!`, flags: discord_js_1.MessageFlags.Ephemeral });
                             }
                         }
                         return;
@@ -714,11 +727,98 @@ class InteractionCreateEvent extends Event_1.Event {
                         const titleName = parts.slice(1).join('_').replace(/_/g, ' ');
                         const result = achievementService.setTitle(targetUserId, titleName);
                         if (result.success) {
-                            await interaction.reply({ content: result.message, ephemeral: true });
+                            await interaction.reply({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         else {
-                            await interaction.reply({ content: result.message, ephemeral: true });
+                            await interaction.reply({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
+                        return;
+                    }
+                    // --- NGỘ TÍNH BUFF ACTIVATE ---
+                    else if (action === 'ngotinh_activate') {
+                        const buffId = parts[1];
+                        const targetUserId = parts[2];
+                        if (interaction.user.id !== targetUserId) {
+                            await interaction.reply({ content: '❌ Chỉ người sở hữu mới có thể kích hoạt buff!', flags: discord_js_1.MessageFlags.Ephemeral });
+                            return;
+                        }
+                        const { ngoTinhService } = require('../services/NgoTinhService');
+                        const result = ngoTinhService.activateBuff(targetUserId, buffId);
+                        if (result.success) {
+                            await interaction.reply({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
+                        }
+                        else {
+                            await interaction.reply({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
+                        }
+                        return;
+                    }
+                    // --- NGỘ TÍNH REROLL LINH CĂN ---
+                    else if (action === 'ngotinh_reroll_execute') {
+                        const targetUserId = parts[1];
+                        const lockElement = parts[2] === 'none' ? null : parts.slice(2).join('_');
+                        if (interaction.user.id !== targetUserId) {
+                            await interaction.reply({ content: '❌ Chỉ người sở hữu mới có thể reroll!', flags: discord_js_1.MessageFlags.Ephemeral });
+                            return;
+                        }
+                        const user = UserRepository_1.userRepository.get(targetUserId);
+                        if (!user) {
+                            await interaction.reply({ content: '❌ Không tìm thấy nhân vật!', flags: discord_js_1.MessageFlags.Ephemeral });
+                            return;
+                        }
+                        const baseCost = 20;
+                        const lockCost = lockElement ? 10 : 0;
+                        const totalCost = baseCost + lockCost;
+                        const ngotinh = user.ngotinh || 0;
+                        if (ngotinh < totalCost) {
+                            await interaction.reply({ content: `❌ Không đủ Ngộ Tính! Cần: ${totalCost}, Có: ${ngotinh}`, flags: discord_js_1.MessageFlags.Ephemeral });
+                            return;
+                        }
+                        // Tạo linh căn mới
+                        const elements = ['Hỏa', 'Thủy', 'Mộc', 'Thổ', 'Lôi', 'Phong'];
+                        let oldLinhCan = {};
+                        try {
+                            oldLinhCan = JSON.parse(user.linh_can || '{}');
+                        }
+                        catch { }
+                        let newLinhCan = {};
+                        if (lockElement && oldLinhCan[lockElement]) {
+                            // Giữ nguyên element được lock, reroll phần còn lại
+                            const lockedValue = oldLinhCan[lockElement];
+                            const remaining = 100 - lockedValue;
+                            const otherElements = elements.filter(e => e !== lockElement);
+                            let allocated = 0;
+                            for (let i = 0; i < otherElements.length - 1; i++) {
+                                const maxAlloc = remaining - allocated - (otherElements.length - 1 - i);
+                                const val = Math.floor(Math.random() * Math.max(1, maxAlloc + 1));
+                                newLinhCan[otherElements[i]] = val;
+                                allocated += val;
+                            }
+                            newLinhCan[otherElements[otherElements.length - 1]] = remaining - allocated;
+                            newLinhCan[lockElement] = lockedValue;
+                        }
+                        else {
+                            // Reroll toàn bộ
+                            let allocated = 0;
+                            for (let i = 0; i < elements.length - 1; i++) {
+                                const maxAlloc = 100 - allocated - (elements.length - 1 - i);
+                                const val = Math.floor(Math.random() * Math.max(1, maxAlloc + 1));
+                                newLinhCan[elements[i]] = val;
+                                allocated += val;
+                            }
+                            newLinhCan[elements[elements.length - 1]] = 100 - allocated;
+                        }
+                        UserRepository_1.userRepository.update(targetUserId, {
+                            linh_can: JSON.stringify(newLinhCan),
+                            ngotinh: ngotinh - totalCost
+                        });
+                        const { formatLinhCan } = require('../utils/constants');
+                        const oldFormatted = formatLinhCan(JSON.stringify(oldLinhCan));
+                        const newFormatted = formatLinhCan(JSON.stringify(newLinhCan));
+                        const embed = new discord_js_1.EmbedBuilder()
+                            .setTitle('💡 Reroll Linh Căn Thành Công!')
+                            .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
+                            .addFields({ name: '🔮 Linh Căn Cũ', value: oldFormatted }, { name: '✨ Linh Căn Mới', value: newFormatted }, { name: '💡 Chi Phí', value: `**${totalCost}** NT` });
+                        await interaction.reply({ embeds: [embed] });
                         return;
                     }
                     // --- Nút: QUYẾT ĐẤU (TAM HỒI LINH CHIẾN) ---
@@ -763,18 +863,18 @@ class InteractionCreateEvent extends Event_1.Event {
                         const subType = parts[1];
                         const page = parseInt(parts[2], 10) || 1;
                         const targetUserId = parts[parts.length - 1];
-                        const { buildLeaderboardMessage } = require('../commands/general/bangphongthan');
-                        const messageOptions = buildLeaderboardMessage(targetUserId, subType, page);
-                        await interaction.update(messageOptions);
+                        const { buildLeaderboardUpdate } = require('../commands/general/bangphongthan');
+                        const updateOptions = buildLeaderboardUpdate(targetUserId, subType, page);
+                        await interaction.update(updateOptions);
                         return;
                     }
                     // --- Dropdown Bảng Phong Thần ---
                     else if (action === 'bptselect' && interaction.isStringSelectMenu()) {
                         const category = interaction.values[0];
                         const targetUserId = parts[1];
-                        const { buildLeaderboardMessage } = require('../commands/general/bangphongthan');
-                        const messageOptions = buildLeaderboardMessage(targetUserId, category, 1);
-                        await interaction.update(messageOptions);
+                        const { buildLeaderboardUpdate } = require('../commands/general/bangphongthan');
+                        const updateOptions = buildLeaderboardUpdate(targetUserId, category, 1);
+                        await interaction.update(updateOptions);
                         return;
                     }
                     // --- Nút Động Phủ ---
@@ -800,11 +900,11 @@ class InteractionCreateEvent extends Event_1.Event {
                         if (result.success) {
                             const updatedEmbed = buildDongPhuEmbed(targetUserId);
                             const updatedComponents = buildDongPhuComponents(targetUserId);
-                            await interaction.update({ embeds: [updatedEmbed], components: updatedComponents });
-                            await interaction.followUp({ content: result.message, ephemeral: true });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], updatedComponents, interaction));
+                            await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         else {
-                            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         return;
                     }
@@ -814,7 +914,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             await interaction.deferUpdate();
                             const { embed, totalPages, itemsOnPage } = (0, hoso_1.getInventoryEmbed)(targetUserId, 1);
                             const components = (0, hoso_1.getInventoryComponents)(targetUserId, 1, totalPages, itemsOnPage);
-                            await interaction.editReply({ embeds: [embed], components: components });
+                            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
                         }
                         catch (e) {
                             console.error('[tuido] Lỗi mở túi đồ:', e?.message || e);
@@ -826,10 +926,67 @@ class InteractionCreateEvent extends Event_1.Event {
                             await interaction.deferUpdate();
                             const { embed, totalPages, itemsOnPage } = (0, hoso_1.getInventoryEmbed)(targetUserId, pageNum);
                             const components = (0, hoso_1.getInventoryComponents)(targetUserId, pageNum, totalPages, itemsOnPage);
-                            await interaction.editReply({ embeds: [embed], components: components });
+                            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
                         }
                         catch (e) {
                             console.error('[invpage] Lỗi phân trang túi đồ:', e?.message || e);
+                        }
+                    }
+                    // --- Nút: PHÂN TRANG TỌA KỴ ---
+                    else if (action === 'mountprev' || action === 'mountnext') {
+                        try {
+                            await interaction.deferUpdate();
+                            const mounts = MountService_1.mountService.getMounts(targetUserId);
+                            const active = MountService_1.mountService.getActiveMount(targetUserId);
+                            const ropeInv = database_1.default.prepare('SELECT quantity FROM inventories WHERE user_id = ? AND item_id = ?').get(targetUserId, 'thung_bat_thu');
+                            const ropesCount = ropeInv ? ropeInv.quantity : 0;
+                            const feedableItems = database_1.default.prepare(`
+              SELECT i.id as inv_id, i.item_id, item.name, item.rarity, i.quantity
+              FROM inventories i JOIN items item ON i.item_id = item.id
+              WHERE i.user_id = ? AND (item.type = 'material' OR item.type = 'pill')
+              ORDER BY i.quantity DESC LIMIT 5
+            `).all(targetUserId);
+                            const user = UserRepository_1.userRepository.get(targetUserId);
+                            if (!user)
+                                return;
+                            const { embed, totalPages } = (0, toaky_1.getMountListEmbed)(user, mounts, active, ropesCount, feedableItems, pageNum);
+                            const components = (0, toaky_1.getMountListComponents)(targetUserId, pageNum, totalPages);
+                            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
+                        }
+                        catch (e) {
+                            console.error('[mountpage] Lỗi phân trang tọa kỵ:', e?.message || e);
+                        }
+                    }
+                    // --- Nút: PHÂN TRANG KHÍ LINH ---
+                    else if (action === 'spiritprev' || action === 'spiritnext') {
+                        try {
+                            await interaction.deferUpdate();
+                            const { spiritWeaponService } = require('../services/SpiritWeaponService');
+                            const spiritWeapons = spiritWeaponService.getSpiritWeapons(targetUserId);
+                            if (spiritWeapons.length === 0)
+                                return;
+                            const user = UserRepository_1.userRepository.get(targetUserId);
+                            if (!user)
+                                return;
+                            const { embed, totalPages } = (0, khilinh_1.getSpiritListEmbed)(targetUserId, user, spiritWeapons, pageNum);
+                            const components = (0, khilinh_1.getSpiritListComponents)(targetUserId, pageNum, totalPages);
+                            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
+                        }
+                        catch (e) {
+                            console.error('[spiritpage] Lỗi phân trang khí linh:', e?.message || e);
+                        }
+                    }
+                    // --- Nút: PHÂN TRANG THÀNH TỰU ---
+                    else if (action === 'achprev' || action === 'achnext') {
+                        try {
+                            await interaction.deferUpdate();
+                            const category = parts[1].replace(/\./g, '_');
+                            const { embed, totalPages } = (0, thanhtuu_1.getAchievementCategoryEmbed)(targetUserId, category, pageNum);
+                            const components = (0, thanhtuu_1.getAchievementCategoryComponents)(targetUserId, category, pageNum, totalPages);
+                            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
+                        }
+                        catch (e) {
+                            console.error('[achpage] Lỗi phân trang thành tựu:', e?.message || e);
                         }
                     }
                     // --- Nút: QUAY LẠI HỒ SƠ ---
@@ -837,14 +994,14 @@ class InteractionCreateEvent extends Event_1.Event {
                         // Tính toán lại chỉ số active khi quay lại để cập nhật thay đổi trang bị
                         const embed = (0, hoso_1.getHoSoTabEmbed)(targetUserId, 'chiso');
                         const rows = (0, hoso_1.getHoSoAllComponents)(targetUserId, 'chiso');
-                        await interaction.update({ embeds: [embed], components: rows });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
                     }
                     // --- Nút: KHIÊU CHIẾN BÍ CẢNH (Chọn phó bản) ---
                     else if (action === 'bicanhselect') {
                         const dungeonId = parts.slice(1, -1).join('_'); // Ghép lại vì dungeon_id có underscore
                         const dungeon = dungeons_1.DUNGEONS[dungeonId];
                         if (!dungeon) {
-                            await interaction.reply({ content: '❌ Bí Cảnh này không tồn tại!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Bí Cảnh này không tồn tại!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         // Kiểm tra số lượt khiêu chiến hàng ngày
@@ -861,7 +1018,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         if (entriesToday >= dungeon.maxDailyEntries) {
                             await interaction.reply({
                                 content: `❌ Đạo hữu đã cạn kiệt linh lực khiêu chiến Bí Cảnh này hôm nay! (Giới hạn: **${dungeon.maxDailyEntries}/${dungeon.maxDailyEntries}** lượt/ngày)`,
-                                ephemeral: true
+                                flags: discord_js_1.MessageFlags.Ephemeral
                             });
                             return;
                         }
@@ -892,7 +1049,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         }
                         const embed = new discord_js_1.EmbedBuilder()
                             .setTitle(`🔮 BÍ CẢNH QUYẾT SÁCH: ${dungeon.name}`)
-                            .setColor('#e67e22')
+                            .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
                             .setDescription(`⚔️ **Độ khó ngẫu nhiên:** **${difficulty.toUpperCase()}**\n\n` +
                             `${hintText}\n\n` +
                             `*Khắc chế:* **Tấn Công** khắc Hộ Thể | **Thi Pháp** khắc Kiếm Pháp | **Phòng Thủ** khắc Phù Pháp.\n` +
@@ -910,7 +1067,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`bicanhreact_${dungeonId}:${difficulty}:${monsterAction}:def_${targetUserId}`)
                             .setLabel('🛡️ Phòng Thủ')
                             .setStyle(discord_js_1.ButtonStyle.Danger));
-                        await interaction.update({ embeds: [embed], components: [row] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
                     }
                     // --- Nút: PHẢN ỨNG RA CHIÊU BÍ CẢNH (Thực chiến quyết định) ---
                     else if (action === 'bicanhreact') {
@@ -934,7 +1091,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         // Thực hiện khiêu chiến bí cảnh thực sự
                         const result = CombatService_1.combatService.challengeDungeon(targetUserId, dungeonId, difficulty, playerBuff, monsterBuff);
                         if (!result.success) {
-                            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const combatResult = result.combatResult;
@@ -942,7 +1099,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         // Nạp năng lượng cho Linh mạch Chiến Đấu
                         LeylineService_1.leylineService.addEnergy(targetUserId, 'chiendau', 15);
                         const isWin = result.message === 'Chiến Thắng';
-                        const color = isWin ? '#2ecc71' : '#e74c3c';
+                        const color = isWin ? '#2ecc71' : uiSystem_1.EMBED_COLORS.ERROR;
                         const title = isWin ? '⚔️ VIỄN CỔ CHIẾN THẮNG ⚔️' : '💀 BẠI VONG TRONG BÍ CẢNH 💀';
                         const embed = new discord_js_1.EmbedBuilder()
                             .setTitle(title)
@@ -979,8 +1136,8 @@ class InteractionCreateEvent extends Event_1.Event {
                             const expLost = result.rewards?.exp || 0;
                             const coinsLost = result.rewards?.coins || 0;
                             const dropText = result.artifactMessage ? `\n⚠️ **Kiếp Nạn:** ${result.artifactMessage}` : '';
-                            embed.setTitle('💀 HỒN PHI PHÁCH TÁN 💀')
-                                .setColor('#7f8c8d')
+                            embed.setTitle('💀 HỒN PHI PHÁCH TÁN')
+                                .setColor(uiSystem_1.EMBED_COLORS.NEUTRAL)
                                 .setDescription(`${reactionFeedback}\n\n` +
                                 `☠️ Đạo hữu quá yếu ớt, đã bị **${monsterName}** tung chiêu chí mạng đánh **Tử Vong** sau **${combatResult.rounds}** hiệp đấu!\n\n` +
                                 `💔 **Tổn Thất Đại Nạn:**\n` +
@@ -1005,7 +1162,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         // Cập nhật tiến trình nhiệm vụ hàng ngày khi hoàn thành bí cảnh
                         DailyQuestService_1.dailyQuestService.updateProgress(targetUserId, 'daily_bicanh', 1);
                         QuestChainService_1.questChainService.updateProgress(targetUserId, 'kill', 1);
-                        await interaction.update({ embeds: [embed], components: [row] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
                     }
                     // --- Nút: XEM NHẬT KÝ CHIẾN ĐẤU BÍ CẢNH ---
                     else if (action === 'bicanhlogs') {
@@ -1016,7 +1173,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     else if (action === 'bicanhback') {
                         const embed = (0, bicanh_1.getDungeonEmbed)(targetUserId);
                         const row = (0, bicanh_1.getDungeonComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: [row] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
                     }
                     // --- Nút: TẤN CÔNG WORLD BOSS (đã hợp nhất vào handler phía trên) ---
                     // (Đã được xử lý ở handler worldbossattack phía trên, không cần duplicate)
@@ -1034,7 +1191,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     else if (action === 'worldbossrefresh') {
                         const embed = (0, worldboss_1.getWorldBossEmbed)(targetUserId);
                         const row = (0, worldboss_1.getWorldBossComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: [row] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
                     }
                     // --- Nút: THU HOẠCH LINH ĐIỀN ---
                     else if (action === 'linhdienharvest') {
@@ -1049,7 +1206,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             }
                         }
                         if (harvested.length === 0) {
-                            await interaction.reply({ content: '❌ Không có linh thực nào chín để thu hoạch!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Không có linh thực nào chín để thu hoạch!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         // Nạp năng lượng Linh Mạch Thu Thập (5 năng lượng cho mỗi cây)
@@ -1057,41 +1214,41 @@ class InteractionCreateEvent extends Event_1.Event {
                         QuestChainService_1.questChainService.updateProgress(targetUserId, 'collect', harvested.length);
                         const embed = (0, linhdien_1.getLinhDienEmbed)(targetUserId);
                         const components = (0, linhdien_1.getLinhDienComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: components });
-                        await interaction.followUp({ content: `✨ Đạo hữu thu hoạch thành công: ${harvested.map(h => `**${h}**`).join(', ')}!`, ephemeral: true });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                        await interaction.followUp({ content: `✨ Đạo hữu thu hoạch thành công: ${harvested.map(h => `**${h}**`).join(', ')}!`, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: KHAI KHẨN LINH ĐIỀN ---
                     else if (action === 'linhdienunlock') {
                         const result = FarmingService_1.farmingService.unlockPlot(targetUserId);
                         if (!result.success) {
-                            await interaction.reply({ content: result.message, ephemeral: true });
+                            await interaction.reply({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const embed = (0, linhdien_1.getLinhDienEmbed)(targetUserId);
                         const components = (0, linhdien_1.getLinhDienComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: components });
-                        await interaction.followUp({ content: result.message, ephemeral: true });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                        await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: LÀM MỚI LINH ĐIỀN ---
                     else if (action === 'linhdienrefresh') {
                         const embed = (0, linhdien_1.getLinhDienEmbed)(targetUserId);
                         const components = (0, linhdien_1.getLinhDienComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: components });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
                     }
                     // --- Nút: ĐỘNG PHỦ - NGÂM LINH TUYỀN ---
                     else if (action === 'dongphuspring') {
                         const { caveService } = require('../services/CaveService');
                         const result = caveService.collectSpring(targetUserId);
                         if (!result.success) {
-                            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         // Cập nhật lại embed Động Phủ trực tiếp (in-place)
                         const { buildCaveEmbed, buildCaveComponents } = require('../commands/life/dongphu');
                         const updatedEmbed = buildCaveEmbed(targetUserId);
                         const updatedComponents = buildCaveComponents(targetUserId);
-                        await interaction.update({ embeds: [updatedEmbed], components: updatedComponents });
-                        await interaction.followUp({ content: result.message, ephemeral: true });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], updatedComponents, interaction));
+                        await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: ĐỘNG PHỦ - NÂNG CẤP ---
                     else if (action === 'dongphuupgrade') {
@@ -1099,15 +1256,15 @@ class InteractionCreateEvent extends Event_1.Event {
                         const cave = caveService.getCave(targetUserId);
                         const cost = caveService.getUpgradeCost(cave.level);
                         if (!cost) {
-                            await interaction.reply({ content: '❌ Động Phủ của đạo hữu đã đạt cấp tối đa!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Động Phủ của đạo hữu đã đạt cấp tối đa!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         if (cost.lt > 0 && user.coin_ha_pham < cost.lt) {
-                            await interaction.reply({ content: `❌ Cần **${cost.lt}** Linh Thạch để nâng cấp!`, ephemeral: true });
+                            await interaction.reply({ content: `❌ Cần **${cost.lt}** Linh Thạch để nâng cấp!`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         if (cost.knb > 0 && user.knb < cost.knb) {
-                            await interaction.reply({ content: `❌ Cần **${cost.knb}** KNB để nâng cấp!`, ephemeral: true });
+                            await interaction.reply({ content: `❌ Cần **${cost.knb}** KNB để nâng cấp!`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const { inventoryRepository } = require('../database/repositories/InventoryRepository');
@@ -1124,7 +1281,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             }
                         }
                         if (missingItems) {
-                            await interaction.reply({ content: `❌ Thiếu nguyên liệu! ${reqText}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ Thiếu nguyên liệu! ${reqText}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         // Trừ chi phí
@@ -1150,8 +1307,8 @@ class InteractionCreateEvent extends Event_1.Event {
                         const { buildCaveEmbed, buildCaveComponents } = require('../commands/life/dongphu');
                         const updatedEmbed = buildCaveEmbed(targetUserId);
                         const updatedComponents = buildCaveComponents(targetUserId);
-                        await interaction.update({ embeds: [updatedEmbed], components: updatedComponents });
-                        await interaction.followUp({ content: `🎉 Chúc mừng! Đạo hữu đã nâng cấp thành công Động Phủ lên **Cấp ${cave.level + 1}**!`, ephemeral: true });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], updatedComponents, interaction));
+                        await interaction.followUp({ content: `🎉 Chúc mừng! Đạo hữu đã nâng cấp thành công Động Phủ lên **Cấp ${cave.level + 1}**!`, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: MỞ MODAL THÀNH LẬP TÔNG MÔN ---
                     else if (action === 'sectestablishnav') {
@@ -1175,52 +1332,52 @@ class InteractionCreateEvent extends Event_1.Event {
                     else if (action === 'sectleave') {
                         const result = SectService_1.sectService.leaveSect(targetUserId);
                         if (!result.success) {
-                            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const embed = (0, tongmon_1.getSectEmbed)(targetUserId);
                         const components = (0, tongmon_1.getSectComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: components });
-                        await interaction.followUp({ content: result.message, ephemeral: true });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                        await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: LÀM MỚI TÔNG MÔN ---
                     else if (action === 'sectrefresh') {
                         const embed = (0, tongmon_1.getSectEmbed)(targetUserId);
                         const components = (0, tongmon_1.getSectComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: components });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
                     }
                     // --- Nút: TÔNG CHỦ NÂNG CẤP KIẾN TRÚC TÔNG MÔN ---
                     else if (action === 'sectupgrade') {
                         const facility = parts[1];
                         const result = SectService_1.sectService.upgradeFacility(targetUserId, facility);
                         if (!result.success) {
-                            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const embed = (0, tongmon_1.getSectEmbed)(targetUserId);
                         const components = (0, tongmon_1.getSectComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: components });
-                        await interaction.followUp({ content: result.message, ephemeral: true });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                        await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: NHẬN THÀNH PHẨM CHẾ TẠO (THU LÒ) ---
                     else if (action === 'craftclaim') {
                         const result = CraftingService_1.craftingService.claimCraftedItems(targetUserId);
                         if (!result.success) {
-                            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         // Nạp năng lượng Linh Mạch Thu Thập (10 năng lượng cho mỗi lần chế)
                         LeylineService_1.leylineService.addEnergy(targetUserId, 'thuthap', 10);
                         const embed = (0, chetao_1.getCraftingEmbed)(targetUserId);
                         const components = (0, chetao_1.getCraftingComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: components });
-                        await interaction.followUp({ content: result.message, ephemeral: true });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                        await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: LÀM MỚI LÒ CHẾ TẠO ---
                     else if (action === 'craftrefresh') {
                         const embed = (0, chetao_1.getCraftingEmbed)(targetUserId);
                         const components = (0, chetao_1.getCraftingComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: components });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
                     }
                     // --- Nút: ĐI ĐẾN LUYỆN ĐAN (từ hồ sơ) ---
                     else if (action === 'luyendannav') {
@@ -1233,7 +1390,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                 .setLabel('🔙 Quay Lại Hồ Sơ')
                                 .setStyle(discord_js_1.ButtonStyle.Secondary));
                         }
-                        await interaction.update({ embeds: [embed], components: row });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], row, interaction));
                     }
                     // --- Nút: ĐI ĐẾN TÔNG MÔN (từ hồ sơ) ---
                     else if (action === 'tonmonnav') {
@@ -1243,13 +1400,13 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [...sectComps, backRow] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...sectComps, backRow], interaction));
                     }
                     // --- Nút: ĐI ĐẾN BÍ CẢNH (từ hồ sơ) ---
                     else if (action === 'bicanhnaav') {
                         const embed = (0, bicanh_1.getDungeonEmbed)(targetUserId);
                         const row = (0, bicanh_1.getDungeonComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: [row] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
                     }
                     // --- Nút: ĐI ĐẾN LEO THÁP (từ hồ sơ) ---
                     else if (action === 'leothapnav') {
@@ -1260,13 +1417,13 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
                         const rowsArr = Array.isArray(rows) ? rows : [rows];
-                        await interaction.update({ embeds: [embed], components: [...rowsArr, backRow] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...rowsArr, backRow], interaction));
                     }
                     // --- Nút: ĐI ĐẾN LÀM VIỆC (từ hồ sơ) ---
                     else if (action === 'lamviecnav') {
                         const embed = new discord_js_1.EmbedBuilder()
                             .setTitle('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch')
-                            .setColor('#95a5a6')
+                            .setColor(uiSystem_1.EMBED_COLORS.NEUTRAL)
                             .setDescription(`Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.\n\n` +
                             `⏰ **Cooldown:** 60 giây (mỗi lần làm việc)\n` +
                             `🧘 **Yêu cầu:** Cần ít nhất **10** Thể Lực (Hiện có: **${user.stamina}/500**)\n\n` +
@@ -1289,7 +1446,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [workRow, backRow] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [workRow, backRow], interaction));
                     }
                     // --- Nút: THỰC THI LÀM VIỆC (từ menu Làm Việc trong hồ sơ) ---
                     else if (action === 'lamviecwork') {
@@ -1297,19 +1454,19 @@ class InteractionCreateEvent extends Event_1.Event {
                         const jobType = parts[1];
                         const workTargetId = parts[2];
                         if (interaction.user.id !== workTargetId) {
-                            await interaction.reply({ content: '❌ Đạo hữu không thể lao động thay tu sĩ khác!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Đạo hữu không thể lao động thay tu sĩ khác!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const result = (0, lamviec_1.performWork)(workTargetId, jobType);
                         if (!result.success) {
-                            await interaction.reply({ content: result.message, ephemeral: true });
+                            await interaction.reply({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         // Cập nhật lại menu làm việc với thể lực mới
                         const refreshedUser = UserRepository_1.userRepository.get(workTargetId);
                         const embed = new discord_js_1.EmbedBuilder()
                             .setTitle('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch')
-                            .setColor('#95a5a6')
+                            .setColor(uiSystem_1.EMBED_COLORS.NEUTRAL)
                             .setDescription(`Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.\n\n` +
                             `⏰ **Cooldown:** 60 giây (mỗi lần làm việc)\n` +
                             `🧘 **Yêu cầu:** Cần ít nhất **10** Thể Lực (Hiện có: **${refreshedUser.stamina}/500**)\n\n` +
@@ -1347,8 +1504,8 @@ class InteractionCreateEvent extends Event_1.Event {
                             });
                             resultComponents.push(row);
                         }
-                        await interaction.update({ embeds: [embed], components: [workRow, backRow] });
-                        await interaction.followUp({ embeds: [result.embed], components: resultComponents, ephemeral: true });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [workRow, backRow], interaction));
+                        await interaction.followUp((0, uiSystem_1.toV2Payload)([result.embed], resultComponents, discord_js_1.MessageFlags.Ephemeral));
                     }
                     // --- Nút: ĐI ĐẾN ĐỘNG PHỦ (từ hồ sơ) ---
                     else if (action === 'dongphunav') {
@@ -1359,7 +1516,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [...comps, backRow] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...comps, backRow], interaction));
                     }
                     // --- Đại Hệ Thống: BẢN MỆNH PHÁP BẢO ---
                     else if (action === 'pb') {
@@ -1373,13 +1530,13 @@ class InteractionCreateEvent extends Event_1.Event {
                             if (eligible.length === 0) {
                                 await interaction.reply({
                                     content: '❌ Hành trang của đạo hữu không có trang bị/pháp bảo nào phù hợp để liên kết Huyết Tế!',
-                                    ephemeral: true
+                                    flags: discord_js_1.MessageFlags.Ephemeral
                                 });
                                 return;
                             }
                             const embed = new discord_js_1.EmbedBuilder()
-                                .setTitle('🩸 TIẾN HÀNH HUYẾT TẾ BẢN MỆNH 🩸')
-                                .setColor('#c0392b')
+                                .setTitle('🩸 TIẾN HÀNH HUYẾT TẾ BẢN MỆNH')
+                                .setColor(uiSystem_1.EMBED_COLORS.ALERT)
                                 .setDescription(`Hãy chọn một trang bị hoặc pháp bảo trong danh sách dưới đây để liên kết Huyết Tế với Nguyên Thần.\n\n` +
                                 `⚠️ **Cảnh báo:** Vật phẩm được chọn sẽ trở thành Bản Mệnh, không thể giao dịch hay vứt bỏ!`)
                                 .setTimestamp();
@@ -1399,20 +1556,20 @@ class InteractionCreateEvent extends Event_1.Event {
                                 .setCustomId(`pb_banmenh_nav_${targetUserId}`)
                                 .setLabel('🔙 Quay Lại')
                                 .setStyle(discord_js_1.ButtonStyle.Secondary));
-                            await interaction.update({ embeds: [embed], components: [row1, row2] });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row1, row2], interaction));
                         }
                         // --- 2. pb_bind_select_<userId>: Thực thi liên kết Huyết Tế ---
                         else if (pbSub === 'bind' && pbType === 'select' && interaction.isStringSelectMenu()) {
                             const inventoryId = parseInt(interaction.values[0], 10);
                             const res = InventoryService_1.inventoryService.bindLifeArtifact(targetUserId, inventoryId);
                             if (!res.success) {
-                                await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                                await interaction.reply({ content: `❌ ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                                 return;
                             }
                             const embed = getBanMenhEmbed(targetUserId);
                             const comps = getBanMenhComponents(targetUserId);
-                            await interaction.update({ embeds: [embed], components: comps });
-                            await interaction.followUp({ content: `✅ ${res.message}`, ephemeral: true });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], comps, interaction));
+                            await interaction.followUp({ content: `✅ ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         // --- 3. pb_swap_nav_<userId>: Hiển thị danh sách vật phẩm hoán đổi Bản Mệnh (Yêu cầu Huyết Tế Ma Bảng) ---
                         else if (pbSub === 'swap' && pbType === 'nav') {
@@ -1421,7 +1578,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             if (!scroll) {
                                 await interaction.reply({
                                     content: '❌ Đạo hữu cần có **Huyết Tế Ma Bảng** trong hành trang để tiến hành hoán đổi Bản Mệnh Pháp Bảo!',
-                                    ephemeral: true
+                                    flags: discord_js_1.MessageFlags.Ephemeral
                                 });
                                 return;
                             }
@@ -1429,13 +1586,13 @@ class InteractionCreateEvent extends Event_1.Event {
                             if (eligible.length === 0) {
                                 await interaction.reply({
                                     content: '❌ Hành trang của đạo hữu không có trang bị/pháp bảo nào khác để hoán đổi!',
-                                    ephemeral: true
+                                    flags: discord_js_1.MessageFlags.Ephemeral
                                 });
                                 return;
                             }
                             const embed = new discord_js_1.EmbedBuilder()
-                                .setTitle('🔄 HOÁN ĐỔI BẢN MỆNH PHÁP BẢO 🔄')
-                                .setColor('#e67e22')
+                                .setTitle('🔄 HOÁN ĐỔI BẢN MỆNH PHÁP BẢO')
+                                .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
                                 .setDescription(`Tiêu hao **1x Huyết Tế Ma Bảng** để hoán đổi liên kết nguyên thần sang Pháp Bảo mới.\n` +
                                 `Bản Mệnh mới sẽ kế thừa **80% tích lũy EXP** của Pháp Bảo cũ.\n\n` +
                                 `*Hãy chọn trang bị mới muốn hoán đổi:*`)
@@ -1456,7 +1613,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                 .setCustomId(`pb_banmenh_nav_${targetUserId}`)
                                 .setLabel('🔙 Quay Lại')
                                 .setStyle(discord_js_1.ButtonStyle.Secondary));
-                            await interaction.update({ embeds: [embed], components: [row1, row2] });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row1, row2], interaction));
                         }
                         // --- 4. pb_swap_select_<userId>: Thực thi hoán đổi Bản Mệnh ---
                         else if (pbSub === 'swap' && pbType === 'select' && interaction.isStringSelectMenu()) {
@@ -1466,33 +1623,33 @@ class InteractionCreateEvent extends Event_1.Event {
                             if (!scroll) {
                                 await interaction.reply({
                                     content: '❌ Đạo hữu đã đánh mất **Huyết Tế Ma Bảng** nửa chừng, không thể tiến hành hoán đổi!',
-                                    ephemeral: true
+                                    flags: discord_js_1.MessageFlags.Ephemeral
                                 });
                                 return;
                             }
                             const oldBound = inv.find(i => i.is_life_bound === 1);
                             if (!oldBound) {
-                                await interaction.reply({ content: '❌ Đạo hữu chưa có Bản Mệnh Pháp Bảo cũ để hoán đổi!', ephemeral: true });
+                                await interaction.reply({ content: '❌ Đạo hữu chưa có Bản Mệnh Pháp Bảo cũ để hoán đổi!', flags: discord_js_1.MessageFlags.Ephemeral });
                                 return;
                             }
                             // Thực thi hoán đổi
                             const res = InventoryService_1.inventoryService.swapLifeArtifact(targetUserId, oldBound.id, newInvId);
                             if (!res.success) {
-                                await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                                await interaction.reply({ content: `❌ ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                                 return;
                             }
                             // Khấu trừ Huyết Tế Ma Bảng
                             InventoryRepository_1.inventoryRepository.removeItem(targetUserId, itemConstants_1.ITEMS.ITEM_LIFE_BIND_SCROLL, 1);
                             const embed = getBanMenhEmbed(targetUserId);
                             const comps = getBanMenhComponents(targetUserId);
-                            await interaction.update({ embeds: [embed], components: comps });
-                            await interaction.followUp({ content: `✅ ${res.message}`, ephemeral: true });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], comps, interaction));
+                            await interaction.followUp({ content: `✅ ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         // --- 5. pb_banmenh_nav_<userId>: Quay lại màn hình Bản Mệnh chính ---
                         else if (pbSub === 'banmenh' && pbType === 'nav') {
                             const embed = getBanMenhEmbed(targetUserId);
                             const comps = getBanMenhComponents(targetUserId);
-                            await interaction.update({ embeds: [embed], components: comps });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], comps, interaction));
                         }
                     }
                     // --- Nút: ĐI ĐẾN LINH ĐIỀN (từ hồ sơ) ---
@@ -1503,7 +1660,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [...linhComps, backRow] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...linhComps, backRow], interaction));
                     }
                     // --- Nút: ĐI ĐẾN CHẾ TẠO (từ hồ sơ) ---
                     else if (action === 'chetaonav') {
@@ -1513,14 +1670,14 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [...craftComps, backRow] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...craftComps, backRow], interaction));
                     }
                     // --- Nút: ĐI ĐẾN SHOP KỸ NĂNG (từ hồ sơ) ---
                     else if (action === 'shopkynangnav') {
                         const embed = (0, shopkynang_1.getShopKyNangEmbed)(targetUserId);
                         const sknComps = (0, shopkynang_1.getShopKyNangComponents)(targetUserId);
                         const rowsArr = Array.isArray(sknComps) ? sknComps : [sknComps];
-                        await interaction.update({ embeds: [embed], components: rowsArr });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rowsArr, interaction));
                     }
                     // --- Nút: ĐI ĐẾN WORLD BOSS (từ hồ sơ) ---
                     else if (action === 'worldbossnav') {
@@ -1530,7 +1687,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [wbRow, backRow] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [wbRow, backRow], interaction));
                     }
                     // --- Nút: ĐI ĐẾN VẠN BẢO LÂU (từ hồ sơ) ---
                     else if (action === 'vanbaolaunav') {
@@ -1544,8 +1701,8 @@ class InteractionCreateEvent extends Event_1.Event {
             LIMIT 10
           `).all();
                         const embed = new discord_js_1.EmbedBuilder()
-                            .setTitle('🏛️ VẠN BẢO LÂU - SÀN GIAO DỊCH PHƯỜNG THỊ 🏛️')
-                            .setColor('#e67e22')
+                            .setTitle('🏛️ VẠN BẢO LÂU - SÀN GIAO DỊCH PHƯỜNG THỊ')
+                            .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
                             .setDescription('Nơi giao lưu vật phẩm tự do giữa các tu sĩ. Mọi giao dịch chịu 5% thuế bảo hộ tông môn.')
                             .setFooter({ text: 'Dùng /vanbaolau ban | mua | huy để giao dịch chi tiết.' })
                             .setTimestamp();
@@ -1564,7 +1721,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [backRow] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [backRow], interaction));
                     }
                     // --- Nút: ĐI ĐẾN NGỘ Ý CẢNH (từ hồ sơ) ---
                     else if (action === 'ycanhnaav') {
@@ -1574,7 +1731,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [row, backRow] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row, backRow], interaction));
                     }
                     // --- Nút: ĐI ĐẾN LUÂN HỒI (từ hồ sơ) ---
                     else if (action === 'luanhoinnav') {
@@ -1584,7 +1741,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [row, backRow] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row, backRow], interaction));
                     }
                     // --- Nút: ĐI ĐẾN SỦNG THÚ (từ hồ sơ) ---
                     else if (action === 'sungthunaav') {
@@ -1595,7 +1752,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
                         const rowsArr = Array.isArray(rows) ? rows : [rows];
-                        await interaction.update({ embeds: [embed], components: [...rowsArr, backRow] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...rowsArr, backRow], interaction));
                     }
                     // --- Nút: PHÂN TRANG SỦNG THÚ ---
                     else if (action === 'sungthu') {
@@ -1607,14 +1764,14 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
                         const rowsArr = Array.isArray(rows) ? rows : [rows];
-                        await interaction.update({ embeds: [embed], components: [...rowsArr, backRow] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...rowsArr, backRow], interaction));
                     }
                     // --- Nút: ĐI ĐẾN CỬA HÀNG (từ hồ sơ) ---
                     else if (action === 'shopnav') {
                         const embed = (0, shop_1.getShopEmbed)(targetUserId);
                         const rows = (0, shop_1.getShopComponents)(targetUserId);
                         const rowsArr = Array.isArray(rows) ? rows : [rows];
-                        await interaction.update({ embeds: [embed], components: rowsArr });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rowsArr, interaction));
                     }
                     // --- Nút: CỬA HÀNG PHÂN KHU (Shop Revamp) ---
                     else if (action === 'shop') {
@@ -1635,7 +1792,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const embed = (0, shop_1.getShopEmbed)(targetUserId, primaryId, subId, page);
                         const rows = (0, shop_1.getShopComponents)(targetUserId, primaryId, subId, page);
                         const rowsArr = Array.isArray(rows) ? rows : [rows];
-                        await interaction.update({ embeds: [embed], components: rowsArr });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rowsArr, interaction));
                     }
                     // --- Nút: TÌM KIẾM CỬA HÀNG ---
                     else if (action === 'shopsearch') {
@@ -1665,9 +1822,9 @@ class InteractionCreateEvent extends Event_1.Event {
                             // Re-render hunt menu
                             const embed = (0, sanyeuthu_1.getSanYeuThuEmbed)(targetUserId);
                             const rows = (0, sanyeuthu_1.getSanYeuThuComponents)(targetUserId);
-                            await interaction.update({ embeds: [embed], components: rows });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
                             if (!huntResult.success) {
-                                await interaction.followUp({ content: `❌ ${huntResult.message}`, ephemeral: true });
+                                await interaction.followUp({ content: `❌ ${huntResult.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                                 return;
                             }
                             if (huntResult.combatLog) {
@@ -1691,20 +1848,20 @@ class InteractionCreateEvent extends Event_1.Event {
                                 .setLabel('📖 Nhật Ký Chiến Đấu')
                                 .setStyle(LocalStyle.Primary));
                             huntRows.push(logRow);
-                            await interaction.followUp({ embeds: [huntResult.embed], components: huntRows, ephemeral: true });
+                            await interaction.followUp((0, uiSystem_1.toV2Payload)([huntResult.embed], huntRows, discord_js_1.MessageFlags.Ephemeral));
                         }
                         else {
                             // Mở menu săn yêu thú (màn hình xác nhận)
                             const embed = (0, sanyeuthu_1.getSanYeuThuEmbed)(targetUserId);
                             const rows = (0, sanyeuthu_1.getSanYeuThuComponents)(targetUserId);
-                            await interaction.update({ embeds: [embed], components: rows });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
                         }
                     }
                     // --- Nút: ĐI ĐẾN TRANG BỊ (từ hồ sơ) ---
                     else if (action === 'trangbinaav') {
                         const embed = new discord_js_1.EmbedBuilder()
-                            .setTitle('🛡️ TRANG BỊ ĐIỀN KỸ 🛡️')
-                            .setColor('#8e44ad')
+                            .setTitle('🛡️ TRANG BỊ ĐIỀN KỸ')
+                            .setColor(uiSystem_1.EMBED_COLORS.DARK_PURPLE)
                             .setDescription(`Kho trang bị tu luyện giúp đạo hữu gia tăng chiến lực toàn diện.\n\n` +
                             `🔧 **Các tính năng khả dụng:**\n` +
                             `• 🔍 **Giám Định** — Phôi rèn đúc thành trang bị xịn (phí 50 Linh Thạch)\n` +
@@ -1721,13 +1878,13 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [row] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
                     }
                     // --- Nút: ĐI ĐẾN QUYẾT ĐẤU (từ hồ sơ) ---
                     else if (action === 'quyetau') {
                         const embed = new discord_js_1.EmbedBuilder()
-                            .setTitle('⚔️ QUYẾT ĐẤU LINH THẠCH ⚔️')
-                            .setColor('#e74c3c')
+                            .setTitle('⚔️ QUYẾT ĐẤU LINH THẠCH')
+                            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                             .setDescription(`Khiêu chiến người chơi khác quyết đấu kéo búa bao (oẳn tù tì) đặt cược Linh Thạch.\n\n` +
                             `🔮 **Quy luật khắc chế ngũ hành:**\n` +
                             `• ⚔️ **Kiếm Pháp** chém rách 📜 **Phù Pháp**\n` +
@@ -1742,32 +1899,32 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [row] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
                     }
                     // --- Nút: ĐI ĐẾN KHÁM PHÁ DÃ NGOẠI (từ hồ sơ) ---
                     else if (action === 'khambhanav') {
                         const embed = (0, khambha_1.getKhamBhaEmbed)(targetUserId);
                         const rows = (0, khambha_1.getKhamBhaComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: rows });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
                     }
                     // --- Nút: BẮT ĐẦU THÁM HIỂM (chọn địa điểm) ---
                     else if (action === 'khambhastart') {
                         const locationId = parts.slice(1, -1).join('_'); // Ghép lại vì loc.id có underscore
                         const result = ExplorationService_1.explorationService.startExploration(targetUserId, locationId);
                         if (!result.success) {
-                            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const embed = (0, khambha_1.getKhamBhaEmbed)(targetUserId);
                         const rows = (0, khambha_1.getKhamBhaComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: rows });
-                        await interaction.followUp({ content: result.message, ephemeral: true });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                        await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: VỀ LẤY THƯỞNG THÁM HIỂM ---
                     else if (action === 'khambhaclaim') {
                         const result = ExplorationService_1.explorationService.claimExploration(targetUserId);
                         if (!result.success) {
-                            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         if (result.hasEvent && result.event) {
@@ -1775,7 +1932,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             const event = result.event;
                             const embed = new discord_js_1.EmbedBuilder()
                                 .setTitle(`✨ KỲ NGỘ: ${event.title}`)
-                                .setColor('#e74c3c')
+                                .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                                 .setDescription(event.description)
                                 .setTimestamp();
                             const choiceRow = new discord_js_1.ActionRowBuilder();
@@ -1785,7 +1942,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                     .setLabel(choice.label)
                                     .setStyle(discord_js_1.ButtonStyle.Primary));
                             }
-                            await interaction.update({ embeds: [embed], components: [choiceRow] });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [choiceRow], interaction));
                         }
                         else {
                             // Thu hoạch bình thường
@@ -1793,8 +1950,8 @@ class InteractionCreateEvent extends Event_1.Event {
                             QuestChainService_1.questChainService.updateProgress(targetUserId, 'explore', 1);
                             const embed = (0, khambha_1.getKhamBhaEmbed)(targetUserId);
                             const rows = (0, khambha_1.getKhamBhaComponents)(targetUserId);
-                            await interaction.update({ embeds: [embed], components: rows });
-                            await interaction.followUp({ content: result.message, ephemeral: false });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                            await interaction.followUp({ content: result.message });
                         }
                     }
                     // --- Nút: XỬ LÝ LỰA CHỌN KỲ NGỘ THÁM HIỂM ---
@@ -1806,27 +1963,27 @@ class InteractionCreateEvent extends Event_1.Event {
                         QuestChainService_1.questChainService.updateProgress(targetUserId, 'explore', 1);
                         const embed = (0, khambha_1.getKhamBhaEmbed)(targetUserId);
                         const rows = (0, khambha_1.getKhamBhaComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: rows });
-                        await interaction.followUp({ content: result.message, ephemeral: false });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                        await interaction.followUp({ content: result.message });
                     }
                     // --- Nút: ĐI ĐẾN NHIỆM VỤ HÀNG NGÀY (từ hồ sơ) ---
                     else if (action === 'nhiemvunav') {
                         const embed = (0, nhiemvu_1.getNhiemVuEmbed)(targetUserId);
                         const rows = (0, nhiemvu_1.getNhiemVuComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: rows });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
                     }
                     // --- Nút: NHẬN THƯỞNG NHIỆM VỤ ---
                     else if (action === 'nhiemvuclaim') {
                         const questId = parts.slice(1, -1).join('_'); // Ghép lại vì quest_id có underscore
                         const result = DailyQuestService_1.dailyQuestService.claimQuest(targetUserId, questId);
                         if (!result.success) {
-                            await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const embed = (0, nhiemvu_1.getNhiemVuEmbed)(targetUserId);
                         const rows = (0, nhiemvu_1.getNhiemVuComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: rows });
-                        await interaction.followUp({ content: result.message, ephemeral: true });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                        await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: BẮT ĐẦU CHUỖI NHIỆM VỤ ---
                     else if (action === 'chainstart') {
@@ -1834,9 +1991,9 @@ class InteractionCreateEvent extends Event_1.Event {
                         const result = QuestChainService_1.questChainService.startChain(targetUserId, chainId);
                         const embed = (0, nhiemvu_1.getQuestChainEmbed)(targetUserId);
                         const rows = (0, nhiemvu_1.getQuestChainComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: rows });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
                         if (result.message) {
-                            await interaction.followUp({ content: result.message, ephemeral: true });
+                            await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                     }
                     // --- Nút: NHẬN THƯỞNG BƯỚC CHUỖI NHIỆM VỤ ---
@@ -1845,8 +2002,8 @@ class InteractionCreateEvent extends Event_1.Event {
                         const result = QuestChainService_1.questChainService.claimStepReward(targetUserId);
                         const embed = (0, nhiemvu_1.getQuestChainEmbed)(targetUserId);
                         const rows = (0, nhiemvu_1.getQuestChainComponents)(targetUserId);
-                        await interaction.update({ embeds: [embed], components: rows });
-                        await interaction.followUp({ content: result.message, ephemeral: true });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                        await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: LAPDOI - TẤT CẢ HÀNH ĐỘNG (ready/start/leave/disband/refresh) ---
                     else if (action === 'lapdoi') {
@@ -1855,7 +2012,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         if (lapdoiAction === 'ready') {
                             const room = database_1.default.prepare("SELECT * FROM party_rooms WHERE id = ? AND status != 'closed'").get(roomId);
                             if (!room) {
-                                await interaction.reply({ content: '❌ Phòng không tồn tại hoặc đã đóng!', ephemeral: true });
+                                await interaction.reply({ content: '❌ Phòng không tồn tại hoặc đã đóng!', flags: discord_js_1.MessageFlags.Ephemeral });
                                 return;
                             }
                             const readySet = lapdoi_1.readyStates.get(roomId) || new Set();
@@ -1869,19 +2026,19 @@ class InteractionCreateEvent extends Event_1.Event {
                             const host = UserRepository_1.userRepository.get(room.host_id);
                             const embed = (0, lapdoi_1.getPartyRoomEmbed)(room, host);
                             const components = (0, lapdoi_1.getPartyRoomComponents)(room, userId);
-                            await interaction.update({ embeds: [embed], components });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
                         }
                         else if (lapdoiAction === 'start') {
                             const room = database_1.default.prepare("SELECT * FROM party_rooms WHERE id = ? AND host_id = ? AND status = 'waiting'").get(roomId, userId);
                             if (!room) {
-                                await interaction.reply({ content: '❌ Chỉ chủ phòng mới có thể bắt đầu!', ephemeral: true });
+                                await interaction.reply({ content: '❌ Chỉ chủ phòng mới có thể bắt đầu!', flags: discord_js_1.MessageFlags.Ephemeral });
                                 return;
                             }
                             const members = JSON.parse(room.member_ids || '[]');
                             const readySet = lapdoi_1.readyStates.get(roomId) || new Set();
                             const allReady = members.length >= 2 && members.every(m => readySet.has(m));
                             if (!allReady) {
-                                await interaction.reply({ content: '❌ Chưa đủ thành viên sẵn sàng! (Cần ít nhất 2 người)', ephemeral: true });
+                                await interaction.reply({ content: '❌ Chưa đủ thành viên sẵn sàng! (Cần ít nhất 2 người)', flags: discord_js_1.MessageFlags.Ephemeral });
                                 return;
                             }
                             database_1.default.prepare("UPDATE party_rooms SET status = 'fighting' WHERE id = ?").run(roomId);
@@ -1961,7 +2118,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             database_1.default.prepare("UPDATE party_rooms SET status = 'closed' WHERE id = ?").run(roomId);
                             const embed = new discord_js_1.EmbedBuilder()
                                 .setTitle(`⚔️ BÁO CÁO TỔ ĐỘI: ${room.dungeon_id === 'coop_dungeon_1' ? 'Sơn Cốc Yêu Thú' : 'Di Tích Viễn Cổ'}`)
-                                .setColor(result.victory ? '#2ecc71' : '#e74c3c')
+                                .setColor(result.victory ? '#2ecc71' : uiSystem_1.EMBED_COLORS.ERROR)
                                 .setDescription(`**Kết quả:** ${result.victory ? 'Thắng Lợi 🎉' : 'Đội Hình Diệt Vong 💀'} (Sau ${result.rounds} hiệp)\n` +
                                 `**Boss:** ${bossConfig.name} (${result.victory ? 0 : result.bossHpRemaining}/${bossConfig.maxHp} HP)\n\n` +
                                 `**Thống Kê Tổ Đội:**\n` +
@@ -1971,13 +2128,13 @@ class InteractionCreateEvent extends Event_1.Event {
                             let logStr = result.log.join('\n');
                             if (logStr.length > 3000)
                                 logStr = logStr.substring(0, 3000) + '\n... (Rút gọn)';
-                            const logEmbed = new discord_js_1.EmbedBuilder().setTitle('📜 Diễn Biến').setDescription(logStr).setColor('#34495e');
-                            await interaction.update({ embeds: [embed, logEmbed], components: [] });
+                            const logEmbed = new discord_js_1.EmbedBuilder().setTitle('📜 Diễn Biến').setDescription(logStr).setColor(uiSystem_1.EMBED_COLORS.DARK);
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed, logEmbed], interaction));
                         }
                         else if (lapdoiAction === 'leave') {
                             const room = database_1.default.prepare("SELECT * FROM party_rooms WHERE id = ? AND status != 'closed'").get(roomId);
                             if (!room) {
-                                await interaction.reply({ content: '❌ Phòng không tồn tại!', ephemeral: true });
+                                await interaction.reply({ content: '❌ Phòng không tồn tại!', flags: discord_js_1.MessageFlags.Ephemeral });
                                 return;
                             }
                             const members = JSON.parse(room.member_ids || '[]');
@@ -1985,7 +2142,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             if (room.host_id === userId || updatedMembers.length === 0) {
                                 database_1.default.prepare("UPDATE party_rooms SET status = 'closed' WHERE id = ?").run(roomId);
                                 lapdoi_1.readyStates.delete(roomId);
-                                await interaction.update({ content: '💥 Phòng đã được giải tán!', embeds: [], components: [] });
+                                await interaction.update({ content: '💥 Phòng đã được giải tán!', components: [] });
                             }
                             else {
                                 database_1.default.prepare("UPDATE party_rooms SET member_ids = ? WHERE id = ?")
@@ -1997,23 +2154,23 @@ class InteractionCreateEvent extends Event_1.Event {
                                 const updatedRoom = database_1.default.prepare("SELECT * FROM party_rooms WHERE id = ?").get(roomId);
                                 const embed = (0, lapdoi_1.getPartyRoomEmbed)(updatedRoom, host);
                                 const components = (0, lapdoi_1.getPartyRoomComponents)(updatedRoom, userId);
-                                await interaction.update({ embeds: [embed], components });
+                                await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
                             }
                         }
                         else if (lapdoiAction === 'disband') {
                             const room = database_1.default.prepare("SELECT * FROM party_rooms WHERE id = ? AND host_id = ?").get(roomId, userId);
                             if (!room) {
-                                await interaction.reply({ content: '❌ Chỉ chủ phòng mới có thể giải tán!', ephemeral: true });
+                                await interaction.reply({ content: '❌ Chỉ chủ phòng mới có thể giải tán!', flags: discord_js_1.MessageFlags.Ephemeral });
                                 return;
                             }
                             database_1.default.prepare("UPDATE party_rooms SET status = 'closed' WHERE id = ?").run(roomId);
                             lapdoi_1.readyStates.delete(roomId);
-                            await interaction.update({ content: '💥 Phòng đã được giải tán!', embeds: [], components: [] });
+                            await interaction.update({ content: '💥 Phòng đã được giải tán!', components: [] });
                         }
                         else if (lapdoiAction === 'refresh') {
                             const room = database_1.default.prepare("SELECT * FROM party_rooms WHERE id = ? AND status != 'closed'").get(roomId);
                             if (!room) {
-                                await interaction.reply({ content: '❌ Phòng không tồn tại hoặc đã đóng!', ephemeral: true });
+                                await interaction.reply({ content: '❌ Phòng không tồn tại hoặc đã đóng!', flags: discord_js_1.MessageFlags.Ephemeral });
                                 return;
                             }
                             const host = UserRepository_1.userRepository.get(room.host_id);
@@ -2021,7 +2178,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             const { getPartyRoomComponents } = require('./interactionCreate'); // Re-import or use local function if available
                             // Let's just require the components function directly since it's exported in interactionCreate.ts
                             const components = module.exports.getPartyRoomComponents ? module.exports.getPartyRoomComponents(room, userId) : getPartyRoomComponents(room, userId);
-                            await interaction.update({ embeds: [embed], components });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
                         }
                     }
                     // --- Nút: BÍ CẢNH (Co-op Dungeon) ---
@@ -2030,7 +2187,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const { partyService } = require('../services/PartyService');
                         const party = partyService.getParty(partyId);
                         if (!party) {
-                            await interaction.reply({ content: '❌ Tổ đội không tồn tại hoặc đã bị giải tán!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Tổ đội không tồn tại hoặc đã bị giải tán!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const { COOP_DUNGEONS } = require('../commands/combat/bicanh');
@@ -2050,24 +2207,24 @@ class InteractionCreateEvent extends Event_1.Event {
                             if (entriesToday >= maxCoopEntries) {
                                 await interaction.reply({
                                     content: `❌ Đạo hữu đã cạn kiệt linh lực khiêu chiến Bí Cảnh này hôm nay! (Giới hạn: **${maxCoopEntries}/${maxCoopEntries}** lượt/ngày)`,
-                                    ephemeral: true
+                                    flags: discord_js_1.MessageFlags.Ephemeral
                                 });
                                 return;
                             }
                         }
                         const res = partyService.joinParty(partyId, userId);
                         if (!res.success) {
-                            await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const updatedParty = partyService.getParty(partyId);
                         if (updatedParty) {
                             const { buildCoopPartyEmbed } = require('../commands/combat/bicanh');
                             const embed = buildCoopPartyEmbed(partyId);
-                            await interaction.update({ embeds: [embed] });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], interaction));
                         }
                         else {
-                            await interaction.update({ content: '✅ Đã tham gia.' });
+                            await interaction.update({ content: '✅ Đã tham gia.', components: [] });
                         }
                     }
                     else if (action === 'leaveparty') {
@@ -2075,17 +2232,17 @@ class InteractionCreateEvent extends Event_1.Event {
                         const { partyService } = require('../services/PartyService');
                         const res = partyService.leaveParty(partyId, userId);
                         if (!res.success) {
-                            await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const party = partyService.getParty(partyId);
                         if (!party) {
-                            await interaction.update({ content: '💥 Đội đã giải tán!', embeds: [], components: [] });
+                            await interaction.update({ content: '💥 Đội đã giải tán!', components: [] });
                         }
                         else {
                             const { buildCoopPartyEmbed } = require('../commands/combat/bicanh');
                             const embed = buildCoopPartyEmbed(partyId);
-                            await interaction.update({ embeds: [embed] });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], interaction));
                         }
                     }
                     else if (action === 'startparty') {
@@ -2093,13 +2250,13 @@ class InteractionCreateEvent extends Event_1.Event {
                         const { partyService } = require('../services/PartyService');
                         const partyObj = partyService.getParty(partyId);
                         if (!partyObj) {
-                            await interaction.reply({ content: '❌ Tổ đội không tồn tại!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Tổ đội không tồn tại!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const { COOP_DUNGEONS } = require('../commands/combat/bicanh');
                         const dungeon = COOP_DUNGEONS.find((d) => d.id === partyObj.dungeonId);
                         if (!dungeon) {
-                            await interaction.reply({ content: '❌ Bí cảnh không hợp lệ!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Bí cảnh không hợp lệ!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         // Kiểm tra giới hạn lượt đi hàng ngày của TẤT CẢ thành viên trước khi bắt đầu
@@ -2118,14 +2275,14 @@ class InteractionCreateEvent extends Event_1.Event {
                                 const u = UserRepository_1.userRepository.get(mId);
                                 await interaction.reply({
                                     content: `❌ Không thể xuất phát! Tu sĩ **${u ? u.name : mId}** (<@${mId}>) đã hết lượt khiêu chiến Bí Cảnh này hôm nay! (Tối đa: ${maxCoopEntries} lượt/ngày).`,
-                                    ephemeral: true
+                                    flags: discord_js_1.MessageFlags.Ephemeral
                                 });
                                 return;
                             }
                         }
                         const res = partyService.startParty(partyId, userId);
                         if (!res.success) {
-                            await interaction.reply({ content: `❌ ${res.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const party = res.party;
@@ -2148,7 +2305,7 @@ class InteractionCreateEvent extends Event_1.Event {
               ON CONFLICT(user_id, dungeon_id) DO UPDATE SET daily_entries = excluded.daily_entries, last_entry_at = excluded.last_entry_at
             `).run(mId, dungeon.id, entriesToday + 1, now);
                         }
-                        await interaction.update({ content: '⚔️ **ĐANG CHUẨN BỊ TRẬN CHIẾN...**', embeds: [], components: [] });
+                        await interaction.update({ content: '⚔️ **ĐANG CHUẨN BỊ TRẬN CHIẾN...**', components: [] });
                         try {
                             // Chuẩn bị team
                             const partyMembers = [];
@@ -2181,7 +2338,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                 });
                             }
                             if (partyMembers.length === 0) {
-                                await interaction.editReply({ content: '❌ Không thể chuẩn bị đội hình! Không có thành viên hợp lệ.', embeds: [], components: [] });
+                                await interaction.editReply({ content: null, ...(0, uiSystem_1.toV2TextUpdate)('❌ Không thể chuẩn bị đội hình! Không có thành viên hợp lệ.') });
                                 partyService.endParty(partyId);
                                 return;
                             }
@@ -2250,7 +2407,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             partyService.endParty(partyId);
                             const embed = new discord_js_1.EmbedBuilder()
                                 .setTitle(`⚔️ BÁO CÁO BÍ CẢNH: ${dungeon.name}`)
-                                .setColor(result.victory ? '#2ecc71' : '#e74c3c')
+                                .setColor(result.victory ? '#2ecc71' : uiSystem_1.EMBED_COLORS.ERROR)
                                 .setDescription(`**Kết quả:** ${result.victory ? 'Thắng Lợi 🎉' : 'Đội Hình Diệt Vong 💀'} (Sau ${result.rounds} hiệp)\n` +
                                 `**Boss:** ${bossConfig.name} (${result.victory ? 0 : result.bossHpRemaining}/${bossConfig.maxHp} HP)\n\n` +
                                 `**Thống Kê Tổ Đội:**\n` +
@@ -2260,13 +2417,13 @@ class InteractionCreateEvent extends Event_1.Event {
                             let logStr = result.log.join('\n');
                             if (logStr.length > 3000)
                                 logStr = logStr.substring(logStr.length - 3000) + '\n... (Rút gọn)';
-                            const logEmbed = new discord_js_1.EmbedBuilder().setTitle('📜 Diễn Biến').setDescription(logStr).setColor('#34495e');
-                            await interaction.editReply({ content: null, embeds: [embed, logEmbed], components: [] });
+                            const logEmbed = new discord_js_1.EmbedBuilder().setTitle('📜 Diễn Biến').setDescription(logStr).setColor(uiSystem_1.EMBED_COLORS.DARK);
+                            await interaction.editReply({ content: null, ...(0, uiSystem_1.toV2Payload)([embed, logEmbed]) });
                         }
                         catch (combatErr) {
                             console.error('[BiCanh CoOp] Lỗi chiến đấu tổ đội:', combatErr);
                             partyService.endParty(partyId);
-                            await interaction.editReply({ content: `❌ Đã xảy ra lỗi trong trận chiến: ${combatErr?.message || 'Lỗi không xác định'}. Tổ đội đã giải tán.`, embeds: [], components: [] });
+                            await interaction.editReply({ content: null, ...(0, uiSystem_1.toV2TextUpdate)(`❌ Đã xảy ra lỗi trong trận chiến: ${combatErr?.message || 'Lỗi không xác định'}. Tổ đội đã giải tán.`) });
                         }
                         return;
                     }
@@ -2277,15 +2434,15 @@ class InteractionCreateEvent extends Event_1.Event {
                         if (gwAction === 'attack') {
                             const result = GuildWarService_1.guildWarService.attack(warId, userId);
                             if (!result.success) {
-                                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                                await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                                 return;
                             }
-                            await interaction.reply({ content: result.message, ephemeral: false });
+                            await interaction.reply({ content: result.message });
                         }
                         else if (gwAction === 'refresh') {
                             const war = GuildWarService_1.guildWarService.getWarDetail(warId);
                             if (!war) {
-                                await interaction.reply({ content: '❌ Cuộc chiến không tồn tại!', ephemeral: true });
+                                await interaction.reply({ content: '❌ Cuộc chiến không tồn tại!', flags: discord_js_1.MessageFlags.Ephemeral });
                                 return;
                             }
                             const challengerSect = GuildWarService_1.guildWarService.getSectInfo(war.challenger_sect_id);
@@ -2301,7 +2458,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                     `**${defenderSect?.name}**: ${war.defender_hp}❤️\n\n` +
                                     `Hiệp: **${war.current_round}/${war.max_rounds}**\n` +
                                     `Đến lượt: **${currentUser?.name || 'Không xác định'}**`;
-                                color = '#e74c3c';
+                                color = uiSystem_1.EMBED_COLORS.ERROR;
                             }
                             else if (war.status === 'pending') {
                                 statusText = `⏳ **Chờ phản hồi từ ${defenderSect?.name}...**`;
@@ -2317,7 +2474,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                 .setDescription(statusText +
                                 `\n\n_Dùng \`/guildwar thongtin\` để xem chi tiết đầy đủ._`)
                                 .setTimestamp();
-                            await interaction.update({ embeds: [embed], components: [] });
+                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [], interaction));
                         }
                     }
                     // --- Nút: CHẤP NHẬN / TỪ CHỐI KẾT HÔN ---
@@ -2325,17 +2482,17 @@ class InteractionCreateEvent extends Event_1.Event {
                         const proposerId = parts[1];
                         const targetId = parts[2];
                         if (action === 'marriagerefuse') {
-                            await interaction.update({ content: `💔 Đạo hữu <@${targetId}> đã uyển chuyển từ chối lời cầu hôn của <@${proposerId}>. Duyên phận chưa tới!`, embeds: [], components: [] });
+                            await interaction.update({ content: `💔 Đạo hữu <@${targetId}> đã uyển chuyển từ chối lời cầu hôn của <@${proposerId}>. Duyên phận chưa tới!`, components: [] });
                             return;
                         }
                         // Chấp nhận
                         const { marriageService } = require('../services/MarriageService');
                         const result = marriageService.acceptProposal(proposerId, targetId);
                         if (result.success) {
-                            await interaction.update({ content: result.message, embeds: [], components: [] });
+                            await interaction.update({ content: result.message, components: [] });
                         }
                         else {
-                            await interaction.update({ content: `❌ Cầu hôn thất bại: ${result.message}`, embeds: [], components: [] });
+                            await interaction.update({ content: `❌ Cầu hôn thất bại: ${result.message}`, components: [] });
                         }
                     }
                     // --- Nút: SỬA CHỮA TRANG BỊ (từ /suachua danhsach) ---
@@ -2344,7 +2501,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         if (subAction === 'all') {
                             const { handleRepairAllButton } = require('../commands/general/suachua');
                             const result = handleRepairAllButton(userId);
-                            await interaction.reply({ content: result.message, ephemeral: true });
+                            await interaction.reply({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         return;
                     }
@@ -2353,7 +2510,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const { sectWarService } = require('../services/SectWarService');
                         const battleId = parseInt(parts[1], 10);
                         const result = sectWarService.attack(battleId, userId);
-                        await interaction.reply({ content: result.message, ephemeral: !result.success });
+                        await interaction.reply({ content: result.message, flags: !result.success ? discord_js_1.MessageFlags.Ephemeral : undefined });
                         return;
                     }
                     // --- Nút: LÀM MỚI TÔNG MÔN CHIẾN ---
@@ -2362,12 +2519,12 @@ class InteractionCreateEvent extends Event_1.Event {
                         const battleId = parseInt(parts[1], 10);
                         const battle = sectWarService.getBattleDetails(battleId);
                         if (!battle) {
-                            await interaction.reply({ content: '❌ Trận chiến không tồn tại!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Trận chiến không tồn tại!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const embed = new discord_js_1.EmbedBuilder()
                             .setTitle(`⚔️ Tông Môn Chiến #${battle.id}`)
-                            .setColor('#e74c3c')
+                            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                             .setDescription(`**Trạng thái:** ${battle.status === 'active' ? 'Đang chiến' : 'Kết thúc'}\n` +
                             `**Vòng:** ${battle.current_round}/${battle.max_rounds}\n` +
                             `**Sect A:** ${battle.sect_a_id} (HP: ${battle.sect_a_hp})\n` +
@@ -2375,14 +2532,14 @@ class InteractionCreateEvent extends Event_1.Event {
                             `**Sect C:** ${battle.sect_c_id} (HP: ${battle.sect_c_hp})\n\n` +
                             `Dùng \`/combat sectwar tancong\` để tham chiến!`)
                             .setTimestamp();
-                        await interaction.update({ embeds: [embed], components: [] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [], interaction));
                         return;
                     }
                     // --- Nút: LỰA CHỌN ENCOUNTER (Kỳ Ngộ Làm Việc / Săn Yêu Thú) ---
                     else if (action === 'encounter') {
                         const userIdFromParts = parts[parts.length - 1];
                         if (interaction.user.id !== userIdFromParts) {
-                            await interaction.reply({ content: '❌ Đây không phải kỳ ngộ của đạo hữu!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Đây không phải kỳ ngộ của đạo hữu!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const choiceIndex = parseInt(parts[parts.length - 2], 10);
@@ -2395,19 +2552,19 @@ class InteractionCreateEvent extends Event_1.Event {
                         ];
                         const encounter = allEncounters.find((e) => e.id === encounterId);
                         if (!encounter) {
-                            await interaction.update({ content: '❌ Kỳ ngộ này không còn tồn tại hoặc bị lỗi.', embeds: [], components: [] });
+                            await interaction.update({ content: '❌ Kỳ ngộ này không còn tồn tại hoặc bị lỗi.', components: [] });
                             return;
                         }
                         const choice = encounter.choices[choiceIndex];
                         if (!choice) {
-                            await interaction.update({ content: '❌ Lựa chọn không hợp lệ.', embeds: [], components: [] });
+                            await interaction.update({ content: '❌ Lựa chọn không hợp lệ.', components: [] });
                             return;
                         }
                         const result = encounterService.resolveEncounter(userIdFromParts, encounterId, choice.id);
                         // Tạo một Embed hiển thị kết quả
                         const embed = new discord_js_1.EmbedBuilder()
                             .setTitle(result.success ? '✨ KỲ NGỘ THÀNH CÔNG' : '😅 KỲ NGỘ THẤT BẠI')
-                            .setColor(result.success ? '#2ecc71' : '#e74c3c')
+                            .setColor(result.success ? '#2ecc71' : uiSystem_1.EMBED_COLORS.ERROR)
                             .setDescription(result.message)
                             .setTimestamp();
                         const rewardTexts = [];
@@ -2428,14 +2585,14 @@ class InteractionCreateEvent extends Event_1.Event {
                         if (rewardTexts.length > 0) {
                             embed.addFields({ name: '🎁 Biến Động Thuộc Tính', value: rewardTexts.join('\n') });
                         }
-                        await interaction.update({ embeds: [embed], components: [] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [], interaction));
                         return;
                     }
                     // --- Nút: ĐÁNH THỨC LINH KHÍ (Spirit Weapon Interact) ---
                     else if (action === 'spiritinteract') {
                         const { spiritWeaponService } = require('../services/SpiritWeaponService');
                         const result = spiritWeaponService.interact(userId);
-                        await interaction.reply({ content: result.message, ephemeral: !result.success });
+                        await interaction.reply({ content: result.message, flags: !result.success ? discord_js_1.MessageFlags.Ephemeral : undefined });
                         return;
                     }
                     // --- Nút: PHÓ BẢN TINH ANH (Elite Dungeon) ---
@@ -2443,7 +2600,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const { eliteDungeonService } = require('../services/EliteDungeonService');
                         const dungeonKey = parts.slice(1, -1).join('_');
                         const result = eliteDungeonService.startRun(userId, dungeonKey, `party_${userId}_${dungeonKey}`);
-                        await interaction.reply({ content: result.message, ephemeral: !result.success });
+                        await interaction.reply({ content: result.message, flags: !result.success ? discord_js_1.MessageFlags.Ephemeral : undefined });
                         return;
                     }
                     else if (action === 'edattack') {
@@ -2451,12 +2608,12 @@ class InteractionCreateEvent extends Event_1.Event {
                         const runId = parseInt(parts[1], 10);
                         const run = eliteDungeonService.getRunById(runId);
                         if (!run) {
-                            await interaction.reply({ content: '❌ Run không tồn tại!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Run không tồn tại!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const partyMembers = [{ userId, name: user.name, atk: 100, def: 50, hp: 1000, maxHp: 1000, crit: 0.1, speed: 100 }];
                         const result = eliteDungeonService.processFloorResult(runId, run.dungeon_id, partyMembers);
-                        await interaction.reply({ content: result.message, ephemeral: !result.success });
+                        await interaction.reply({ content: result.message, flags: !result.success ? discord_js_1.MessageFlags.Ephemeral : undefined });
                         return;
                     }
                     else if (action === 'edretreat') {
@@ -2464,11 +2621,11 @@ class InteractionCreateEvent extends Event_1.Event {
                         const runId = parseInt(parts[1], 10);
                         const run = eliteDungeonService.getRunById(runId);
                         if (!run) {
-                            await interaction.reply({ content: '❌ Run không tồn tại!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Run không tồn tại!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         database_1.default.prepare("UPDATE elite_dungeon_runs SET status = 'failed' WHERE id = ?").run(runId);
-                        await interaction.reply({ content: `🏳️ Đã rút lui khỏi bí cảnh tinh anh.`, ephemeral: true });
+                        await interaction.reply({ content: `🏳️ Đã rút lui khỏi bí cảnh tinh anh.`, flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     // --- Nút: ĐI ĐẾN KHÍ LINH (từ hồ sơ) ---
@@ -2477,7 +2634,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const weapons = spiritWeaponService.getSpiritWeapons(targetUserId);
                         const embed = new discord_js_1.EmbedBuilder()
                             .setTitle('⚡ KHÍ LINH - PHÁP BẢO THỨC TỈNH')
-                            .setColor('#9b59b6')
+                            .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
                             .setDescription('Trang bị Epic+ có thể thức tỉnh khí linh, cung cấp skill bị động chiến đấu.');
                         if (weapons.length > 0) {
                             for (const sw of weapons) {
@@ -2495,7 +2652,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [row] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
                     }
                     // --- Nút: ĐI ĐẾN TỌA KỴ (từ hồ sơ) ---
                     else if (action === 'toakynav') {
@@ -2507,7 +2664,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         }
                         const embed = new discord_js_1.EmbedBuilder()
                             .setTitle('🐎 TỌA KỴ')
-                            .setColor('#e67e22')
+                            .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
                             .setDescription(desc);
                         if (mounts.length > 0) {
                             for (const m of mounts.slice(0, 5)) {
@@ -2524,7 +2681,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [row] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
                     }
                 }
                 catch (error) {
@@ -2535,10 +2692,10 @@ class InteractionCreateEvent extends Event_1.Event {
                     console.error('[Button Error] Lỗi xử lý nút bấm:', error);
                     try {
                         if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
-                            await interaction.reply({ content: '❌ Có lỗi xảy ra khi xử lý hành động này!', ephemeral: true });
+                            await interaction.reply({ content: '❌ Có lỗi xảy ra khi xử lý hành động này!', flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         else {
-                            await interaction.followUp({ content: '❌ Có lỗi xảy ra khi xử lý hành động này!', ephemeral: true });
+                            await interaction.followUp({ content: '❌ Có lỗi xảy ra khi xử lý hành động này!', flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                     }
                     catch (replyError) {
@@ -2562,7 +2719,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     const actionLabel = actionType === 'bptselect' ? 'bảng xếp hạng' : 'túi đồ';
                     await interaction.reply({
                         content: `❌ **Cảnh báo:** Đạo hữu không thể tương tác với ${actionLabel} của tu sĩ khác!`,
-                        ephemeral: true
+                        flags: discord_js_1.MessageFlags.Ephemeral
                     });
                     return;
                 }
@@ -2592,7 +2749,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     const itemAction = selectedValue.substring(0, firstUnderscore);
                     const inventoryId = parseInt(selectedValue.substring(firstUnderscore + 1), 10);
                     if (isNaN(inventoryId)) {
-                        await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', ephemeral: true });
+                        await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     let resultMessage = '';
@@ -2614,44 +2771,44 @@ class InteractionCreateEvent extends Event_1.Event {
                         resultMessage = res.message;
                     }
                     if (!success) {
-                        await interaction.reply({ content: `❌ ${resultMessage}`, ephemeral: true });
+                        await interaction.reply({ content: `❌ ${resultMessage}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     // Cập nhật lại giao diện túi đồ tại trang hiện tại
                     const { embed, totalPages, itemsOnPage } = (0, hoso_1.getInventoryEmbed)(targetUserId, page);
                     const components = (0, hoso_1.getInventoryComponents)(targetUserId, page, totalPages, itemsOnPage);
-                    await interaction.update({ embeds: [embed], components: components });
+                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
                     // Gửi thông báo nổi xác thực hành động thành công
-                    await interaction.followUp({ content: `💼 ${resultMessage}`, ephemeral: true });
+                    await interaction.followUp({ content: `💼 ${resultMessage}`, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else if (actionType === 'linhdiengieoselect') {
                     const seedItemId = interaction.values[0];
                     const plots = FarmingService_1.farmingService.getPlots(targetUserId);
                     const emptyPlot = plots.find(p => p.status === 'empty');
                     if (!emptyPlot) {
-                        await interaction.reply({ content: '❌ Linh điền không còn ô đất trống để gieo hạt!', ephemeral: true });
+                        await interaction.reply({ content: '❌ Linh điền không còn ô đất trống để gieo hạt!', flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     const result = FarmingService_1.farmingService.plantSeed(targetUserId, emptyPlot.plot_index, seedItemId);
                     if (!result.success) {
-                        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                        await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     const embed = (0, linhdien_1.getLinhDienEmbed)(targetUserId);
                     const components = (0, linhdien_1.getLinhDienComponents)(targetUserId);
-                    await interaction.update({ embeds: [embed], components: components });
+                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
                 }
                 else if (actionType === 'linhdienspeedupselect') {
                     const plotIndex = parseInt(interaction.values[0], 10);
                     const result = FarmingService_1.farmingService.speedupPlot(targetUserId, plotIndex);
                     if (!result.success) {
-                        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                        await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     const embed = (0, linhdien_1.getLinhDienEmbed)(targetUserId);
                     const components = (0, linhdien_1.getLinhDienComponents)(targetUserId);
-                    await interaction.update({ embeds: [embed], components: components });
-                    await interaction.followUp({ content: result.message, ephemeral: true });
+                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                    await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else if (actionType === 'linhdiencareselect') {
                     const careValue = interaction.values[0]; // "water_0", "fertilize_0", "catchpests_0"
@@ -2668,35 +2825,35 @@ class InteractionCreateEvent extends Event_1.Event {
                         result = FarmingService_1.farmingService.catchPests(targetUserId, plotIndex);
                     }
                     else {
-                        await interaction.reply({ content: '❌ Thao tác không hợp lệ!', ephemeral: true });
+                        await interaction.reply({ content: '❌ Thao tác không hợp lệ!', flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     if (!result.success) {
-                        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                        await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     const embed = (0, linhdien_1.getLinhDienEmbed)(targetUserId);
                     const components = (0, linhdien_1.getLinhDienComponents)(targetUserId);
-                    await interaction.update({ embeds: [embed], components: components });
-                    await interaction.followUp({ content: result.message, ephemeral: true });
+                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                    await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else if (actionType === 'sectjoinselect') {
                     const sectId = parseInt(interaction.values[0], 10);
                     const result = SectService_1.sectService.joinSect(targetUserId, sectId);
                     if (!result.success) {
-                        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                        await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     const embed = (0, tongmon_1.getSectEmbed)(targetUserId);
                     const components = (0, tongmon_1.getSectComponents)(targetUserId);
-                    await interaction.update({ embeds: [embed], components: components });
-                    await interaction.followUp({ content: result.message, ephemeral: true });
+                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                    await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else if (actionType === 'sectdonateselect') {
                     const amount = parseInt(interaction.values[0], 10);
                     const result = SectService_1.sectService.donateToSect(targetUserId, amount);
                     if (!result.success) {
-                        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                        await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     // Cập nhật tiến trình nhiệm vụ hàng ngày khi quyên góp tông môn
@@ -2705,33 +2862,33 @@ class InteractionCreateEvent extends Event_1.Event {
                     LeylineService_1.leylineService.addEnergy(targetUserId, 'tongmon', Math.max(10, Math.floor(amount / 5)));
                     const embed = (0, tongmon_1.getSectEmbed)(targetUserId);
                     const components = (0, tongmon_1.getSectComponents)(targetUserId);
-                    await interaction.update({ embeds: [embed], components: components });
-                    await interaction.followUp({ content: result.message, ephemeral: true });
+                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                    await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else if (actionType === 'luyenkhiselect') {
                     const recipeId = interaction.values[0];
                     const { blacksmithService } = require('../services/BlacksmithService');
                     const res = blacksmithService.forgeItem(targetUserId, recipeId);
-                    await interaction.reply({ content: res.success ? res.message : `❌ ${res.message}`, ephemeral: false });
+                    await interaction.reply({ content: res.success ? res.message : `❌ ${res.message}` });
                     // Cập nhật lại UI Luyện Khí
                     const user = UserRepository_1.userRepository.get(targetUserId);
                     if (user) {
                         const embed = interaction.message.embeds[0];
                         const newEmbed = discord_js_1.EmbedBuilder.from(embed).setFooter({ text: `Thể lực hiện tại: ${user.stamina}/500 | Linh Thạch: ${user.coin_ha_pham}` });
-                        await interaction.message.edit({ embeds: [newEmbed] });
+                        await interaction.message.edit((0, uiSystem_1.toV2Payload)([newEmbed]));
                     }
                 }
                 else if (actionType === 'craftselect') {
                     const recipeId = interaction.values[0];
                     const result = CraftingService_1.craftingService.startCrafting(targetUserId, recipeId);
                     if (!result.success) {
-                        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                        await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     const embed = (0, chetao_1.getCraftingEmbed)(targetUserId);
                     const components = (0, chetao_1.getCraftingComponents)(targetUserId);
-                    await interaction.update({ embeds: [embed], components: components });
-                    await interaction.followUp({ content: result.message, ephemeral: true });
+                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                    await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 // --- Menu: MUA NHANH VẬT PHẨM CỬA HÀNG (từ /hoso) ---
                 else if (actionType === 'shopbuy') {
@@ -2739,7 +2896,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     const item = shop_1.SHOP_ITEMS.find(i => i.id === itemId);
                     const buyer = UserRepository_1.userRepository.get(targetUserId);
                     if (!item || !buyer) {
-                        await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', ephemeral: true });
+                        await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     const activeCategory = parts[1];
@@ -2764,13 +2921,13 @@ class InteractionCreateEvent extends Event_1.Event {
                     const book = shopkynang_1.SKILL_BOOKS.find(b => b.id === bookId);
                     const buyer = UserRepository_1.userRepository.get(targetUserId);
                     if (!book || !buyer) {
-                        await interaction.reply({ content: '❌ Bí tịch không hợp lệ!', ephemeral: true });
+                        await interaction.reply({ content: '❌ Bí tịch không hợp lệ!', flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     if (buyer.coin_ha_pham < book.price) {
                         await interaction.reply({
                             content: `❌ Đạo hữu không đủ Linh Thạch! (Giá: **${book.price}**, hiện có: **${buyer.coin_ha_pham}**).`,
-                            ephemeral: true
+                            flags: discord_js_1.MessageFlags.Ephemeral
                         });
                         return;
                     }
@@ -2781,8 +2938,8 @@ class InteractionCreateEvent extends Event_1.Event {
                     const embed = (0, shop_1.getShopEmbed)(targetUserId, primaryId, undefined, pageNum);
                     const sknComps = (0, shop_1.getShopComponents)(targetUserId, primaryId, undefined, pageNum);
                     const rowsArr = Array.isArray(sknComps) ? sknComps : [sknComps];
-                    await interaction.update({ embeds: [embed], components: rowsArr });
-                    await interaction.followUp({ content: `📚 Thỉnh thành công **1x ${book.name}** (−${book.price} Linh Thạch)! Dùng \`/dungkynang item_id: ${book.id}\` để lĩnh ngộ.`, ephemeral: true });
+                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rowsArr, interaction));
+                    await interaction.followUp({ content: `📚 Thỉnh thành công **1x ${book.name}** (−${book.price} Linh Thạch)! Dùng \`/dungkynang item_id: ${book.id}\` để lĩnh ngộ.`, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 return;
             }
@@ -2801,7 +2958,7 @@ class InteractionCreateEvent extends Event_1.Event {
                 if (interaction.user.id !== targetUserId) {
                     await interaction.reply({
                         content: '❌ **Cảnh báo:** Đạo hữu không thể can thiệp vào hành động của tu sĩ khác!',
-                        ephemeral: true
+                        flags: discord_js_1.MessageFlags.Ephemeral
                     });
                     return;
                 }
@@ -2810,37 +2967,37 @@ class InteractionCreateEvent extends Event_1.Event {
                     const desc = interaction.fields.getTextInputValue('sect_desc');
                     const result = SectService_1.sectService.createSect(targetUserId, name, desc);
                     if (!result.success) {
-                        await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                        await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     const embed = (0, tongmon_1.getSectEmbed)(targetUserId);
                     const components = (0, tongmon_1.getSectComponents)(targetUserId);
-                    await interaction.update({ embeds: [embed], components: components });
-                    await interaction.followUp({ content: result.message, ephemeral: true });
+                    await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
+                    await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else if (action === 'doitienmodal') {
                     const type = parts.slice(2).join('_');
                     const qtyStr = interaction.fields.getTextInputValue('doitien_qty');
                     const qty = parseInt(qtyStr, 10);
                     if (isNaN(qty) || qty <= 0) {
-                        await interaction.reply({ content: '❌ Số lượng lần đổi phải là số nguyên lớn hơn 0!', ephemeral: true });
+                        await interaction.reply({ content: '❌ Số lượng lần đổi phải là số nguyên lớn hơn 0!', flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     const DoiTienCommand = require('../commands/general/doitien').default;
                     const { getDoiTienEmbed, getDoiTienComponents } = require('../commands/general/doitien');
                     const res = DoiTienCommand.performConversion(targetUserId, type, qty);
                     if (!res.success) {
-                        await interaction.reply({ content: res.message, ephemeral: true });
+                        await interaction.reply({ content: res.message, flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     const embed = getDoiTienEmbed(targetUserId);
                     const components = getDoiTienComponents(targetUserId);
                     if (interaction.update) {
-                        await interaction.update({ embeds: [embed], components: components });
-                        await interaction.followUp({ content: `✅ Quy đổi thành công! ${res.message}`, ephemeral: true });
+                        await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
+                        await interaction.followUp({ content: `✅ Quy đổi thành công! ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     else {
-                        await interaction.reply({ content: `✅ Quy đổi thành công! ${res.message}`, ephemeral: true });
+                        await interaction.reply({ content: `✅ Quy đổi thành công! ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                 }
                 // --- Modal: MUA NHANH VẬT PHẨM CỬA HÀNG ---
@@ -2853,12 +3010,12 @@ class InteractionCreateEvent extends Event_1.Event {
                     const qtyStr = interaction.fields.getTextInputValue('buy_qty');
                     const qty = parseInt(qtyStr, 10);
                     if (isNaN(qty) || qty <= 0) {
-                        await interaction.reply({ content: '❌ Số lượng mua phải là số nguyên lớn hơn 0!', ephemeral: true });
+                        await interaction.reply({ content: '❌ Số lượng mua phải là số nguyên lớn hơn 0!', flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     const item = shop_1.SHOP_ITEMS.find(i => i.id === itemId);
                     if (!item) {
-                        await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', ephemeral: true });
+                        await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', flags: discord_js_1.MessageFlags.Ephemeral });
                         return;
                     }
                     const totalCost = item.price * qty;
@@ -2882,18 +3039,18 @@ class InteractionCreateEvent extends Event_1.Event {
                             tx();
                         }
                         catch (error) {
-                            await interaction.reply({ content: `❌ Mua nhanh thất bại: ${error.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ Mua nhanh thất bại: ${error.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const embed = (0, shop_1.getShopEmbed)(targetUserId, activeCategory, undefined, pageNum);
                         const shopComps = (0, shop_1.getShopComponents)(targetUserId, activeCategory, undefined, pageNum);
                         const rowsArr = Array.isArray(shopComps) ? shopComps : [shopComps];
                         if (interaction.update) {
-                            await interaction.update({ embeds: [embed], components: rowsArr });
-                            await interaction.followUp({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} KNB)!`, ephemeral: true });
+                            await interaction.update((0, uiSystem_1.toV2Update)([embed], rowsArr, interaction));
+                            await interaction.followUp({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} KNB)!`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         else {
-                            await interaction.reply({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} KNB)!`, ephemeral: true });
+                            await interaction.reply({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} KNB)!`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                     }
                     else {
@@ -2911,18 +3068,18 @@ class InteractionCreateEvent extends Event_1.Event {
                             tx();
                         }
                         catch (error) {
-                            await interaction.reply({ content: `❌ Mua nhanh thất bại: ${error.message}`, ephemeral: true });
+                            await interaction.reply({ content: `❌ Mua nhanh thất bại: ${error.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
                         const embed = (0, shop_1.getShopEmbed)(targetUserId, activeCategory, undefined, pageNum);
                         const shopComps = (0, shop_1.getShopComponents)(targetUserId, activeCategory, undefined, pageNum);
                         const rowsArr = Array.isArray(shopComps) ? shopComps : [shopComps];
                         if (interaction.update) {
-                            await interaction.update({ embeds: [embed], components: rowsArr });
-                            await interaction.followUp({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} Linh Thạch)!`, ephemeral: true });
+                            await interaction.update((0, uiSystem_1.toV2Update)([embed], rowsArr, interaction));
+                            await interaction.followUp({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} Linh Thạch)!`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         else {
-                            await interaction.reply({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} Linh Thạch)!`, ephemeral: true });
+                            await interaction.reply({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} Linh Thạch)!`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                     }
                 }
@@ -2932,10 +3089,10 @@ class InteractionCreateEvent extends Event_1.Event {
                     const embed = (0, shop_1.getShopEmbed)(targetUserId, undefined, undefined, 1, searchQuery);
                     const rows = (0, shop_1.getShopComponents)(targetUserId, undefined, undefined, 1, searchQuery);
                     if (interaction.update) {
-                        await interaction.update({ embeds: [embed], components: rows });
+                        await interaction.update((0, uiSystem_1.toV2Update)([embed], rows, interaction));
                     }
                     else {
-                        await interaction.reply({ embeds: [embed], components: rows });
+                        await interaction.reply((0, uiSystem_1.toV2Payload)([embed], rows));
                     }
                 }
                 return;
@@ -2954,10 +3111,10 @@ class InteractionCreateEvent extends Event_1.Event {
             try {
                 if (interaction.isRepliable()) {
                     if (interaction.replied || interaction.deferred) {
-                        await interaction.followUp({ content: errorMsg, ephemeral: true });
+                        await interaction.followUp({ content: errorMsg, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     else {
-                        await interaction.reply({ content: errorMsg, ephemeral: true });
+                        await interaction.reply({ content: errorMsg, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                 }
             }

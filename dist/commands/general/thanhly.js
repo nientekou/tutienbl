@@ -11,6 +11,7 @@ const SystemConfigService_1 = require("../../services/SystemConfigService");
 const database_1 = __importDefault(require("../../database/database"));
 const constants_1 = require("../../utils/constants");
 const itemConstants_1 = require("../../config/itemConstants");
+const uiSystem_1 = require("../../utils/uiSystem");
 // Ánh xạ item_id → giá mua lại từ người chơi (50% giá gốc)
 const NPC_BUYBACK_PRICES = {
     // Đan dược cơ bản
@@ -129,7 +130,7 @@ class ThanhLyCommand extends Command_1.Command {
                 embeds: [
                     new discord_js_1.EmbedBuilder()
                         .setTitle('🛒 BÁN CHO NPC THÀNH CÔNG')
-                        .setColor('#2ecc71')
+                        .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                         .setDescription(`Đã bán **${qty}x ${itemName?.name || inv.item_id}** cho NPC Thương Nhân.`)
                         .addFields({ name: '💰 Thu được', value: `**+${(0, constants_1.formatNumber)(totalPrice)}** Hạ Phẩm Linh Thạch`, inline: true }, { name: '💼 Số dư mới', value: `**${(0, constants_1.formatNumber)(user.coin_ha_pham + totalPrice)}** Linh Thạch`, inline: true })
                         .setTimestamp()
@@ -140,7 +141,7 @@ class ThanhLyCommand extends Command_1.Command {
     async handleDanhSach(interaction) {
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('📋 NPC THU MUA VẬT PHẨM')
-            .setColor('#e67e22')
+            .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
             .setDescription('Bán vật phẩm cho NPC Thương Nhân để nhận **50%** giá gốc.')
             .setTimestamp();
         const categorized = {};
@@ -171,7 +172,7 @@ class ThanhLyCommand extends Command_1.Command {
             const value = items.map(i => `• **${i.name}** (\`${i.id}\`) → **${(0, constants_1.formatNumber)(i.price)}** LT`).join('\n');
             embed.addFields({ name: cat, value, inline: true });
         }
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
 }
 exports.default = ThanhLyCommand;

@@ -572,6 +572,9 @@ export function initDatabase() {
   if (!guildConfigNames.includes('guide_channel_id')) {
     db.exec("ALTER TABLE guild_configs ADD COLUMN guide_channel_id TEXT");
   }
+  if (!guildConfigNames.includes('noitu_channel_id')) {
+    db.exec("ALTER TABLE guild_configs ADD COLUMN noitu_channel_id TEXT");
+  }
 
   // Bảng tin nhắn thông báo Boss Thế Giới
   db.exec(`
@@ -1352,6 +1355,16 @@ export function initDatabase() {
     // Ignore if table doesn't exist yet somehow
   }
 
+  // Migration: thêm cột consecutive_top1 cho achievement pvp_10
+  try {
+    const arenaCols = db.prepare("PRAGMA table_info(arena_profiles)").all() as any[];
+    if (arenaCols.length > 0 && !arenaCols.some(c => c.name === 'consecutive_top1')) {
+      db.exec("ALTER TABLE arena_profiles ADD COLUMN consecutive_top1 INTEGER DEFAULT 0");
+    }
+  } catch (e) {
+    // Ignore
+  }
+
   // Bảng theo dõi giao dịch chợ hàng ngày
   db.exec(`
     CREATE TABLE IF NOT EXISTS market_daily_tracking (
@@ -1727,13 +1740,13 @@ function seedAchievements() {
     { id: 'sh_15',     name: 'Lao Động Cần Cù',         category: 'sinh_hoat', description: 'Làm việc 70 lần',                     icon: '⛏️', target_value: 70,   reward_title: 'Người Lao Động Cần Cù', reward_exp: 5000, reward_coins: 20000, sort_order: 66 },
 
     // ===== GIAI ĐOẠN 2 (THÀNH TỰU MỚI) =====
-    { id: 'sh_16',     name: 'Linh Đan Sư',             category: 'sinh_hoat', description: 'Luyện đan thành công 100 lần',            icon: '🔥', target_value: 100,  reward_title: '',                    reward_exp: 1000, reward_coins: 5000,   sort_order: 67 },
-    { id: 'cd_14',     name: 'Kẻ Săn Thú',              category: 'chien_dau', description: 'Bắt thành công 20 sủng vật hiếm trở lên', icon: '🐾', target_value: 20,   reward_title: '',                    reward_exp: 2000, reward_coins: 10000,  sort_order: 68 },
-    { id: 'sh_17',     name: 'Thương Gia Vạn Kim',      category: 'sinh_hoat', description: 'Bán hàng trên Vạn Bảo Lâu tổng cộng 1,000,000 Linh Thạch', icon: '🪙', target_value: 1000000, reward_title: '', reward_exp: 5000, reward_coins: 50000, sort_order: 69 },
-    { id: 'sh_18',     name: 'Tiên Canh Nông',          category: 'sinh_hoat', description: 'Thu hoạch thảo dược 50 lần',             icon: '🌾', target_value: 50,   reward_title: '',                    reward_exp: 500,  reward_coins: 3000,   sort_order: 70 },
-    { id: 'tl_19',     name: 'Thiên Mệnh Chi Tử',       category: 'tu_luyen',  description: 'Sở hữu Huyết Mạch huyền thoại',          icon: '🩸', target_value: 1,    reward_title: '',                    reward_exp: 3000, reward_coins: 20000,  sort_order: 71 },
-    { id: 'pvp_10',    name: 'Bá Chủ Vạn Thế',          category: 'pvp',       description: 'Giữ vị trí #1 Arena trong 3 mùa liên tiếp', icon: '🏆', target_value: 3,    reward_title: '',                    reward_exp: 10000, reward_coins: 100000, sort_order: 72 },
-    { id: 'sh_19',     name: 'Trưởng Lão Minh Triết',    category: 'sinh_hoat', description: 'Đào tạo thành công 5+ đệ tử tốt nghiệp',  icon: '📜', target_value: 5,    reward_title: '',                    reward_exp: 3000, reward_coins: 30000,  sort_order: 73 },
+    { id: 'sh_16',     name: 'Linh Đan Sư',             category: 'sinh_hoat', description: 'Luyện đan thành công 100 lần',            icon: '🔥', target_value: 100,  reward_title: 'Linh Đan Sư',         reward_exp: 1000, reward_coins: 5000,   sort_order: 67 },
+    { id: 'cd_14',     name: 'Kẻ Săn Thú',              category: 'chien_dau', description: 'Bắt thành công 20 sủng vật hiếm trở lên', icon: '🐾', target_value: 20,   reward_title: 'Kẻ Săn Thú',          reward_exp: 2000, reward_coins: 10000,  sort_order: 68 },
+    { id: 'sh_17',     name: 'Thương Gia Vạn Kim',      category: 'sinh_hoat', description: 'Bán hàng trên Vạn Bảo Lâu tổng cộng 1,000,000 Linh Thạch', icon: '🪙', target_value: 1000000, reward_title: 'Thương Gia Vạn Kim', reward_exp: 5000, reward_coins: 50000, sort_order: 69 },
+    { id: 'sh_18',     name: 'Tiên Canh Nông',          category: 'sinh_hoat', description: 'Thu hoạch thảo dược 50 lần',             icon: '🌾', target_value: 50,   reward_title: 'Tiên Canh Nông',       reward_exp: 500,  reward_coins: 3000,   sort_order: 70 },
+    { id: 'tl_19',     name: 'Thiên Mệnh Chi Tử',       category: 'tu_luyen',  description: 'Sở hữu Huyết Mạch huyền thoại',          icon: '🩸', target_value: 1,    reward_title: 'Thiên Mệnh Chi Tử',    reward_exp: 3000, reward_coins: 20000,  sort_order: 71 },
+    { id: 'pvp_10',    name: 'Bá Chủ Vạn Thế',          category: 'pvp',       description: 'Giữ vị trí #1 Arena trong 3 mùa liên tiếp', icon: '🏆', target_value: 3,    reward_title: 'Bá Chủ Vạn Thế',      reward_exp: 10000, reward_coins: 100000, sort_order: 72 },
+    { id: 'sh_19',     name: 'Trưởng Lão Minh Triết',    category: 'sinh_hoat', description: 'Đào tạo thành công 5+ đệ tử tốt nghiệp',  icon: '📜', target_value: 5,    reward_title: 'Trưởng Lão',           reward_exp: 3000, reward_coins: 30000,  sort_order: 73 },
     { id: 'pvp_11',    name: 'Chiến Thần Vô Song',       category: 'pvp',       description: 'Thắng 50 trận PvP liên tiếp',            icon: '⚔️', target_value: 50,   reward_title: 'Chiến Thần Vô Song',  reward_exp: 5000, reward_coins: 50000,  sort_order: 74 },
   ];
 

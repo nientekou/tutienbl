@@ -6,6 +6,7 @@ const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const EnhanceService_1 = require("../../services/EnhanceService");
 const itemConstants_1 = require("../../config/itemConstants");
+const uiSystem_1 = require("../../utils/uiSystem");
 class CuongHuaCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -28,8 +29,8 @@ class CuongHuaCommand extends Command_1.Command {
             return;
         }
         const embed = new discord_js_1.EmbedBuilder()
-            .setTitle('✨ THẦN THIẾT CỰC DIÊN — ĐẠI TRẬN CƯỜNG HÓA ✨')
-            .setColor('#9b59b6')
+            .setTitle('✨ THẦN THIẾT CỰC DIÊN — ĐẠI TRẬN CƯỜNG HÓA')
+            .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
             .setDescription(`Chào mừng đạo hữu **${user.name}** đến với Đại Trận Cường Hóa!\n\n` +
             `🧘 **Quy tắc cường hóa:**\n` +
             `• **+1 đến +5**: Tỷ lệ thành công **100%**.\n` +
@@ -52,7 +53,7 @@ class CuongHuaCommand extends Command_1.Command {
                 .setValue(item.id.toString()));
         });
         const row = new discord_js_1.ActionRowBuilder().addComponents(selectMenu);
-        await interaction.editReply({ embeds: [embed], components: [row] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
     }
     /**
      * Tạo giao diện xem trước thông tin cường hóa của trang bị cụ thể

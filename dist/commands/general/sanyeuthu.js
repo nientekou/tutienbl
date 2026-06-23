@@ -18,6 +18,7 @@ const LeylineService_1 = require("../../services/LeylineService");
 const constants_1 = require("../../utils/constants");
 const database_1 = __importDefault(require("../../database/database"));
 const sungthu_1 = require("./sungthu");
+const uiSystem_1 = require("../../utils/uiSystem");
 /**
  * Thực thi săn yêu thú cho đạo hữu (được dùng từ cả lệnh và button hoso)
  */
@@ -361,8 +362,8 @@ function performHunt(userId) {
         if (artifactRes && artifactRes.message) {
             artifactMsg = `\n\n${artifactRes.message}`;
         }
-        embed.setTitle(`🌲 CHIẾN THẮNG DÃ NGOẠI - ĐẢ THẢO TIỂU ĐIỀN 🌲`)
-            .setColor('#2ecc71')
+        embed.setTitle(`🌲 CHIẾN THẮNG DÃ NGOẠI - ĐẢ THẢO TIỂU ĐIỀN`)
+            .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
             .setDescription(`Đạo hữu đã thảo phạt thành công **${monster.name}** sau **${combatResult.rounds}** hiệp đấu!\n\n` +
             `🌿 **Tu vi cộng hưởng:** **+${actualGainedExp}** Tu Vi\n` +
             `${(0, constants_1.getProgressBar)(cappedNewTuVi, user.exp_needed, 10)} *(${cappedNewTuVi}/${user.exp_needed})*\n\n` +
@@ -411,8 +412,8 @@ function performHunt(userId) {
         database_1.default.transaction(() => {
             UserRepository_1.userRepository.update(userId, { stamina: user.stamina - staminaCost });
         })();
-        embed.setTitle(`💀 THẤT BẠI DÃ NGOẠI 💀`)
-            .setColor('#e74c3c')
+        embed.setTitle(`💀 THẤT BẠI DÃ NGOẠI`)
+            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
             .setDescription(`Đạo hữu cự địch bất thành, kiệt sức tháo lui trước sức mạnh hoang dại của **${monster.name}** sau **${combatResult.rounds}** hiệp đấu!\n\n` +
             `⚡ **Thể lực hao tổn:** **-${staminaCost}** Thể Lực *(Còn lại: ${user.stamina - staminaCost}/500)*\n` +
             `${(0, constants_1.getProgressBar)(user.stamina - staminaCost, 500, 10)}\n\n` +
@@ -462,6 +463,10 @@ function checkPetAchievements(userId, newPetRarity) {
     // Thành tựu cấp độ sủng thú (kiểm tra pet cao nhất)
     const maxPetLevel = Math.max(...pets.map(p => p.level), 0);
     AchievementService_1.achievementService.setProgress(userId, 'st_11', maxPetLevel);
+    // Thành tựu bắt pet hiếm (cd_14)
+    const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+    const rareOrAbove = pets.filter(p => rarityOrder.indexOf(p.rarity) >= rarityOrder.indexOf('rare')).length;
+    AchievementService_1.achievementService.setProgress(userId, 'cd_14', rareOrAbove);
 }
 /**
  * Render menu săn yêu thú với 1 nút xác nhận săn + nút quay lại hồ sơ
@@ -488,7 +493,7 @@ function getSanYeuThuComponents(userId) {
 function getSanYeuThuEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
-        return new discord_js_1.EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Không tìm thấy nhân vật.');
+        return new discord_js_1.EmbedBuilder().setTitle('❌ Lỗi').setColor(uiSystem_1.EMBED_COLORS.ERROR).setDescription('Không tìm thấy nhân vật.');
     }
     let tier = 'Luyện Khí';
     let rateText = '30% (Thường)';
@@ -512,8 +517,8 @@ function getSanYeuThuEmbed(userId) {
                 `• **Kim Sí Ưng 🦅** (HP: 1200 | Công: 95 | Thủ: 65)`;
     }
     return new discord_js_1.EmbedBuilder()
-        .setTitle(`🐺 SĂN YÊU THÚ DÃ NGOẠI 🐺`)
-        .setColor('#27ae60')
+        .setTitle(`🐺 SĂN YÊU THÚ DÃ NGOẠI`)
+        .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
         .setDescription(`Ngoài hoang dã bao la, yêu thú tứ phương hội tụ. Đạo hữu với **${user.stamina}/500** Thể Lực có thể phiêu du đả thảo tiểu điền để tìm cơ duyên.\n` +
         `${(0, constants_1.getProgressBar)(user.stamina, 500, 10)}\n\n` +
         `🏔️ **Cảnh Giới Hiện Tại:** **${tier}** (Cấp ${user.level})\n` +
@@ -543,7 +548,7 @@ class SanYeuThuCommand extends Command_1.Command {
         }
         const embed = getSanYeuThuEmbed(userId);
         const rows = getSanYeuThuComponents(userId);
-        await interaction.editReply({ embeds: [embed], components: rows });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], rows));
     }
 }
 exports.default = SanYeuThuCommand;

@@ -4,6 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { arenaService } from '../../services/ArenaService';
 import { userRepository } from '../../database/repositories/UserRepository';
 import db from '../../database/database';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class ArenaCommand extends Command {
   constructor() {
@@ -78,7 +79,7 @@ export default class ArenaCommand extends Command {
       const embed = new EmbedBuilder()
         .setTitle(`⚔️ Hồ Sơ Đấu Trường: ${targetProfile.name}`)
         .setDescription(shieldText || null)
-        .setColor('#FFA500')
+        .setColor(EMBED_COLORS.ORANGE)
         .addFields(
           { name: '🏆 Điểm ELO', value: `**${profile.elo}**`, inline: true },
           { name: '🔥 Chuỗi Thắng', value: `${profile.win_streak}`, inline: true },
@@ -90,7 +91,7 @@ export default class ArenaCommand extends Command {
         .setThumbnail(targetUser.displayAvatarURL())
         .setFooter({ text: `Mùa Giải: ${profile.season_id}` });
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
     
     else if (subcommand === 'find') {
@@ -140,14 +141,14 @@ export default class ArenaCommand extends Command {
       const embed = new EmbedBuilder()
         .setTitle('⚔️ KẾT QUẢ ĐẤU TRƯỜNG')
         .setDescription(`**${user.name}** (ELO: ${oldChallengerProfile.elo}) 🆚 **${oUser.name}** (ELO: ${oldOpponentProfile.elo})\n\n${resultText}`)
-        .setColor(isWin ? '#00FF00' : '#FF0000')
+        .setColor(isWin ? EMBED_COLORS.SUCCESS : EMBED_COLORS.ERROR)
         .addFields(
           { name: 'Trận chiến kéo dài', value: `${matchResult.result.rounds} hiệp`, inline: true },
           { name: 'Tổng sát thương', value: `${matchResult.result.totalDamageDealt}`, inline: true }
         )
         .setFooter({ text: 'Chi tiết trận đấu được đính kèm trong file.' });
 
-      await interaction.editReply({ embeds: [embed], files: [attachment] });
+      await interaction.editReply({ ...toV2Payload([embed]), files: [attachment] });
     }
     
     else if (subcommand === 'top') {
@@ -160,7 +161,7 @@ export default class ArenaCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle('🏆 BẢNG XẾP HẠNG ĐẤU TRƯỜNG (TOP 10)')
-        .setColor('#FFD700');
+        .setColor(EMBED_COLORS.GOLD);
 
       let description = '';
       topPlayers.forEach((p, index) => {
@@ -174,7 +175,7 @@ export default class ArenaCommand extends Command {
       });
 
       embed.setDescription(description);
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
     
     else if (subcommand === 'history') {
@@ -192,7 +193,7 @@ export default class ArenaCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle('📜 Lịch Sử Đấu Trường (5 Trận Gần Nhất)')
-        .setColor('#8B4513');
+        .setColor(EMBED_COLORS.MYSTIC);
 
       let desc = '';
       for (const h of history) {
@@ -210,7 +211,7 @@ export default class ArenaCommand extends Command {
       }
 
       embed.setDescription(desc);
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
   }
 }

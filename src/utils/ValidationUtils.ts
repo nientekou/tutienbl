@@ -1,4 +1,4 @@
-import { ButtonInteraction, StringSelectMenuInteraction, ModalSubmitInteraction, InteractionReplyOptions } from 'discord.js';
+import { ButtonInteraction, StringSelectMenuInteraction, ModalSubmitInteraction, InteractionReplyOptions, MessageFlags } from 'discord.js';
 
 export class ValidationUtils {
   /**
@@ -18,7 +18,7 @@ export class ValidationUtils {
       if (showWarning) {
         const payload: InteractionReplyOptions = {
           content: '❌ Nút bấm / Tương tác này không dành cho đạo hữu!',
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         };
 
         try {

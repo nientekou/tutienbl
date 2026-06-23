@@ -7,6 +7,7 @@ import { achievementService } from '../../services/AchievementService';
 import { checkPetAchievements } from './sanyeuthu';
 import { getProgressBar, formatNumber } from '../../utils/constants';
 import db from '../../database/database';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 interface PetEntity {
   id: number;
@@ -56,7 +57,7 @@ export function getSungThuEmbed(userId: string, page: number = 1): EmbedBuilder 
 
   const embed = new EmbedBuilder()
     .setTitle(`🐾 LINH THÚ CÁC - ${user?.name || 'Không xác định'}`)
-    .setColor('#1abc9c')
+    .setColor(EMBED_COLORS.CAVE)
     .setDescription('Sủng thú trợ chiến giúp tăng sát thương khi công kích Boss Thế Giới và vượt phó bản Bí Cảnh.\n\n👯‍♂️ **Thiết Lập:** Dùng `/sungthu xuatchien` để phái xuất chiến | `/sungthu thuctinhkynang` để thức tỉnh kỹ năng | `/sungthu laitao` lai tạo dị biến.')
     .setTimestamp();
 
@@ -273,7 +274,7 @@ export default class SungThuCommand extends Command {
     if (sub === 'danhsach') {
       const embed = getSungThuEmbed(userId);
       const components = getSungThuComponents(userId);
-      await interaction.editReply({ embeds: [embed], components });
+      await interaction.editReply(toV2Payload([embed], components));
       return;
     }
 

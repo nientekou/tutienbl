@@ -11,12 +11,13 @@ const CaveService_1 = require("../../services/CaveService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const database_1 = __importDefault(require("../../database/database"));
+const uiSystem_1 = require("../../utils/uiSystem");
 function buildCaveEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('❌ Lỗi')
-            .setColor('#e74c3c')
+            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
             .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
     }
     const cave = CaveService_1.caveService.getCave(userId);
@@ -43,7 +44,7 @@ function buildCaveEmbed(userId) {
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`🏔️ ĐỘNG PHỦ CÁ NHÂN - ${user.name}`)
         .setDescription(`Đây là không gian thiền định và hấp thụ tinh hoa linh khí của đạo hữu. Nâng cấp động phủ giúp tăng tốc độ hấp thu linh khí và số lần ngâm mình Linh Tuyền.`)
-        .setColor('#2ecc71')
+        .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
         .setTimestamp();
     embed.addFields([
         { name: 'Cấp Động Phủ', value: `Lv.${cave.level}/5`, inline: true },
@@ -110,7 +111,7 @@ class DongPhuCommand extends Command_1.Command {
         }
         const embed = buildCaveEmbed(userId);
         const components = buildCaveComponents(userId);
-        await interaction.editReply({ embeds: [embed], components });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
     }
 }
 exports.default = DongPhuCommand;

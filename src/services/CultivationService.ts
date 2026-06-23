@@ -84,9 +84,12 @@ export class CultivationService {
    * Tính toán lượng EXP (Tu Vi) cần thiết để lên cấp/tầng tiếp theo
    */
   public calculateNextExp(level: number): number {
-    const base = Math.round(100 * Math.pow(level, 2.2));
+    const base = Math.round(100 * Math.pow(level, 2.5));
+    if (level >= 200) {
+      return Math.round(base * 0.5);
+    }
     if (level >= 100) {
-      return Math.round(base * 0.7);
+      return Math.round(base * 0.6);
     }
     return base;
   }
@@ -106,8 +109,8 @@ export class CultivationService {
   public calculateStatsForLevel(level: number, linhCanJson: string, alignment: string = 'neutral') {
     const { majorIndex } = getRealmDetails(level);
     // Mỗi Đại Cảnh Giới (majorIndex) sẽ cung cấp một lượng chỉ số đột phá
-    // Hệ số nhân cấp độ cảnh giới: 1.0 (Luyện Khí) -> 1.5 (Trúc Cơ) -> 2.25 -> ...
-    const realmMultiplier = Math.pow(1.5, majorIndex);
+    // Hệ số nhân cấp độ cảnh giới: 1.0 (Luyện Khí) -> 2.0 (Trúc Cơ) -> 3.0 -> ... -> 10.0 (Đăng Tiên)
+    const realmMultiplier = 1 + majorIndex * 1.0;
 
     // Chỉ số thô tăng theo cấp độ và nhân với cảnh giới
     let hp = Math.floor((100 + (level - 1) * 20) * realmMultiplier);
@@ -235,7 +238,7 @@ export class CultivationService {
       caveExpBuff = springLvl * 0.02;
     } catch (e) { console.warn('[CultivationService] Failed to fetch cave spring level:', e); }
 
-    const speedMultiplier = this.getCultivationSpeedMultiplier(user.linh_can) + (user.luan_hoi_count * 0.25) + sectLinhTratBonus + caveExpBuff;
+    const speedMultiplier = this.getCultivationSpeedMultiplier(user.linh_can) + Math.min(user.luan_hoi_count * 0.25, 2.0) + sectLinhTratBonus + caveExpBuff;
     
     // Leyline Buff Tu Luyện (+20% EXP)
     let leylineExpBuff = leylineService.isBuffActive('tuluyen') ? 1.2 : 1.0;
@@ -374,7 +377,7 @@ export class CultivationService {
       if (cave.level >= 5) caveExpBuff = 0.10;
     } catch(e) { console.warn('[CultivationService] Failed to fetch cave level for practice buff:', e); }
 
-    const speedMultiplier = this.getCultivationSpeedMultiplier(user.linh_can) + (user.luan_hoi_count * 0.25) + sectLinhTratBonus + caveExpBuff;
+    const speedMultiplier = this.getCultivationSpeedMultiplier(user.linh_can) + Math.min(user.luan_hoi_count * 0.25, 2.0) + sectLinhTratBonus + caveExpBuff;
     
     // Leyline Buff Tu Luyện (+20% EXP)
     let leylineExpBuff = leylineService.isBuffActive('tuluyen') ? 1.2 : 1.0;
@@ -432,6 +435,7 @@ export class CultivationService {
         ngotinh: user.ngotinh + 1
       });
       extraMsg = '\n✨ Đạo hữu trong lúc thiền định bỗng nhiên có sở ngộ, nhận được **+1 Điểm Ngộ Tính**!';
+      achievementService.setProgress(discordId, 'tl_14', user.ngotinh + 1);
     } else {
       userRepository.update(discordId, { tu_vi: newTuVi });
     }

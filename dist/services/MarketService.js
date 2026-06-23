@@ -10,6 +10,7 @@ const InventoryRepository_1 = require("../database/repositories/InventoryReposit
 const SystemConfigService_1 = require("./SystemConfigService");
 const LeylineService_1 = require("./LeylineService");
 const constants_1 = require("../utils/constants");
+const AchievementService_1 = require("./AchievementService");
 class MarketService {
     getTodaysDateUtc() {
         return new Date().toISOString().slice(0, 10);
@@ -225,6 +226,18 @@ class MarketService {
       `).run(listing.seller_id, listingId, listing.item_id, listing.quantity, payout, tax, userId, now);
             this.recordCompletedSale(listing.seller_id, listing.price, tax);
         })();
+        // Thành tựu giao dịch thị trường
+        const buyerTxCount = database_1.default.prepare("SELECT COUNT(*) as c FROM market_transaction_history WHERE user_id = ?").get(userId).c;
+        AchievementService_1.achievementService.setProgress(userId, 'sh_11', buyerTxCount);
+        AchievementService_1.achievementService.setProgress(userId, 'sh_12', buyerTxCount);
+        AchievementService_1.achievementService.setProgress(userId, 'sh_13', buyerTxCount);
+        const sellerTxCount = database_1.default.prepare("SELECT COUNT(*) as c FROM market_transaction_history WHERE user_id = ?").get(listing.seller_id).c;
+        AchievementService_1.achievementService.setProgress(listing.seller_id, 'sh_11', sellerTxCount);
+        AchievementService_1.achievementService.setProgress(listing.seller_id, 'sh_12', sellerTxCount);
+        AchievementService_1.achievementService.setProgress(listing.seller_id, 'sh_13', sellerTxCount);
+        // Thành tựu bán hàng 1M LT
+        const sellerTotalSales = database_1.default.prepare("SELECT COALESCE(SUM(total_sales), 0) as c FROM market_daily_tracking WHERE user_id = ?").get(listing.seller_id).c;
+        AchievementService_1.achievementService.setProgress(listing.seller_id, 'sh_17', sellerTotalSales);
         return { success: true, message: `🎉 Mua thành công **${listing.quantity}x ${itemName}** giá **${listing.price} LT** (thuế: ${tax} LT)!` };
     }
     /**

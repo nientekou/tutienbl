@@ -8,6 +8,7 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import { inventoryService } from '../../services/InventoryService';
 import { getRealmDetails, getProgressBar } from '../../utils/constants';
 import { ITEMS } from '../../config/itemConstants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class DotPhaCommand extends Command {
   constructor() {
@@ -50,7 +51,7 @@ export default class DotPhaCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle(`🌟 Chuẩn Bị Đột Phá: ${fullName}`)
-        .setColor('#f1c40f')
+        .setColor(EMBED_COLORS.GOLD)
         .setDescription(
           `Đạo hữu đã tích đủ linh khí, có thể thử nghiệm trùng kích bình cảnh để lên **Tầng ${minorLevel + 1}**.\n\n` +
           `🌿 **Tu Vi hiện có:** **${user.tu_vi}/${user.exp_needed}**\n` +
@@ -91,7 +92,7 @@ export default class DotPhaCommand extends Command {
           .setDisabled(user.coin_ha_pham < bequanCost)
       );
 
-      await interaction.editReply({ embeds: [embed], components: [row] });
+      await interaction.editReply(toV2Payload([embed], [row] ));
     } else {
       // Đột phá cảnh giới lớn -> Nghênh tiếp Lôi Kiếp
       const bolts = 3 + majorIndex * 2;
@@ -115,7 +116,7 @@ export default class DotPhaCommand extends Command {
       
       const embed = new EmbedBuilder()
         .setTitle(`⚡ Cảnh Báo Thiên Kiếp: ${user.name}`)
-        .setColor('#e74c3c')
+        .setColor(EMBED_COLORS.ERROR)
         .setDescription(
           `Đạo hữu đã chạm tới **Cực Hạn Đại Viên Mãn** cảnh giới hiện tại. Thiên địa dị biến, lôi vân đang kéo tới dồn dập!\n\n` +
           `• Cảnh giới lớn đột phá: **${fullName}**\n` +
@@ -148,7 +149,7 @@ export default class DotPhaCommand extends Command {
           .setDisabled(user.coin_ha_pham < bequanMajorCost)
       );
 
-      await interaction.editReply({ embeds: [embed], components: [row] });
+      await interaction.editReply(toV2Payload([embed], [row] ));
     }
   }
 }

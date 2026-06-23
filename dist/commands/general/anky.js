@@ -9,6 +9,7 @@ const SoulImprintRepository_1 = require("../../database/repositories/SoulImprint
 const SoulImprintService_1 = require("../../services/SoulImprintService");
 const constants_1 = require("../../utils/constants");
 const itemConstants_1 = require("../../config/itemConstants");
+const uiSystem_1 = require("../../utils/uiSystem");
 const GROUP_NAMES = {
     'weapon': '⚔️ Bộ Vũ Khí Thượng Cổ',
     'armor': '🛡️ Bộ Pháp Y Vô Thượng',
@@ -78,7 +79,7 @@ function buildImprintListEmbed(userId) {
     const bar = (0, constants_1.getProgressBar)(imprints.length, 50, 10);
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`🌟 ĐỀN THỜ ẤN KÝ LINH HỒN - ${user.name}`)
-        .setColor('#9b59b6')
+        .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
         .setDescription(`*Nơi lưu giữ linh hồn của các thần binh bảo giáp đã bị tiêu hủy. Chỉ số của Ấn Ký được cộng dồn vĩnh viễn vào thuộc tính nhân vật, bất kể có trang bị hay không.*\n\n` +
         `📊 **Ấn Ký Hiện Tại:** ${bar} **(${imprints.length}/50)**\n`)
         .addFields({
@@ -126,7 +127,7 @@ class AnkyCommand extends Command_1.Command {
         const sub = interaction.options.getSubcommand();
         if (sub === 'danhsach') {
             const embed = buildImprintListEmbed(discordId);
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (sub === 'anky') {
             const targetId = interaction.options.getInteger('id');
@@ -171,7 +172,7 @@ class AnkyCommand extends Command_1.Command {
             const collectedIds = new Set(userImprints.map(i => i.item_id));
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`📖 SỔ TAY THU THẬP ẤN KÝ - ${user.name}`)
-                .setColor('#e67e22')
+                .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
                 .setDescription('*Thu thập đủ các loại trang bị trong từng bộ sưu tập Ấn Ký để nhận thuộc tính ẩn cực mạnh vĩnh viễn.*')
                 .setTimestamp();
             Object.entries(SET_ITEMS).forEach(([groupKey, items]) => {
@@ -203,7 +204,7 @@ class AnkyCommand extends Command_1.Command {
                 value: activeBonuses.length > 0 ? activeBonuses.join('\n') : '`Chưa kích hoạt hiệu ứng bộ nào.`',
                 inline: false
             });
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (sub === 'trade') {
             const imprintId = interaction.options.getInteger('id', true);

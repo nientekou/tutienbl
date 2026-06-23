@@ -7,6 +7,7 @@ const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const LeylineService_1 = require("../../services/LeylineService");
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 const LEYLINE_NAMES = {
     'tuluyen': 'Tu Luyện (Mộc)',
     'chiendau': 'Chiến Đấu (Hỏa)',
@@ -36,7 +37,7 @@ function buildLeylineEmbed(userId) {
     if (!user) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('🌟 LINH MẠCH ĐỊA ĐỒ')
-            .setColor('#e74c3c')
+            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
             .setDescription('Chưa khởi tạo nhân vật.');
     }
     const nowSec = Math.floor(Date.now() / 1000);
@@ -48,7 +49,7 @@ function buildLeylineEmbed(userId) {
         `*(Dẫn dòng giúp tăng +50% linh khí đóng góp cho linh mạch đó, nhưng sẽ không tích tụ vào các mạch khác)*\n`;
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`🌟 LINH MẠCH ĐỊA ĐỒ - THẾ GIỚI TU CHÂN`)
-        .setColor('#2ecc71')
+        .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
         .setDescription(desc)
         .setTimestamp();
     leylines.forEach(l => {
@@ -117,7 +118,7 @@ class LinhmachCommand extends Command_1.Command {
         }
         const embed = buildLeylineEmbed(discordId);
         const components = buildLeylineComponents(discordId);
-        await interaction.editReply({ embeds: [embed], components });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
     }
 }
 exports.default = LinhmachCommand;

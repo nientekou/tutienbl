@@ -1,4 +1,4 @@
-import { ButtonInteraction } from 'discord.js';
+import { ButtonInteraction, MessageFlags } from 'discord.js';
 
 export async function renderCombatLog(
   interaction: ButtonInteraction,
@@ -6,13 +6,13 @@ export async function renderCombatLog(
   title: string
 ): Promise<void> {
   if (!logs || logs.length === 0) {
-    await interaction.reply({ content: '❌ Không tìm thấy nhật ký trận đấu này.', ephemeral: true });
+    await interaction.reply({ content: '❌ Không tìm thấy nhật ký trận đấu này.', flags: MessageFlags.Ephemeral });
     return;
   }
 
   const logText = logs.join('\n');
   if (logText.length <= 2000) {
-    await interaction.reply({ content: `📖 **${title}:**\n${logText}`, ephemeral: true });
+    await interaction.reply({ content: `📖 **${title}:**\n${logText}`, flags: MessageFlags.Ephemeral });
   } else {
     const chunks: string[] = [];
     let current = `📖 **${title} (Tiếp theo):**\n`;
@@ -27,9 +27,9 @@ export async function renderCombatLog(
     }
     if (current) chunks.push(current);
 
-    await interaction.reply({ content: chunks[0], ephemeral: true });
+    await interaction.reply({ content: chunks[0], flags: MessageFlags.Ephemeral });
     for (let i = 1; i < chunks.length; i++) {
-      await interaction.followUp({ content: chunks[i], ephemeral: true });
+      await interaction.followUp({ content: chunks[i], flags: MessageFlags.Ephemeral });
     }
   }
 }

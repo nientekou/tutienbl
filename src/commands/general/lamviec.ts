@@ -1,5 +1,6 @@
 import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { Command } from '../../structures/Command';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
@@ -340,7 +341,7 @@ export default class LamViecCommand extends Command {
         components.push(row);
       }
 
-      await interaction.editReply({ embeds: [result.embed!], components });
+      await interaction.editReply(toV2Payload([result.embed!], components));
     } catch (error) {
       console.error('Lỗi khi lưu kết quả làm việc:', error);
       await interaction.editReply({

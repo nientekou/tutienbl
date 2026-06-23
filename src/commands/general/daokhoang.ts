@@ -1,5 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { Command } from '../../structures/Command';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import { TuTienClient } from '../../client/TuTienClient';
 import { performWork } from './lamviec';
 
@@ -36,7 +37,7 @@ export default class DaoKhoangCommand extends Command {
     }
 
     if (result.embed) {
-      await interaction.editReply({ embeds: [result.embed], components });
+      await interaction.editReply(toV2Payload([result.embed], components));
     } else {
       await interaction.editReply({ content: result.message, components });
     }

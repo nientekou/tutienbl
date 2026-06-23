@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
+const uiSystem_1 = require("../../utils/uiSystem");
 const TradeService_1 = require("../../services/TradeService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 class TradeCommand extends Command_1.Command {
@@ -52,7 +53,7 @@ class TradeCommand extends Command_1.Command {
             }
             const ui = TradeService_1.tradeService.renderTradeUI(res.tradeId);
             if (ui) {
-                await interaction.editReply({ content: `<@${targetUser.id}>, đạo hữu <@${userId}> muốn giao dịch với bạn!`, embeds: ui.embeds, components: ui.components });
+                await interaction.editReply({ content: `<@${targetUser.id}>, đạo hữu <@${userId}> muốn giao dịch với bạn!`, ...(0, uiSystem_1.toV2Payload)(ui.embeds, ui.components) });
             }
             else {
                 await interaction.editReply({ content: `✅ Đã gửi yêu cầu giao dịch đến ${targetUser.username}.` });
@@ -106,7 +107,7 @@ class TradeCommand extends Command_1.Command {
         if (sub === 'hienthi') {
             const ui = TradeService_1.tradeService.renderTradeUI(tradeId);
             if (ui) {
-                await interaction.editReply({ embeds: ui.embeds, components: ui.components });
+                await interaction.editReply((0, uiSystem_1.toV2Payload)(ui.embeds, ui.components));
             }
             else {
                 await interaction.editReply({ content: '❌ Giao dịch đã kết thúc hoặc bị hủy.' });
@@ -128,7 +129,7 @@ class TradeCommand extends Command_1.Command {
     async updateTradeUI(interaction, tradeId) {
         const ui = TradeService_1.tradeService.renderTradeUI(tradeId);
         if (ui) {
-            await interaction.editReply({ embeds: ui.embeds, components: ui.components });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)(ui.embeds, ui.components));
         }
         else {
             await interaction.editReply({ content: 'Giao dịch đã kết thúc.' });

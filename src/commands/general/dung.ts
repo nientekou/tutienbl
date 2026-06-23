@@ -6,6 +6,7 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import { inventoryService } from '../../services/InventoryService';
 import db from '../../database/database';
 import { ITEMS, getPhoiWeaponByGrade, getPhoiArmorByGrade, getWeaponByGrade, getArmorByGrade } from '../../config/itemConstants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class DungCommand extends Command {
   constructor() {
@@ -80,8 +81,8 @@ export default class DungCommand extends Command {
       openTx();
 
       const embed = new EmbedBuilder()
-        .setTitle('🎁 KẾT QUẢ MỞ RƯƠNG BÁO 🎁')
-        .setColor('#f1c40f')
+        .setTitle('🎁 KẾT QUẢ MỞ RƯƠNG BÁO')
+        .setColor(EMBED_COLORS.GOLD)
         .setDescription(`Đạo hữu đã khui thành công **${qty}x ${userItem.name}**! Phương trời chuyển sắc, linh khí lan tỏa...`)
         .addFields({
           name: '✨ Các vật phẩm nhận được:',
@@ -89,7 +90,7 @@ export default class DungCommand extends Command {
         })
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 

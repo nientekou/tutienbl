@@ -11,6 +11,7 @@ const AlchemyService_1 = require("../../services/AlchemyService");
 const constants_1 = require("../../utils/constants");
 const database_1 = __importDefault(require("../../database/database"));
 const itemConstants_1 = require("../../config/itemConstants");
+const uiSystem_1 = require("../../utils/uiSystem");
 class LuyenDanCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -26,7 +27,7 @@ class LuyenDanCommand extends Command_1.Command {
         }
         const embed = this.getAlchemyEmbed(userId);
         const rows = this.getAlchemyComponents(userId);
-        await interaction.editReply({ embeds: [embed], components: rows });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], rows));
     }
     /**
      * Tạo Embed giao diện Luyện Đan
@@ -91,8 +92,8 @@ class LuyenDanCommand extends Command_1.Command {
         catch (e) { }
         const hoaBonus = hoaLinhCan * 0.001;
         const embed = new discord_js_1.EmbedBuilder()
-            .setTitle('🌿 LINH DƯỢC LUYỆN ĐAN PHÒNG 🌿')
-            .setColor('#2ecc71')
+            .setTitle('🌿 LINH DƯỢC LUYỆN ĐAN PHÒNG')
+            .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
             .setDescription(`Đạo hữu đang ngự tại phòng luyện chế linh đan.\n` +
             `🏆 **Cấp Luyện Đan Sư:** Cấp **${alchemyLevel}**\n` +
             `${expBar} *(EXP: **${alchemyExp}/${expNeeded}**)*\n\n` +

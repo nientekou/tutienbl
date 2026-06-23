@@ -4,6 +4,7 @@ const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const NewbieProtectionService_1 = require("../../services/NewbieProtectionService");
+const uiSystem_1 = require("../../utils/uiSystem");
 class SuDoCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -37,7 +38,7 @@ class SuDoCommand extends Command_1.Command {
         else if (sub === 'thongtin') {
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('📜 THÔNG TIN SƯ ĐỒ')
-                .setColor('#3498db')
+                .setColor(uiSystem_1.EMBED_COLORS.INFO)
                 .setTimestamp();
             const protectionDays = NewbieProtectionService_1.newbieProtectionService.getRemainingProtectionDays(userId);
             let statusText = '';
@@ -71,7 +72,7 @@ class SuDoCommand extends Command_1.Command {
                     value: studentList,
                 });
             }
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (sub === 'doan') {
             const result = NewbieProtectionService_1.newbieProtectionService.removeMentor(userId);
@@ -81,7 +82,7 @@ class SuDoCommand extends Command_1.Command {
             const students = NewbieProtectionService_1.newbieProtectionService.getStudents(userId);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('👨‍🎓 DANH SÁCH ĐỒ ĐỆ')
-                .setColor('#2ecc71')
+                .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                 .setTimestamp();
             if (students.length === 0) {
                 embed.setDescription('*Đạo hữu chưa nhận đồ đệ nào. Dùng `/sudo nhan [user]` để nhận đồ đệ!*');
@@ -93,7 +94,7 @@ class SuDoCommand extends Command_1.Command {
                 }).join('\n');
                 embed.setDescription(list);
             }
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
     }
 }

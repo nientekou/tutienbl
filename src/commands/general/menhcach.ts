@@ -5,6 +5,7 @@ import { destinyService } from '../../services/DestinyService';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { getRealmDetails } from '../../utils/constants';
 import { DESTINY_TYPES, DESTINY_GACHA_COST, DESTINY_MAX_LEVEL, getDestinyExpNeeded } from '../../config/destinies';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class MenhCachCommand extends Command {
   constructor() {
@@ -42,7 +43,7 @@ export default class MenhCachCommand extends Command {
         .setDescription(result.message)
         .setTimestamp();
         
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     } else if (sub === 'tu-do') {
       const realmDetails = getRealmDetails(user.level);
       const maxSlots = destinyService.getMaxSlotsByRealm(realmDetails.fullName);
@@ -52,7 +53,7 @@ export default class MenhCachCommand extends Command {
       
       const embed = new EmbedBuilder()
         .setTitle(`☯️ BẢNG MỆNH CÁCH - ${user.name}`)
-        .setColor('#2ecc71')
+        .setColor(EMBED_COLORS.SUCCESS)
         .setDescription(`Số khe cắm Mệnh Cách tối đa: **${equipped.length}/${maxSlots}** (Tăng theo Cảnh Giới)`)
         .setTimestamp();
 
@@ -114,7 +115,7 @@ export default class MenhCachCommand extends Command {
         components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(unequipMenu));
       }
 
-      await interaction.editReply({ embeds: [embed], components });
+      await interaction.editReply(toV2Payload([embed], components));
     }
   }
 }

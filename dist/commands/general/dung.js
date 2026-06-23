@@ -10,6 +10,7 @@ const InventoryRepository_1 = require("../../database/repositories/InventoryRepo
 const InventoryService_1 = require("../../services/InventoryService");
 const database_1 = __importDefault(require("../../database/database"));
 const itemConstants_1 = require("../../config/itemConstants");
+const uiSystem_1 = require("../../utils/uiSystem");
 class DungCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -67,15 +68,15 @@ class DungCommand extends Command_1.Command {
             });
             openTx();
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('🎁 KẾT QUẢ MỞ RƯƠNG BÁO 🎁')
-                .setColor('#f1c40f')
+                .setTitle('🎁 KẾT QUẢ MỞ RƯƠNG BÁO')
+                .setColor(uiSystem_1.EMBED_COLORS.GOLD)
                 .setDescription(`Đạo hữu đã khui thành công **${qty}x ${userItem.name}**! Phương trời chuyển sắc, linh khí lan tỏa...`)
                 .addFields({
                 name: '✨ Các vật phẩm nhận được:',
                 value: openResult.description
             })
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         // Đan dược hồi thể lực - chuyển về handler tổng quát (có giới hạn ngày)

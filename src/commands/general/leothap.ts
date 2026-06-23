@@ -9,6 +9,7 @@ import { dailyQuestService } from '../../services/DailyQuestService';
 import { getProgressBar } from '../../utils/constants';
 import { ITEMS } from '../../config/itemConstants';
 import db from '../../database/database';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 interface RoguelikeProgress {
   user_id: string;
@@ -42,7 +43,7 @@ export function getTowerEmbed(userId: string): EmbedBuilder {
 
   return new EmbedBuilder()
     .setTitle(`🏰 THÁP VÔ HẠN ROGUELIKE - ${user?.name || 'Không xác định'}`)
-    .setColor('#e74c3c')
+    .setColor(EMBED_COLORS.ERROR)
     .setDescription(
       `Nơi tu sĩ leo tháp cọ xát võ học bản thân. Càng lên cao, yêu tinh thần thú càng bá đạo.\n\n` +
       `🏆 **Tầng Cao Nhất Đạt Được:** Tầng **${maxFloor}**\n` +
@@ -102,7 +103,7 @@ export default class LeoThapCommand extends Command {
 
     if (sub === 'trangthai') {
       const embed = getTowerEmbed(userId);
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -267,8 +268,8 @@ export default class LeoThapCommand extends Command {
           artifactMsg = `\n• ${artifactRes.message}`;
         }
 
-        embed.setTitle(`🏆 CHIẾN THẮNG TẦNG ${floor} 🏆`)
-          .setColor('#2ecc71')
+        embed.setTitle(`🏆 CHIẾN THẮNG TẦNG ${floor}`)
+          .setColor(EMBED_COLORS.SUCCESS)
           .setDescription(
             `Đạo hữu đã đả bại thành công **${enemyCombatant.name}**!\n\n` +
             `📊 **Thông số sau hiệp đấu:**\n` +
@@ -295,8 +296,8 @@ export default class LeoThapCommand extends Command {
           userRepository.update(userId, { stamina: user.stamina - 20 });
         })();
 
-        embed.setTitle(`💀 THẤT BẠI TẦNG ${floor} 💀`)
-          .setColor('#e74c3c');
+        embed.setTitle(`💀 THẤT BẠI TẦNG ${floor}`)
+          .setColor(EMBED_COLORS.ERROR);
 
         if (newLives > 0) {
           embed.setDescription(
@@ -314,7 +315,7 @@ export default class LeoThapCommand extends Command {
         }
       }
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
   }
 }

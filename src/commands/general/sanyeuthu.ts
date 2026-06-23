@@ -10,6 +10,7 @@ import { leylineService } from '../../services/LeylineService';
 import { getProgressBar } from '../../utils/constants';
 import db from '../../database/database';
 import { PET_SKILLS } from './sungthu';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 interface WildMonster {
   name: string;
@@ -389,8 +390,8 @@ export function performHunt(userId: string): HuntResult {
       artifactMsg = `\n\n${artifactRes.message}`;
     }
 
-    embed.setTitle(`🌲 CHIẾN THẮNG DÃ NGOẠI - ĐẢ THẢO TIỂU ĐIỀN 🌲`)
-      .setColor('#2ecc71')
+    embed.setTitle(`🌲 CHIẾN THẮNG DÃ NGOẠI - ĐẢ THẢO TIỂU ĐIỀN`)
+      .setColor(EMBED_COLORS.SUCCESS)
       .setDescription(
         `Đạo hữu đã thảo phạt thành công **${monster.name}** sau **${combatResult.rounds}** hiệp đấu!\n\n` +
         `🌿 **Tu vi cộng hưởng:** **+${actualGainedExp}** Tu Vi\n` +
@@ -443,8 +444,8 @@ export function performHunt(userId: string): HuntResult {
       userRepository.update(userId, { stamina: user.stamina - staminaCost });
     })();
 
-    embed.setTitle(`💀 THẤT BẠI DÃ NGOẠI 💀`)
-      .setColor('#e74c3c')
+    embed.setTitle(`💀 THẤT BẠI DÃ NGOẠI`)
+      .setColor(EMBED_COLORS.ERROR)
       .setDescription(
         `Đạo hữu cự địch bất thành, kiệt sức tháo lui trước sức mạnh hoang dại của **${monster.name}** sau **${combatResult.rounds}** hiệp đấu!\n\n` +
         `⚡ **Thể lực hao tổn:** **-${staminaCost}** Thể Lực *(Còn lại: ${user.stamina - staminaCost}/500)*\n` +
@@ -506,6 +507,11 @@ export function checkPetAchievements(userId: string, newPetRarity?: string): voi
   // Thành tựu cấp độ sủng thú (kiểm tra pet cao nhất)
   const maxPetLevel = Math.max(...pets.map(p => p.level), 0);
   achievementService.setProgress(userId, 'st_11', maxPetLevel);
+
+  // Thành tựu bắt pet hiếm (cd_14)
+  const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+  const rareOrAbove = pets.filter(p => rarityOrder.indexOf(p.rarity) >= rarityOrder.indexOf('rare')).length;
+  achievementService.setProgress(userId, 'cd_14', rareOrAbove);
 }
 
 /**
@@ -539,7 +545,7 @@ export function getSanYeuThuComponents(userId: string): ActionRowBuilder<ButtonB
 export function getSanYeuThuEmbed(userId: string): EmbedBuilder {
   const user = userRepository.get(userId);
   if (!user) {
-    return new EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Không tìm thấy nhân vật.');
+    return new EmbedBuilder().setTitle('❌ Lỗi').setColor(EMBED_COLORS.ERROR).setDescription('Không tìm thấy nhân vật.');
   }
 
   let tier = 'Luyện Khí';
@@ -566,8 +572,8 @@ export function getSanYeuThuEmbed(userId: string): EmbedBuilder {
   }
 
   return new EmbedBuilder()
-    .setTitle(`🐺 SĂN YÊU THÚ DÃ NGOẠI 🐺`)
-    .setColor('#27ae60')
+    .setTitle(`🐺 SĂN YÊU THÚ DÃ NGOẠI`)
+    .setColor(EMBED_COLORS.SUCCESS)
     .setDescription(
       `Ngoài hoang dã bao la, yêu thú tứ phương hội tụ. Đạo hữu với **${user.stamina}/500** Thể Lực có thể phiêu du đả thảo tiểu điền để tìm cơ duyên.\n` +
       `${getProgressBar(user.stamina, 500, 10)}\n\n` +
@@ -605,6 +611,6 @@ export default class SanYeuThuCommand extends Command {
     const embed = getSanYeuThuEmbed(userId);
     const rows = getSanYeuThuComponents(userId);
 
-    await interaction.editReply({ embeds: [embed], components: rows as any[] });
+    await interaction.editReply(toV2Payload([embed], rows as any[] ));
   }
 }

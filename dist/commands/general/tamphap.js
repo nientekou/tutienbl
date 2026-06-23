@@ -4,6 +4,7 @@ const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const HeartLawService_1 = require("../../services/HeartLawService");
+const uiSystem_1 = require("../../utils/uiSystem");
 class TamPhapCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -55,7 +56,7 @@ class TamPhapCommand extends Command_1.Command {
             const laws = HeartLawService_1.heartLawService.getUserHeartLaws(userId);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('📚 TÂM PHÁP TIÊN THƯ')
-                .setColor('#2980b9')
+                .setColor(uiSystem_1.EMBED_COLORS.DUNGEON)
                 .setTimestamp()
                 .setFooter({ text: 'Dùng /tamphap linhngo hoặc /tamphap nangcap để đột phá võ học.' });
             let listStr = '';
@@ -72,7 +73,7 @@ class TamPhapCommand extends Command_1.Command {
                     `  └─ *Hiệu quả:* ${law.description}\n\n`;
             }
             embed.setDescription(listStr || '*Hiện tại hệ thống chưa có tâm pháp nào.*');
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         // ───────────────── TRANG BỊ TÂM PHÁP ĐANG MANG ─────────────────
         else if (sub === 'trangbi') {
@@ -80,7 +81,7 @@ class TamPhapCommand extends Command_1.Command {
             const activePassives = HeartLawService_1.heartLawService.getActivePassives(userId);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🛡️ TÂM PHÁP TRANG BỊ')
-                .setColor('#27ae60')
+                .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                 .setTimestamp()
                 .setFooter({ text: 'Dùng /tamphap mang hoặc /tamphap thao để cấu hình.' });
             let slotsStr = '';
@@ -129,7 +130,7 @@ class TamPhapCommand extends Command_1.Command {
                 passivesStr = '*Chưa kích hoạt hiệu ứng nào. Hãy trang bị Tâm Pháp.*';
             }
             embed.addFields({ name: '⚡ Hiệu Ứng Đang Hoạt Động', value: passivesStr });
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         // ───────────────── TRANG BỊ VÀO Ô ─────────────────
         else if (sub === 'mang') {

@@ -10,6 +10,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { explorationService, EXPLORATION_LOCATIONS } from '../../services/ExplorationService';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import { getRealmDetails } from '../../utils/constants';
 
 /**
@@ -21,7 +22,7 @@ export function getKhamBhaEmbed(userId: string): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle('🗺️ BẢN ĐỒ DÃ NGOẠI - KHÁM PHÁ TIÊN GIỚI')
-    .setColor('#e67e22')
+    .setColor(EMBED_COLORS.ORANGE)
     .setTimestamp();
 
   if (active) {
@@ -176,7 +177,7 @@ export default class KhamBhaCommand extends Command {
     if (subcmd === 'bando') {
       const embed = getKhamBhaEmbed(userId);
       const rows = getKhamBhaComponents(userId);
-      await interaction.editReply({ embeds: [embed], components: rows });
+      await interaction.editReply(toV2Payload([embed], rows ));
     } 
     else if (subcmd === 'tangbaodo') {
       const { treasureMapService } = require('../../services/TreasureMapService');
@@ -189,13 +190,13 @@ export default class KhamBhaCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle('🗺️ Danh Sách Tàng Bảo Đồ')
-        .setColor('#f1c40f')
+        .setColor(EMBED_COLORS.GOLD)
         .setDescription('Danh sách các tọa độ kho báu đạo hữu đang nắm giữ:\n\n' + 
           maps.map((m: any, i: number) => `**${i+1}.** Tọa độ: **[X: ${m.coord_x}, Y: ${m.coord_y}]** (Độ hiếm: ${m.rarity.toUpperCase()})`).join('\n')
         )
         .setFooter({ text: 'Dùng lệnh /khambha toado [x] [y] để tiến hành đào!' });
       
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
     else if (subcmd === 'toado') {
       const x = interaction.options.getInteger('x', true);

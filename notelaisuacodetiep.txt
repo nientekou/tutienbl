@@ -1,0 +1,34 @@
+tiếp tục cải tiến và nâng cấp tất cả trong mã nguồn, tiếp tục update implementation plan. tự động kiểm tra và sửa các lỗi
+C:\Users\mcdro\Documents\GitHub\tutienbl\task.md
+C:\Users\mcdro\Documents\GitHub\tutienbl\implementation_plan.md
+
+vẫn chưa có thêm các button tiện ích trong lệnh /hoso ví dụ button sanyeuthu để có thể ấn lệnh săn yêu thú luôn
+
+❌ Cảnh báo: Đạo hữu không thể can thiệp vào hành trình tu luyện của tu sĩ khác!
+
+hiện tại đang bị các lỗi từ nhiều command, khi ấn vào thì nó hiện thông báo như trên mặc dù đấy chính là hành trình của mình. kiểm tra và sữa lỗi. có thể đây là lỗi của button, lệnh /leothap vẫn dùng được nhưng khi ấn vào button thì nó lại ghi ❌ Lỗi khi mở Leo Tháp. Vui lòng dùng lệnh /leothap!
+. kiểm tra và fix tất cả lỗi
+
+hiện tại nó lại không hiện tất cả button khi ấn /hoso, nó chỉ hiện ra 4 button cơ bản là thiền định, đột phá, tẩy tuỷ, túi đồ. hãy sữa chữa lại
+
+kiểm tra những phần đã làm trong:
+C:\Users\mcdro\Documents\GitHub\tutienbl\task.md
+C:\Users\mcdro\Documents\GitHub\tutienbl\implementation_plan.md
+nếu làm rồi thì xoá đi và update thêm vào các ý tưởng mới
+
+tiếp tục cải tiến và nâng cấp theo 
+C:\Users\mcdro\Documents\GitHub\tutienbl\task.md
+C:\Users\mcdro\Documents\GitHub\tutienbl\implementation_plan.md
+nếu làm rồi thì xoá đi và update thêm vào các ý tưởng mới vào
+
+tôi đồng ý với tất cả kế hoạch chỉ cần nó cân bằng tốt. Tiếp tục làm task tiếp theo
+
+cập nhật lại và xoá cái cũ trong[update.md](file;file:///c%3A/Users/mcdro/Documents/GitHub/tutienbl/update.md) để copy và thông báo lại trong kênh discord tu tiên
+
+
+tiếp tục cải tiến tất cả các chức năng có sẵn trong mã nguồn, cần rõ ràng và chi tiết hơn cho người dùng
+
+
+
+
+- sửa lại giảm phần % bị đánh rớt cảnh giới của tất cả chức năng, hiện tại cày khó nhưng rớt cảnh giới cũng rất dễ và nhiều

@@ -295,6 +295,11 @@ class FarmingService {
         }
         // Thêm vật phẩm thu hoạch vào hành trang
         InventoryRepository_1.inventoryRepository.addItem(userId, productItemId, amount);
+        // Thành tựu thu hoạch
+        const totalHarvest = database_1.default.prepare("SELECT COUNT(*) as c FROM audit_logs WHERE user_id = ? AND action = 'harvest'").get(userId);
+        database_1.default.prepare("INSERT INTO audit_logs (user_id, action, details, created_at) VALUES (?, 'harvest', ?, ?)")
+            .run(userId, JSON.stringify({ productItemId, amount }), Math.floor(Date.now() / 1000));
+        AchievementService_1.achievementService.setProgress(userId, 'sh_18', totalHarvest.c + 1);
         // Reset ô đất về rỗng
         database_1.default.prepare(`
       UPDATE farming_plots

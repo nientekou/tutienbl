@@ -3,6 +3,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { leaderboardService } from '../../services/LeaderboardService';
 import { userRepository } from '../../database/repositories/UserRepository';
+import { EMBED_COLORS, toV2Update, toV2Payload } from '../../utils/uiSystem';
 
 export const LABELS: Record<string, { name: string; emoji: string; color: number; description: string }> = {
   combatPower: {
@@ -65,7 +66,7 @@ export function buildLeaderboardEmbed(userId: string, category: string, page: nu
   if (!getData || !info) {
     return new EmbedBuilder()
       .setTitle('👑 Bảng Phong Thần')
-      .setColor(0xFFD700)
+      .setColor(EMBED_COLORS.GOLD)
       .setDescription('❌ Danh mục không hợp lệ.');
   }
 
@@ -152,7 +153,7 @@ export function buildLeaderboardComponents(userId: string, category: string, pag
 
 export function buildLeaderboardMessage(userId: string, category: string, page: number) {
   const embed = buildLeaderboardEmbed(userId, category, page);
-  
+
   const typeMap: Record<string, (limit?: number) => any[]> = {
     combatPower: (l) => leaderboardService.getTopCombatPower(l || 100),
     realm: (l) => leaderboardService.getTopRealm(l || 100),
@@ -164,8 +165,13 @@ export function buildLeaderboardMessage(userId: string, category: string, page: 
   };
   const entries = typeMap[category]?.() || [];
   const components = buildLeaderboardComponents(userId, category, page, entries.length);
-  
+
   return { embeds: [embed], components };
+}
+
+export function buildLeaderboardUpdate(userId: string, category: string, page: number) {
+  const msg = buildLeaderboardMessage(userId, category, page);
+  return toV2Update(msg.embeds, msg.components);
 }
 
 export default class BangPhongThanCommand extends Command {
@@ -201,8 +207,8 @@ export default class BangPhongThanCommand extends Command {
     }
 
     const subType = interaction.options.getString('danhmuc') || 'combatPower';
-    const messageOptions = buildLeaderboardMessage(userId, subType, 1);
+    const msg = buildLeaderboardMessage(userId, subType, 1);
 
-    await interaction.editReply({ ...messageOptions });
+    await interaction.editReply(toV2Payload(msg.embeds, msg.components));
   }
 }

@@ -1,6 +1,7 @@
 import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, StringSelectMenuInteraction } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
+import { EMBED_COLORS, toV2Payload, toV2Update } from '../../utils/uiSystem';
 
 const GUIDES: Record<string, { title: string; color: `#${string}`; content: string }> = {
   batdau: {
@@ -194,7 +195,7 @@ export default class HuongDanCommand extends Command {
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const embed = new EmbedBuilder()
       .setTitle('📜 HƯỚNG DẪN TU TIÊN')
-      .setColor('#9b59b6')
+      .setColor(EMBED_COLORS.MYSTIC)
       .setDescription(
         'Chào mừng đạo hữu đến với **Hệ Thống Tu Chân**!\n\n' +
         'Dưới đây là các chủ đề hướng dẫn, hãy chọn từ menu thả xuống để xem chi tiết.\n\n' +
@@ -226,7 +227,7 @@ export default class HuongDanCommand extends Command {
         )
     );
 
-    await interaction.editReply({ embeds: [embed], components: [menu] });
+    await interaction.editReply(toV2Payload([embed], [menu] ));
   }
 }
 
@@ -235,7 +236,7 @@ export function getHuongDanEmbed(topic: string): EmbedBuilder {
   if (!guide) {
     return new EmbedBuilder()
       .setTitle('📜 HƯỚNG DẪN TU TIÊN')
-      .setColor('#9b59b6')
+      .setColor(EMBED_COLORS.MYSTIC)
       .setDescription('Chủ đề không tồn tại. Vui lòng chọn từ menu bên dưới.');
   }
 
@@ -269,5 +270,5 @@ export async function handleHuongDanSelect(interaction: StringSelectMenuInteract
   const topic = interaction.values[0];
   const embed = getHuongDanEmbed(topic);
   const menu = buildHuongDanMenu(interaction.user.id);
-  await interaction.update({ embeds: [embed], components: [menu] });
+  await interaction.update(toV2Update([embed], [menu]));
 }

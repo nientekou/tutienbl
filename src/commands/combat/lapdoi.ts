@@ -15,6 +15,7 @@ import { checkPartyElementalCycle } from '../../services/PartyService';
 import { inventoryService } from '../../services/InventoryService';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { getRealmDetails } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 interface PartyRoom {
   id: string;
@@ -82,7 +83,7 @@ export function getPartyRoomEmbed(room: PartyRoom, host: any): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle(`🏰 PHÒNG TỔ ĐỘI - BÍ CẢNH HỢP TÁC`)
-    .setColor('#9b59b6')
+    .setColor(EMBED_COLORS.MYSTIC)
     .setDescription(
       `**Mã phòng:** \`${room.id}\`\n` +
       `**Chủ phòng:** ${host?.name || 'Không xác định'}\n` +

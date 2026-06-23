@@ -4,6 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { blacksmithService } from '../../services/BlacksmithService';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class LoRenCommand extends Command {
   constructor() {
@@ -56,10 +57,10 @@ export default class LoRenCommand extends Command {
       if (result.success) {
         const embed = new EmbedBuilder()
           .setTitle('🔨 Tinh Luyện Trang Bị')
-          .setColor('#f1c40f')
+          .setColor(EMBED_COLORS.GOLD)
           .setDescription(result.message)
           .setTimestamp();
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply(toV2Payload([embed]));
       } else {
         await interaction.editReply({ content: result.message });
       }

@@ -11,6 +11,7 @@ const DailyQuestService_1 = require("../../services/DailyQuestService");
 const QuestChainService_1 = require("../../services/QuestChainService");
 const CommunityQuestService_1 = require("../../services/CommunityQuestService");
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 const CATEGORY_EMOJI = {
     combat: '⚔️',
     life: '🌿',
@@ -23,7 +24,7 @@ const CATEGORY_EMOJI = {
 function getNhiemVuEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
-        return new discord_js_1.EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Đạo hữu chưa khởi tạo nhân vật.');
+        return new discord_js_1.EmbedBuilder().setTitle('❌ Lỗi').setColor(uiSystem_1.EMBED_COLORS.ERROR).setDescription('Đạo hữu chưa khởi tạo nhân vật.');
     }
     const quests = DailyQuestService_1.dailyQuestService.getOrAssignQuests(userId);
     const resetSecs = DailyQuestService_1.dailyQuestService.getSecondsToReset();
@@ -33,7 +34,7 @@ function getNhiemVuEmbed(userId) {
     const claimedCount = quests.filter(q => q.is_claimed === 1).length;
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle('📜 THIÊN CƠ CÁC - NHIỆM VỤ HÀNG NGÀY')
-        .setColor('#9b59b6')
+        .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
         .setDescription(`Tu sĩ tu hành chân chính không chỉ tịnh tọa trong động phủ. Thiên Cơ Các mỗi ngày giao phó 3 nhiệm vụ cho các đạo hữu trong thiên hạ.\n\n` +
         `🎖️ **Đã hoàn thành:** ${completedCount}/3 | ✅ **Đã nhận thưởng:** ${claimedCount}/3\n` +
         `⏰ **Nhiệm vụ reset sau:** ${resetHours}h ${resetMins}p`)
@@ -105,13 +106,13 @@ function getNhiemVuComponents(userId) {
 function getQuestChainEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
-        return new discord_js_1.EmbedBuilder().setTitle('❌ Lỗi').setColor('#e74c3c').setDescription('Đạo hữu chưa khởi tạo nhân vật.');
+        return new discord_js_1.EmbedBuilder().setTitle('❌ Lỗi').setColor(uiSystem_1.EMBED_COLORS.ERROR).setDescription('Đạo hữu chưa khởi tạo nhân vật.');
     }
     const progressData = QuestChainService_1.questChainService.getDetailedProgress(userId);
     const availableChains = QuestChainService_1.questChainService.getAvailableChains(userId);
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle('⚔️ NHIỆM VỤ CHUỖI - TU TIÊN LỘ')
-        .setColor('#f39c12')
+        .setColor(uiSystem_1.EMBED_COLORS.WARNING)
         .setDescription('Những thử thách tu tiên trải dài theo từng bước. Hoàn thành tất cả bước trong một chuỗi để nhận phần thưởng cuối cùng!')
         .setTimestamp();
     if (progressData.length === 0 && availableChains.length === 0) {
@@ -209,12 +210,12 @@ class NhiemVuCommand extends Command_1.Command {
         if (subcommand === 'chuong-trinh') {
             const embed = getQuestChainEmbed(userId);
             const rows = getQuestChainComponents(userId);
-            await interaction.editReply({ embeds: [embed], components: rows });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], rows));
         }
         else {
             const embed = getNhiemVuEmbed(userId);
             const rows = getNhiemVuComponents(userId);
-            await interaction.editReply({ embeds: [embed], components: rows });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], rows));
         }
     }
 }

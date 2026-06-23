@@ -1,4 +1,5 @@
 import { ButtonInteraction, StringSelectMenuInteraction } from 'discord.js';
+import { toLegacyUpdate } from '../../utils/uiSystem';
 import { alchemyService } from '../../services/AlchemyService';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { userRepository } from '../../database/repositories/UserRepository';
@@ -35,7 +36,7 @@ export class LifeInteractionHandler {
         const updatedEmbed = luyenDanCmd.getAlchemyEmbed(targetUserId);
         const updatedComponents = luyenDanCmd.getAlchemyComponents(targetUserId);
         
-        await interaction.update({ embeds: [updatedEmbed], components: updatedComponents });
+        await interaction.update(toLegacyUpdate([updatedEmbed], updatedComponents, interaction));
         return;
       }
 
@@ -83,7 +84,7 @@ export class LifeInteractionHandler {
         
         const updatedComponents = luyenDanCmd.getAlchemyComponents(targetUserId);
         
-        await interaction.update({ embeds: [updatedEmbed], components: updatedComponents });
+        await interaction.update(toLegacyUpdate([updatedEmbed], updatedComponents, interaction));
       }
       return;
     }

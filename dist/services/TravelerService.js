@@ -9,6 +9,7 @@ const UserRepository_1 = require("../database/repositories/UserRepository");
 const constants_1 = require("../utils/constants");
 const itemConstants_1 = require("../config/itemConstants");
 const discord_js_1 = require("discord.js");
+const uiSystem_1 = require("../utils/uiSystem");
 class TravelerService {
     possibleItems = [
         { id: itemConstants_1.ITEMS.TINH_THACH_SHARD, name: 'Mảnh Tinh Thạch', price: 100, minQty: 1, maxQty: 5 },
@@ -54,7 +55,7 @@ class TravelerService {
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('👺 Lữ Khách Thần Bí Xuất Hiện!')
                     .setDescription('Một gã Lữ Khách bí ẩn mang chiếc mặt nạ quỷ vừa đi ngang qua. Hắn vác theo một túi đồ nặng trĩu. Có vẻ như hắn sẵn sàng bán một số vật phẩm quý hiếm cho những ai trả giá cao!\n\n*(Lữ khách sẽ rời đi sau 1 giờ hoặc khi hết hàng. Đạo hữu cũng có thể liều mạng cướp hàng của hắn!)*')
-                    .setColor('#8B008B')
+                    .setColor(uiSystem_1.EMBED_COLORS.DARK_PURPLE)
                     .addFields({ name: '💰 Hàng Hoá', value: Object.values(inventory).map(i => `- **${i.name}** (Còn: ${i.quantity}) - Giá: ${i.price} LT`).join('\n') })
                     .setFooter({ text: 'Chú ý: Cướp đoạt Lữ Khách có tỷ lệ rớt cấp nếu thất bại!' });
                 const buyButton = new discord_js_1.ButtonBuilder()

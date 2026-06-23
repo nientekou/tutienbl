@@ -9,6 +9,8 @@ const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryService_1 = require("./InventoryService");
 const NewbieProtectionService_1 = require("./NewbieProtectionService");
 const CombatEngine_1 = require("./CombatEngine");
+const AchievementService_1 = require("./AchievementService");
+const AutoBalanceService_1 = require("./AutoBalanceService");
 class ArenaService {
     K_FACTOR = 32;
     /**
@@ -186,12 +188,15 @@ class ArenaService {
         if (oUser.alignment === 'orthodox') {
             opponentAtk = Math.round(opponentAtk * 0.95);
         }
+        // Auto-balance: debuff top, buff yếu
+        const cBalance = AutoBalanceService_1.autoBalanceService.getPvPMultipliers(challengerId);
+        const oBalance = AutoBalanceService_1.autoBalanceService.getPvPMultipliers(opponentId);
         const challenger = {
             name: cUser.name,
             hp: cStats.hp,
             maxHp: cStats.hp,
-            atk: challengerAtk,
-            def: cStats.def,
+            atk: Math.round(challengerAtk * cBalance.atkMult),
+            def: Math.round(cStats.def * cBalance.defMult),
             crit: cStats.crit,
             critRes: cStats.critRes,
             luck: cStats.luck,
@@ -204,8 +209,8 @@ class ArenaService {
             name: oUser.name,
             hp: oStats.hp,
             maxHp: oStats.hp,
-            atk: opponentAtk,
-            def: oStats.def,
+            atk: Math.round(opponentAtk * oBalance.atkMult),
+            def: Math.round(oStats.def * oBalance.defMult),
             crit: oStats.crit,
             critRes: oStats.critRes,
             luck: oStats.luck,
@@ -275,6 +280,10 @@ class ArenaService {
       SET elo = ?, wins = ?, losses = ?, win_streak = ?, highest_elo = ?
       WHERE user_id = ?
     `).run(newElo, wins, losses, winStreak, highestElo, userId);
+        // Thành tựu thắng liên tiếp
+        if (isWin && winStreak >= 50) {
+            AchievementService_1.achievementService.setProgress(userId, 'pvp_11', winStreak);
+        }
     }
     /**
      * Lấy Top 10 Bảng Xếp Hạng Arena
@@ -302,9 +311,17 @@ class ArenaService {
                 const resetElo = Math.max(1000, Math.floor((p.elo + 1000) / 2));
                 database_1.default.prepare(`
           UPDATE arena_profiles 
-          SET elo = ?, wins = 0, losses = 0, win_streak = 0, last_season_rank = ?, season_id = ?
+          SET elo = ?, wins = 0, losses = 0, win_streak = 0, last_season_rank = ?, season_id = ?,
+              consecutive_top1 = CASE WHEN ? = 1 THEN consecutive_top1 + 1 ELSE 0 END
           WHERE user_id = ?
-        `).run(resetElo, rank, newSeasonId, p.user_id);
+        `).run(resetElo, rank, newSeasonId, rank, p.user_id);
+                // Thành tựu top 1 Arena liên tiếp
+                if (rank === 1) {
+                    const profile = database_1.default.prepare('SELECT consecutive_top1 FROM arena_profiles WHERE user_id = ?').get(p.user_id);
+                    if (profile && profile.consecutive_top1 >= 3) {
+                        AchievementService_1.achievementService.setProgress(p.user_id, 'pvp_10', profile.consecutive_top1);
+                    }
+                }
                 // Trao phần thưởng theo tier
                 const user = UserRepository_1.userRepository.get(p.user_id);
                 if (!user)
@@ -315,25 +332,25 @@ class ArenaService {
                 let tier = '';
                 if (rank === 1) {
                     rewardLT = 100000;
-                    rewardKNB = 50;
+                    rewardKNB = 25;
                     rewardTitle = 'Vô Địch Thiên Hạ';
                     tier = 'Kim';
                 }
                 else if (rank <= 3) {
                     rewardLT = 60000;
-                    rewardKNB = 20;
+                    rewardKNB = 10;
                     rewardTitle = 'Top 3 Arena';
                     tier = 'Kim';
                 }
                 else if (rank <= 10) {
                     rewardLT = 30000;
-                    rewardKNB = 10;
+                    rewardKNB = 5;
                     rewardTitle = 'Kỳ Tài';
                     tier = 'Bạc';
                 }
                 else if (rank <= 50) {
                     rewardLT = 10000;
-                    rewardKNB = 3;
+                    rewardKNB = 2;
                     tier = 'Đồng';
                 }
                 else if (rank <= 200) {

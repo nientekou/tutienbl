@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from '
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { bloodlineService } from '../../services/BloodlineService';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 export default class HuyetMachCommand extends Command {
   constructor() {
@@ -53,14 +54,14 @@ export default class HuyetMachCommand extends Command {
       const embed = new EmbedBuilder()
         .setTitle(`🩸 Huyết Mạch: ${ub.name}`)
         .setDescription(`**Cấp độ:** ${ub.level}${isMaxLevel ? ' (MAX)' : `\n**EXP:** ${ub.exp}/${nextLevelExp}`}\n\n*${ub.description}*`)
-        .setColor('#8b0000')
+        .setColor(EMBED_COLORS.ERROR)
         .addFields([
           { name: '🌟 Nội Tại Kích Hoạt', value: passiveDesc || 'Chưa có', inline: false },
           { name: '💢 Hiệu Ứng Nộ (Rage)', value: `Tăng sức mạnh x${ub.rage_effect.multiplier || 2} trong ${ub.rage_effect.duration || 3} hiệp (Cooldown: ${ub.rage_effect.cooldown || 10} phút).`, inline: false },
           { name: '⚠️ Điểm Yếu', value: `*Sẽ bị ảnh hưởng bởi điểm yếu của ${ub.name} trong thực chiến.*`, inline: false }
         ]);
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -71,9 +72,9 @@ export default class HuyetMachCommand extends Command {
       const embed = new EmbedBuilder()
         .setTitle('📜 Danh Sách Huyết Mạch Thượng Cổ')
         .setDescription(desc + '\n\n💡 *Dùng `/huyetmach chon <id>` để giác tỉnh (Phí 500 Linh thạch, cần Cấp 10).*')
-        .setColor('#8b0000');
+        .setColor(EMBED_COLORS.ERROR);
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 

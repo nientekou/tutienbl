@@ -13,6 +13,7 @@ const DailyQuestService_1 = require("../../services/DailyQuestService");
 const InventoryService_1 = require("../../services/InventoryService");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const itemConstants_1 = require("../../config/itemConstants");
+const uiSystem_1 = require("../../utils/uiSystem");
 // Cần quản lý cooldown chung cho thiền định
 exports.practiceCooldowns = new Map();
 // Dọn dẹp bộ nhớ (garbage collection) cho practiceCooldowns mỗi 10 phút
@@ -28,59 +29,59 @@ class CultivationInteractionHandler {
     static async handle(interaction, action, parts, targetUserId) {
         const user = UserRepository_1.userRepository.get(targetUserId);
         if (!user) {
-            await interaction.reply({ content: '❌ Không tìm thấy nhân vật.', ephemeral: true });
+            await interaction.reply({ content: '❌ Không tìm thấy nhân vật.', flags: discord_js_1.MessageFlags.Ephemeral });
             return;
         }
         if (action === 'luanhoiconfirm') {
             const result = CultivationService_1.cultivationService.reincarnate(targetUserId);
             if (!result.success) {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             const embed = (0, luanhoi_1.getLuanHoiEmbed)(targetUserId);
             const row = (0, luanhoi_1.getLuanHoiComponents)(targetUserId, false);
-            await interaction.update({ embeds: [embed], components: [row] });
-            await interaction.followUp({ content: result.message, ephemeral: false });
+            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+            await interaction.followUp({ content: result.message });
             return;
         }
         if (action === 'luanhoicancel') {
-            await interaction.update({ content: 'Đạo hữu đã chọn tiếp tục tu hành ở kiếp này.', embeds: [], components: [] });
+            await interaction.update((0, uiSystem_1.toLegacyUpdate)([new discord_js_1.EmbedBuilder().setDescription('Đạo hữu đã chọn tiếp tục tu hành ở kiếp này.')], []));
             return;
         }
         if (action === 'ycanhawaken') {
             const result = CultivationService_1.cultivationService.awakenYCanh(targetUserId);
             if (!result.success) {
-                await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             const embed = (0, ycanh_1.getYCanhEmbed)(targetUserId);
             const row = (0, ycanh_1.getYCanhComponents)(targetUserId);
-            await interaction.update({ embeds: [embed], components: [row] });
-            await interaction.followUp({ content: result.message, ephemeral: true });
+            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+            await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
             return;
         }
         if (action === 'tuluyen') {
             // Nhận Tu Vi offline trước để tránh bị reset mất khi thực hiện các update khác
             const result = CultivationService_1.cultivationService.claimIdleCultivation(targetUserId);
             if (!result || !result.user) {
-                await interaction.reply({ content: 'Không tìm thấy nhân vật.', ephemeral: true });
+                await interaction.reply({ content: 'Không tìm thấy nhân vật.', flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             // Nếu Tu Vi đã đầy, thông báo cần đột phá
             if (result.gained === 0 && result.message) {
-                await interaction.reply({ content: `🔔 ${result.message}`, ephemeral: true });
+                await interaction.reply({ content: `🔔 ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             const freshUser = result.user;
             if (freshUser.stamina < 1) {
-                await interaction.reply({ content: `❌ Đạo hữu đã cạn kiệt Thể Lực! Việc khiên cưỡng vận công sẽ tẩu hỏa nhập ma. Hãy nghỉ ngơi chờ phục hồi.`, ephemeral: true });
+                await interaction.reply({ content: `❌ Đạo hữu đã cạn kiệt Thể Lực! Việc khiên cưỡng vận công sẽ tẩu hỏa nhập ma. Hãy nghỉ ngơi chờ phục hồi.`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             const now = Date.now();
             const lastPractice = exports.practiceCooldowns.get(targetUserId) || 0;
             if (now - lastPractice < 10000) {
                 const remaining = Math.ceil((10000 - (now - lastPractice)) / 1000);
-                await interaction.reply({ content: `⏳ Tĩnh tâm nào! Đạo hữu đang hấp thu linh khí quá nhanh, cần đợi **${remaining} giây** để ổn định đan điền!`, ephemeral: true });
+                await interaction.reply({ content: `⏳ Tĩnh tâm nào! Đạo hữu đang hấp thu linh khí quá nhanh, cần đợi **${remaining} giây** để ổn định đan điền!`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             exports.practiceCooldowns.set(targetUserId, now);
@@ -88,17 +89,17 @@ class CultivationInteractionHandler {
             const practiceRes = CultivationService_1.cultivationService.practice(targetUserId);
             const updatedEmbed = (0, hoso_1.getHoSoTabEmbed)(targetUserId, 'chiso');
             const allComponents = (0, hoso_1.getHoSoAllComponents)(targetUserId, 'chiso');
-            await interaction.update({ embeds: [updatedEmbed], components: allComponents });
+            await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], allComponents, interaction));
             DailyQuestService_1.dailyQuestService.updateProgress(targetUserId, 'daily_tuluyen', 1);
             const msg = practiceRes.success ? practiceRes.message : `🧘 **Thiền Định:** Đạo hữu thiền định tu luyện thành công!`;
-            await interaction.followUp({ content: msg, ephemeral: true });
+            await interaction.followUp({ content: msg, flags: discord_js_1.MessageFlags.Ephemeral });
             return;
         }
         if (action === 'dotpha') {
             if (parts.length === 2) {
                 // Đột phá chính
                 if (user.tu_vi < user.exp_needed) {
-                    await interaction.reply({ content: `❌ Tu vi chưa đủ tích lũy để đột phá! (Cần **${user.tu_vi}/${user.exp_needed}** Tu Vi)`, ephemeral: true });
+                    await interaction.reply({ content: `❌ Tu vi chưa đủ tích lũy để đột phá! (Cần **${user.tu_vi}/${user.exp_needed}** Tu Vi)`, flags: discord_js_1.MessageFlags.Ephemeral });
                     return;
                 }
                 const { minorLevel, fullName, majorIndex } = (0, constants_1.getRealmDetails)(user.level);
@@ -107,8 +108,8 @@ class CultivationInteractionHandler {
                     const result = CultivationService_1.cultivationService.breakthrough(targetUserId, false);
                     const updatedEmbed = (0, hoso_1.getHoSoTabEmbed)(targetUserId, 'chiso');
                     const btComponents = (0, hoso_1.getHoSoAllComponents)(targetUserId, 'chiso');
-                    await interaction.update({ embeds: [updatedEmbed], components: btComponents });
-                    await interaction.followUp({ content: result.message, ephemeral: true });
+                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], btComponents, interaction));
+                    await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else {
                     const bolts = 3 + majorIndex * 2;
@@ -127,7 +128,7 @@ class CultivationInteractionHandler {
                     const mpText = stats ? `${stats.mp}/${stats.mp}` : `${user.base_mp}/${user.base_mp}`;
                     const embed = new discord_js_1.EmbedBuilder()
                         .setTitle(`⚡ Cảnh Báo Thiên Kiếp: ${user.name}`)
-                        .setColor('#e74c3c')
+                        .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                         .setDescription(`Đạo hữu đã chạm tới **Cực Hạn Đại Viên Mãn** cảnh giới hiện tại. Thiên địa dị biến, lôi vân đang kéo tới dồn dập!\n\n` +
                         `• Cảnh giới lớn đột phá: **${fullName}**\n` +
                         `• Thiên kiếp sắp tới: **${oncomingKiep.name}**\n` +
@@ -146,7 +147,7 @@ class CultivationInteractionHandler {
                         .setFooter({ text: 'Nhấn nút bên dưới để bắt đầu lôi kiếp hoặc chọn Bế Quan!' })
                         .setTimestamp();
                     const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`loi_start_${targetUserId}`).setLabel('⚡ Nghênh Tiếp Lôi Kiếp!').setStyle(discord_js_1.ButtonStyle.Danger), new discord_js_1.ButtonBuilder().setCustomId(`dotpha_bequan_${targetUserId}`).setLabel(`Bế Quan (${bequanMajorCost} LThạch)`).setStyle(discord_js_1.ButtonStyle.Success).setDisabled(user.coin_ha_pham < bequanMajorCost), new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại').setStyle(discord_js_1.ButtonStyle.Secondary));
-                    await interaction.update({ embeds: [embed], components: [row] });
+                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
                 }
             }
             else {
@@ -177,8 +178,8 @@ class CultivationInteractionHandler {
                         const baseTotalRate = Math.min(baseRate + (luckBonus * 100) + pillBonus + alignmentRateMod, 100);
                         const reducedRate = Math.max(0, baseTotalRate - 15);
                         const embed = new discord_js_1.EmbedBuilder()
-                            .setTitle('⚠️ TÂM MA QUẤY NHIỄU / TÁN TU QUẤY PHÁ ⚠️')
-                            .setColor('#e74c3c')
+                            .setTitle('⚠️ TÂM MA QUẤY NHIỄU / TÁN TU QUẤY PHÁ')
+                            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                             .setDescription(`⚡ **Biến Cố Đột Phá:** Khi đạo hữu chuẩn bị trùng kích bình cảnh, bỗng dưng tâm ma vây kín (hoặc bị một tên tán tu quấy phá)! Đạo tâm lung lay, đan điền chấn động mạnh.\n\n` +
                             `📉 **Ảnh hưởng:** Tỷ lệ đột phá thành công giảm đi **-15%** (Từ **${baseTotalRate.toFixed(1)}%** còn **${reducedRate.toFixed(1)}%**).\n` +
                             `💀 **Hậu quả nếu thất bại:** Sẽ rơi vào trạng thái **Tẩu Hỏa Nhập Ma trong 30 phút** (giảm 50% hiệu suất tu vi nhàn rỗi và không thể thiền định chủ động trong thời gian này).\n\n` +
@@ -195,21 +196,21 @@ class CultivationInteractionHandler {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('Quay Lại')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update({ embeds: [embed], components: [row] });
+                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
                         return;
                     }
                 }
                 const result = CultivationService_1.cultivationService.breakthrough(targetUserId, usedPill);
                 if (!result.success && !result.isMajor && result.message.includes('không có đan dược')) {
-                    await interaction.reply({ content: `❌ ${result.message}`, ephemeral: true });
+                    await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                     return;
                 }
                 const embed = new discord_js_1.EmbedBuilder()
-                    .setTitle(result.success ? '⚡ ĐỘT PHÁ THÀNH CÔNG ⚡' : '💀 ĐỘT PHÁ THẤT BẠI 💀')
-                    .setColor(result.success ? '#2ecc71' : '#e74c3c')
+                    .setTitle(result.success ? '⚡ ĐỘT PHÁ THÀNH CÔNG' : '💀 ĐỘT PHÁ THẤT BẠI')
+                    .setColor(result.success ? uiSystem_1.EMBED_COLORS.SUCCESS : uiSystem_1.EMBED_COLORS.ERROR)
                     .setDescription(result.message)
                     .setTimestamp();
-                await interaction.update({ embeds: [embed], components: [] });
+                await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [], interaction));
             }
             return;
         }
@@ -218,15 +219,15 @@ class CultivationInteractionHandler {
             const { majorIndex } = (0, constants_1.getRealmDetails)(user.level);
             if (subAction === 'start') {
                 const { embed, rows } = TribulationService_1.tribulationService.start(targetUserId, user.name, majorIndex);
-                await interaction.update({ embeds: [embed], components: rows });
+                await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
             }
             else {
                 const res = TribulationService_1.tribulationService.handleAction(targetUserId, subAction);
                 if (res.finished) {
-                    await interaction.update({ embeds: [res.embed], components: [] });
+                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([res.embed], [], interaction));
                 }
                 else {
-                    await interaction.update({ embeds: [res.embed], components: res.rows });
+                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([res.embed], res.rows, interaction));
                 }
             }
             return;
@@ -236,17 +237,17 @@ class CultivationInteractionHandler {
                 const formattedLinhCan = (0, constants_1.formatLinhCan)(user.linh_can);
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle(`🌀 Tẩy Tủy Linh Căn - ${user.name}`)
-                    .setColor('#3498db')
+                    .setColor(uiSystem_1.EMBED_COLORS.INFO)
                     .setDescription('Tẩy tủy sẽ thay đổi Linh Căn cốt cách ngẫu nhiên, tác động trực tiếp tới các thuộc tính chiến đấu và hiệu suất tu luyện.')
                     .addFields({ name: '🔮 Linh Căn Hiện Tại', value: formattedLinhCan }, { name: '🪙 Chi Phí Tẩy Tủy', value: '💵 **100 Hạ Phẩm Linh Thạch**' }, { name: '💼 Số Dư Linh Thạch', value: `🟤 **${user.coin_ha_pham}** Hạ Phẩm Linh Thạch` })
                     .setFooter({ text: 'Hãy cân nhắc trước khi tiến hành hoán đổi căn cốt!' })
                     .setTimestamp();
                 const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`taytuyexecute_${targetUserId}`).setLabel('🌀 Xác Nhận Tẩy Tủy (100 LThạch)').setStyle(discord_js_1.ButtonStyle.Primary), new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
-                await interaction.update({ embeds: [embed], components: [row] });
+                await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
                 return;
             }
             if (user.coin_ha_pham < 100) {
-                await interaction.reply({ content: `❌ **Không đủ Linh Thạch!** Tẩy tủy cần 100 Hạ Phẩm Linh Thạch (Đạo hữu hiện có **${user.coin_ha_pham}**).`, ephemeral: true });
+                await interaction.reply({ content: `❌ **Không đủ Linh Thạch!** Tẩy tủy cần 100 Hạ Phẩm Linh Thạch (Đạo hữu hiện có **${user.coin_ha_pham}**).`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             const newLinhCanJson = CultivationService_1.cultivationService.generateLinhCan();
@@ -267,7 +268,7 @@ class CultivationInteractionHandler {
             const formattedLinhCan = (0, constants_1.formatLinhCan)(newLinhCanJson);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`🌀 Tẩy Tủy Thành Công - ${updatedUser.name}`)
-                .setColor('#2ecc71')
+                .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                 .setDescription('Căn cốt linh căn đã thay đổi. Các chỉ số cơ bản của đạo hữu đã được tính toán lại theo cơ duyên mới.')
                 .addFields({ name: '🔮 Linh Căn Mới', value: formattedLinhCan }, { name: '💼 Số Dư Linh Thạch', value: `🟤 **${updatedUser.coin_ha_pham}** Hạ Phẩm Linh Thạch` })
                 .setTimestamp();
@@ -276,8 +277,8 @@ class CultivationInteractionHandler {
             if (action === 'taytuyexecute') {
                 row.addComponents(new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
             }
-            await interaction.update({ embeds: [embed], components: [row] });
-            await interaction.followUp({ content: `🌀 **Tẩy Tủy Thành Công!** Linh căn mới của đạo hữu là: ${formattedLinhCan}`, ephemeral: true });
+            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+            await interaction.followUp({ content: `🌀 **Tẩy Tủy Thành Công!** Linh căn mới của đạo hữu là: ${formattedLinhCan}`, flags: discord_js_1.MessageFlags.Ephemeral });
             return;
         }
         if (action === 'dotpharisk') {
@@ -285,33 +286,33 @@ class CultivationInteractionHandler {
             const result = CultivationService_1.cultivationService.breakthrough(targetUserId, usedPill, false, true);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(result.success ? '⚡ ĐỘT PHÁ THÀNH CÔNG ⚡' : '💀 ĐỘT PHÁ THẤT BẠI 💀')
-                .setColor(result.success ? '#2ecc71' : '#e74c3c')
+                .setColor(result.success ? uiSystem_1.EMBED_COLORS.SUCCESS : uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription(result.message)
                 .setTimestamp();
-            await interaction.update({ embeds: [embed], components: [] });
+            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [], interaction));
             return;
         }
         if (action === 'dotphastabilize') {
             const usedPill = parts.slice(1, -1).join('_');
             const cost = user.level * 50;
             if (user.coin_ha_pham < cost) {
-                await interaction.reply({ content: `❌ Đạo hữu không đủ Linh Thạch! (Cần ${cost} Hạ Phẩm Linh Thạch).`, ephemeral: true });
+                await interaction.reply({ content: `❌ Đạo hữu không đủ Linh Thạch! (Cần ${cost} Hạ Phẩm Linh Thạch).`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             UserRepository_1.userRepository.update(targetUserId, { coin_ha_pham: user.coin_ha_pham - cost });
             const result = CultivationService_1.cultivationService.breakthrough(targetUserId, usedPill, false, false);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(result.success ? '⚡ ĐỘT PHÁ THÀNH CÔNG ⚡' : '💀 ĐỘT PHÁ THẤT BẠI 💀')
-                .setColor(result.success ? '#2ecc71' : '#e74c3c')
+                .setColor(result.success ? uiSystem_1.EMBED_COLORS.SUCCESS : uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription(`✨ Đạo hữu tiêu hao **${cost}** Linh Thạch ổn định đạo tâm, khôi phục nguyên trạng tỷ lệ đột phá thành công!\n\n` + result.message)
                 .setTimestamp();
-            await interaction.update({ embeds: [embed], components: [] });
+            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [], interaction));
             return;
         }
         if (action === 'select' && parts[1] === 'alignment') {
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('🎭 LỰA CHỌN ĐẠO THỐNG: CHÍNH ĐẠO vs MA ĐẠO 🎭')
-                .setColor('#9b59b6')
+                .setTitle('🎭 LỰA CHỌN ĐẠO THỐNG: CHÍNH ĐẠO vs MA ĐẠO')
+                .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
                 .setDescription(`Đạo hữu tu hành tới Trúc Cơ Kỳ, tu vi đã có thành tựu, có thể lựa chọn Đạo thống tương lai của mình. Con đường này sẽ ảnh hưởng tới thuộc tính chiến đấu, tu luyện, và tài phú của đạo hữu!\n\n` +
                 `⚖️ **CHÍNH ĐẠO (Orthodox):**\n` +
                 `• 🛡️ **Tăng 10% Phòng ngự** cơ bản.\n` +
@@ -336,17 +337,17 @@ class CultivationInteractionHandler {
                 .setCustomId(`hosoback_${targetUserId}`)
                 .setLabel('🔙 Quay Lại')
                 .setStyle(discord_js_1.ButtonStyle.Secondary));
-            await interaction.update({ embeds: [embed], components: [row] });
+            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
             return;
         }
         if (action === 'confirmalignment') {
             const chosen = parts[1]; // 'orthodox' or 'demonic'
             if (user.alignment && user.alignment !== 'neutral') {
-                await interaction.reply({ content: '❌ Đạo hữu đã chọn Đạo Thống rồi, không thể chọn lại!', ephemeral: true });
+                await interaction.reply({ content: '❌ Đạo hữu đã chọn Đạo Thống rồi, không thể chọn lại!', flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             if (user.level < 39) {
-                await interaction.reply({ content: '❌ Yêu cầu đạt cấp 39 (Trúc Cơ Kỳ) để chọn Đạo Thống!', ephemeral: true });
+                await interaction.reply({ content: '❌ Yêu cầu đạt cấp 39 (Trúc Cơ Kỳ) để chọn Đạo Thống!', flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
             const newStats = CultivationService_1.cultivationService.calculateStatsForLevel(user.level, user.linh_can, chosen);
@@ -365,15 +366,15 @@ class CultivationInteractionHandler {
                 ? `✨ Đạo tâm kiên định, tà ma thối lui! Chúc mừng đạo hữu **${updatedUser.name}** đã chính thức nhập **Chính Đạo ⚖️**! Chỉ số phòng ngự cơ bản được gia tăng.`
                 : `😈 Huyết mạch thức tỉnh, ngạo thị quần hùng! Chúc mừng đạo hữu **${updatedUser.name}** đã chính thức nhập **Ma Đạo 👿**! Chỉ số công kích và chí mạng được gia tăng.`;
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('🎭 ĐẠO THỐNG ĐÃ XÁC ĐỊNH 🎭')
-                .setColor(chosen === 'orthodox' ? '#3498db' : '#e74c3c')
+                .setTitle('🎭 ĐẠO THỐNG ĐÃ XÁC ĐỊNH')
+                .setColor(chosen === 'orthodox' ? uiSystem_1.EMBED_COLORS.INFO : uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription(welcomeMsg)
                 .setTimestamp();
             const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
                 .setCustomId(`hosoback_${targetUserId}`)
                 .setLabel('🔙 Trở Lại Hồ Sơ')
                 .setStyle(discord_js_1.ButtonStyle.Secondary));
-            await interaction.update({ embeds: [embed], components: [row] });
+            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
             return;
         }
     }

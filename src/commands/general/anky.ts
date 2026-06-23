@@ -7,6 +7,7 @@ import { soulImprintRepository } from '../../database/repositories/SoulImprintRe
 import { soulImprintService } from '../../services/SoulImprintService';
 import { getProgressBar } from '../../utils/constants';
 import { ITEMS } from '../../config/itemConstants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 const GROUP_NAMES: Record<string, string> = {
   'weapon': '⚔️ Bộ Vũ Khí Thượng Cổ',
@@ -73,7 +74,7 @@ export function buildImprintListEmbed(userId: string): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle(`🌟 ĐỀN THỜ ẤN KÝ LINH HỒN - ${user.name}`)
-    .setColor('#9b59b6')
+    .setColor(EMBED_COLORS.MYSTIC)
     .setDescription(
       `*Nơi lưu giữ linh hồn của các thần binh bảo giáp đã bị tiêu hủy. Chỉ số của Ấn Ký được cộng dồn vĩnh viễn vào thuộc tính nhân vật, bất kể có trang bị hay không.*\n\n` +
       `📊 **Ấn Ký Hiện Tại:** ${bar} **(${imprints.length}/50)**\n`
@@ -143,7 +144,7 @@ export default class AnkyCommand extends Command {
 
     if (sub === 'danhsach') {
       const embed = buildImprintListEmbed(discordId);
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
     
     else if (sub === 'anky') {
@@ -196,7 +197,7 @@ export default class AnkyCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle(`📖 SỔ TAY THU THẬP ẤN KÝ - ${user.name}`)
-        .setColor('#e67e22')
+        .setColor(EMBED_COLORS.ORANGE)
         .setDescription('*Thu thập đủ các loại trang bị trong từng bộ sưu tập Ấn Ký để nhận thuộc tính ẩn cực mạnh vĩnh viễn.*')
         .setTimestamp();
 
@@ -230,7 +231,7 @@ export default class AnkyCommand extends Command {
         inline: false
       });
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     }
 
     else if (sub === 'trade') {

@@ -4,6 +4,7 @@ const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const BrotherhoodService_1 = require("../../services/BrotherhoodService");
+const uiSystem_1 = require("../../utils/uiSystem");
 class KetNghiaCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -44,11 +45,11 @@ class KetNghiaCommand extends Command_1.Command {
             if (result.success) {
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('🌸 Kết Nghĩa - Lời Mời')
-                    .setColor(0x9b59b6)
+                    .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
                     .setDescription(`${interaction.user.username} gửi lời kết nghĩa đến **${targetUser.username}**!\n\n${result.message}`)
                     .setFooter({ text: 'Hãy dùng /ketnghia chapnhan để chấp nhận.' })
                     .setTimestamp();
-                await interaction.editReply({ embeds: [embed] });
+                await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             }
             else {
                 await interaction.editReply({ content: `❌ ${result.message}` });
@@ -66,11 +67,11 @@ class KetNghiaCommand extends Command_1.Command {
             if (result.success) {
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('🎉 Kết Nghĩa Thành Công!')
-                    .setColor(0xf1c40f)
+                    .setColor(uiSystem_1.EMBED_COLORS.GOLD)
                     .setDescription(result.message)
                     .setFooter({ text: 'Huynh đệ đồng tâm, vạn sự hưng long!' })
                     .setTimestamp();
-                await interaction.editReply({ embeds: [embed] });
+                await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             }
             else {
                 await interaction.editReply({ content: `❌ ${result.message}` });
@@ -112,7 +113,7 @@ class KetNghiaCommand extends Command_1.Command {
             const expBonus = BrotherhoodService_1.brotherhoodService.getSharedExpBonus(userId);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🤝 Tình Huynh Đệ')
-                .setColor(0x9b59b6)
+                .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
                 .setDescription(`**${user.name}** và **${partnerName}** đã kết nghĩa huynh đệ!`)
                 .addFields({
                 name: 'Đối Tác Kết Nghĩa',
@@ -131,7 +132,7 @@ class KetNghiaCommand extends Command_1.Command {
                 value: `• **Chia Sẻ Kinh Nghiệm:** +${(expBonus * 100).toFixed(0)}% EXP khi đi chung\n• **Tấn Công Tổ Đội:** +3% ATK khi cùng tổ đội`
             })
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
     }

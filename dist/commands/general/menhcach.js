@@ -7,6 +7,7 @@ const DestinyService_1 = require("../../services/DestinyService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const constants_1 = require("../../utils/constants");
 const destinies_1 = require("../../config/destinies");
+const uiSystem_1 = require("../../utils/uiSystem");
 class MenhCachCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -32,7 +33,7 @@ class MenhCachCommand extends Command_1.Command {
                 .setColor(result.success ? '#9b59b6' : '#e74c3c')
                 .setDescription(result.message)
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (sub === 'tu-do') {
             const realmDetails = (0, constants_1.getRealmDetails)(user.level);
@@ -41,7 +42,7 @@ class MenhCachCommand extends Command_1.Command {
             const equipped = destinies.filter(d => d.is_equipped === 1);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`☯️ BẢNG MỆNH CÁCH - ${user.name}`)
-                .setColor('#2ecc71')
+                .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
                 .setDescription(`Số khe cắm Mệnh Cách tối đa: **${equipped.length}/${maxSlots}** (Tăng theo Cảnh Giới)`)
                 .setTimestamp();
             if (maxSlots === 0) {
@@ -92,7 +93,7 @@ class MenhCachCommand extends Command_1.Command {
                 });
                 components.push(new discord_js_1.ActionRowBuilder().addComponents(unequipMenu));
             }
-            await interaction.editReply({ embeds: [embed], components });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
         }
     }
 }

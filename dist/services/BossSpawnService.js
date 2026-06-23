@@ -7,6 +7,7 @@ exports.bossSpawnService = exports.BossSpawnService = void 0;
 const discord_js_1 = require("discord.js");
 const database_1 = __importDefault(require("../database/database"));
 const constants_1 = require("../utils/constants");
+const uiSystem_1 = require("../utils/uiSystem");
 class BossSpawnService {
     schedulerInterval = null;
     /**
@@ -130,7 +131,7 @@ class BossSpawnService {
                     if (boss.status === 'defeated') {
                         const embed = new discord_js_1.EmbedBuilder()
                             .setTitle(`💀 WORLD BOSS ĐÃ BỊ TIÊU DIỆT - LEVEL ${boss.level}`)
-                            .setColor('#7f8c8d')
+                            .setColor(uiSystem_1.EMBED_COLORS.NEUTRAL)
                             .setDescription(`👹 **${boss.name}** đã bị tiêu diệt hoàn toàn! Tinh phách ma thú tan rã. Thiên địa tạm thời quy về thái bình.\n\n*Hồi sinh sau: 1 phút.*`)
                             .setTimestamp();
                         await msg.edit({ embeds: [embed], components: [] });
@@ -160,7 +161,7 @@ class BossSpawnService {
         const guilds = database_1.default.prepare('SELECT boss_channel_id FROM guild_configs').all();
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle(`🏆 BẢNG PHONG THẦN THẢO PHẠT BOSS - LEVEL ${boss.level}`)
-            .setColor('#f1c40f')
+            .setColor(uiSystem_1.EMBED_COLORS.GOLD)
             .setDescription(`👹 **${boss.name}** đã ngã xuống! Linh khí tản mát hóa thành tài bảo ban thưởng cho các đệ tử dũng cảm:\n\n` +
             (rewardsLogs.length > 0 ? rewardsLogs.join('\n') : '*Không có đệ tử nào tham gia thảo phạt.*'))
             .setTimestamp();
@@ -188,7 +189,7 @@ class BossSpawnService {
         const progressBar = (0, constants_1.getProgressBar)(boss.hp, boss.max_hp, 15);
         return new discord_js_1.EmbedBuilder()
             .setTitle(`👹 WORLD BOSS XUẤT THẾ - LEVEL ${boss.level}`)
-            .setColor('#e74c3c')
+            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
             .setDescription(`⚠️ **CẢNH BÁO TAM GIỚI:** **${boss.name}** đang tàn phá thế giới! Mau liên thủ trảm ma vệ đạo!\n\n` +
             `🩸 **Trạng thái Sinh Lực (HP):** ${progressBar} (\`${boss.hp}/${boss.max_hp}\` HP)\n` +
             `⚔️ **Công Kích:** \`${boss.atk}\` | 🛡️ **Phòng Thủ:** \`${boss.def}\``)

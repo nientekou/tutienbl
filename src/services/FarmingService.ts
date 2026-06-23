@@ -382,6 +382,12 @@ export class FarmingService {
     // Thêm vật phẩm thu hoạch vào hành trang
     inventoryRepository.addItem(userId, productItemId, amount);
 
+    // Thành tựu thu hoạch
+    const totalHarvest = (db.prepare("SELECT COUNT(*) as c FROM audit_logs WHERE user_id = ? AND action = 'harvest'").get(userId) as { c: number });
+    db.prepare("INSERT INTO audit_logs (user_id, action, details, created_at) VALUES (?, 'harvest', ?, ?)")
+      .run(userId, JSON.stringify({ productItemId, amount }), Math.floor(Date.now() / 1000));
+    achievementService.setProgress(userId, 'sh_18', totalHarvest.c + 1);
+
     // Reset ô đất về rỗng
     db.prepare(`
       UPDATE farming_plots

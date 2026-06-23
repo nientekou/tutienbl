@@ -4,6 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { cultivationService } from '../../services/CultivationService';
 import { formatLinhCan } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 function getElementDetails(element: string, percentage: number): {
   grade: string,
@@ -103,6 +104,25 @@ export default class LinhCanCommand extends Command {
             .setName('taytuy')
             .setDescription('Tẩy Tủy Linh Căn - Reroll ngẫu nhiên (Tiêu hao 100 Hạ Phẩm Linh Thạch)')
         )
+        .addSubcommand(sub =>
+          sub
+            .setName('ngotinh_reroll')
+            .setDescription('Reroll Linh Căn bằng Ngộ Tính (20 NT, giữ nguyên 1 hệ nếu muốn)')
+            .addStringOption(opt =>
+              opt
+                .setName('lock_element')
+                .setDescription('Hệ muốn giữ nguyên (tốn thêm 10 NT)')
+                .setRequired(false)
+                .addChoices(
+                  { name: '🔥 Hỏa', value: 'Hỏa' },
+                  { name: '💧 Thủy', value: 'Thủy' },
+                  { name: '🌿 Mộc', value: 'Mộc' },
+                  { name: '🪨 Thổ', value: 'Thổ' },
+                  { name: '⚡ Lôi', value: 'Lôi' },
+                  { name: '🌀 Phong', value: 'Phong' }
+                )
+            )
+        )
     );
   }
 
@@ -126,7 +146,7 @@ export default class LinhCanCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setTitle(`☯️ LINH CĂN PHẢN CHIẾU - ${user.name}`)
-        .setColor('#8e44ad')
+        .setColor(EMBED_COLORS.DARK_PURPLE)
         .setDescription('*Linh Căn phản ánh tư chất thiên địa, quyết định tốc độ hấp thu linh khí và thức tỉnh thiên phú.*')
         .addFields(
           { name: '👤 Đạo Hữu', value: user.name, inline: true },
@@ -172,7 +192,7 @@ export default class LinhCanCommand extends Command {
           .setStyle(ButtonStyle.Secondary)
       );
 
-      await interaction.editReply({ embeds: [embed], components: [row] });
+      await interaction.editReply(toV2Payload([embed], [row] ));
       return;
     }
 
@@ -186,12 +206,12 @@ export default class LinhCanCommand extends Command {
       }
 
       const embed = new EmbedBuilder()
-        .setTitle('✨ TÔI LUYỆN LINH CĂN THÀNH CÔNG ✨')
-        .setColor('#2ecc71')
+        .setTitle('✨ TÔI LUYỆN LINH CĂN THÀNH CÔNG')
+        .setColor(EMBED_COLORS.SUCCESS)
         .setDescription(result.message)
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -200,7 +220,7 @@ export default class LinhCanCommand extends Command {
       const formattedLinhCan = formatLinhCan(user.linh_can);
       const embed = new EmbedBuilder()
         .setTitle(`🌀 Tẩy Tủy Linh Căn - ${user.name}`)
-        .setColor('#3498db')
+        .setColor(EMBED_COLORS.INFO)
         .setDescription('Tẩy tủy sẽ tái tạo ngẫu nhiên Linh Căn cốt cách, tác động trực tiếp tới các thuộc tính chiến đấu và hiệu suất tu luyện.')
         .addFields(
           { name: '🔮 Linh Căn Hiện Tại', value: formattedLinhCan },
@@ -221,7 +241,47 @@ export default class LinhCanCommand extends Command {
           .setStyle(ButtonStyle.Secondary)
       );
 
-      await interaction.editReply({ embeds: [embed], components: [row] });
+      await interaction.editReply(toV2Payload([embed], [row] ));
+      return;
+    }
+
+    if (subcommand === 'ngotinh_reroll') {
+      const lockElement = interaction.options.getString('lock_element');
+      const baseCost = 20;
+      const lockCost = lockElement ? 10 : 0;
+      const totalCost = baseCost + lockCost;
+      const ngotinh = user.ngotinh || 0;
+
+      if (ngotinh < totalCost) {
+        await interaction.editReply({ content: `❌ Không đủ Ngộ Tính! Cần: **${totalCost}** NT, Có: **${ngotinh}** NT.` });
+        return;
+      }
+
+      const formattedLinhCan = formatLinhCan(user.linh_can);
+      const embed = new EmbedBuilder()
+        .setTitle(`💡 Reroll Linh Căn bằng Ngộ Tính - ${user.name}`)
+        .setColor(EMBED_COLORS.INFO)
+        .setDescription('Sử dụng Ngộ Tính để tái tạo Linh Căn, giữ nguyên 1 hệ nếu muốn.')
+        .addFields(
+          { name: '🔮 Linh Căn Hiện Tại', value: formattedLinhCan },
+          { name: '💡 Chi Phí', value: `**${totalCost}** NT${lockElement ? ` (bao gồm +10 NT giữ hệ ${lockElement})` : ''}` },
+          { name: '✨ Ngộ Tính Hiện Tại', value: `💡 **${ngotinh}** NT` }
+        )
+        .setFooter({ text: 'Linh Căn mới sẽ được tạo ngẫu nhiên!' })
+        .setTimestamp();
+
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`ngotinh_reroll_execute_${discordId}_${lockElement || 'none'}`)
+          .setLabel(`💡 Xác Nhận Reroll (${totalCost} NT)`)
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId(`hosoback_${discordId}`)
+          .setLabel('🔙 Quay Lại')
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+      await interaction.editReply(toV2Payload([embed], [row]));
       return;
     }
   }

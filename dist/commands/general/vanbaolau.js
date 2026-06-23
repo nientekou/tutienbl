@@ -9,6 +9,7 @@ const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const MarketService_1 = require("../../services/MarketService");
 const LeylineService_1 = require("../../services/LeylineService");
+const uiSystem_1 = require("../../utils/uiSystem");
 const database_1 = __importDefault(require("../../database/database"));
 class VanBaoLauCommand extends Command_1.Command {
     constructor() {
@@ -141,7 +142,7 @@ class VanBaoLauCommand extends Command_1.Command {
         const auctionListings = allListings.filter(l => l.listing_type === 'auction');
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('🏪 VẠN BẢO LÂU - SÀN GIAO DỊCH & ĐẤU GIÁ 🏪')
-            .setColor('#e67e22')
+            .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
             .setDescription('Nơi giao lưu vật phẩm & đấu giá giữa các tu sĩ. Mọi giao dịch chịu 2% thuế (tối thiểu theo cảnh giới, tối đa 20 tin/ngày).\nDùng `/vanbaolau tim` để tìm kiếm nâng cao.')
             .setTimestamp();
         if (fixedListings.length > 0) {
@@ -168,7 +169,7 @@ class VanBaoLauCommand extends Command_1.Command {
             embed.addFields({ name: '🔨 ĐẤU GIÁ', value: '*Không có phiên đấu giá nào*' });
         }
         embed.setFooter({ text: 'Dùng /vanbaolau daugia để tạo đấu giá, /vanbaolau datgia để đặt giá.' });
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
     async handleBan(interaction, userId, user) {
         const inventoryId = interaction.options.getInteger('inventory_id', true);
@@ -221,12 +222,12 @@ class VanBaoLauCommand extends Command_1.Command {
         LeylineService_1.leylineService.addEnergy(userId, 'kinhte', 5);
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('🔨 PHIÊN ĐẤU GIÁ MỚI')
-            .setColor('#f39c12')
+            .setColor(uiSystem_1.EMBED_COLORS.WARNING)
             .setDescription(result.message)
             .addFields({ name: 'Mã tin', value: `\`#${result.listingId}\``, inline: true })
             .setFooter({ text: 'Dùng /vanbaolau datgia để đặt giá!' })
             .setTimestamp();
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
     async handleDatGia(interaction, userId, user) {
         const listingId = interaction.options.getInteger('listing_id', true);
@@ -258,7 +259,7 @@ class VanBaoLauCommand extends Command_1.Command {
         });
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle(`🔍 KẾT QUẢ TÌM KIẾM: ${query || 'Tất cả'}${type ? ` (${type})` : ''}`)
-            .setColor('#3498db')
+            .setColor(uiSystem_1.EMBED_COLORS.INFO)
             .setDescription(`Tìm thấy **${result.totalCount}** kết quả`)
             .setTimestamp();
         if (result.listings.length === 0) {
@@ -304,7 +305,7 @@ class VanBaoLauCommand extends Command_1.Command {
             }
         }
         embed.setFooter({ text: 'Dùng /vanbaolau mua hoặc /vanbaolau datgia để giao dịch.' });
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
     async handleYeuThich(interaction, userId) {
         const action = interaction.options.getString('hanh_dong', true);
@@ -318,7 +319,7 @@ class VanBaoLauCommand extends Command_1.Command {
       `).all(userId);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🔔 DANH SÁCH YÊU THÍCH - VẠN BẢO LÂU')
-                .setColor('#e74c3c')
+                .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription('Theo dõi các vật phẩm mong muốn. Khi có tin đăng phù hợp, bạn sẽ được thông báo!')
                 .setTimestamp();
             if (entries.length === 0) {
@@ -332,7 +333,7 @@ class VanBaoLauCommand extends Command_1.Command {
                 }
                 embed.addFields({ name: `📋 Danh sách (${entries.length} mục)`, value: text });
             }
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (action === 'them') {
             const inventoryId = interaction.options.getInteger('inventory_id');
@@ -362,7 +363,7 @@ class VanBaoLauCommand extends Command_1.Command {
         const history = MarketService_1.marketService.getTransactionHistory(userId, 15);
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('📜 LỊCH SỬ GIAO DỊCH VẠN BẢO LÂU')
-            .setColor('#9b59b6')
+            .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
             .setTimestamp();
         if (history.length === 0) {
             embed.setDescription('*Chưa có giao dịch nào. Hãy tham gia mua bán trên Vạn Bảo Lâu!*');
@@ -376,7 +377,7 @@ class VanBaoLauCommand extends Command_1.Command {
             }
             embed.setDescription(text);
         }
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
     async handleAutoBid(interaction, userId) {
         const watchlistId = interaction.options.getInteger('watchlist_id', true);
@@ -411,7 +412,7 @@ class VanBaoLauCommand extends Command_1.Command {
         const { orders } = MarketService_1.marketService.getActiveBuyOrders(1, 20);
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle('📋 ỦY THÁC THU MUA')
-            .setColor('#3498db')
+            .setColor(uiSystem_1.EMBED_COLORS.INFO)
             .setTimestamp();
         if (orders.length === 0) {
             embed.setDescription('*Chưa có đơn ủy thác mua nào. Dùng `/vanbaolau muahang` để tạo!*');
@@ -424,7 +425,7 @@ class VanBaoLauCommand extends Command_1.Command {
             }
             embed.setDescription(text);
         }
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
 }
 exports.default = VanBaoLauCommand;

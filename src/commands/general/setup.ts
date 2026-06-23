@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, Permiss
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import db from '../../database/database';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 const CHANNELS_CONFIG = [
   { key: 'tuluyen_channel_id', name: '📜-tu-luyện', topic: '🧘 Thiền định, đột phá, xem trạng thái: /taonhanvat, /hoso, /ycanh, /luanhoi' },
@@ -90,7 +91,7 @@ export default class SetupCommand extends Command {
     const guild = interaction.guild!;
     const embed = new EmbedBuilder()
       .setTitle('📋 CẤU HÌNH ĐẠO TRƯỜNG')
-      .setColor(0x2ecc71)
+      .setColor(EMBED_COLORS.SUCCESS)
       .setDescription(`Danh sách kênh thuộc **${guild.name}**:`)
       .setTimestamp();
 
@@ -103,7 +104,7 @@ export default class SetupCommand extends Command {
       });
     }
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(toV2Payload([embed]));
   }
 
   private async confirmReset(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
@@ -188,7 +189,7 @@ export default class SetupCommand extends Command {
       // 4. Embed kết quả
       const embed = new EmbedBuilder()
         .setTitle('🌌 KIẾN TẠO ĐẠO TRƯỜNG THÀNH CÔNG!')
-        .setColor(0x2ecc71)
+        .setColor(EMBED_COLORS.SUCCESS)
         .setDescription('Hệ thống đã thiết lập **10 phân khu tu luyện** tại tông môn này:')
         .setTimestamp()
         .setFooter({ text: 'Chư vị đạo hữu hãy di chuyển đến kênh tương ứng!' });
@@ -208,7 +209,7 @@ export default class SetupCommand extends Command {
           .setCustomId('setup_start_game'),
       );
 
-      await interaction.editReply({ embeds: [embed], components: [row] });
+      await interaction.editReply(toV2Payload([embed], [row] ));
 
       // 5. Gửi welcome vào channel tu luyện
       const welcomeChannel = guild.channels.cache.get(channelIds['tuluyen_channel_id']);

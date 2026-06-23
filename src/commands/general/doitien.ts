@@ -3,6 +3,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { formatNumber } from '../../utils/constants';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import db from '../../database/database';
 import { getShopEmbed, getShopComponents } from './shop';
 
@@ -190,8 +191,8 @@ export default class DoiTienCommand extends Command {
   public static buildResultEmbed(res: any, userId: string): EmbedBuilder {
     const updatedUser = userRepository.get(userId)!;
     return new EmbedBuilder()
-      .setTitle('⚖️ ĐỔI TIỀN TỆ THÀNH CÔNG ⚖️')
-      .setColor('#f1c40f')
+      .setTitle('⚖️ ĐỔI TIỀN TỆ THÀNH CÔNG')
+      .setColor(EMBED_COLORS.GOLD)
       .setDescription(`Đạo hữu đã thực hiện chuyển đổi tiền tệ tại Phường Thị!`)
       .addFields(
         { name: '📉 Tiêu hao', value: `**-${formatNumber(res.sourceCost)}** ${res.sourceName}`, inline: true },
@@ -235,11 +236,11 @@ export default class DoiTienCommand extends Command {
       }
 
       const embed = DoiTienCommand.buildResultEmbed(res, userId);
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(toV2Payload([embed]));
     } else {
       const embed = getDoiTienEmbed(userId);
       const components = getDoiTienComponents(userId);
-      await interaction.editReply({ embeds: [embed], components });
+      await interaction.editReply(toV2Payload([embed], components));
     }
   }
 }

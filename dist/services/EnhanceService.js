@@ -99,8 +99,8 @@ class EnhanceService {
             else {
                 let nextLevel = currentLevel;
                 let failMsg = `☠️ **[CƯỜNG HÓA THẤT BẠI]**\\nĐại trận cường hóa thất bại, linh lực phân rã! **${item.name}** giữ nguyên cấp **+${currentLevel}**.\\n*(Tiêu hao: ${cfg.costLinhThach} LT, ${cfg.costShards} Mảnh Tinh Thạch)*`;
-                // Rủi ro vỡ nát hoặc tổn hại độ bền tối đa từ cấp +11 trở lên
-                if (currentLevel >= 11 && Math.random() < 0.15) {
+                // Rủi ro vỡ nát từ cấp +13 trở lên (giảm từ +11, giảm tỷ lệ từ 15% xuống 5%)
+                if (currentLevel >= 13 && Math.random() < 0.05) {
                     database_1.default.prepare('DELETE FROM inventories WHERE id = ?').run(inventoryId);
                     failMsg = `💥 **[CƯỜNG HÓA THẤT BẠI - TRANG BỊ VỠ NÁT]**\\nLinh lực phản bộc cực mạnh làm chấn vỡ hoàn toàn **${item.name}** thành cát bụi! Mất đi trang bị vĩnh viễn!\\n*(Tiêu hao: ${cfg.costLinhThach} LT, ${cfg.costShards} Mảnh Tinh Thạch)*`;
                     nextLevel = 0;
@@ -109,7 +109,7 @@ class EnhanceService {
                     if (cfg.dropOnFail) {
                         nextLevel = Math.max(10, currentLevel - 1); // Rớt xuống tối thiểu là +10
                         InventoryRepository_1.inventoryRepository.updateEnhanceLevel(inventoryId, nextLevel);
-                        if (currentLevel >= 11) {
+                        if (currentLevel >= 13) {
                             // Giảm độ bền tối đa vĩnh viễn 10 điểm
                             const currentMaxDurability = item.max_durability || 100;
                             const newMaxDurability = Math.max(10, currentMaxDurability - 10);
