@@ -5,13 +5,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getWorldBossEmbed = getWorldBossEmbed;
 exports.getWorldBossComponents = getWorldBossComponents;
+exports.getBossShopEmbed = getBossShopEmbed;
+exports.getBossShopComponents = getBossShopComponents;
+exports.handleBossShopPurchase = handleBossShopPurchase;
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const CombatService_1 = require("../../services/CombatService");
 const BossSeasonService_1 = require("../../services/BossSeasonService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
+const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const constants_1 = require("../../utils/constants");
 const uiSystem_1 = require("../../utils/uiSystem");
+const itemConstants_1 = require("../../config/itemConstants");
 const database_1 = __importDefault(require("../../database/database"));
 /**
  * Tạo Embed hiển thị thông tin World Boss hiện tại
@@ -70,7 +75,7 @@ function getWorldBossEmbed(userId) {
     if (user && boss.status === 'active') {
         embed.addFields({
             name: '🎯 Mốc Thưởng',
-            value: `Tham gia → **5 BP** | 1% dmg → **+5 BP** | 3% → **+10 BP** | 5% → **+15 BP** | 10% → **+25 BP** | 15% → **+35 BP** | 20% → **+50 BP**`
+            value: `Tham gia → **5 BP** | 1% dmg → **+3 BP** | 3% → **+5 BP** | 5% → **+10 BP** | 10% → **+15 BP** | 15% → **+20 BP** | 20% → **+30 BP**`
         });
     }
     // Trạng thái cooldown của người chơi
@@ -129,7 +134,71 @@ function getWorldBossComponents(userId) {
         .setCustomId(`worldbossrefresh_${userId}`)
         .setLabel('🔄 Làm Mới')
         .setStyle(discord_js_1.ButtonStyle.Secondary));
+    // Nút shop
+    row.addComponents(new discord_js_1.ButtonBuilder()
+        .setCustomId(`bossshop_${userId}`)
+        .setLabel('🏪 Boss Shop')
+        .setStyle(discord_js_1.ButtonStyle.Primary));
     return row;
+}
+// ponytail: giá cân bằng theo BP thực tế (top ~50 BP/kill, casual ~8 BP/kill)
+// Boss respawn liên tục, BP tích luỹ dần — giá cao để BP có giá trị lâu dài
+const BOSS_SHOP_ITEMS = [
+    { key: 'chest', itemId: itemConstants_1.ITEMS.SERVER_RAID_CHEST, name: 'Rương Boss Thế Giới', cost: 3000, qty: 1, desc: 'Mở ra nhận trang bị S~EX' },
+    { key: 'lucky', itemId: itemConstants_1.ITEMS.LUCKY_CHEST, name: 'Rương Cơ Duyên', cost: 1000, qty: 1, desc: 'Mở ra nhận phôi F~SSS' },
+    { key: 'lenh', itemId: itemConstants_1.ITEMS.LENH_BAI, name: 'Lệnh Bài Bí Cảnh', cost: 2000, qty: 1, desc: 'Vào bí cảnh săn boss' },
+    { key: 'stamina', itemId: itemConstants_1.ITEMS.PILL_ALCHEMY_STAMINA, name: 'Bổ Thiên Đan x5', cost: 500, qty: 5, desc: 'Hồi 20 thể lực/viên' },
+    { key: 'coin', itemId: '', name: 'Linh Thạch 10000', cost: 500, qty: 0, desc: 'Quy đổi ra linh thạch' },
+    { key: 'shard', itemId: itemConstants_1.ITEMS.TINH_THACH_SHARD, name: 'Mảnh Tinh Thạch x5', cost: 400, qty: 5, desc: 'Nguyên liệu cường hóa' },
+    { key: 'nhan', itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, name: 'Huyết Nhân Sâm x10', cost: 400, qty: 10, desc: 'Nguyên liệu luyện đan' },
+];
+function getBossShopEmbed(userId, message) {
+    const user = UserRepository_1.userRepository.get(userId);
+    const bp = user?.boss_points || 0;
+    const lines = BOSS_SHOP_ITEMS.map(item => `• **${item.name}** — **${item.cost}** BP\n${item.desc}`);
+    const embed = new discord_js_1.EmbedBuilder()
+        .setTitle('🏪 Boss Point Shop')
+        .setColor(uiSystem_1.EMBED_COLORS.GOLD)
+        .setDescription(`⭐ **BP hiện có:** **${bp}**\n\n` +
+        lines.join('\n\n'))
+        .setFooter({ text: 'Chọn vật phẩm bên dưới để đổi.' });
+    if (message)
+        embed.setDescription(`${message}\n\n${embed.data.description}`);
+    return embed;
+}
+function getBossShopComponents(userId) {
+    const user = UserRepository_1.userRepository.get(userId);
+    const bp = user?.boss_points || 0;
+    const menu = new discord_js_1.StringSelectMenuBuilder()
+        .setCustomId(`bossshop_buy_${userId}`)
+        .setPlaceholder('Chọn vật phẩm muốn đổi...');
+    for (const item of BOSS_SHOP_ITEMS) {
+        const canAfford = bp >= item.cost;
+        menu.addOptions(new discord_js_1.StringSelectMenuOptionBuilder()
+            .setLabel(`${item.name} — ${item.cost} BP`)
+            .setDescription(`${canAfford ? '✅ ' : '❌ '}${item.desc}${canAfford ? '' : ' (Không đủ BP)'}`)
+            .setValue(item.key));
+    }
+    return new discord_js_1.ActionRowBuilder().addComponents(menu);
+}
+function handleBossShopPurchase(userId, itemKey) {
+    const item = BOSS_SHOP_ITEMS.find(i => i.key === itemKey);
+    if (!item)
+        return { success: false, message: 'Vật phẩm không tồn tại.' };
+    const user = UserRepository_1.userRepository.get(userId);
+    if (!user)
+        return { success: false, message: 'Đạo hữu chưa tạo nhân vật!' };
+    const bp = user.boss_points || 0;
+    if (bp < item.cost)
+        return { success: false, message: `Không đủ BP! Cần **${item.cost}** BP, hiện có **${bp}** BP.` };
+    UserRepository_1.userRepository.update(userId, { boss_points: bp - item.cost });
+    if (item.key === 'coin') {
+        UserRepository_1.userRepository.update(userId, { coin_ha_pham: (user.coin_ha_pham || 0) + 10000 });
+    }
+    else {
+        InventoryRepository_1.inventoryRepository.addItem(userId, item.itemId, item.qty);
+    }
+    return { success: true, message: `✅ Đã đổi **${item.name}** thành công! (-**${item.cost}** BP)` };
 }
 class WorldBossCommand extends Command_1.Command {
     constructor() {

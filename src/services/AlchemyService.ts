@@ -16,6 +16,8 @@ export interface AlchemyRecipe {
   expGained: number;
 }
 
+// ponytail: tăng base success rate 5-15% so với trước để expected profit >= 0
+// Công thức: expected output value >= material cost + coin cost
 export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
   {
     id: 'recipe_tuvi',
@@ -25,7 +27,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 100,
     staminaCost: 10,
     requiredAlchemyLevel: 1,
-    baseSuccessRate: 0.65, // giảm từ 0.80
+    baseSuccessRate: 0.75,
     expGained: 10
   },
   {
@@ -40,7 +42,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 400,
     staminaCost: 15,
     requiredAlchemyLevel: 2,
-    baseSuccessRate: 0.50, // giảm từ 0.65
+    baseSuccessRate: 0.60,
     expGained: 35
   },
   {
@@ -54,7 +56,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 250,
     staminaCost: 15,
     requiredAlchemyLevel: 2,
-    baseSuccessRate: 0.55, // giảm từ 0.70
+    baseSuccessRate: 0.65,
     expGained: 25
   },
   {
@@ -69,7 +71,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 500,
     staminaCost: 20,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.45, // giảm từ 0.60
+    baseSuccessRate: 0.55,
     expGained: 50
   },
   {
@@ -83,7 +85,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 100,
     staminaCost: 10,
     requiredAlchemyLevel: 1,
-    baseSuccessRate: 0.70, // giảm từ 0.85
+    baseSuccessRate: 0.75,
     expGained: 15
   },
   {
@@ -97,7 +99,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 200,
     staminaCost: 15,
     requiredAlchemyLevel: 2,
-    baseSuccessRate: 0.55, // giảm từ 0.70
+    baseSuccessRate: 0.65,
     expGained: 30
   },
   {
@@ -112,7 +114,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 400,
     staminaCost: 20,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.45, // giảm từ 0.60
+    baseSuccessRate: 0.55,
     expGained: 60
   },
   {
@@ -127,7 +129,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 1500,
     staminaCost: 30,
     requiredAlchemyLevel: 5,
-    baseSuccessRate: 0.35,
+    baseSuccessRate: 0.40,
     expGained: 100
   },
   {
@@ -142,7 +144,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 3000,
     staminaCost: 40,
     requiredAlchemyLevel: 8,
-    baseSuccessRate: 0.25,
+    baseSuccessRate: 0.35,
     expGained: 150
   },
   {
@@ -156,7 +158,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 1000,
     staminaCost: 25,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.35, // giảm từ 0.50
+    baseSuccessRate: 0.45,
     expGained: 100
   },
   {
@@ -170,7 +172,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 800,
     staminaCost: 20,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.35, // giảm từ 0.50
+    baseSuccessRate: 0.45,
     expGained: 80
   },
   {
@@ -184,7 +186,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 800,
     staminaCost: 20,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.35, // giảm từ 0.50
+    baseSuccessRate: 0.45,
     expGained: 80
   },
   {
@@ -198,7 +200,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 1500,
     staminaCost: 25,
     requiredAlchemyLevel: 4,
-    baseSuccessRate: 0.30, // giảm từ 0.45
+    baseSuccessRate: 0.40,
     expGained: 150
   },
   {
@@ -212,7 +214,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 2000,
     staminaCost: 30,
     requiredAlchemyLevel: 4,
-    baseSuccessRate: 0.25, // giảm từ 0.40
+    baseSuccessRate: 0.35,
     expGained: 200
   },
   {
@@ -226,7 +228,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 1800,
     staminaCost: 25,
     requiredAlchemyLevel: 4,
-    baseSuccessRate: 0.27, // giảm từ 0.42
+    baseSuccessRate: 0.37,
     expGained: 180
   },
   {
@@ -242,7 +244,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 5000,
     staminaCost: 50,
     requiredAlchemyLevel: 5,
-    baseSuccessRate: 0.20,
+    baseSuccessRate: 0.30,
     expGained: 500
   },
   {
@@ -256,7 +258,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 800,
     staminaCost: 20,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.40,
+    baseSuccessRate: 0.50,
     expGained: 80
   },
   {
@@ -270,7 +272,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 800,
     staminaCost: 20,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.40,
+    baseSuccessRate: 0.50,
     expGained: 80
   },
   {
@@ -284,7 +286,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 800,
     staminaCost: 20,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.40,
+    baseSuccessRate: 0.50,
     expGained: 80
   },
   {
@@ -298,7 +300,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 800,
     staminaCost: 20,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.40,
+    baseSuccessRate: 0.50,
     expGained: 80
   },
   {
@@ -312,7 +314,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 800,
     staminaCost: 20,
     requiredAlchemyLevel: 3,
-    baseSuccessRate: 0.40,
+    baseSuccessRate: 0.50,
     expGained: 80
   },
   {
@@ -326,7 +328,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     costCoin: 2000,
     staminaCost: 30,
     requiredAlchemyLevel: 4,
-    baseSuccessRate: 0.25,
+    baseSuccessRate: 0.35,
     expGained: 150
   }
 ];

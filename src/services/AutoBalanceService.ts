@@ -19,7 +19,7 @@ class AutoBalanceService {
 
     // Tính combat power cho tất cả users
     const users = db.prepare(`
-      SELECT discord_id, level, hp, max_hp, mp, max_mp, atk, def, crit, crit_res, luck, speed, dodge
+      SELECT discord_id, level, base_hp, base_mp, base_atk, base_def, base_crit, base_crit_res, base_luck, base_speed, base_dodge
       FROM users WHERE level > 0
     `).all() as any[];
 
@@ -30,15 +30,15 @@ class AutoBalanceService {
     // Tính combat power cho mỗi user (simplified formula)
     const powers = users.map(u => {
       return Math.round(
-        (u.hp || 100) * 0.2 +
-        (u.mp || 50) * 0.1 +
-        (u.atk || 15) * 3 +
-        (u.def || 10) * 5 +
-        (u.crit || 0.05) * 1000 +
-        (u.crit_res || 0) * 1000 +
-        (u.luck || 10) * 10 +
-        (u.speed || 100) * 10 +
-        (u.dodge || 0.05) * 1000
+        (u.base_hp || 100) * 0.2 +
+        (u.base_mp || 50) * 0.1 +
+        (u.base_atk || 15) * 3 +
+        (u.base_def || 10) * 5 +
+        (u.base_crit || 0.05) * 1000 +
+        (u.base_crit_res || 0) * 1000 +
+        (u.base_luck || 10) * 10 +
+        (u.base_speed || 100) * 10 +
+        (u.base_dodge || 0.05) * 1000
       );
     }).sort((a, b) => a - b);
 
@@ -73,15 +73,15 @@ class AutoBalanceService {
     const stats = this.getStats();
     if (stats.totalPlayers < 5) return { atkMult: 1.0, defMult: 1.0 };
 
-    const user = db.prepare('SELECT atk, def, hp, mp, crit, crit_res, luck, speed, dodge FROM users WHERE discord_id = ?').get(userId) as any;
+    const user = db.prepare('SELECT base_atk, base_def, base_hp, base_mp, base_crit, base_crit_res, base_luck, base_speed, base_dodge FROM users WHERE discord_id = ?').get(userId) as any;
     if (!user) return { atkMult: 1.0, defMult: 1.0 };
 
     const userPower = Math.round(
-      (user.hp || 100) * 0.2 + (user.mp || 50) * 0.1 +
-      (user.atk || 15) * 3 + (user.def || 10) * 5 +
-      (user.crit || 0.05) * 1000 + (user.crit_res || 0) * 1000 +
-      (user.luck || 10) * 10 + (user.speed || 100) * 10 +
-      (user.dodge || 0.05) * 1000
+      (user.base_hp || 100) * 0.2 + (user.base_mp || 50) * 0.1 +
+      (user.base_atk || 15) * 3 + (user.base_def || 10) * 5 +
+      (user.base_crit || 0.05) * 1000 + (user.base_crit_res || 0) * 1000 +
+      (user.base_luck || 10) * 10 + (user.base_speed || 100) * 10 +
+      (user.base_dodge || 0.05) * 1000
     );
 
     // Top 5%: -10% ATK
@@ -103,15 +103,15 @@ class AutoBalanceService {
     const stats = this.getStats();
     if (stats.totalPlayers < 5 || stats.median === 0) return 1.0;
 
-    const user = db.prepare('SELECT atk, def, hp, mp, crit, crit_res, luck, speed, dodge FROM users WHERE discord_id = ?').get(userId) as any;
+    const user = db.prepare('SELECT base_atk, base_def, base_hp, base_mp, base_crit, base_crit_res, base_luck, base_speed, base_dodge FROM users WHERE discord_id = ?').get(userId) as any;
     if (!user) return 1.0;
 
     const userPower = Math.round(
-      (user.hp || 100) * 0.2 + (user.mp || 50) * 0.1 +
-      (user.atk || 15) * 3 + (user.def || 10) * 5 +
-      (user.crit || 0.05) * 1000 + (user.crit_res || 0) * 1000 +
-      (user.luck || 10) * 10 + (user.speed || 100) * 10 +
-      (user.dodge || 0.05) * 1000
+      (user.base_hp || 100) * 0.2 + (user.base_mp || 50) * 0.1 +
+      (user.base_atk || 15) * 3 + (user.base_def || 10) * 5 +
+      (user.base_crit || 0.05) * 1000 + (user.base_crit_res || 0) * 1000 +
+      (user.base_luck || 10) * 10 + (user.base_speed || 100) * 10 +
+      (user.base_dodge || 0.05) * 1000
     );
 
     const ratio = userPower / stats.median;

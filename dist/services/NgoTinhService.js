@@ -32,7 +32,7 @@ class NgoTinhService {
     }
     getActiveBuffs(userId) {
         const now = Math.floor(Date.now() / 1000);
-        const buffs = database_1.default.prepare('SELECT buff_id, expires_at FROM user_buffs WHERE user_id = ? AND expires_at > ?').all(userId);
+        const buffs = database_1.default.prepare('SELECT buff_id, expires_at FROM user_buffs WHERE user_id = ? AND expires_at > ?').all(userId, now);
         return buffs.map(b => ({
             buffId: b.buff_id,
             expiresAt: b.expires_at,

@@ -46,6 +46,7 @@ const luyendan_1 = __importDefault(require("../commands/general/luyendan"));
 const dungkynang_1 = __importDefault(require("../commands/general/dungkynang"));
 const GuildWarService_1 = require("../services/GuildWarService");
 const LeylineService_1 = require("../services/LeylineService");
+const AutoBalanceService_1 = require("../services/AutoBalanceService");
 const MountService_1 = require("../services/MountService");
 const toaky_1 = require("../commands/general/toaky");
 const khilinh_1 = require("../commands/general/khilinh");
@@ -158,10 +159,13 @@ class InteractionCreateEvent extends Event_1.Event {
             if (!InteractionLock_1.InteractionLock.acquire(userId)) {
                 if (interaction.isRepliable()) {
                     try {
-                        await interaction.reply({
-                            content: '❌ **Thao tác quá nhanh:** Hệ thống đang xử lý hành động trước đó của đạo hữu, vui lòng không spam!',
-                            flags: discord_js_1.MessageFlags.Ephemeral
-                        });
+                        const msg = '❌ **Thao tác quá nhanh:** Hệ thống đang xử lý hành động trước đó của đạo hữu, vui lòng không spam!';
+                        if (interaction.deferred) {
+                            await interaction.editReply({ content: msg });
+                        }
+                        else {
+                            await interaction.reply({ content: msg, flags: discord_js_1.MessageFlags.Ephemeral });
+                        }
                     }
                     catch (lockErr) {
                         // Bỏ qua nếu interaction đã được collector xử lý trước (40060) hoặc hết hạn (10062)
@@ -252,6 +256,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     'dueluseitem',
                     'duelchoose',
                     'worldbossattack',
+                    'bossshop_buy',
                     'enhance_select',
                     'enhance_confirm',
                     'enhance_cancel',
@@ -315,7 +320,9 @@ class InteractionCreateEvent extends Event_1.Event {
                     'worldbossattack', 'duelaccept', 'duelrefuse', 'duelchoose', 'duellichsu',
                     'trade', 'suachua', 'traveler_buy', 'traveler_buy_item', 'traveler_rob',
                     'joinparty', 'leaveparty', 'startparty', 'edenter', 'edattack', 'edretreat',
-                    'noituskip'
+                    'noituskip',
+                    'bossshop',
+                    'bossshop_buy',
                 ].includes(action);
                 if (isPublicAction) {
                     targetUserId = interaction.user.id;
@@ -362,8 +369,9 @@ class InteractionCreateEvent extends Event_1.Event {
                         }
                         const contrib = database_1.default.prepare("SELECT last_attack_at FROM world_boss_contributions WHERE user_id = ? AND boss_id = 'world_boss_current'")
                             .get(interaction.user.id);
-                        if (contrib && now - contrib.last_attack_at < 200) {
-                            const cdSec = 200 - (now - contrib.last_attack_at);
+                        // ponytail: cooldown đồng nhất với command path (600s)
+                        if (contrib && now - contrib.last_attack_at < 600) {
+                            const cdSec = 600 - (now - contrib.last_attack_at);
                             await interaction.reply({ content: `⏳ Đạo hữu đang kiệt sức. Cần **${cdSec} giây** nữa để hồi phục!`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
@@ -373,13 +381,19 @@ class InteractionCreateEvent extends Event_1.Event {
                             await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
+                        // Auto-balance PvE: scale boss stats theo player power (tương tự full combat path)
+                        const pveScale = AutoBalanceService_1.autoBalanceService.getPvEScaleFactor(interaction.user.id);
                         // Chạy lượt đánh nhanh (Live Raid Hit) — wrapped in transaction to prevent race condition
                         const bossTx = database_1.default.transaction(() => {
                             const bossRow = database_1.default.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get();
                             if (!bossRow || bossRow.status === 'defeated')
                                 return { error: 'defeated' };
                             const isCrit = Math.random() < (activeStats.crit + activeStats.luck * 0.001);
-                            let rawDmg = Math.max(1, activeStats.atk - bossRow.def);
+                            // ponytail: dùng ratio-based damage (giống CombatEngine) thay vì ATK-DEF tuyến tính
+                            const effectiveDef = Math.round(bossRow.def * pveScale);
+                            const defRatio = effectiveDef / (activeStats.atk + effectiveDef);
+                            const reduction = Math.min(0.80, defRatio);
+                            let rawDmg = Math.max(1, Math.round(activeStats.atk * (1 - reduction)));
                             rawDmg = Math.round(rawDmg * (0.9 + Math.random() * 0.2));
                             if (isCrit)
                                 rawDmg = Math.round(rawDmg * 1.5);
@@ -423,22 +437,11 @@ class InteractionCreateEvent extends Event_1.Event {
                         const allContribs = database_1.default.prepare("SELECT user_id, damage FROM world_boss_contributions WHERE boss_id = 'world_boss_current' ORDER BY damage DESC")
                             .all();
                         const currentRank = allContribs.findIndex(c => c.user_id === interaction.user.id) + 1;
-                        // Phản phệ dựa trên % máu tối đa theo thứ hạng World Boss
-                        // Ponytail: hardcoded rank brackets — có thể chuyển sang công thức độ dốc nếu mở rộng
-                        const reflectPctByRank = {
-                            1: [0.20, 0.30],
-                            2: [0.16, 0.25],
-                            3: [0.12, 0.20],
-                            4: [0.10, 0.16],
-                            5: [0.08, 0.13],
-                        };
-                        const range = reflectPctByRank[currentRank] ?? [0.03, 0.08];
-                        const pct = range[0] + Math.random() * (range[1] - range[0]);
-                        const reflectDmg = Math.round(activeStats.hp * pct);
-                        // Chấn thương xảy ra khi phản phệ vượt ngưỡng 25% máu tối đa — có thể dự đoán được, không random
-                        // Ponytail: ngưỡng cố định 25%, có thể điều chỉnh theo boss level nếu cần
-                        const injuryThreshold = Math.round(activeStats.hp * 0.25);
-                        const isInjured = reflectDmg >= injuryThreshold;
+                        // Phản phệ đồng nhất với full combat path: damageDealt * 0.05 + boss.atk * 0.1
+                        // ponytail: thay thế công thức %HP theo rank bằng công thức damage-based
+                        const reflectDmg = Math.round(totalDmg * 0.05 + currentBossData.atk * 0.1);
+                        const injuryChance = activeStats.hp < (currentBossData.atk * 5) ? 0.25 : 0.08;
+                        const isInjured = Math.random() < injuryChance;
                         // Thưởng Ngộ Tính theo hạng: top 3 nhận nhiều hơn vì chịu phản phệ lớn hơn
                         const ngoTinhBonus = currentRank <= 3 ? 5 : 3;
                         const updatedUser = UserRepository_1.userRepository.get(interaction.user.id);
@@ -482,8 +485,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const petText = pet ? ` (Sủng thú **${pet.name}** phụ trợ +${petDmg})` : '';
                         const critText = isCrit ? ' **[BẠO KÍCH]** 💥' : '';
                         const rankText = ` 🏆 **(Hạng #${currentRank})**`;
-                        const reflectPctShow = Math.round(pct * 100);
-                        const reflectText = `\n⚡ **Phản Phệ:** Đạo hữu chịu **-${reflectDmg}** sát thương phản chấn [hạng #${currentRank} — ${reflectPctShow}% HP] từ Boss thế giới!`;
+                        const reflectText = `\n⚡ **Phản Phệ:** Đạo hữu chịu **-${reflectDmg}** sát thương phản chấn từ Boss thế giới!`;
                         const injuryText = isInjured ? `\n🚨 **Chấn Thương:** Phản phệ chấn động kinh mạch, bị **Trọng Thương trong 10 phút**!` : '';
                         await interaction.reply({
                             content: `💥 Đạo hữu **${updatedUser.name}** vung đòn tấn công Boss thế giới, gây **-${totalDmg}** sát thương lên Boss${critText}${rankText}!${petText}${reflectText}${injuryText}\n🧘 Nhận được **+${ngoTinhBonus}** Điểm Ngộ Tính!${rewardsText}`
@@ -551,13 +553,24 @@ class InteractionCreateEvent extends Event_1.Event {
                                                 if (event.status === 'sold_out') {
                                                     embed.setTitle('👺 Lữ Khách Thần Bí (Đã Rời Đi)');
                                                     embed.setDescription('Lữ Khách đã bán hết sạch hàng và rời đi.');
-                                                    embed.setFields([]); // clear fields
+                                                    embed.setFields([]);
                                                     await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(event.channel_id, event.message_id), { body: { embeds: [embed.toJSON()], components: [] } });
                                                 }
                                                 else {
                                                     const newFields = { name: '💰 Hàng Hoá', value: Object.values(inv).map((i) => `- **${i.name}** (Còn: ${i.quantity}) - Giá: ${i.price} LT`).join('\n') };
                                                     embed.setFields([newFields]);
-                                                    await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(event.channel_id, event.message_id), { body: { embeds: [embed.toJSON()], components: [] } });
+                                                    // Giữ lại nút mua/cướp cho người khác
+                                                    const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+                                                    const buyBtn = new ButtonBuilder()
+                                                        .setCustomId(`traveler_buy_${eventId}`)
+                                                        .setLabel('💰 Giao Dịch')
+                                                        .setStyle(ButtonStyle.Success);
+                                                    const robBtn = new ButtonBuilder()
+                                                        .setCustomId(`traveler_rob_${eventId}`)
+                                                        .setLabel('⚔️ Cướp Đoạt')
+                                                        .setStyle(ButtonStyle.Danger);
+                                                    const row = new ActionRowBuilder().addComponents(buyBtn, robBtn);
+                                                    await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(event.channel_id, event.message_id), { body: { embeds: [embed.toJSON()], components: [row.toJSON()] } });
                                                 }
                                             }
                                         }
@@ -1229,6 +1242,19 @@ class InteractionCreateEvent extends Event_1.Event {
                     else if (action === 'worldbossrefresh') {
                         const embed = (0, worldboss_1.getWorldBossEmbed)(targetUserId);
                         const row = (0, worldboss_1.getWorldBossComponents)(targetUserId);
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
+                    }
+                    // --- Boss Shop ---
+                    else if (action === 'bossshop') {
+                        const embed = (0, worldboss_1.getBossShopEmbed)(targetUserId);
+                        const row = (0, worldboss_1.getBossShopComponents)(targetUserId);
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
+                    }
+                    else if (action === 'bossshop_buy' && interaction.isStringSelectMenu()) {
+                        const itemKey = interaction.values[0];
+                        const result = (0, worldboss_1.handleBossShopPurchase)(targetUserId, itemKey);
+                        const embed = (0, worldboss_1.getBossShopEmbed)(targetUserId, result.message);
+                        const row = (0, worldboss_1.getBossShopComponents)(targetUserId);
                         await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
                     }
                     // --- Nút: THU HOẠCH LINH ĐIỀN ---
@@ -2413,6 +2439,11 @@ class InteractionCreateEvent extends Event_1.Event {
                                         if (Math.random() < 0.2) {
                                             database_1.default.prepare(`INSERT INTO inventories (user_id, item_id, quantity, is_equipped, created_at) VALUES (?, ?, 1, 0, ?)`).run(mId, itemConstants_1.ITEMS.MANH_VO_VU_KHI, Math.floor(Date.now() / 1000));
                                             rewardsText += `  🎉 Nhận 1x Mảnh Vỡ Vũ Khí!\n`;
+                                        }
+                                        // ponytail: thêm drop hạt wind_leaf cho co-op boss
+                                        if (Math.random() < 0.25) {
+                                            database_1.default.prepare(`INSERT INTO inventories (user_id, item_id, quantity, is_equipped, created_at) VALUES (?, ?, 1, 0, ?)`).run(mId, itemConstants_1.ITEMS.SEED_WIND_LEAF, Math.floor(Date.now() / 1000));
+                                            rewardsText += `  🍃 Nhận 1x Hạt Thiên Phong Diệp!\n`;
                                         }
                                     }
                                 }

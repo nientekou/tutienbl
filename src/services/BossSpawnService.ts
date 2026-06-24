@@ -59,7 +59,7 @@ export class BossSpawnService {
       if (elapsed >= respawnCooldown) {
         // Tiến hành hồi sinh Boss ở cấp độ tiếp theo
         const nextLevel = boss.level + 1;
-        const newMaxHp = Math.round(5000 * Math.pow(1.3, nextLevel - 1));
+        const newMaxHp = Math.round(5000 * Math.pow(1.2, nextLevel - 1));
         const newAtk = Math.round(80 * Math.pow(1.15, nextLevel - 1));
         const newDef = Math.round(50 * Math.pow(1.15, nextLevel - 1));
 

@@ -3528,11 +3528,12 @@ function seedEliteDungeons() {
       floors: 5, min_level: 50, max_level: 999, min_party_size: 2, max_party_size: 4, cooldown_hours: 24,
       rewards_config: JSON.stringify({
         floor_rewards: [
-          { min: { exp: 1500, coins: 1000 }, max: { exp: 3000, coins: 2000 } },
-          { min: { exp: 3000, coins: 2000 }, max: { exp: 6000, coins: 4000 } },
-          { min: { exp: 6000, coins: 4000 }, max: { exp: 12000, coins: 8000 } },
-          { min: { exp: 12000, coins: 8000 }, max: { exp: 24000, coins: 16000 } },
-          { min: { exp: 24000, coins: 16000 }, max: { exp: 48000, coins: 32000 } },
+          // ponytail: giảm 50% EXP để không áp đảo dungeon solo
+          { min: { exp: 750, coins: 1000 }, max: { exp: 1500, coins: 2000 } },
+          { min: { exp: 1500, coins: 2000 }, max: { exp: 3000, coins: 4000 } },
+          { min: { exp: 3000, coins: 4000 }, max: { exp: 6000, coins: 8000 } },
+          { min: { exp: 6000, coins: 8000 }, max: { exp: 12000, coins: 16000 } },
+          { min: { exp: 12000, coins: 16000 }, max: { exp: 24000, coins: 32000 } },
         ],
         boss_drop_rate: { epic: 0.3, legendary: 0.20, material: 1.0 }
       })

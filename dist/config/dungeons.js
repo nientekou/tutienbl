@@ -85,6 +85,7 @@ exports.DUNGEONS = {
                 { itemId: itemConstants_1.ITEMS.ARMOR_ROBE_3, rate: 0.20, quantity: 1 }, // 20% Thăng Quang Huyền Giáp (Epic)
                 { itemId: itemConstants_1.ITEMS.PILL_BREAK_1, rate: 0.40, quantity: 2 }, // 40% x2 trúc cơ đan
                 { itemId: itemConstants_1.ITEMS.TALISMAN_SPEED_1, rate: 0.50, quantity: 2 }, // 50% x2 Thần Hành Phù
+                { itemId: itemConstants_1.ITEMS.SEED_VOID_HERB, rate: 0.20, quantity: 1 }, // 20% hạt hư không thảo
             ]
         }
     }

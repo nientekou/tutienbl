@@ -889,9 +889,11 @@ export class CombatService {
       return 0.50 - Math.min((dmgPercent - 0.30) / 0.20, 1) * 0.25;
     };
 
-    // Sqrt reward function: Reward = Base × (0.5 + 0.5 × √Contribution)
-    const sqrtReward = (baseReward: number, dmgPercent: number): number => {
-      return Math.round(baseReward * (0.5 + 0.5 * Math.sqrt(dmgPercent)));
+    // ponytail: log10 reward thay vì sqrt — nén gap giữa người yếu và mạnh hơn
+    // log10(1 + 9x) cho 0-100%: 0%→0, 10%→0.28, 50%→0.74, 100%→1.0
+    // Upgrade path: có thể dùng power function x^power với power < 1 nếu cần nén thêm
+    const logReward = (baseReward: number, dmgPercent: number): number => {
+      return Math.round(baseReward * Math.log10(1 + 9 * Math.min(1, dmgPercent)));
     };
 
     for (let i = 0; i < participants.length; i++) {
@@ -919,60 +921,74 @@ export class CombatService {
       gainedCoins = Math.round(250 * factor);
       gainedBossPoints = 5;
 
-      // ── 2. Thưởng theo % đóng góp (sqrt + soft cap) ──
-      gainedExp += sqrtReward(600 * factor, cappedPercent);
-      gainedCoins += sqrtReward(300 * factor, cappedPercent);
+      // ── 2. Thưởng theo % đóng góp (log + soft cap) ──
+      gainedExp += logReward(600 * factor, cappedPercent);
+      gainedCoins += logReward(300 * factor, cappedPercent);
 
-      // ── 3. Thưởng mốc đóng贡献 ──
+      // ── 3. Thưởng mốc đóng góp (continuous log, không threshold cứng) ──
+      // ponytail: thay threshold cứng bằng continuous log — nén BP gap hơn threshold trước
+      // BP milestone = round(30 * log10(1 + 9 * dmgPercent)), max 30 BP
+      gainedBossPoints += Math.round(30 * Math.log10(1 + 9 * Math.min(1, dmgPercent)));
+      // EXP/coin milestone vẫn dùng threshold để thưởng cảm giác đạt mốc
       const milestones = [
-        { threshold: 0.01, exp: 100, coins: 50, bp: 5 },
-        { threshold: 0.03, exp: 200, coins: 100, bp: 10 },
-        { threshold: 0.05, exp: 300, coins: 150, bp: 15 },
-        { threshold: 0.10, exp: 500, coins: 250, bp: 25 },
-        { threshold: 0.15, exp: 700, coins: 350, bp: 35 },
-        { threshold: 0.20, exp: 1000, coins: 500, bp: 50 },
+        { threshold: 0.20, exp: 1000, coins: 500 },
+        { threshold: 0.15, exp: 700, coins: 350 },
+        { threshold: 0.10, exp: 500, coins: 250 },
+        { threshold: 0.05, exp: 300, coins: 150 },
+        { threshold: 0.03, exp: 200, coins: 100 },
+        { threshold: 0.01, exp: 100, coins: 50 },
       ];
       for (const ms of milestones) {
         if (dmgPercent >= ms.threshold) {
           gainedExp += Math.round(ms.exp * factor / 10);
           gainedCoins += Math.round(ms.coins * factor / 10);
-          gainedBossPoints += ms.bp;
+          break; // chỉ mốc cao nhất
         }
       }
 
-      // ── 4. Thưởng hạng (giảm mạnh — top chỉ hơn trung bình 50-100%) ──
+      // ── 4. Thưởng hạng (giảm BP gap) ──
+      // ponytail: giảm BP rank, thêm BP cho hạng thấp để không quá chênh lệch
       if (i === 0) {
         gainedExp += Math.round(150 * factor);
         gainedCoins += Math.round(75 * factor);
-        gainedBossPoints += 30;
+        gainedBossPoints += 10;
 
         itemsToAdd.push({ userId: p.user_id, itemId: ITEMS.SERVER_RAID_CHEST, quantity: 1 });
         itemsGained.push('1x Rương Boss Thế Giới');
       } else if (i <= 2) {
         gainedExp += Math.round(100 * factor);
         gainedCoins += Math.round(50 * factor);
-        gainedBossPoints += 20;
+        gainedBossPoints += 7;
       } else if (i <= 5) {
         gainedExp += Math.round(70 * factor);
         gainedCoins += Math.round(35 * factor);
-        gainedBossPoints += 15;
+        gainedBossPoints += 4;
       } else if (i <= 10) {
         gainedExp += Math.round(40 * factor);
         gainedCoins += Math.round(20 * factor);
-        gainedBossPoints += 10;
+        gainedBossPoints += 2;
       } else {
         gainedExp += Math.round(20 * factor);
         gainedCoins += Math.round(10 * factor);
-        gainedBossPoints += 5;
+        gainedBossPoints += 1; // ponytail: thêm 1 BP cho hạng thấp để khích lệ
       }
 
-      // ── 5. Catch-up mechanic: +20% cho người yếu ──
+      // ── 5. Catch-up: mạnh hơn, + thuế cho whale ──
+      // ponytail: người yếu hơn median nhận bonus, mạnh hơn 2x median bị thuế
       const userPower = (pUser.base_hp || 100) * 0.2 + (pUser.base_atk || 15) * 3 + (pUser.base_def || 10) * 5;
       if (userPower < serverMedianPower) {
-        const catchUpMultiplier = 1.20;
+        const ratio = userPower / serverMedianPower;
+        // Yếu < 50% median: +100%; yếu 50-100%: +50%
+        const catchUpMultiplier = ratio < 0.5 ? 2.0 : 1.5;
         gainedExp = Math.round(gainedExp * catchUpMultiplier);
         gainedCoins = Math.round(gainedCoins * catchUpMultiplier);
         gainedBossPoints = Math.round(gainedBossPoints * catchUpMultiplier);
+      } else if (userPower > serverMedianPower * 2) {
+        // ponytail: whale thuế -10% để tránh quá chênh lệch
+        const whaleTax = 0.90;
+        gainedExp = Math.round(gainedExp * whaleTax);
+        gainedCoins = Math.round(gainedCoins * whaleTax);
+        gainedBossPoints = Math.round(gainedBossPoints * whaleTax);
       }
 
       // ── 6. Lucky Reward: mỗi người đều có vé quay ──
@@ -985,16 +1001,20 @@ export class CombatService {
         } else if (luckyRoll < 0.25) {
           itemsToAdd.push({ userId: p.user_id, itemId: ITEMS.LUCKY_CHEST, quantity: 1 });
           itemsGained.push('🍀 1x Rương Cơ Duyên');
+        } else if (luckyRoll < 0.35) {
+          // ponytail: thêm nguồn drop cho hạt blood_flower trước đây không có nguồn
+          itemsToAdd.push({ userId: p.user_id, itemId: ITEMS.SEED_BLOOD_FLOWER, quantity: 2 });
+          itemsGained.push('🌺 2x Hạt Huyết Hoa');
         } else {
-          gainedBossPoints += 10;
-          itemsGained.push('⭐ +10 Boss Point (Lucky!)');
+          gainedBossPoints += 5;
+          itemsGained.push('⭐ +5 Boss Point (Lucky!)');
         }
       }
 
       // ── 7. Last Hit ──
       if (p.user_id === finalBlowerId) {
         gainedCoins += Math.round(50 * factor);
-        gainedBossPoints += 20;
+        gainedBossPoints += 10;
         itemsToAdd.push({ userId: p.user_id, itemId: ITEMS.SERVER_RAID_CHEST, quantity: 1 });
         itemsGained.push('⚡ 1x Rương Boss (Trảm Sát)');
       }

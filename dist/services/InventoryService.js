@@ -743,23 +743,32 @@ class InventoryService {
             }
             // --- Đan dược tăng chỉ số vĩnh viễn (HP, ATK, DEF) ---
             if (stats.add_hp_perm || stats.add_atk_perm || stats.add_def_perm) {
+                // ponytail: biến dị = x1.5 hiệu quả
+                let isEvolved = false;
+                if (item.custom_stats) {
+                    try {
+                        isEvolved = JSON.parse(item.custom_stats).evolved === true;
+                    }
+                    catch (e) { }
+                }
+                const evolveMult = isEvolved ? 1.5 : 1.0;
                 let field = '';
                 let amount = 0;
                 let msg = '';
                 if (stats.add_hp_perm) {
                     field = 'base_hp';
-                    amount = stats.add_hp_perm;
-                    msg = `💊 **Thần Dược Tăng HP!** Đạo hữu uống **${item.name}**, dược lực tẩy tủy phạt cốt, tăng vĩnh viễn **+${amount}** HP cơ bản (Hiện có: **${user.base_hp + amount}** HP)!`;
+                    amount = Math.round(stats.add_hp_perm * evolveMult);
+                    msg = `💊 **Thần Dược Tăng HP!** Đạo hữu uống **${item.name}${isEvolved ? ' (Biến Dị 🧬)' : ''}**, dược lực tẩy tủy phạt cốt, tăng vĩnh viễn **+${amount}** HP cơ bản (Hiện có: **${user.base_hp + amount}** HP)!`;
                 }
                 else if (stats.add_atk_perm) {
                     field = 'base_atk';
-                    amount = stats.add_atk_perm;
-                    msg = `💊 **Thần Dược Tăng ATK!** Đạo hữu uống **${item.name}**, khí lực tung hoành kinh mạch, tăng vĩnh viễn **+${amount}** Công Kích cơ bản (Hiện có: **${user.base_atk + amount}** ATK)!`;
+                    amount = Math.round(stats.add_atk_perm * evolveMult);
+                    msg = `💊 **Thần Dược Tăng ATK!** Đạo hữu uống **${item.name}${isEvolved ? ' (Biến Dị 🧬)' : ''}**, khí lực tung hoành kinh mạch, tăng vĩnh viễn **+${amount}** Công Kích cơ bản (Hiện có: **${user.base_atk + amount}** ATK)!`;
                 }
                 else if (stats.add_def_perm) {
                     field = 'base_def';
-                    amount = stats.add_def_perm;
-                    msg = `💊 **Thần Dược Tăng DEF!** Đạo hữu uống **${item.name}**, linh lực ngưng tụ hộ thể, tăng vĩnh viễn **+${amount}** Phòng Ngự cơ bản (Hiện có: **${user.base_def + amount}** DEF)!`;
+                    amount = Math.round(stats.add_def_perm * evolveMult);
+                    msg = `💊 **Thần Dược Tăng DEF!** Đạo hữu uống **${item.name}${isEvolved ? ' (Biến Dị 🧬)' : ''}**, linh lực ngưng tụ hộ thể, tăng vĩnh viễn **+${amount}** Phòng Ngự cơ bản (Hiện có: **${user.base_def + amount}** DEF)!`;
                 }
                 database_1.default.transaction(() => {
                     UserRepository_1.userRepository.update(userId, { [field]: user[field] + amount });

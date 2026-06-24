@@ -47,11 +47,12 @@ class FarmingService {
                     let newNutrition = plot.nutrition;
                     let newPests = plot.pests;
                     if (hours > 0) {
-                        newMoisture = Math.max(0, plot.moisture - hours);
-                        newNutrition = Math.max(0, plot.nutrition - hours);
-                        // Mỗi giờ trôi qua có 15% cơ hội xuất hiện sâu bệnh (nếu chưa có)
+                        // ponytail: tăng decay từ 1→2/giờ, tăng pest từ 15%→25%/giờ để giảm farming profit
+                        newMoisture = Math.max(0, plot.moisture - hours * 2);
+                        newNutrition = Math.max(0, plot.nutrition - hours * 2);
+                        // Mỗi giờ trôi qua có 25% cơ hội xuất hiện sâu bệnh (nếu chưa có)
                         for (let h = 0; h < hours; h++) {
-                            if (newPests === 0 && Math.random() < 0.15) {
+                            if (newPests === 0 && Math.random() < 0.25) {
                                 newPests = 1;
                             }
                         }

@@ -42,7 +42,7 @@ class NgoTinhService {
     const now = Math.floor(Date.now() / 1000);
     const buffs = db.prepare(
       'SELECT buff_id, expires_at FROM user_buffs WHERE user_id = ? AND expires_at > ?'
-    ).all(userId) as { buff_id: string; expires_at: number }[];
+    ).all(userId, now) as { buff_id: string; expires_at: number }[];
 
     return buffs.map(b => ({
       buffId: b.buff_id,

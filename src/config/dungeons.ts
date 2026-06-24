@@ -115,6 +115,7 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
         { itemId: ITEMS.ARMOR_ROBE_3, rate: 0.20, quantity: 1 },     // 20% Thăng Quang Huyền Giáp (Epic)
         { itemId: ITEMS.PILL_BREAK_1, rate: 0.40, quantity: 2 },     // 40% x2 trúc cơ đan
         { itemId: ITEMS.TALISMAN_SPEED_1, rate: 0.50, quantity: 2 }, // 50% x2 Thần Hành Phù
+        { itemId: ITEMS.SEED_VOID_HERB, rate: 0.20, quantity: 1 },   // 20% hạt hư không thảo
       ]
     }
   }

@@ -190,5 +190,80 @@ exports.RECIPES = {
             quantity: 1
         },
         description: 'Huyền giáp ngưng tụ thần quang bảo vệ nguyên thần, tăng +100 Phòng Thủ và +300 Sinh Lực.'
+    },
+    // ponytail: thêm 4 recipe end-game để rèn không bị lỗi thời
+    recipe_weapon_sword_a: {
+        id: 'recipe_weapon_sword_a',
+        name: 'Huyền Linh Kiếm [A]',
+        type: 'forging',
+        minLevel: 120,
+        duration: 600,
+        cost: 2000,
+        ingredients: [
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 20 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_BLOOD_FLOWER, quantity: 10 }
+        ],
+        product: {
+            itemId: itemConstants_1.ITEMS.WEAPON_SWORD_A,
+            quantity: 1
+        },
+        description: 'Linh kiếm huyền cấp giai thoại, khắc trận pháp ngũ hành tương sinh, +300 Công Kích.'
+    },
+    recipe_armor_robe_a: {
+        id: 'recipe_armor_robe_a',
+        name: 'Tử Vi Huyền Giáp [A]',
+        type: 'forging',
+        minLevel: 120,
+        duration: 600,
+        cost: 2000,
+        ingredients: [
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 15 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_VOID_HERB, quantity: 10 }
+        ],
+        product: {
+            itemId: itemConstants_1.ITEMS.ARMOR_ROBE_A,
+            quantity: 1
+        },
+        description: 'Đạo bào tẩm linh huyết Tử Vi tinh quân, +200 Phòng Thủ, +500 HP.'
+    },
+    recipe_weapon_sword_s: {
+        id: 'recipe_weapon_sword_s',
+        name: 'Phá Quân Thương [S]',
+        type: 'forging',
+        minLevel: 200,
+        duration: 1200,
+        cost: 5000,
+        ingredients: [
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 15 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 50 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_WIND_LEAF, quantity: 15 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NGODONG, quantity: 10 }
+        ],
+        product: {
+            itemId: itemConstants_1.ITEMS.WEAPON_SWORD_S,
+            quantity: 1
+        },
+        description: 'Thần thương chí tôn Phá Quân, một thương khai thiên tích địa, +550 Công Kích, +8% Bạo Kích.'
+    },
+    recipe_armor_robe_s: {
+        id: 'recipe_armor_robe_s',
+        name: 'Bất Diệt Hoàng Giáp [S]',
+        type: 'forging',
+        minLevel: 200,
+        duration: 1200,
+        cost: 5000,
+        ingredients: [
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 15 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 40 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TUYET_LIEN, quantity: 15 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINGZHI, quantity: 10 }
+        ],
+        product: {
+            itemId: itemConstants_1.ITEMS.ARMOR_ROBE_S,
+            quantity: 1
+        },
+        description: 'Thần giáp bất diệt bảo hộ tính mạng chủ nhân, +350 Phòng Thủ, +1000 HP.'
     }
 };
