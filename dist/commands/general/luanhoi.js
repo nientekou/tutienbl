@@ -5,14 +5,14 @@ exports.getLuanHoiComponents = getLuanHoiComponents;
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
-const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 function getLuanHoiEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
-        return new discord_js_1.EmbedBuilder()
-            .setTitle('🌌 LUÂN HỒI CHUYỂN THẾ')
-            .setColor(uiSystem_1.EMBED_COLORS.REINCARNATION)
-            .setDescription('Chưa khởi tạo nhân vật.');
+        return (0, v2Components_1.container)(0x8E44AD, [
+            (0, v2Components_1.header)('🌌 LUÂN HỒI CHUYỂN THẾ'),
+            (0, v2Components_1.body)('Chưa khởi tạo nhân vật.'),
+        ]);
     }
     const currentLuanHoi = user.luan_hoi_count || 0;
     const desc = `🌌 **CƠ DUYÊN NGHỊCH THIÊN CHUYỂN THẾ LUÂN HỒI**\n\n` +
@@ -26,12 +26,12 @@ function getLuanHoiEmbed(userId) {
         `- ☯️ Tẩy tủy nhận một Linh Căn mới ngẫu nhiên.\n\n` +
         `⚠️ **Lưu Ý:** Tu vi và Cảnh giới sẽ được reset về **Luyện Khí Kỳ - Tầng 1 (Cấp 1)**. Đạo hữu có muốn nghịch thiên cải mệnh, đi vào Luân Hồi?`;
     const isEligible = user.level >= 380;
-    return new discord_js_1.EmbedBuilder()
-        .setTitle(`🌌 LUÂN HỒI CHUYỂN THẾ - ${user.name}`)
-        .setColor(isEligible ? '#9b59b6' : '#95a5a6')
-        .setDescription(desc)
-        .setFooter({ text: isEligible ? 'Nhấn nút phía dưới để xác nhận đi vào Luân Hồi đại trận!' : 'Hãy tiếp tục tu luyện đạt Đăng Tiên Kỳ Đại Viên Mãn!' })
-        .setTimestamp();
+    return (0, v2Components_1.container)(isEligible ? 0x9b59b6 : 0x95a5a6, [
+        (0, v2Components_1.header)(`🌌 LUÂN HỒI CHUYỂN THẾ - ${user.name}`),
+        (0, v2Components_1.body)(desc),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)(isEligible ? 'Nhấn nút phía dưới để xác nhận đi vào Luân Hồi đại trận!' : 'Hãy tiếp tục tu luyện đạt Đăng Tiên Kỳ Đại Viên Mãn!'),
+    ]);
 }
 function getLuanHoiComponents(userId, isEligible) {
     return new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
@@ -58,9 +58,9 @@ class LuanHoiCommand extends Command_1.Command {
             });
             return;
         }
-        const embed = getLuanHoiEmbed(discordId);
+        const comp = getLuanHoiEmbed(discordId);
         const row = getLuanHoiComponents(discordId, user.level >= 380);
-        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
+        await interaction.editReply({ components: [comp, row], flags: v2Components_1.V2_FLAG });
     }
 }
 exports.default = LuanHoiCommand;

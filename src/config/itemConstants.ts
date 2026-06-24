@@ -218,3 +218,14 @@ export function isSeedId(itemId: string): boolean {
 export function isPhoiId(itemId: string): boolean {
   return itemId.startsWith('phoi_');
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// BIG UPDATE: New items
+// ═══════════════════════════════════════════════════════════════════
+export const ITEMS_RARE_FIRE_MATERIAL = 'material_rare_fire_shard';
+export const ITEMS_BEAST_EGG = 'item_beast_egg';
+export const ITEMS_TALISMAN_KY_NGO = 'talisman_ky_ngo';
+export const ITEMS_PILL_NGU_LON = 'pill_ngu_lon';
+export const ITEMS_PILL_BREAK_ANTI_LOI = 'pill_anti_loi_2';
+export const ITEMS_FIRE_CORE = 'material_fire_core';
+export const ITEMS_BEAST_FOOD = 'material_beast_food';

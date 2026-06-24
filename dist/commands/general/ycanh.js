@@ -5,14 +5,14 @@ exports.getYCanhComponents = getYCanhComponents;
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
-const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 function getYCanhEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
-        return new discord_js_1.EmbedBuilder()
-            .setTitle('🔮 CẢNH GIỚI Ý CẢNH')
-            .setColor(uiSystem_1.EMBED_COLORS.REINCARNATION)
-            .setDescription('Chưa khởi tạo nhân vật.');
+        return (0, v2Components_1.container)(0x8E44AD, [
+            (0, v2Components_1.header)('🔮 CẢNH GIỚI Ý CẢNH'),
+            (0, v2Components_1.body)('Chưa khởi tạo nhân vật.'),
+        ]);
     }
     let yCanhMap = {};
     try {
@@ -29,25 +29,19 @@ function getYCanhEmbed(userId) {
         `🪙 **Linh Thạch Hạ Phẩm:** \`${user.coin_ha_pham}\` viên\n\n` +
         `*Yêu cầu Ngộ Ý Cảnh:* Tiêu hao **5** Ngộ Tính (ưu tiên) hoặc **500** Linh Thạch Hạ Phẩm.\n` +
         `*(Ngộ tính nhận được khi Thiền Định hoặc chinh phục Bí Cảnh/World Boss)*\n`;
-    return new discord_js_1.EmbedBuilder()
-        .setTitle(`🔮 THÁP Ý CẢNH & ĐẠO QUẢ - ${user.name}`)
-        .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
-        .setDescription(desc)
-        .addFields({
-        name: `⚔️ Kiếm Ý (Cấp ${kiemY}/10)`,
-        value: kiemY > 0 ? `Buff **+${kiemY * 3}%** base Công Kích.` : '`Chưa thức tỉnh` *(+3% Công Kích mỗi cấp)*',
-        inline: false
-    }, {
-        name: `🩸 Bất Diệt Ý (Cấp ${batDietY}/10)`,
-        value: batDietY > 0 ? `Buff **+${batDietY * 3}%** base Sinh Lực.` : '`Chưa thức tỉnh` *(+3% Sinh Lực mỗi cấp)*',
-        inline: false
-    }, {
-        name: `🛡️ Huyền Quy Ý (Cấp ${huyenQuyY}/10)`,
-        value: huyenQuyY > 0 ? `Buff **+${huyenQuyY * 3}%** base Phòng Thủ.` : '`Chưa thức tỉnh` *(+3% Phòng Thủ mỗi cấp)*',
-        inline: false
-    })
-        .setFooter({ text: 'Ý Cảnh đạt cấp tối đa 10 sẽ được hoàn trả tài nguyên khi quay trúng.' })
-        .setTimestamp();
+    return (0, v2Components_1.container)(0x9b59b6, [
+        (0, v2Components_1.header)(`🔮 THÁP Ý CẢNH & ĐẠO QUẢ - ${user.name}`),
+        (0, v2Components_1.body)(desc),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)(`⚔️ Kiếm Ý (Cấp ${kiemY}/10)\n` +
+            (kiemY > 0 ? `Buff **+${kiemY * 3}%** base Công Kích.` : '`Chưa thức tỉnh` *(+3% Công Kích mỗi cấp)*')),
+        (0, v2Components_1.body)(`🩸 Bất Diệt Ý (Cấp ${batDietY}/10)\n` +
+            (batDietY > 0 ? `Buff **+${batDietY * 3}%** base Sinh Lực.` : '`Chưa thức tỉnh` *(+3% Sinh Lực mỗi cấp)*')),
+        (0, v2Components_1.body)(`🛡️ Huyền Quy Ý (Cấp ${huyenQuyY}/10)\n` +
+            (huyenQuyY > 0 ? `Buff **+${huyenQuyY * 3}%** base Phòng Thủ.` : '`Chưa thức tỉnh` *(+3% Phòng Thủ mỗi cấp)*')),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)('Ý Cảnh đạt cấp tối đa 10 sẽ được hoàn trả tài nguyên khi quay trúng.'),
+    ]);
 }
 function getYCanhComponents(userId) {
     return new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
@@ -70,9 +64,9 @@ class YCanhCommand extends Command_1.Command {
             });
             return;
         }
-        const embed = getYCanhEmbed(discordId);
+        const comp = getYCanhEmbed(discordId);
         const row = getYCanhComponents(discordId);
-        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
+        await interaction.editReply({ components: [comp, row], flags: v2Components_1.V2_FLAG });
     }
 }
 exports.default = YCanhCommand;

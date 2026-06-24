@@ -13,6 +13,7 @@ const database_1 = __importDefault(require("../../database/database"));
 const config_1 = require("../../config");
 const constants_1 = require("../../utils/constants");
 const uiSystem_1 = require("../../utils/uiSystem");
+const NoituService_1 = require("../../services/NoituService");
 /**
  * ID Discord của Bot Owner — người DUY NHẤT được phép dùng lệnh /admin
  * Không phân quyền qua guild admin roles để tránh mất cân bằng game
@@ -198,7 +199,25 @@ class AdminCommand extends Command_1.Command {
             .addStringOption(option => option
             .setName('tuser')
             .setDescription('ID người chơi cần kiểm tra.')
-            .setRequired(true))));
+            .setRequired(true)))
+            .addSubcommand(subcommand => subcommand
+            .setName('noitu_ds')
+            .setDescription('[Owner Only] Danh sách từ đóng góp Nối Từ đang chờ duyệt'))
+            .addSubcommand(subcommand => subcommand
+            .setName('noitu_duyettatca')
+            .setDescription('[Owner Only] Duyệt tất cả từ đóng góp Nối Từ đang chờ'))
+            .addSubcommand(subcommand => subcommand
+            .setName('noitu_duyet')
+            .setDescription('[Owner Only] Duyệt hoặc từ chối từ đóng góp Nối Từ')
+            .addIntegerOption(option => option
+            .setName('id')
+            .setDescription('ID của từ trong danh sách chờ')
+            .setRequired(true))
+            .addStringOption(option => option
+            .setName('action')
+            .setDescription('Duyệt hay từ chối?')
+            .setRequired(true)
+            .addChoices({ name: '✅ Duyệt', value: 'approve' }, { name: '❌ Từ chối', value: 'reject' }))));
     }
     async execute(client, interaction) {
         const userId = interaction.user.id;
@@ -934,6 +953,58 @@ class AdminCommand extends Command_1.Command {
                 (equipDetails || '*Không có trang bị*'))
                 .setTimestamp();
             await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
+            return;
+        }
+        // ─── NỐI TỪ: DANH SÁCH TỪ CHỜ DUYỆT ────────────────────────
+        if (subcommand === 'noitu_ds') {
+            const totalWords = NoituService_1.noituService.getWordCount();
+            const pending = NoituService_1.noituService.getPendingSuggestions();
+            const pendingCount = pending.length;
+            if (pendingCount === 0) {
+                await interaction.editReply({
+                    content: `📖 **Từ điển Nối Từ** hiện có **${totalWords}** từ.\n✅ Không có từ nào đang chờ duyệt.`
+                });
+                return;
+            }
+            const lines = pending.slice(0, 20).map(s => `\`#${s.id}\` **${s.word}** — <@${s.suggested_by}> — <t:${s.suggested_at}:R>`);
+            if (pendingCount > 20)
+                lines.push(`*... và ${pendingCount - 20} từ nữa*`);
+            const embed = new discord_js_1.EmbedBuilder()
+                .setTitle('📝 TỪ ĐÓNG GÓP CHỜ DUYỆT')
+                .setColor(uiSystem_1.EMBED_COLORS.WARNING)
+                .setDescription(`📖 Từ điển: **${totalWords}** từ\n` +
+                `⏳ Chờ duyệt: **${pendingCount}** từ\n\n` +
+                lines.join('\n'))
+                .setFooter({ text: `Dùng /admin noitu_duyet để duyệt hoặc từ chối` })
+                .setTimestamp();
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
+            return;
+        }
+        // ─── NỐI TỪ: DUYỆT TẤT CẢ ────────────────────────────────
+        if (subcommand === 'noitu_duyettatca') {
+            const count = NoituService_1.noituService.bulkApproveSuggestions(userId);
+            if (count === 0) {
+                await interaction.editReply({ content: '✅ Không có từ nào đang chờ duyệt.' });
+                return;
+            }
+            await interaction.editReply({ content: `✅ Đã duyệt **${count}** từ. Cảm ơn đạo hữu!` });
+            return;
+        }
+        // ─── NỐI TỪ: DUYỆT / TỪ CHỐI TỪ ───────────────────────────
+        if (subcommand === 'noitu_duyet') {
+            const id = interaction.options.getInteger('id', true);
+            const action = interaction.options.getString('action', true);
+            const result = NoituService_1.noituService.reviewSuggestion(id, action, userId);
+            if (result === 'not_found') {
+                await interaction.editReply({ content: `❌ Không tìm thấy từ có ID **#${id}**.` });
+                return;
+            }
+            if (result === 'already_reviewed') {
+                await interaction.editReply({ content: `ℹ️ Từ **#${id}** đã được duyệt/từ chối trước đó.` });
+                return;
+            }
+            const label = action === 'approve' ? '✅ Đã duyệt' : '❌ Đã từ chối';
+            await interaction.editReply({ content: `${label} từ **#${id}**.` });
             return;
         }
     }

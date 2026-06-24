@@ -12,6 +12,8 @@ export interface WorldBossEntity {
   last_spawned_at: number;
   defeated_at: number | null;
   defeated_by: string | null;
+  phase: number;
+  current_weakness: string;
 }
 
 export interface PetEntity {

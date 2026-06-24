@@ -9,6 +9,7 @@ const ArenaService_1 = require("../../services/ArenaService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const database_1 = __importDefault(require("../../database/database"));
 const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 class ArenaCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -61,14 +62,22 @@ class ArenaCommand extends Command_1.Command {
                 }
                 catch (e) { }
             }
-            const embed = new discord_js_1.EmbedBuilder()
-                .setTitle(`⚔️ Hồ Sơ Đấu Trường: ${targetProfile.name}`)
-                .setDescription(shieldText || null)
-                .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
-                .addFields({ name: '🏆 Điểm ELO', value: `**${profile.elo}**`, inline: true }, { name: '🔥 Chuỗi Thắng', value: `${profile.win_streak}`, inline: true }, { name: '📈 ELO Kỷ Lục', value: `${profile.highest_elo}`, inline: true }, { name: '⚔️ Trận Đấu', value: `Thắng: ${profile.wins} | Thua: ${profile.losses}`, inline: true }, { name: '📊 Tỉ Lệ Thắng', value: `${winRate}%`, inline: true }, { name: '🏅 Xếp Hạng Mùa Trước', value: profile.last_season_rank > 0 ? `#${profile.last_season_rank}` : 'Chưa xếp hạng', inline: true })
-                .setThumbnail(targetUser.displayAvatarURL())
-                .setFooter({ text: `Mùa Giải: ${profile.season_id}` });
-            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
+            const comp = (0, v2Components_1.container)(v2Components_1.V2_COLORS.warning, [
+                (0, v2Components_1.header)(`⚔️ Hồ Sơ Đấu Trường: ${targetProfile.name}`),
+                ...(shieldText ? [(0, v2Components_1.body)(shieldText)] : []),
+                (0, v2Components_1.separator)(),
+                (0, v2Components_1.body)([
+                    (0, v2Components_1.statLine)('🏆 Điểm ELO', `**${profile.elo}**`),
+                    (0, v2Components_1.statLine)('🔥 Chuỗi Thắng', `${profile.win_streak}`),
+                    (0, v2Components_1.statLine)('📈 ELO Kỷ Lục', `${profile.highest_elo}`),
+                    (0, v2Components_1.statLine)('⚔️ Trận Đấu', `Thắng: ${profile.wins} | Thua: ${profile.losses}`),
+                    (0, v2Components_1.statLine)('📊 Tỉ Lệ Thắng', `${winRate}%`),
+                    (0, v2Components_1.statLine)('🏅 Xếp Hạng Mùa Trước', profile.last_season_rank > 0 ? `#${profile.last_season_rank}` : 'Chưa xếp hạng'),
+                ].join('\n')),
+                (0, v2Components_1.separator)(),
+                (0, v2Components_1.body)(`Mùa Giải: ${profile.season_id}`),
+            ]);
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([comp]));
         }
         else if (subcommand === 'find') {
             const opponentId = ArenaService_1.arenaService.getMatchmaking(userId);
@@ -107,13 +116,18 @@ class ArenaCommand extends Command_1.Command {
             else {
                 resultText = `💀 **THẤT BẠI!** Đạo hữu đã gục ngã trước **${oUser.name}**.\n📉 **ELO:** ${oldChallengerProfile.elo} ➔ **${newChallengerProfile.elo}** (${eloDiff})`;
             }
-            const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('⚔️ KẾT QUẢ ĐẤU TRƯỜNG')
-                .setDescription(`**${user.name}** (ELO: ${oldChallengerProfile.elo}) 🆚 **${oUser.name}** (ELO: ${oldOpponentProfile.elo})\n\n${resultText}`)
-                .setColor(isWin ? uiSystem_1.EMBED_COLORS.SUCCESS : uiSystem_1.EMBED_COLORS.ERROR)
-                .addFields({ name: 'Trận chiến kéo dài', value: `${matchResult.result.rounds} hiệp`, inline: true }, { name: 'Tổng sát thương', value: `${matchResult.result.totalDamageDealt}`, inline: true })
-                .setFooter({ text: 'Chi tiết trận đấu được đính kèm trong file.' });
-            await interaction.editReply({ ...(0, uiSystem_1.toV2Payload)([embed]), files: [attachment] });
+            const comp = (0, v2Components_1.container)(isWin ? v2Components_1.V2_COLORS.success : v2Components_1.V2_COLORS.danger, [
+                (0, v2Components_1.header)('⚔️ KẾT QUẢ ĐẤU TRƯỜNG'),
+                (0, v2Components_1.body)(`**${user.name}** (ELO: ${oldChallengerProfile.elo}) 🆚 **${oUser.name}** (ELO: ${oldOpponentProfile.elo})\n\n${resultText}`),
+                (0, v2Components_1.separator)(),
+                (0, v2Components_1.body)([
+                    (0, v2Components_1.statLine)('Trận chiến kéo dài', `${matchResult.result.rounds} hiệp`),
+                    (0, v2Components_1.statLine)('Tổng sát thương', `${matchResult.result.totalDamageDealt}`),
+                ].join('\n')),
+                (0, v2Components_1.separator)(),
+                (0, v2Components_1.body)('Chi tiết trận đấu được đính kèm trong file.'),
+            ]);
+            await interaction.editReply({ ...(0, uiSystem_1.toV2Payload)([comp]), files: [attachment] });
         }
         else if (subcommand === 'top') {
             const topPlayers = ArenaService_1.arenaService.getLeaderboard(10);
@@ -121,9 +135,6 @@ class ArenaCommand extends Command_1.Command {
                 await interaction.editReply({ content: '📭 Bảng xếp hạng Đấu Trường hiện tại trống rỗng.' });
                 return;
             }
-            const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('🏆 BẢNG XẾP HẠNG ĐẤU TRƯỜNG (TOP 10)')
-                .setColor(uiSystem_1.EMBED_COLORS.GOLD);
             let description = '';
             topPlayers.forEach((p, index) => {
                 let rankIcon = '🏅';
@@ -136,8 +147,11 @@ class ArenaCommand extends Command_1.Command {
                 description += `**${rankIcon} #${index + 1}** | **${p.name}**\n`;
                 description += `└─ 🏆 ELO: **${p.elo}** | ⚔️ W/L: ${p.wins}/${p.losses} | 🔥 Chuỗi: ${p.win_streak}\n\n`;
             });
-            embed.setDescription(description);
-            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
+            const comp = (0, v2Components_1.container)(v2Components_1.V2_COLORS.gold, [
+                (0, v2Components_1.header)('🏆 BẢNG XẾP HẠNG ĐẤU TRƯỜNG (TOP 10)'),
+                (0, v2Components_1.body)(description),
+            ]);
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([comp]));
         }
         else if (subcommand === 'history') {
             const history = database_1.default.prepare(`
@@ -150,9 +164,6 @@ class ArenaCommand extends Command_1.Command {
                 await interaction.editReply({ content: '📭 Đạo hữu chưa tham gia trận đấu nào.' });
                 return;
             }
-            const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('📜 Lịch Sử Đấu Trường (5 Trận Gần Nhất)')
-                .setColor(uiSystem_1.EMBED_COLORS.MYSTIC);
             let desc = '';
             for (const h of history) {
                 const isChallenger = h.challenger_id === userId;
@@ -165,8 +176,11 @@ class ArenaCommand extends Command_1.Command {
                 const timeStr = `<t:${h.created_at}:R>`;
                 desc += `**${resultIcon}** vs **${oName}** (${eloMod} ELO) - ${timeStr}\n`;
             }
-            embed.setDescription(desc);
-            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
+            const comp = (0, v2Components_1.container)(v2Components_1.V2_COLORS.mystic, [
+                (0, v2Components_1.header)('📜 Lịch Sử Đấu Trường (5 Trận Gần Nhất)'),
+                (0, v2Components_1.body)(desc),
+            ]);
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([comp]));
         }
     }
 }

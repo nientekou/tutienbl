@@ -5,7 +5,7 @@ const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const BlacksmithService_1 = require("../../services/BlacksmithService");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
-const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 class LoRenCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -45,12 +45,11 @@ class LoRenCommand extends Command_1.Command {
             }
             const result = BlacksmithService_1.blacksmithService.refineItem(userId, invRow.id);
             if (result.success) {
-                const embed = new discord_js_1.EmbedBuilder()
-                    .setTitle('🔨 Tinh Luyện Trang Bị')
-                    .setColor(uiSystem_1.EMBED_COLORS.GOLD)
-                    .setDescription(result.message)
-                    .setTimestamp();
-                await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
+                const comp = (0, v2Components_1.container)(v2Components_1.V2_COLORS.gold, [
+                    (0, v2Components_1.header)('🔨 Tinh Luyện Trang Bị'),
+                    (0, v2Components_1.body)(result.message),
+                ]);
+                await interaction.editReply({ components: [comp], flags: v2Components_1.V2_FLAG });
             }
             else {
                 await interaction.editReply({ content: result.message });

@@ -282,11 +282,11 @@ export function embedToV2(embed: EmbedBuilder): ContainerBuilder {
 
 /** Convert `{ embeds, components }` to V2 message create payload (includes V2 flag). */
 export function toV2Payload(
-  embeds: EmbedBuilder[],
+  embeds: (EmbedBuilder | ContainerBuilder)[],
   rows?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
   extraFlags?: number,
 ): { components: any[]; flags: number } {
-  return { components: [...embeds.map(embedToV2), ...(rows ?? [])], flags: V2_FLAG | (extraFlags ?? 0) };
+  return { components: [...embeds.map(e => e instanceof ContainerBuilder ? e : embedToV2(e)), ...(rows ?? [])], flags: V2_FLAG | (extraFlags ?? 0) };
 }
 
 /** Build a V2 Container holding only a plain text line. Used for text-only V2
@@ -320,11 +320,11 @@ export function toV2TextUpdate(text: string): { components: any[] } {
  *  Pass the interaction as 3rd param for type compat, ignored at runtime.
  */
 export function toV2Update(
-  embeds: EmbedBuilder[],
+  embeds: (EmbedBuilder | ContainerBuilder)[],
   rows?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
   _source?: unknown,
 ): { components: any[]; flags: number } {
-  return { components: [...embeds.map(embedToV2), ...(rows ?? [])], flags: V2_FLAG };
+  return { components: [...embeds.map(e => e instanceof ContainerBuilder ? e : embedToV2(e)), ...(rows ?? [])], flags: V2_FLAG };
 }
 
 /** Legacy update payload — works with interaction.update() which can't use V2. */
@@ -344,10 +344,10 @@ export function toLegacyUpdate(
  */
 export async function safeV2Update(
   interaction: { client: any; id: string; token: string },
-  embeds: EmbedBuilder[],
+  embeds: (EmbedBuilder | ContainerBuilder)[],
   rows?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
 ): Promise<void> {
-  const components = [...embeds.map(embedToV2), ...(rows ?? [])];
+  const components = [...embeds.map(e => e instanceof ContainerBuilder ? e : embedToV2(e)), ...(rows ?? [])];
   await interaction.client.rest.post(
     Routes.interactionCallback(interaction.id, interaction.token),
     { body: { type: 7, data: { components, flags: V2_FLAG } } }

@@ -50,43 +50,55 @@ class CuuTrungCommand extends Command_1.Command {
                 });
                 const collector = msg.createMessageComponentCollector({ componentType: discord_js_1.ComponentType.Button, time: 30000 });
                 collector.on('collect', async (i) => {
-                    if (i.user.id !== userId) {
-                        await i.reply({ content: '❌ Đạo hữu không phải là người gọi lệnh!' });
-                        return;
-                    }
-                    if (i.customId === 'buy_and_fight_cuutrung') {
-                        await i.deferUpdate();
-                        const buyRes = NineHeavensService_1.nineHeavensService.enterFloorChallenge(userId, true);
-                        if (buyRes.success && buyRes.combatResult) {
-                            const attachment = new discord_js_1.AttachmentBuilder(Buffer.from(buyRes.combatResult.log.join('\n'), 'utf-8'), { name: `cuutrung_tang_${nextFloor}.txt` });
-                            const embed = new discord_js_1.EmbedBuilder()
-                                .setTitle(`⚔️ CHIẾN BÁO CỬU TRÙNG THÁP - TẦNG ${nextFloor}`)
-                                .setTimestamp();
-                            if (buyRes.combatResult.winner === 'player') {
-                                embed.setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
-                                    .setDescription((nextFloor === 5
-                                    ? `💔 **TUYỆT CẢNH SINH TỬ!** Đạo hữu đã vượt qua thử thách với chỉ **1 HP** và đánh bại **${floorConfig.name}**! Một chiến tích hiếm có!\n\n`
-                                    : nextFloor === 9
-                                        ? `👑 **CỬU TRÙNG ĐỈNH!** Đạo hữu đã chinh phục đỉnh cao Cửu Trùng Tháp, đánh bại **${floorConfig.name}**! Danh hiệu **Thiên Trụ** đã thuộc về ngươi!\n\n`
-                                        : `🎉 **Chiến thắng vẻ vang!** Đạo hữu đã đả bại **${floorConfig.name}** ở tầng ${nextFloor}!\n\n`) +
-                                    `${buyRes.rewardsLog}`);
+                    try {
+                        if (i.user.id !== userId) {
+                            await i.reply({ content: '❌ Đạo hữu không phải là người gọi lệnh!', ephemeral: true });
+                            return;
+                        }
+                        if (i.customId === 'buy_and_fight_cuutrung') {
+                            const buyRes = NineHeavensService_1.nineHeavensService.enterFloorChallenge(userId, true);
+                            if (buyRes.success && buyRes.combatResult) {
+                                const attachment = new discord_js_1.AttachmentBuilder(Buffer.from(buyRes.combatResult.log.join('\n'), 'utf-8'), { name: `cuutrung_tang_${nextFloor}.txt` });
+                                const embed = new discord_js_1.EmbedBuilder()
+                                    .setTitle(`⚔️ CHIẾN BÁO CỬU TRÙNG THÁP - TẦNG ${nextFloor}`)
+                                    .setTimestamp();
+                                if (buyRes.combatResult.winner === 'player') {
+                                    embed.setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
+                                        .setDescription((nextFloor === 5
+                                        ? `💔 **TUYỆT CẢNH SINH TỬ!** Đạo hữu đã vượt qua thử thách với chỉ **1 HP** và đánh bại **${floorConfig.name}**! Một chiến tích hiếm có!\n\n`
+                                        : nextFloor === 9
+                                            ? `👑 **CỬU TRÙNG ĐỈNH!** Đạo hữu đã chinh phục đỉnh cao Cửu Trùng Tháp, đánh bại **${floorConfig.name}**! Danh hiệu **Thiên Trụ** đã thuộc về ngươi!\n\n`
+                                            : `🎉 **Chiến thắng vẻ vang!** Đạo hữu đã đả bại **${floorConfig.name}** ở tầng ${nextFloor}!\n\n`) +
+                                        `${buyRes.rewardsLog}`);
+                                }
+                                else {
+                                    embed.setColor(uiSystem_1.EMBED_COLORS.ERROR)
+                                        .setDescription(nextFloor === 5
+                                        ? `💔 **TUYỆT CẢNH SINH TỬ!** Chỉ với **1 HP**, đạo hữu đã không thể xoay chuyển tình thế trước **${floorConfig.name}** ở tầng ${nextFloor}.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`
+                                        : nextFloor === 9
+                                            ? `👑 **CỬU TRÙNG ĐỈNH!** Đạo hữu suýt chạm tới đỉnh cao nhưng đã gục ngã trước **${floorConfig.name}** ở tầng ${nextFloor}. Hãy tu luyện thêm và thử lại!`
+                                            : `💀 **Bại trận!** Thần thức của đạo hữu đã bị trục xuất khỏi Cửu Trùng Tháp sau **${buyRes.combatResult.rounds}** hiệp đấu.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`);
+                                }
+                                // Use message.edit to avoid discord.js injecting content:undefined with V2 flag
+                                await i.message.edit({ ...(0, uiSystem_1.toV2Payload)([embed]), files: [attachment] });
                             }
                             else {
-                                embed.setColor(uiSystem_1.EMBED_COLORS.ERROR)
-                                    .setDescription(nextFloor === 5
-                                    ? `💔 **TUYỆT CẢNH SINH TỬ!** Chỉ với **1 HP**, đạo hữu đã không thể xoay chuyển tình thế trước **${floorConfig.name}** ở tầng ${nextFloor}.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`
-                                    : nextFloor === 9
-                                        ? `👑 **CỬU TRÙNG ĐỈNH!** Đạo hữu suýt chạm tới đỉnh cao nhưng đã gục ngã trước **${floorConfig.name}** ở tầng ${nextFloor}. Hãy tu luyện thêm và thử lại!`
-                                        : `💀 **Bại trận!** Thần thức của đạo hữu đã bị trục xuất khỏi Cửu Trùng Tháp sau **${buyRes.combatResult.rounds}** hiệp đấu.\n*Hãy tăng cường trang bị, tâm pháp và sủng vật để khiêu chiến lại!*`);
+                                await i.message.edit({ content: `❌ Có lỗi xảy ra: ${buyRes.message}`, components: [] });
                             }
-                            await i.editReply({ ...(0, uiSystem_1.toV2Payload)([embed]), files: [attachment] });
                         }
                         else {
-                            await i.editReply({ content: `❌ Có lỗi xảy ra: ${buyRes.message}`, components: [] });
+                            await i.message.edit({ content: '👍 Đạo hữu đã thu hồi quyết định khiêu chiến.', components: [] });
                         }
                     }
-                    else {
-                        await i.update({ content: '👍 Đạo hữu đã thu hồi quyết định khiêu chiến.', components: [] });
+                    catch (e) {
+                        console.error('[cuutrung] Lỗi xử lý button:', e?.message || e);
+                        // Fallback: try to respond if message edit failed
+                        try {
+                            if (!i.replied && !i.deferred) {
+                                await i.deferUpdate();
+                            }
+                        }
+                        catch { }
                     }
                 });
                 return;

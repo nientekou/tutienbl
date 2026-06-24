@@ -5,6 +5,7 @@ import { systemConfigService } from './SystemConfigService';
 import { leylineService } from './LeylineService';
 import { getRealmDetails } from '../utils/constants';
 import { achievementService } from './AchievementService';
+import { GAME_CONSTANTS } from '../config/gameConstants';
 
 export interface MarketListing {
   id: number;
@@ -235,10 +236,10 @@ class MarketService {
 
     const seller = userRepository.get(listing.seller_id);
     
-    // 2% thuế giao dịch, Leyline Buff Kinh Tế giảm 10% thuế
-    let taxRate = 0.02;
+    // Market tax from constants, Leyline Buff Kinh Te giam 10% thue
+    let taxRate = GAME_CONSTANTS.MARKET_TAX_RATE;
     if (leylineService.isBuffActive('kinhte')) {
-      taxRate = 0.018;
+      taxRate = taxRate * 0.9;
     }
     const tax = Math.round(listing.price * taxRate);
     const payout = listing.price - tax;
@@ -412,10 +413,10 @@ class MarketService {
       return;
     }
 
-    // 2% thuế giao dịch, Leyline Buff Kinh Tế giảm 10% thuế
-    let taxRate = 0.02;
+    // Market tax from constants, Leyline Buff Kinh Te giam 10% thue
+    let taxRate = GAME_CONSTANTS.MARKET_TAX_RATE;
     if (leylineService.isBuffActive('kinhte')) {
-      taxRate = 0.018;
+      taxRate = taxRate * 0.9;
     }
     const tax = Math.round(listing.current_bid! * taxRate);
     const payout = listing.current_bid! - tax;

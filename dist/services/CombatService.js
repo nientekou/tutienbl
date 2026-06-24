@@ -604,6 +604,28 @@ class CombatService {
         // Minimum damage: mỗi player gây ít nhất 0.5% HP boss
         const minDamage = Math.round(boss.max_hp * 0.005);
         damageDealt = Math.max(minDamage, damageDealt);
+        // === WORLD BOSS REWORK: Element counter bonus ===
+        try {
+            const { worldBossReworkService } = require('./WorldBossReworkService');
+            const bossWeakness = boss.current_weakness || 'Hỏa';
+            let playerElement = 'Vô';
+            if (playerCombatant.linhCan) {
+                try {
+                    const els = JSON.parse(playerCombatant.linhCan);
+                    let maxPct = 0;
+                    for (const [el, pct] of Object.entries(els)) {
+                        if (pct > maxPct) {
+                            maxPct = pct;
+                            playerElement = el;
+                        }
+                    }
+                }
+                catch { }
+            }
+            const usedElement = equippedSkills[0]?.element || playerElement;
+            damageDealt = worldBossReworkService.calculateDamageWithCounter(damageDealt, playerElement, bossWeakness, usedElement);
+        }
+        catch { }
         const newBossHp = Math.max(0, boss.hp - damageDealt);
         const isDefeated = newBossHp <= 0;
         // Cập nhật HP của World Boss
@@ -614,6 +636,17 @@ class CombatService {
         else {
             database_1.default.prepare("UPDATE world_boss SET hp = ? WHERE id = 'world_boss_current'").run(newBossHp);
         }
+        // === WORLD BOSS REWORK: Phase transition check ===
+        try {
+            const { worldBossReworkService } = require('./WorldBossReworkService');
+            const bossId = boss.id ?? 'world_boss_current';
+            worldBossReworkService.checkPhaseTransition(bossId);
+            const currentBoss = database_1.default.prepare("SELECT phase FROM world_boss WHERE id = 'world_boss_current'").get();
+            if (currentBoss?.phase) {
+                worldBossReworkService.recordPhaseDamage(userId, bossId, currentBoss.phase, damageDealt);
+            }
+        }
+        catch { }
         // Cập nhật đóng góp sát thương của người chơi
         const playerContrib = database_1.default.prepare("SELECT damage, attacks FROM world_boss_contributions WHERE user_id = ? AND boss_id = 'world_boss_current'")
             .get(userId);

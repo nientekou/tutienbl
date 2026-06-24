@@ -151,7 +151,7 @@ class TaoNhanVatCommand extends Command_1.Command {
         const filter = (i) => i.user.id === interaction.user.id && i.customId.startsWith('bg_');
         const collected = await replyMsg.awaitMessageComponent({ filter, componentType: discord_js_1.ComponentType.Button, time: 30000 }).catch(() => null);
         if (!collected) {
-            await interaction.editReply({ content: '⏰ Hết thời gian chọn. Hãy dùng lại lệnh /taonhanvat.', components: [] });
+            await interaction.editReply((0, uiSystem_1.toV2TextUpdate)('⏰ Hết thời gian chọn. Hãy dùng lại lệnh /taonhanvat.'));
             return null;
         }
         const idx = parseInt(collected.customId.split('_')[1], 10);
@@ -193,7 +193,7 @@ class TaoNhanVatCommand extends Command_1.Command {
         const filter2 = (i) => i.user.id === interaction.user.id && i.customId.startsWith('dest_');
         const collected = await replyMsg2.awaitMessageComponent({ filter: filter2, componentType: discord_js_1.ComponentType.Button, time: 30000 }).catch(() => null);
         if (!collected) {
-            await interaction.editReply({ content: '⏰ Hết thời gian chọn. Hãy dùng lại lệnh /taonhanvat.', components: [] });
+            await interaction.editReply((0, uiSystem_1.toV2TextUpdate)('⏰ Hết thời gian chọn. Hãy dùng lại lệnh /taonhanvat.'));
             return null;
         }
         const idx = parseInt(collected.customId.split('_')[1], 10);
@@ -287,7 +287,7 @@ class TaoNhanVatCommand extends Command_1.Command {
         }
         catch (error) {
             console.error('Lỗi tạo nhân vật:', error);
-            await interaction.editReply({ content: '❌ Lỗi hệ thống khi khai sinh nhân vật. Xin thử lại!', embeds: [], components: [] });
+            await interaction.editReply((0, uiSystem_1.toV2TextUpdate)('❌ Lỗi hệ thống khi khai sinh nhân vật. Xin thử lại!'));
         }
     }
 }

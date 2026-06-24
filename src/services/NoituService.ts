@@ -2,8 +2,7 @@ import { TuTienClient } from '../client/TuTienClient';
 import { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
 import { EMBED_COLORS, toV2Payload, safeV2Update } from '../utils/uiSystem';
 import { userRepository } from '../database/repositories/UserRepository';
-
-const API_BASE = 'https://dict.minhqnd.com/api/v1';
+import db from '../database/database';
 
 // ── Types ──
 
@@ -29,7 +28,6 @@ export interface NoituGameState {
 const TURN_TIME_MS = 3_600_000; // ponytail: 1 hour per turn (was 45s)
 const MAX_NO_ANSWER = 5;
 const WIN_REWARD = 500;
-const API_TIMEOUT_MS = 5_000;
 
 const STARTING_WORDS = [
   'mặt trời', 'mặt trăng', 'ngôi sao', 'bầu trời', 'gió mát',
@@ -131,22 +129,73 @@ if (!globalAny.__activeNoituGames) {
   globalAny.__activeNoituGames = new Map<string, NoituGameState>();
 }
 
-// ── API helpers ──
+// ── API sources cho từ điển mở rộng ──
+// ponytail: Thêm URL vào mảng này để mở rộng nguồn tra. Response parser (`isWordValid`) tự động nhận dạng
+//           { exists: boolean }, { valid: boolean }, hoặc array (tồn tại nếu length > 0).
+const API_SOURCES = [
+  'https://dict.minhqnd.com/api/v1/lookup?word=${word}&lang=vi',
+  'https://vietnamese-dictionary-api.vercel.app/api/search?word=${word}',
+  'https://freedictionaryapi.com/api/v1/entries/vi/${word}',
+  'https://api.dictionaryapi.dev/api/v2/entries/vi/${word}',
+];
 
-async function lookupWord(word: string): Promise<boolean> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-    const res = await fetch(`${API_BASE}/lookup?word=${encodeURIComponent(word)}&lang=vi`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!res.ok) return false;
-    const data: any = await res.json();
-    return data.exists === true;
-  } catch {
-    return false;
-  }
+// ── DB helpers ──
+
+function isValidWord(word: string): boolean {
+  const row = db.prepare('SELECT 1 FROM noitu_words WHERE word = ?').get(word.trim().toLowerCase());
+  return !!row;
+}
+
+function addWord(word: string, source: string): void {
+  db.prepare('INSERT OR IGNORE INTO noitu_words (word, source) VALUES (?, ?)').run(word.trim().toLowerCase(), source);
+}
+
+async function lookupExternal(word: string): Promise<boolean> {
+  const results = await Promise.allSettled(
+    API_SOURCES.map(url => {
+      const full = url.replace('${word}', encodeURIComponent(word));
+      return fetch(full, { signal: AbortSignal.timeout(5000) })
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => isWordValid(d));
+    })
+  );
+  return results.some(r => r.status === 'fulfilled' && r.value === true);
+}
+
+function isWordValid(data: unknown): boolean {
+  if (!data) return false;
+  if (Array.isArray(data)) return data.length > 0;
+  if (typeof data !== 'object') return false;
+  const d = data as Record<string, unknown>;
+  if (d.exists === true) return true;
+  if (d.valid === true) return true;
+  return false;
+}
+
+async function validateAndCache(word: string): Promise<boolean> {
+  const clean = word.trim().toLowerCase();
+  if (isValidWord(clean)) return true;
+  const valid = await lookupExternal(clean);
+  if (valid) addWord(clean, 'api_cache');
+  return valid;
+}
+
+export interface PendingSuggestion {
+  id: number;
+  word: string;
+  suggested_by: string;
+  suggested_at: number;
+}
+
+function moduleGetPendingSuggestions(): PendingSuggestion[] {
+  return db.prepare(
+    "SELECT id, word, suggested_by, suggested_at FROM noitu_word_suggestions WHERE status = 'pending' ORDER BY suggested_at ASC"
+  ).all() as PendingSuggestion[];
+}
+
+function moduleGetSuggestionCount(): number {
+  const row = db.prepare("SELECT COUNT(*) as c FROM noitu_word_suggestions WHERE status = 'pending'").get() as { c: number };
+  return row.c;
 }
 
 function giveReward(userId: string): void {
@@ -157,6 +206,65 @@ function giveReward(userId: string): void {
       userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham + WIN_REWARD });
     }
   } catch {}
+}
+
+// ── Word suggestion helpers ──
+
+export type SuggestResult = 'exists' | 'pending_exists' | 'submitted';
+
+function moduleSuggestWord(word: string, userId: string): SuggestResult {
+  const clean = word.trim().toLowerCase();
+  const syls = clean.split(/\s+/);
+  if (syls.length < 2) return 'submitted'; // `too_short` catches this before calling us
+
+  if (isValidWord(clean)) return 'exists';
+
+  const existing = db.prepare("SELECT status FROM noitu_word_suggestions WHERE word = ?").get(clean) as { status: string } | undefined;
+  if (existing) return 'pending_exists';
+
+  db.prepare(
+    'INSERT INTO noitu_word_suggestions (word, suggested_by, suggested_at) VALUES (?, ?, ?)'
+  ).run(clean, userId, Math.floor(Date.now() / 1000));
+
+  return 'submitted';
+}
+
+export type ReviewResult = 'approved' | 'rejected' | 'not_found' | 'already_reviewed';
+
+function moduleReviewSuggestion(id: number, action: 'approve' | 'reject', reviewerId: string): ReviewResult {
+  const suggestion = db.prepare('SELECT * FROM noitu_word_suggestions WHERE id = ?').get(id) as any;
+  if (!suggestion) return 'not_found';
+  if (suggestion.status !== 'pending') return 'already_reviewed';
+
+  if (action === 'approve') {
+    addWord(suggestion.word, 'suggested');
+  }
+
+  db.prepare(
+    'UPDATE noitu_word_suggestions SET status = ?, reviewed_by = ?, reviewed_at = ? WHERE id = ?'
+  ).run(action === 'approve' ? 'approved' : 'rejected', reviewerId, Math.floor(Date.now() / 1000), id);
+
+  return action === 'approve' ? 'approved' : 'rejected';
+}
+
+function moduleBulkApproveSuggestions(reviewerId: string): number {
+  const pending = db.prepare(
+    "SELECT id, word FROM noitu_word_suggestions WHERE status = 'pending'"
+  ).all() as { id: number; word: string }[];
+
+  if (pending.length === 0) return 0;
+
+  const now = Math.floor(Date.now() / 1000);
+  const tx = db.transaction(() => {
+    for (const s of pending) {
+      addWord(s.word, 'suggested');
+      db.prepare(
+        'UPDATE noitu_word_suggestions SET status = ?, reviewed_by = ?, reviewed_at = ? WHERE id = ?'
+      ).run('approved', reviewerId, now, s.id);
+    }
+  });
+  tx();
+  return pending.length;
 }
 
 // ── Service ──
@@ -215,7 +323,7 @@ export class NoituService {
     if (this.firstSyl(w) !== game.lastSyllable) return 'wrong_start';
     if (w.split(/\s+/).length < 2) return 'too_short';
 
-    const valid = await lookupWord(w);
+    const valid = await validateAndCache(w);
     if (!valid) return 'wrong_api';
 
     this.clearSkipVote(gameKey);
@@ -507,6 +615,31 @@ export class NoituService {
       .setTitle('Nối Từ')
       .setColor(EMBED_COLORS.NEUTRAL)
       .setDescription(`Không còn từ để nối tiếp. Không có ai chiến thắng.`);
+  }
+
+  getWordCount(): number {
+    const row = db.prepare('SELECT COUNT(*) as c FROM noitu_words').get() as { c: number };
+    return row.c;
+  }
+
+  suggestWord(word: string, userId: string): SuggestResult {
+    return moduleSuggestWord(word, userId);
+  }
+
+  getPendingSuggestions(): PendingSuggestion[] {
+    return moduleGetPendingSuggestions();
+  }
+
+  getSuggestionCount(): number {
+    return moduleGetSuggestionCount();
+  }
+
+  reviewSuggestion(id: number, action: 'approve' | 'reject', reviewerId: string): ReviewResult {
+    return moduleReviewSuggestion(id, action, reviewerId);
+  }
+
+  bulkApproveSuggestions(reviewerId: string): number {
+    return moduleBulkApproveSuggestions(reviewerId);
   }
 }
 

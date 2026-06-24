@@ -28,7 +28,8 @@ export class BossSpawnService {
       const newMaxHp = 5000;
       db.prepare(`
         UPDATE world_boss
-        SET hp = ?, max_hp = ?, atk = 80, def = 50, level = 1, status = 'active', last_spawned_at = ?, defeated_at = NULL, defeated_by = NULL
+        SET hp = ?, max_hp = ?, atk = 80, def = 50, level = 1, status = 'active', last_spawned_at = ?, defeated_at = NULL, defeated_by = NULL,
+            phase = 1, current_weakness = 'Hỏa'
         WHERE id = 'world_boss_current'
       `).run(newMaxHp, newMaxHp, now);
       db.prepare("DELETE FROM world_boss_contributions").run();
@@ -49,7 +50,8 @@ export class BossSpawnService {
 
         db.prepare(`
           UPDATE world_boss
-          SET hp = ?, max_hp = ?, atk = ?, def = ?, level = ?, status = 'active', last_spawned_at = ?, defeated_at = NULL, defeated_by = NULL
+          SET hp = ?, max_hp = ?, atk = ?, def = ?, level = ?, status = 'active', last_spawned_at = ?, defeated_at = NULL, defeated_by = NULL,
+              phase = 1, current_weakness = 'Hỏa'
           WHERE id = 'world_boss_current'
         `).run(newMaxHp, newMaxHp, newAtk, newDef, nextLevel, now);
         db.prepare("DELETE FROM world_boss_contributions").run();

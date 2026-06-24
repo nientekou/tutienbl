@@ -1,4 +1,4 @@
-import db from '../database/database';
+﻿import db from '../database/database';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
 import { ITEMS } from '../config/itemConstants';
@@ -12,6 +12,7 @@ export interface DailyLoginReward {
   title?: string;
 }
 
+// Tiered login rewards: Days 1-7 Low, 8-14 Mid, 15-21 High, 22-28 Special, 29-30 Legendary
 const LOGIN_REWARDS: DailyLoginReward[] = [
   { day: 1, coins: 100, exp: 50 },
   { day: 2, coins: 150, exp: 75 },
@@ -20,9 +21,20 @@ const LOGIN_REWARDS: DailyLoginReward[] = [
   { day: 5, coins: 300, exp: 150 },
   { day: 6, coins: 400, exp: 200, itemId: ITEMS.PILL_HP_1, itemName: 'Hồi Huyết Đan - Hạ Phẩm' },
   { day: 7, coins: 1000, exp: 500, title: 'Khách Quý Thiên Đường' },
+  { day: 8, coins: 500, exp: 300, itemId: ITEMS.MATERIAL_IRON_1, itemName: 'Sắt Qúy' },
+  { day: 10, coins: 800, exp: 500, itemId: ITEMS.PILL_HP_2, itemName: 'Hồi Huyết Đan - Trung Phẩm' },
+  { day: 12, coins: 1000, exp: 600, itemId: ITEMS.MATERIAL_MYTHRIL_1, itemName: 'Mithril' },
   { day: 14, coins: 2000, exp: 1000, itemId: ITEMS.PILL_BREAK_MINOR_1, itemName: 'Tụ Khí Đan' },
-  { day: 21, coins: 3000, exp: 1500, itemId: ITEMS.PILL_STAMINA_1, itemName: 'Hồi Thể Đan - Sơ Cấp' },
-  { day: 30, coins: 5000, exp: 3000, title: 'Loyal Disciple', itemId: ITEMS.PILL_BREAK_1, itemName: 'Trúc Cơ Đan' },
+  { day: 15, coins: 1500, exp: 800, itemId: ITEMS.PILL_STAMINA_1, itemName: 'Hồi Thể Đan - Sơ Cấp' },
+  { day: 17, coins: 1800, exp: 900, itemId: ITEMS.PILL_BREAK_MINOR_2, itemName: 'Phá Cảnh Đan - Sơ' },
+  { day: 19, coins: 2200, exp: 1100, itemId: ITEMS.PILL_BREAK_MINOR_3, itemName: 'Phá Cảnh Đan - Trung' },
+  { day: 21, coins: 3000, exp: 1500, itemId: ITEMS.PILL_STAMINA_2, itemName: 'Hồi Thể Đan - Trung Phẩm' },
+  { day: 22, coins: 2500, exp: 1200, itemId: ITEMS.PILL_ALCHEMY_TUVI, itemName: 'Luyện Đan Tụ Khí Đan' },
+  { day: 24, coins: 3000, exp: 1500, itemId: ITEMS.PILL_ALCHEMY_BREAK, itemName: 'Luyện Đan Phá Cảnh Đan' },
+  { day: 26, coins: 3500, exp: 1800, itemId: ITEMS.PILL_HP_MAX_PERM, itemName: 'Thiên Niên Huyết Đan' },
+  { day: 28, coins: 4000, exp: 2000, itemId: ITEMS.PILL_ALCHEMY_STAMINA, itemName: 'Luyện Đan Hồi Thể Đan' },
+  { day: 29, coins: 5000, exp: 2500, itemId: ITEMS.PILL_BREAK_1, itemName: 'Trúc Cơ Đan' },
+  { day: 30, coins: 8000, exp: 5000, title: 'Loyal Disciple', itemId: ITEMS.PILL_CUU_CHUYEN, itemName: 'Cửu Chuyển Hồi Xuân Đan' },
 ];
 
 class DailyLoginService {
@@ -43,7 +55,7 @@ class DailyLoginService {
 
     const user = userRepository.get(userId);
     if (!user) {
-      return { success: false, message: '❌ Đạo hữu chưa khởi tạo nhân vật!' };
+      return { success: false, message: 'âŒ Äáº¡o há»¯u chÆ°a khá»Ÿi táº¡o nhÃ¢n váº­t!' };
     }
 
     const today = new Date().toLocaleDateString('en-CA');
@@ -55,7 +67,7 @@ class DailyLoginService {
     }
 
     if (record.last_login_date === today) {
-      return { success: false, message: '📅 Đạo hữu đã nhận thưởng đăng nhập hôm nay rồi!' };
+      return { success: false, message: 'ðŸ“… Äáº¡o há»¯u Ä‘Ã£ nháº­n thÆ°á»Ÿng Ä‘Äƒng nháº­p hÃ´m nay rá»“i!' };
     }
 
     const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
@@ -63,7 +75,7 @@ class DailyLoginService {
 
     const reward = this.getRewardForDay(newStreak);
     if (!reward) {
-      return { success: false, message: 'Không tìm thấy phần thưởng!' };
+      return { success: false, message: 'KhÃ´ng tÃ¬m tháº¥y pháº§n thÆ°á»Ÿng!' };
     }
 
     db.prepare('UPDATE user_daily_logins SET streak = ?, last_login_date = ?, total_logins = total_logins + 1 WHERE user_id = ?')
@@ -83,13 +95,14 @@ class DailyLoginService {
         .run(userId, reward.title, 'daily_login', Math.floor(Date.now() / 1000));
     }
 
-    let msg = `📅 **ĐĂNG NHẬP THÀNH CÔNG!** Streak: **${newStreak}** ngày\n`;
-    msg += `┌─ Phần thưởng:\n`;
-    if (reward.coins > 0) msg += `│ • **+${reward.coins}** Hạ Phẩm Linh Thạch 🟤\n`;
-    if (reward.exp > 0) msg += `│ • **+${reward.exp}** Tu Vi 🌿\n`;
-    if (reward.itemName) msg += `│ • **${reward.itemName}** 🎁\n`;
-    if (reward.title) msg += `│ • Danh hiệu: **${reward.title}** 🏆\n`;
-    msg += `└─ Tiếp tục đăng nhập ngày mai để nhận thưởng lớn hơn!`;
+
+    let msg = `ðŸ“… **ÄÄ‚NG NHáº¬P THÃ€NH CÃ”NG!** Streak: **${newStreak}** ngÃ y\n`;
+    msg += `â”Œâ”€ Pháº§n thÆ°á»Ÿng:\n`;
+    if (reward.coins > 0) msg += `â”‚ â€¢ **+${reward.coins}** Háº¡ Pháº©m Linh Tháº¡ch ðŸŸ¤\n`;
+    if (reward.exp > 0) msg += `â”‚ â€¢ **+${reward.exp}** Tu Vi ðŸŒ¿\n`;
+    if (reward.itemName) msg += `â”‚ â€¢ **${reward.itemName}** ðŸŽ\n`;
+    if (reward.title) msg += `â”‚ â€¢ Danh hiá»‡u: **${reward.title}** ðŸ†\n`;
+    msg += `â””â”€ Tiáº¿p tá»¥c Ä‘Äƒng nháº­p ngÃ y mai Ä‘á»ƒ nháº­n thÆ°á»Ÿng lá»›n hÆ¡n!`;
 
     return { success: true, message: msg, reward };
   }

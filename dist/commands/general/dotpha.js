@@ -10,6 +10,7 @@ const InventoryService_1 = require("../../services/InventoryService");
 const constants_1 = require("../../utils/constants");
 const itemConstants_1 = require("../../config/itemConstants");
 const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 class DotPhaCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -40,19 +41,19 @@ class DotPhaCommand extends Command_1.Command {
             const q2 = getQty(itemConstants_1.ITEMS.PILL_BREAK_MINOR_2);
             const q3 = getQty(itemConstants_1.ITEMS.PILL_BREAK_MINOR_3);
             const bequanCost = user.level * 200;
-            const embed = new discord_js_1.EmbedBuilder()
-                .setTitle(`🌟 Chuẩn Bị Đột Phá: ${fullName}`)
-                .setColor(uiSystem_1.EMBED_COLORS.GOLD)
-                .setDescription(`Đạo hữu đã tích đủ linh khí, có thể thử nghiệm trùng kích bình cảnh để lên **Tầng ${minorLevel + 1}**.\n\n` +
-                `🌿 **Tu Vi hiện có:** **${user.tu_vi}/${user.exp_needed}**\n` +
-                `${(0, constants_1.getProgressBar)(user.tu_vi, user.exp_needed, 10)}\n\n` +
-                `📈 **Tỷ lệ đột phá thành công:** **${totalRate.toFixed(1)}%**\n` +
-                `${(0, constants_1.getProgressBar)(totalRate, 100, 10)}\n\n` +
-                `⚠️ **Rủi ro:** Nếu đột phá thất bại sẽ tổn hao **15% Tu Vi** hiện tại.\n\n` +
-                `💎 **Bế Quan Đột Phá:** Hao tổn **${bequanCost}** Linh Thạch Hạ Phẩm để đảm bảo đột phá 100% thành công.\n\n` +
-                `Đạo hữu muốn dùng đan dược hay Bế Quan Đột Phá?`)
-                .setFooter({ text: 'Nhấn nút bên dưới để tiến hành đột phá' })
-                .setTimestamp();
+            const comp = (0, v2Components_1.container)(v2Components_1.V2_COLORS.gold, [
+                (0, v2Components_1.header)(`🌟 Chuẩn Bị Đột Phá: ${fullName}`),
+                (0, v2Components_1.body)(`Đạo hữu đã tích đủ linh khí, có thể thử nghiệm trùng kích bình cảnh để lên **Tầng ${minorLevel + 1}**.\n\n` +
+                    `🌿 **Tu Vi hiện có:** **${user.tu_vi}/${user.exp_needed}**\n` +
+                    `${(0, constants_1.getProgressBar)(user.tu_vi, user.exp_needed, 10)}\n\n` +
+                    `📈 **Tỷ lệ đột phá thành công:** **${totalRate.toFixed(1)}%**\n` +
+                    `${(0, constants_1.getProgressBar)(totalRate, 100, 10)}\n\n` +
+                    `⚠️ **Rủi ro:** Nếu đột phá thất bại sẽ tổn hao **15% Tu Vi** hiện tại.\n\n` +
+                    `💎 **Bế Quan Đột Phá:** Hao tổn **${bequanCost}** Linh Thạch Hạ Phẩm để đảm bảo đột phá 100% thành công.\n\n` +
+                    `Đạo hữu muốn dùng đan dược hay Bế Quan Đột Phá?`),
+                (0, v2Components_1.separator)(),
+                (0, v2Components_1.body)('Nhấn nút bên dưới để tiến hành đột phá'),
+            ]);
             const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
                 .setCustomId(`dotpha_none_${userId}`)
                 .setLabel('Không dùng đan')
@@ -73,7 +74,7 @@ class DotPhaCommand extends Command_1.Command {
                 .setLabel(`Bế Quan (${bequanCost} LThạch)`)
                 .setStyle(discord_js_1.ButtonStyle.Danger)
                 .setDisabled(user.coin_ha_pham < bequanCost));
-            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([comp], [row]));
         }
         else {
             // Đột phá cảnh giới lớn -> Nghênh tiếp Lôi Kiếp
@@ -91,26 +92,10 @@ class DotPhaCommand extends Command_1.Command {
             const bequanMajorCost = user.level * 1000;
             const hpText = stats ? `${stats.hp}/${stats.hp}` : `${user.base_hp}/${user.base_hp}`;
             const mpText = stats ? `${stats.mp}/${stats.mp}` : `${user.base_mp}/${user.base_mp}`;
-            const embed = new discord_js_1.EmbedBuilder()
-                .setTitle(`⚡ Cảnh Báo Thiên Kiếp: ${user.name}`)
-                .setColor(uiSystem_1.EMBED_COLORS.ERROR)
-                .setDescription(`Đạo hữu đã chạm tới **Cực Hạn Đại Viên Mãn** cảnh giới hiện tại. Thiên địa dị biến, lôi vân đang kéo tới dồn dập!\n\n` +
-                `• Cảnh giới lớn đột phá: **${fullName}**\n` +
-                `• Thiên kiếp sắp tới: **${oncomingKiep.name}**\n` +
-                `• Quy mô lôi kiếp: **${bolts} Đạo Lôi Kiếp** giáng xuống liên tục.\n` +
-                `• Uy lực ước tính: **~${damage}** sát thương thô mỗi đạo sét.\n\n` +
-                `❤️ **Trạng thái hiện tại:**\n` +
-                `• Sinh Lực tối đa: **${hpText}** HP\n` +
-                `• Pháp Lực tối đa: **${mpText}** MP\n\n` +
-                `🎒 **Vật phẩm hộ thân hiện có trong túi:**\n` +
-                `• ${oncomingKiep.pillName} 💊 (khắc chế kiếp, giảm 40%): **${protectPillQty}** viên\n` +
-                `• Ngự Lôi Đan 💊 (giảm 30% sát thương): **${antiLoiQty}** viên\n` +
-                `• Tị Lôi Phù 📜 (giảm 80% sát thương 1 lượt): **${tiLoiQty}** tấm\n` +
-                `• Hồi Huyết Đan trung phẩm ❤️ (hồi 150 HP): **${hp2Qty}** viên\n\n` +
-                `💎 **Bế Quan Đột Phá:** Hao tổn **${bequanMajorCost}** Linh Thạch Hạ Phẩm để đột phá an toàn 100% (bỏ qua lôi kiếp).\n\n` +
-                `⚠️ **Cảnh báo nguy hiểm:** Hãy chắc chắn đạo hữu đang đầy đủ HP/MP. Nếu HP về 0 giữa lôi kiếp, đạo hữu sẽ đột phá thất bại, bị **Trọng Thương (1 giờ)** và tổn thất **-30%** tu vi hiện có!`)
-                .setFooter({ text: '📖 Xem thêm về Kiếp Số tại /camnang chuong3' })
-                .setTimestamp();
+            const comp2 = (0, v2Components_1.container)(v2Components_1.V2_COLORS.danger, [
+                (0, v2Components_1.header)(`⚡ Cảnh Báo Thiên Kiếp: ${user.name}`),
+                (0, v2Components_1.body)(`Đạo hữu đã chạm tới **Cực Hạn Đại Viên Mãn** cảnh giới hiện tại. Thiên địa dị biến, lôi vân kéo tới dồn dập!\n\n• Cảnh giới lớn đột phá: **${fullName}**\n• Thiên kiếp sắp tới: **${oncomingKiep.name}**\n• Quy mô lôi kiếp: **${bolts} Đạo Lôi Kiếp**\n• Uy lực ước tính: **~${damage}** sát thương mỗi đạo\n\n❤️ HP: **${hpText}** | MP: **${mpText}**\n\n💎 **Bế Quan:** **${bequanMajorCost}** Linh Thạch để bỏ qua lôi kiếp.`),
+            ]);
             const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
                 .setCustomId(`loi_start_${userId}`)
                 .setLabel('⚡ Nghênh Tiếp Lôi Kiếp!')
@@ -119,7 +104,7 @@ class DotPhaCommand extends Command_1.Command {
                 .setLabel(`Bế Quan (${bequanMajorCost} LThạch)`)
                 .setStyle(discord_js_1.ButtonStyle.Success)
                 .setDisabled(user.coin_ha_pham < bequanMajorCost));
-            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([comp2], [row]));
         }
     }
 }

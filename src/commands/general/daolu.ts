@@ -104,21 +104,25 @@ export default class DaoLuCommand extends Command {
 
       const collector = msg.createMessageComponentCollector({ componentType: ComponentType.Button, time: 60000 });
       collector.on('collect', async i => {
-        if (i.user.id !== target.id) {
-          await i.reply({ content: '❌ Đạo hữu không phải là người được cầu hôn!'});
-          return;
-        }
+        try {
+          if (i.user.id !== target.id) {
+            await i.reply({ content: '❌ Đạo hữu không phải là người được cầu hôn!', ephemeral: true });
+            return;
+          }
 
-        if (i.customId === 'accept_marriage') {
-          // Trừ nhẫn
-          inventoryRepository.removeItem(userId, ITEMS.ITEM_NHAN_DINH_HON, 1);
-          coupleRepository.createCouple(userId, target.id);
-          // Đồng bộ sang bảng users
-          userRepository.update(userId, { partner_id: target.id, intimacy: 100 });
-          userRepository.update(target.id, { partner_id: userId, intimacy: 100 });
-          await i.update({ content: `🎉 Chúc mừng **${user.name}** và **${targetUser.name}** đã kết bái thành Đạo Lữ! 💖`, components: [] });
-        } else {
-          await i.update({ content: `💔 **${targetUser.name}** đã từ chối lời cầu hôn của **${user.name}**.`, components: [] });
+          if (i.customId === 'accept_marriage') {
+            // Trừ nhẫn
+            inventoryRepository.removeItem(userId, ITEMS.ITEM_NHAN_DINH_HON, 1);
+            coupleRepository.createCouple(userId, target.id);
+            // Đồng bộ sang bảng users
+            userRepository.update(userId, { partner_id: target.id, intimacy: 100 });
+            userRepository.update(target.id, { partner_id: userId, intimacy: 100 });
+            await i.update({ content: `🎉 Chúc mừng **${user.name}** và **${targetUser.name}** đã kết bái thành Đạo Lữ! 💖`, components: [] });
+          } else {
+            await i.update({ content: `💔 **${targetUser.name}** đã từ chối lời cầu hôn của **${user.name}**.`, components: [] });
+          }
+        } catch (e: any) {
+          console.error('[daolu] Lỗi xử lý button:', e?.message || e);
         }
       });
       collector.on('end', collected => {

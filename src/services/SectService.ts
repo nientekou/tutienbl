@@ -2,6 +2,7 @@ import db from '../database/database';
 import { userRepository, UserEntity } from '../database/repositories/UserRepository';
 import { achievementService } from './AchievementService';
 import { leylineService } from './LeylineService';
+import { GAME_CONSTANTS } from '../config/gameConstants';
 
 const revengeWindows = new Map<string, { attackerName: string; victimName: string; expiresAt: number; sectId: number }>();
 
@@ -30,20 +31,21 @@ export interface SectDetails {
 
 export class SectService {
   /**
-   * Tạo Tông Môn mới (Tiêu hao 500 Linh thạch)
+   * Tao Tong Mon moi (Tieu hao SECT_CREATE_COST_LT Linh thach)
    */
   public createSect(userId: string, name: string, description: string): { success: boolean; message: string; sectId?: number } {
     const user = userRepository.get(userId);
     if (!user) {
-      return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
+      return { success: false, message: 'Dao huu chua khoi tao nhan vat.' };
     }
 
     if (user.sect_id) {
-      return { success: false, message: 'Đạo hữu đã có Tông Môn! Vui lòng rời Tông Môn cũ trước khi sáng lập môn phái mới.' };
+      return { success: false, message: 'Dao huu da co Tong Mon! Vui long roi Tong Mon cu truoc khi sang lap mon phai moi.' };
     }
 
-    if (user.coin_ha_pham < 500) {
-      return { success: false, message: `Đạo hữu không đủ Linh Thạch để lập Tông Môn! (Yêu cầu **500** Linh Thạch, hiện có **${user.coin_ha_pham}**)` };
+    const cost = GAME_CONSTANTS.SECT_CREATE_COST_LT;
+    if (user.coin_ha_pham < cost) {
+      return { success: false, message: `Dao huu khong du Linh Thach de lap Tong Mon! (Yeu cau **${cost}** Linh Thach, hien co **${user.coin_ha_pham}**)` };
     }
 
     const nameRegex = /^[a-zA-Z0-9À-ỹ\s]{2,20}$/;
@@ -71,7 +73,7 @@ export class SectService {
         sect_id: sect.id,
         sect_contribution: 100, // Thưởng 100 điểm đóng góp khởi lập
         joined_sect_at: now,
-        coin_ha_pham: user.coin_ha_pham - 500
+        coin_ha_pham: user.coin_ha_pham - GAME_CONSTANTS.SECT_CREATE_COST_LT
       });
 
       return { 

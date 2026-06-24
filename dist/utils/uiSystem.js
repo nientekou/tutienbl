@@ -224,7 +224,7 @@ function embedToV2(embed) {
 }
 /** Convert `{ embeds, components }` to V2 message create payload (includes V2 flag). */
 function toV2Payload(embeds, rows, extraFlags) {
-    return { components: [...embeds.map(embedToV2), ...(rows ?? [])], flags: exports.V2_FLAG | (extraFlags ?? 0) };
+    return { components: [...embeds.map(e => e instanceof discord_js_1.ContainerBuilder ? e : embedToV2(e)), ...(rows ?? [])], flags: exports.V2_FLAG | (extraFlags ?? 0) };
 }
 /** Build a V2 Container holding only a plain text line. Used for text-only V2
  *  messages (close/cancel notices, simple confirmations) where mixing a legacy
@@ -252,7 +252,7 @@ function toV2TextUpdate(text) {
  *  Pass the interaction as 3rd param for type compat, ignored at runtime.
  */
 function toV2Update(embeds, rows, _source) {
-    return { components: [...embeds.map(embedToV2), ...(rows ?? [])], flags: exports.V2_FLAG };
+    return { components: [...embeds.map(e => e instanceof discord_js_1.ContainerBuilder ? e : embedToV2(e)), ...(rows ?? [])], flags: exports.V2_FLAG };
 }
 /** Legacy update payload — works with interaction.update() which can't use V2. */
 function toLegacyUpdate(embeds, rows, _source) {
@@ -264,7 +264,7 @@ function toLegacyUpdate(embeds, rows, _source) {
  *  This calls the interaction callback endpoint directly.
  */
 async function safeV2Update(interaction, embeds, rows) {
-    const components = [...embeds.map(embedToV2), ...(rows ?? [])];
+    const components = [...embeds.map(e => e instanceof discord_js_1.ContainerBuilder ? e : embedToV2(e)), ...(rows ?? [])];
     await interaction.client.rest.post(discord_js_1.Routes.interactionCallback(interaction.id, interaction.token), { body: { type: 7, data: { components, flags: exports.V2_FLAG } } });
     interaction.replied = true;
 }

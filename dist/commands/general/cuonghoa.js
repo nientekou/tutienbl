@@ -6,7 +6,7 @@ const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const EnhanceService_1 = require("../../services/EnhanceService");
 const itemConstants_1 = require("../../config/itemConstants");
-const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 class CuongHuaCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -28,17 +28,17 @@ class CuongHuaCommand extends Command_1.Command {
             });
             return;
         }
-        const embed = new discord_js_1.EmbedBuilder()
-            .setTitle('✨ THẦN THIẾT CỰC DIÊN — ĐẠI TRẬN CƯỜNG HÓA')
-            .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
-            .setDescription(`Chào mừng đạo hữu **${user.name}** đến với Đại Trận Cường Hóa!\n\n` +
-            `🧘 **Quy tắc cường hóa:**\n` +
-            `• **+1 đến +5**: Tỷ lệ thành công **100%**.\n` +
-            `• **+6 đến +10**: Tỷ lệ thành công **50%**, thất bại không rớt cấp.\n` +
-            `• **+11 đến +15**: Tỷ lệ thành công **25%**, thất bại **BỊ RỚT 1 CẤP**.\n\n` +
-            `*Vui lòng chọn trang bị muốn cường hóa từ danh sách bên dưới:*`)
-            .setFooter({ text: 'Tiêu tốn Mảnh Tinh Thạch & Hạ Phẩm Linh Thạch.' })
-            .setTimestamp();
+        const comp = (0, v2Components_1.container)(v2Components_1.V2_COLORS.mystic, [
+            (0, v2Components_1.header)('✨ THẦN THIẾT CỰC DIÊN — ĐẠI TRẬN CƯỜNG HÓA'),
+            (0, v2Components_1.separator)(),
+            (0, v2Components_1.body)(`Chào mừng đạo hữu **${user.name}** đến với Đại Trận Cường Hóa!\n\n` +
+                `🧘 **Quy tắc cường hóa:**\n` +
+                `• **+1 đến +5**: Tỷ lệ thành công **100%**.\n` +
+                `• **+6 đến +10**: Tỷ lệ thành công **50%**, thất bại không rớt cấp.\n` +
+                `• **+11 đến +15**: Tỷ lệ thành công **25%**, thất bại **BỊ RỚT 1 CẤP**.\n\n` +
+                `*Vui lòng chọn trang bị muốn cường hóa từ danh sách bên dưới:*\n\n` +
+                `_Tiêu tốn Mảnh Tinh Thạch & Hạ Phẩm Linh Thạch._`)
+        ]);
         const selectMenu = new discord_js_1.StringSelectMenuBuilder()
             .setCustomId(`enhance_select_${userId}`)
             .setPlaceholder('Chọn trang bị để cường hóa...');
@@ -53,7 +53,7 @@ class CuongHuaCommand extends Command_1.Command {
                 .setValue(item.id.toString()));
         });
         const row = new discord_js_1.ActionRowBuilder().addComponents(selectMenu);
-        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
+        await interaction.reply({ components: [comp, row], flags: v2Components_1.V2_FLAG });
     }
     /**
      * Tạo giao diện xem trước thông tin cường hóa của trang bị cụ thể
@@ -62,7 +62,6 @@ class CuongHuaCommand extends Command_1.Command {
         const user = UserRepository_1.userRepository.get(userId);
         const item = InventoryRepository_1.inventoryRepository.get(inventoryId);
         const currentLevel = item.enhance_level || 0;
-        const embed = new discord_js_1.EmbedBuilder().setTimestamp();
         // Tìm Mảnh Tinh Thạch trong hành trang
         const userInventory = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
         const shardItem = userInventory.find(i => i.item_id === itemConstants_1.ITEMS.TINH_THACH_SHARD);
@@ -73,21 +72,22 @@ class CuongHuaCommand extends Command_1.Command {
             const cleanMessage = lastResult.message.replace(/\\n/g, '\n');
             resultHeader = `${bannerEmoji} **KẾT QUẢ CƯỜNG HÓA VỪA QUA:**\n${cleanMessage}\n\n`;
         }
+        const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
+            .setCustomId(`enhance_cancel_${userId}`)
+            .setLabel('🔙 Quay Lại')
+            .setStyle(discord_js_1.ButtonStyle.Secondary));
         if (currentLevel >= 15) {
-            embed.setTitle(`✨ CƯỜNG HÓA TRANG BỊ: ${item.name} (+15)`)
-                .setColor(lastResult ? (lastResult.success ? '#2ecc71' : '#e74c3c') : '#e74c3c')
-                .setDescription(resultHeader +
-                `🎉 Trang bị này đã đạt cấp cường hóa tối đa **+15**! Đại trận đã viên mãn, không thể gia trì thêm.`);
-            const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
-                .setCustomId(`enhance_cancel_${userId}`)
-                .setLabel('🔙 Quay Lại')
-                .setStyle(discord_js_1.ButtonStyle.Secondary));
-            return { embed, rows: [backRow] };
+            const comp = (0, v2Components_1.container)(v2Components_1.V2_COLORS.danger, [
+                (0, v2Components_1.header)(`✨ CƯỜNG HÓA TRANG BỊ: ${item.name} (+15)`),
+                (0, v2Components_1.separator)(),
+                (0, v2Components_1.body)(resultHeader +
+                    `🎉 Trang bị này đã đạt cấp cường hóa tối đa **+15**! Đại trận đã viên mãn, không thể gia trì thêm.`)
+            ]);
+            return { embed: comp, rows: [backRow] };
         }
         const cfg = EnhanceService_1.enhanceService.getEnhanceConfig(currentLevel);
         const nextLevel = currentLevel + 1;
         const successRatePct = Math.round(cfg.successRate * 100);
-        // Tính toán chỉ số tăng thêm
         const baseStats = JSON.parse(item.base_stats || '{}');
         const statUpdates = [];
         const statsToPrint = ['hp', 'mp', 'atk', 'def', 'speed', 'crit', 'dodge', 'luck'];
@@ -118,19 +118,22 @@ class CuongHuaCommand extends Command_1.Command {
         }
         const hasShard = shardQty >= cfg.costShards;
         const hasCoin = user.coin_ha_pham >= cfg.costLinhThach;
-        embed.setTitle(`✨ ĐĂNG LÂM ĐẠI TRẬN: +${currentLevel} ➔ +${nextLevel}`)
-            .setColor(lastResult ? (lastResult.success ? '#2ecc71' : '#e74c3c') : (cfg.dropOnFail ? '#e74c3c' : '#3498db'))
-            .setDescription(resultHeader +
-            `Trang bị: **${item.name}**\n` +
-            `Cấp độ hiện tại: **+${currentLevel}**\n` +
-            `Cấp độ tiếp theo: **+${nextLevel}**\n\n` +
-            `📊 **Thuộc Tính Thay Đổi:**\n${statUpdates.join('\n') || '• Không có thuộc tính cơ bản.'}\n\n` +
-            `━━━ **ĐIỀU KIỆN CƯỜNG HÓA** ━━━\n` +
-            `• Tỷ lệ thành công: **${successRatePct}%**\n` +
-            `• Hao tốn Linh Thạch: ${hasCoin ? '✅' : '❌'} **${cfg.costLinhThach}** LT (Hiện có: ${user.coin_ha_pham} LT)\n` +
-            `• Hao tốn Tinh Thạch: ${hasShard ? '✅' : '❌'} **${cfg.costShards}** Mảnh (Hiện có: ${shardQty} Mảnh)\n\n` +
-            `⚠️ **Rủi ro thất bại:** ${cfg.dropOnFail ? '🚨 **BỊ RỚT 1 CẤP (Về +10)**' : '🛡️ **Giữ nguyên cấp độ**'}`)
-            .setFooter({ text: 'Nhấn nút Cường Hóa phía dưới để tiến hành gia trì.' });
+        const accentColor = lastResult ? (lastResult.success ? v2Components_1.V2_COLORS.success : v2Components_1.V2_COLORS.danger) : (cfg.dropOnFail ? v2Components_1.V2_COLORS.danger : v2Components_1.V2_COLORS.info);
+        const comp = (0, v2Components_1.container)(accentColor, [
+            (0, v2Components_1.header)(`✨ ĐĂNG LÂM ĐẠI TRẬN: +${currentLevel} ➔ +${nextLevel}`),
+            (0, v2Components_1.separator)(),
+            (0, v2Components_1.body)(resultHeader +
+                `Trang bị: **${item.name}**\n` +
+                `Cấp độ hiện tại: **+${currentLevel}**\n` +
+                `Cấp độ tiếp theo: **+${nextLevel}**\n\n` +
+                `📊 **Thuộc Tính Thay Đổi:**\n${statUpdates.join('\n') || '• Không có thuộc tính cơ bản.'}\n\n` +
+                `━━━ **ĐIỀU KIỆN CƯỜNG HÓA** ━━━\n` +
+                `• Tỷ lệ thành công: **${successRatePct}%**\n` +
+                `• Hao tốn Linh Thạch: ${hasCoin ? '✅' : '❌'} **${cfg.costLinhThach}** LT (Hiện có: ${user.coin_ha_pham} LT)\n` +
+                `• Hao tốn Tinh Thạch: ${hasShard ? '✅' : '❌'} **${cfg.costShards}** Mảnh (Hiện có: ${shardQty} Mảnh)\n\n` +
+                `⚠️ **Rủi ro thất bại:** ${cfg.dropOnFail ? '🚨 **BỊ RỚT 1 CẤP (Về +10)**' : '🛡️ **Giữ nguyên cấp độ**'}\n\n` +
+                `_Nhấn nút Cường Hóa phía dưới để tiến hành gia trì._`)
+        ]);
         const btnConfirm = new discord_js_1.ButtonBuilder()
             .setCustomId(`enhance_confirm_${inventoryId}_${userId}`)
             .setLabel('✨ Cường Hóa')
@@ -141,7 +144,7 @@ class CuongHuaCommand extends Command_1.Command {
             .setLabel('❌ Hủy Bỏ')
             .setStyle(discord_js_1.ButtonStyle.Danger);
         const row = new discord_js_1.ActionRowBuilder().addComponents(btnConfirm, btnCancel);
-        return { embed, rows: [row] };
+        return { embed: comp, rows: [row] };
     }
 }
 exports.default = CuongHuaCommand;

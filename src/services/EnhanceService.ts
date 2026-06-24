@@ -95,9 +95,16 @@ export class EnhanceService {
         }
       }
 
+      // Dị hỏa tăng tỷ lệ cường hóa
+      let rareFireBonus = 0;
+      try {
+        const { rareFireService } = require('./RareFireService');
+        rareFireBonus = (rareFireService.getEquippedBonus(userId).enhanceBonus || 0) / 100;
+      } catch {}
+
       // Gieo xúc xắc tỷ lệ
       const roll = Math.random();
-      const isSuccess = roll < cfg.successRate;
+      const isSuccess = roll < (cfg.successRate + rareFireBonus);
 
       if (isSuccess) {
         const nextLevel = currentLevel + 1;

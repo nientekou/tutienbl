@@ -1,10 +1,10 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { blacksmithService } from '../../services/BlacksmithService';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, V2_COLORS, V2_FLAG } from '../../utils/v2Components';
 
 export default class LoRenCommand extends Command {
   constructor() {
@@ -55,12 +55,11 @@ export default class LoRenCommand extends Command {
       const result = blacksmithService.refineItem(userId, invRow.id);
       
       if (result.success) {
-        const embed = new EmbedBuilder()
-          .setTitle('🔨 Tinh Luyện Trang Bị')
-          .setColor(EMBED_COLORS.GOLD)
-          .setDescription(result.message)
-          .setTimestamp();
-        await interaction.editReply(toV2Payload([embed]));
+        const comp = container(V2_COLORS.gold, [
+          header('🔨 Tinh Luyện Trang Bị'),
+          body(result.message),
+        ]);
+        await interaction.editReply({ components: [comp], flags: V2_FLAG });
       } else {
         await interaction.editReply({ content: result.message });
       }

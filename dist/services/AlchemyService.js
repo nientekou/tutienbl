@@ -430,7 +430,13 @@ class AlchemyService {
             console.warn('[AlchemyService] Failed to parse linh_can for Hoa element:', e);
         }
         const hoaBonus = hoaLinhCan * 0.001; // +0.1% mỗi điểm Hỏa Linh Căn
-        const finalSuccessRate = Math.min(0.95, recipe.baseSuccessRate + successBonus + levelBonus + sectBonus + hoaBonus);
+        let rareFireBonus = 0;
+        try {
+            const { rareFireService } = require('./RareFireService');
+            rareFireBonus = rareFireService.getEquippedBonus(userId).alchemyBonus;
+        }
+        catch { }
+        const finalSuccessRate = Math.min(0.95, recipe.baseSuccessRate + successBonus + levelBonus + sectBonus + hoaBonus + rareFireBonus);
         // Trừ Thể Lực và Linh Thạch trước
         const postStamina = user.stamina - totalStaminaCost;
         const postCoin = user.coin_ha_pham - totalCostCoin;

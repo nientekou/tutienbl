@@ -252,6 +252,15 @@ export class ArenaService {
 
     const eloChangeForChallenger = isChallengerWin ? eloChangeObj.winnerGain : eloChangeObj.loserDrop;
 
+    // Sync với RankedArenaService để season tracking
+    try {
+      const { rankedArenaService } = require('./RankedArenaService');
+      rankedArenaService.getProfile(challengerId);
+      rankedArenaService.getProfile(opponentId);
+      if (isChallengerWin) rankedArenaService.recordWin(challengerId, opponentId);
+      else rankedArenaService.recordWin(opponentId, challengerId);
+    } catch {}
+
     // Lưu lịch sử
     const nowSec = Math.floor(Date.now() / 1000);
     const winnerId = isChallengerWin ? challengerId : opponentId;

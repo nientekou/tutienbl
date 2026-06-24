@@ -2,7 +2,6 @@ import { ChatInputCommandInteraction, SlashCommandBuilder, PermissionFlagsBits, 
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import db from '../../database/database';
-import type { NoituService } from '../../services/NoituService';
 import { noituService } from '../../services/NoituService';
 import { toV2Payload } from '../../utils/uiSystem';
 
@@ -39,11 +38,47 @@ export default class NoituCommand extends Command {
             .setName('skip')
             .setDescription('Bỏ phiếu bỏ qua từ hiện tại (cần 3 vote)')
         )
+        .addSubcommand(sub =>
+          sub
+            .setName('donggop')
+            .setDescription('Đề xuất thêm từ mới vào từ điển')
+            .addStringOption(opt =>
+              opt
+                .setName('tu')
+                .setDescription('Từ bạn muốn đóng góp (cần ít nhất 2 âm tiết)')
+                .setRequired(true)
+            )
+        )
     );
   }
 
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const sub = interaction.options.getSubcommand(true);
+
+    if (sub === 'donggop') {
+      const word = interaction.options.getString('tu', true);
+      const clean = word.trim().toLowerCase();
+      const syls = clean.split(/\s+/);
+
+      if (syls.length < 2) {
+        await interaction.editReply('❌ Từ phải có ít nhất **2 âm tiết** (ví dụ: "mặt trời").');
+        return;
+      }
+      if (!/^[a-zàáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệđìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ\s]+$/.test(clean)) {
+        await interaction.editReply('❌ Từ chỉ được chứa chữ cái tiếng Việt và khoảng trắng.');
+        return;
+      }
+
+      const result = noituService.suggestWord(clean, interaction.user.id);
+      if (result === 'exists') {
+        await interaction.editReply(`ℹ️ Từ **${clean}** đã có trong từ điển.`);
+      } else if (result === 'pending_exists') {
+        await interaction.editReply(`⏳ Từ **${clean}** đã được đề xuất trước đó, đang chờ duyệt.`);
+      } else {
+        await interaction.editReply(`✅ Đã ghi nhận đề xuất từ **${clean}**. BQT sẽ xem xét và duyệt sau.`);
+      }
+      return;
+    }
 
     if (sub === 'setchannel') {
       if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels)) {

@@ -11,6 +11,7 @@ const SystemConfigService_1 = require("./SystemConfigService");
 const LeylineService_1 = require("./LeylineService");
 const constants_1 = require("../utils/constants");
 const AchievementService_1 = require("./AchievementService");
+const gameConstants_1 = require("../config/gameConstants");
 class MarketService {
     getTodaysDateUtc() {
         return new Date().toISOString().slice(0, 10);
@@ -182,10 +183,10 @@ class MarketService {
         if (user.coin_ha_pham < listing.price)
             return { success: false, message: `Thiếu tiền! (Cần: ${listing.price}, Có: ${user.coin_ha_pham})` };
         const seller = UserRepository_1.userRepository.get(listing.seller_id);
-        // 2% thuế giao dịch, Leyline Buff Kinh Tế giảm 10% thuế
-        let taxRate = 0.02;
+        // Market tax from constants, Leyline Buff Kinh Te giam 10% thue
+        let taxRate = gameConstants_1.GAME_CONSTANTS.MARKET_TAX_RATE;
         if (LeylineService_1.leylineService.isBuffActive('kinhte')) {
-            taxRate = 0.018;
+            taxRate = taxRate * 0.9;
         }
         const tax = Math.round(listing.price * taxRate);
         const payout = listing.price - tax;
@@ -346,10 +347,10 @@ class MarketService {
                 database_1.default.prepare("UPDATE market_listings SET status = 'error' WHERE id = ?").run(listingId);
                 return;
             }
-            // 2% thuế giao dịch, Leyline Buff Kinh Tế giảm 10% thuế
-            let taxRate = 0.02;
+            // Market tax from constants, Leyline Buff Kinh Te giam 10% thue
+            let taxRate = gameConstants_1.GAME_CONSTANTS.MARKET_TAX_RATE;
             if (LeylineService_1.leylineService.isBuffActive('kinhte')) {
-                taxRate = 0.018;
+                taxRate = taxRate * 0.9;
             }
             const tax = Math.round(listing.current_bid * taxRate);
             const payout = listing.current_bid - tax;

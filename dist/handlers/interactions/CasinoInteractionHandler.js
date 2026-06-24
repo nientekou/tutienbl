@@ -33,7 +33,12 @@ class CasinoInteractionHandler {
                     choice = choice === 'tai' ? 'xiu' : 'tai';
                 }
             }
-            await interaction.deferUpdate();
+            try {
+                await interaction.deferUpdate();
+            }
+            catch {
+                return;
+            }
             casino_1.casinoCooldowns.set(targetUserId, now);
             const { runCasinoGame, getCasinoButtons } = require('../../commands/general/casino-old') ||
                 require('../../commands/general/casino');
@@ -58,7 +63,12 @@ class CasinoInteractionHandler {
                     await interaction.reply({ content: `❌ Vượt quá hạn mức tối đa!`, flags: discord_js_1.MessageFlags.Ephemeral });
                     return;
                 }
-                await interaction.deferUpdate();
+                try {
+                    await interaction.deferUpdate();
+                }
+                catch {
+                    return;
+                }
                 casino_1.casinoCooldowns.set(targetUserId, now);
                 const { runCasinoGame, getCasinoButtons } = require('../../commands/general/casino');
                 const result = await runCasinoGame(targetUserId, subcommand, bet, choice);
@@ -80,7 +90,12 @@ class CasinoInteractionHandler {
                     await interaction.reply({ content: `❌ Vượt quá hạn mức **${maxBet.toLocaleString()} LT** theo cảnh giới của đạo hữu!`, flags: discord_js_1.MessageFlags.Ephemeral });
                     return;
                 }
-                await interaction.deferUpdate();
+                try {
+                    await interaction.deferUpdate();
+                }
+                catch {
+                    return;
+                }
                 casino_1.casinoCooldowns.set(targetUserId, now);
                 let betType;
                 let choice;
@@ -114,7 +129,12 @@ class CasinoInteractionHandler {
                     await interaction.reply({ content: `❌ Vượt quá hạn mức **${maxBet.toLocaleString()} LT**!`, flags: discord_js_1.MessageFlags.Ephemeral });
                     return;
                 }
-                await interaction.deferUpdate();
+                try {
+                    await interaction.deferUpdate();
+                }
+                catch {
+                    return;
+                }
                 casino_1.casinoCooldowns.set(targetUserId, now);
                 const result = CasinoService_1.casinoService.playBlackjack(targetUserId, bet);
                 if (!result.success) {
@@ -140,7 +160,12 @@ class CasinoInteractionHandler {
             if (gameType === 'taixiu') {
                 const rawChoice = parts[2];
                 const bet = parseInt(parts[3], 10);
-                await interaction.deferUpdate();
+                try {
+                    await interaction.deferUpdate();
+                }
+                catch {
+                    return;
+                }
                 casino_1.casinoCooldowns.set(targetUserId, now);
                 let betType;
                 let choice;
@@ -167,7 +192,12 @@ class CasinoInteractionHandler {
             }
             if (gameType === 'blackjack') {
                 const bet = parseInt(parts[2], 10);
-                await interaction.deferUpdate();
+                try {
+                    await interaction.deferUpdate();
+                }
+                catch {
+                    return;
+                }
                 casino_1.casinoCooldowns.set(targetUserId, now);
                 const result = CasinoService_1.casinoService.playBlackjack(targetUserId, bet);
                 if (!result.success) {

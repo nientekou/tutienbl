@@ -1,10 +1,11 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, AttachmentBuilder } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, AttachmentBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { arenaService } from '../../services/ArenaService';
 import { userRepository } from '../../database/repositories/UserRepository';
 import db from '../../database/database';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_COLORS, V2_FLAG, statLine } from '../../utils/v2Components';
 
 export default class ArenaCommand extends Command {
   constructor() {
@@ -76,22 +77,23 @@ export default class ArenaCommand extends Command {
         } catch (e) {}
       }
 
-      const embed = new EmbedBuilder()
-        .setTitle(`⚔️ Hồ Sơ Đấu Trường: ${targetProfile.name}`)
-        .setDescription(shieldText || null)
-        .setColor(EMBED_COLORS.ORANGE)
-        .addFields(
-          { name: '🏆 Điểm ELO', value: `**${profile.elo}**`, inline: true },
-          { name: '🔥 Chuỗi Thắng', value: `${profile.win_streak}`, inline: true },
-          { name: '📈 ELO Kỷ Lục', value: `${profile.highest_elo}`, inline: true },
-          { name: '⚔️ Trận Đấu', value: `Thắng: ${profile.wins} | Thua: ${profile.losses}`, inline: true },
-          { name: '📊 Tỉ Lệ Thắng', value: `${winRate}%`, inline: true },
-          { name: '🏅 Xếp Hạng Mùa Trước', value: profile.last_season_rank > 0 ? `#${profile.last_season_rank}` : 'Chưa xếp hạng', inline: true }
-        )
-        .setThumbnail(targetUser.displayAvatarURL())
-        .setFooter({ text: `Mùa Giải: ${profile.season_id}` });
+      const comp = container(V2_COLORS.warning, [
+        header(`⚔️ Hồ Sơ Đấu Trường: ${targetProfile.name}`),
+        ...(shieldText ? [body(shieldText)] : []),
+        separator(),
+        body([
+          statLine('🏆 Điểm ELO', `**${profile.elo}**`),
+          statLine('🔥 Chuỗi Thắng', `${profile.win_streak}`),
+          statLine('📈 ELO Kỷ Lục', `${profile.highest_elo}`),
+          statLine('⚔️ Trận Đấu', `Thắng: ${profile.wins} | Thua: ${profile.losses}`),
+          statLine('📊 Tỉ Lệ Thắng', `${winRate}%`),
+          statLine('🏅 Xếp Hạng Mùa Trước', profile.last_season_rank > 0 ? `#${profile.last_season_rank}` : 'Chưa xếp hạng'),
+        ].join('\n')),
+        separator(),
+        body(`Mùa Giải: ${profile.season_id}`),
+      ]);
 
-      await interaction.editReply(toV2Payload([embed]));
+      await interaction.editReply(toV2Payload([comp]));
     }
     
     else if (subcommand === 'find') {
@@ -138,17 +140,19 @@ export default class ArenaCommand extends Command {
         resultText = `💀 **THẤT BẠI!** Đạo hữu đã gục ngã trước **${oUser.name}**.\n📉 **ELO:** ${oldChallengerProfile.elo} ➔ **${newChallengerProfile.elo}** (${eloDiff})`;
       }
 
-      const embed = new EmbedBuilder()
-        .setTitle('⚔️ KẾT QUẢ ĐẤU TRƯỜNG')
-        .setDescription(`**${user.name}** (ELO: ${oldChallengerProfile.elo}) 🆚 **${oUser.name}** (ELO: ${oldOpponentProfile.elo})\n\n${resultText}`)
-        .setColor(isWin ? EMBED_COLORS.SUCCESS : EMBED_COLORS.ERROR)
-        .addFields(
-          { name: 'Trận chiến kéo dài', value: `${matchResult.result.rounds} hiệp`, inline: true },
-          { name: 'Tổng sát thương', value: `${matchResult.result.totalDamageDealt}`, inline: true }
-        )
-        .setFooter({ text: 'Chi tiết trận đấu được đính kèm trong file.' });
+      const comp = container(isWin ? V2_COLORS.success : V2_COLORS.danger, [
+        header('⚔️ KẾT QUẢ ĐẤU TRƯỜNG'),
+        body(`**${user.name}** (ELO: ${oldChallengerProfile.elo}) 🆚 **${oUser.name}** (ELO: ${oldOpponentProfile.elo})\n\n${resultText}`),
+        separator(),
+        body([
+          statLine('Trận chiến kéo dài', `${matchResult.result.rounds} hiệp`),
+          statLine('Tổng sát thương', `${matchResult.result.totalDamageDealt}`),
+        ].join('\n')),
+        separator(),
+        body('Chi tiết trận đấu được đính kèm trong file.'),
+      ]);
 
-      await interaction.editReply({ ...toV2Payload([embed]), files: [attachment] });
+      await interaction.editReply({ ...toV2Payload([comp]), files: [attachment] });
     }
     
     else if (subcommand === 'top') {
@@ -158,10 +162,6 @@ export default class ArenaCommand extends Command {
         await interaction.editReply({ content: '📭 Bảng xếp hạng Đấu Trường hiện tại trống rỗng.'});
         return;
       }
-
-      const embed = new EmbedBuilder()
-        .setTitle('🏆 BẢNG XẾP HẠNG ĐẤU TRƯỜNG (TOP 10)')
-        .setColor(EMBED_COLORS.GOLD);
 
       let description = '';
       topPlayers.forEach((p, index) => {
@@ -174,8 +174,11 @@ export default class ArenaCommand extends Command {
         description += `└─ 🏆 ELO: **${p.elo}** | ⚔️ W/L: ${p.wins}/${p.losses} | 🔥 Chuỗi: ${p.win_streak}\n\n`;
       });
 
-      embed.setDescription(description);
-      await interaction.editReply(toV2Payload([embed]));
+      const comp = container(V2_COLORS.gold, [
+        header('🏆 BẢNG XẾP HẠNG ĐẤU TRƯỜNG (TOP 10)'),
+        body(description),
+      ]);
+      await interaction.editReply(toV2Payload([comp]));
     }
     
     else if (subcommand === 'history') {
@@ -190,10 +193,6 @@ export default class ArenaCommand extends Command {
         await interaction.editReply({ content: '📭 Đạo hữu chưa tham gia trận đấu nào.'});
         return;
       }
-
-      const embed = new EmbedBuilder()
-        .setTitle('📜 Lịch Sử Đấu Trường (5 Trận Gần Nhất)')
-        .setColor(EMBED_COLORS.MYSTIC);
 
       let desc = '';
       for (const h of history) {
@@ -210,8 +209,11 @@ export default class ArenaCommand extends Command {
         desc += `**${resultIcon}** vs **${oName}** (${eloMod} ELO) - ${timeStr}\n`;
       }
 
-      embed.setDescription(desc);
-      await interaction.editReply(toV2Payload([embed]));
+      const comp = container(V2_COLORS.mystic, [
+        header('📜 Lịch Sử Đấu Trường (5 Trận Gần Nhất)'),
+        body(desc),
+      ]);
+      await interaction.editReply(toV2Payload([comp]));
     }
   }
 }

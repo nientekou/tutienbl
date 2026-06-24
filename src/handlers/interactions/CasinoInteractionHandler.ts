@@ -39,7 +39,9 @@ export class CasinoInteractionHandler {
         }
       }
 
-      await interaction.deferUpdate();
+      try {
+        await interaction.deferUpdate();
+      } catch { return; }
       casinoCooldowns.set(targetUserId, now);
 
       const { runCasinoGame, getCasinoButtons } = require('../../commands/general/casino-old') || 
@@ -70,7 +72,9 @@ export class CasinoInteractionHandler {
           return;
         }
 
-        await interaction.deferUpdate();
+        try {
+          await interaction.deferUpdate();
+        } catch { return; }
         casinoCooldowns.set(targetUserId, now);
 
         const { runCasinoGame, getCasinoButtons } = require('../../commands/general/casino');
@@ -98,7 +102,9 @@ export class CasinoInteractionHandler {
           return;
         }
 
-        await interaction.deferUpdate();
+        try {
+          await interaction.deferUpdate();
+        } catch { return; }
         casinoCooldowns.set(targetUserId, now);
 
         let betType: string;
@@ -136,7 +142,9 @@ export class CasinoInteractionHandler {
           return;
         }
 
-        await interaction.deferUpdate();
+        try {
+          await interaction.deferUpdate();
+        } catch { return; }
         casinoCooldowns.set(targetUserId, now);
 
         const result = casinoService.playBlackjack(targetUserId, bet);
@@ -170,7 +178,9 @@ export class CasinoInteractionHandler {
         const rawChoice = parts[2];
         const bet = parseInt(parts[3], 10);
 
-        await interaction.deferUpdate();
+        try {
+          await interaction.deferUpdate();
+        } catch { return; }
         casinoCooldowns.set(targetUserId, now);
 
         let betType: string;
@@ -200,7 +210,9 @@ export class CasinoInteractionHandler {
       if (gameType === 'blackjack') {
         const bet = parseInt(parts[2], 10);
 
-        await interaction.deferUpdate();
+        try {
+          await interaction.deferUpdate();
+        } catch { return; }
         casinoCooldowns.set(targetUserId, now);
 
         const result = casinoService.playBlackjack(targetUserId, bet);

@@ -3,7 +3,7 @@
 // Centralized item ID registry - all item codes used across the codebase.
 // Import from here instead of hardcoding string literals.
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ITEMS = void 0;
+exports.ITEMS_BEAST_FOOD = exports.ITEMS_FIRE_CORE = exports.ITEMS_PILL_BREAK_ANTI_LOI = exports.ITEMS_PILL_NGU_LON = exports.ITEMS_TALISMAN_KY_NGO = exports.ITEMS_BEAST_EGG = exports.ITEMS_RARE_FIRE_MATERIAL = exports.ITEMS = void 0;
 exports.getWeaponByGrade = getWeaponByGrade;
 exports.getArmorByGrade = getArmorByGrade;
 exports.getPhoiWeaponByGrade = getPhoiWeaponByGrade;
@@ -205,3 +205,13 @@ function isSeedId(itemId) {
 function isPhoiId(itemId) {
     return itemId.startsWith('phoi_');
 }
+// ═══════════════════════════════════════════════════════════════════
+// BIG UPDATE: New items
+// ═══════════════════════════════════════════════════════════════════
+exports.ITEMS_RARE_FIRE_MATERIAL = 'material_rare_fire_shard';
+exports.ITEMS_BEAST_EGG = 'item_beast_egg';
+exports.ITEMS_TALISMAN_KY_NGO = 'talisman_ky_ngo';
+exports.ITEMS_PILL_NGU_LON = 'pill_ngu_lon';
+exports.ITEMS_PILL_BREAK_ANTI_LOI = 'pill_anti_loi_2';
+exports.ITEMS_FIRE_CORE = 'material_fire_core';
+exports.ITEMS_BEAST_FOOD = 'material_beast_food';

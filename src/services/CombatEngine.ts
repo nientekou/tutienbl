@@ -96,11 +96,50 @@ export class CombatEngine {
     }
     enemyHeartLaws = enemyHeartLaws || [];
 
+    // === DAO COMPREHENSION BONUSES ===
+    if (player.userId) {
+      try {
+        const { tamMaService } = require('./TamMaService');
+        const daoBonuses = tamMaService.getDaoBonuses(player.userId);
+        if (daoBonuses.atk_bonus) player.atk = Math.floor(player.atk * (1 + daoBonuses.atk_bonus / 100));
+        if (daoBonuses.crit_bonus) player.crit += daoBonuses.crit_bonus;
+        if (daoBonuses.dodge_bonus) player.dodge = (player.dodge ?? 0.05) + daoBonuses.dodge_bonus / 100;
+        if (daoBonuses.hp_bonus) { player.maxHp += daoBonuses.hp_bonus; player.hp += daoBonuses.hp_bonus; }
+        if (daoBonuses.mp_regen) player.mp = (player.mp ?? 0) + daoBonuses.mp_regen;
+        if (daoBonuses.def_bonus) player.def = Math.floor(player.def * (1 + daoBonuses.def_bonus / 100));
+      } catch {}
+    }
+
+    // === RARE BEAST BONUSES ===
+    if (player.userId) {
+      try {
+        const { rareBeastService } = require('./RareBeastService');
+        const beastBonuses = rareBeastService.getEquippedBonuses(player.userId);
+        if (beastBonuses.atk) player.atk += beastBonuses.atk;
+        if (beastBonuses.def) player.def += beastBonuses.def;
+        if (beastBonuses.hp) { player.maxHp += beastBonuses.hp; player.hp += beastBonuses.hp; }
+        if (beastBonuses.passive === 'speed_surge' && player.speed) {
+          player.speed = Math.round(player.speed * 1.15);
+          player.dodge = (player.dodge ?? 0.05) + 0.05;
+        }
+        if (beastBonuses.passive === 'crit_hunt') player.crit += 0.08;
+      } catch {}
+    }
+
     // DoT Ticks
     let enemyBurnTicks = 0;
     let enemyBurnDamage = 0;
     let playerBurnTicks = 0;
     let playerBurnDamage = 0;
+
+    // === RARE FIRE COMBAT PASSIVE ===
+    if (player.userId) {
+      try {
+        const { rareFireService } = require('./RareFireService');
+        const fireBonus = rareFireService.getEquippedBonus(player.userId);
+        if (fireBonus.combatPassive === 'burn_chance') { enemyBurnTicks = Math.max(enemyBurnTicks, 2); enemyBurnDamage = Math.floor(player.atk * 0.05); }
+      } catch {}
+    }
 
     const log: string[] = [];
     let totalDamageDealt = 0;
@@ -516,11 +555,11 @@ export class CombatEngine {
             if ((elements['Hỏa'] ?? 0) >= 90) {
               enemyDef = Math.round(enemyDef * 0.8);
             }
-            // ponytail: % giảm sát thương theo DEF/ATK ratio, capped 80%
-            const defRatio = enemyDef / (player.atk + enemyDef);
-            const reduction = Math.min(0.80, defRatio);
+            // BIG UPDATE: Balance rework - DEF ratio reduced weight, cap 70%, variance ±5%
+            const defRatio = enemyDef / (player.atk * 0.7 + enemyDef);
+            const reduction = Math.min(0.70, defRatio);
             let baseDamage = Math.max(1, Math.round(player.atk * (1 - reduction)));
-            baseDamage = Math.round(baseDamage * (0.9 + Math.random() * 0.2));
+            baseDamage = Math.round(baseDamage * (0.95 + Math.random() * 0.1));
 
             let elementText = '';
             // Tính toán Ngũ Hành Tương Khắc nếu có kỹ năng và quái có hệ
@@ -659,11 +698,11 @@ export class CombatEngine {
               log.push(`👑 **[Cơ Chế Boss - Cửu Trùng Liên Chiêu]** **${enemy.name}** bộc phát liên chiêu cuồng bạo, tăng gấp đôi Sát Thương đòn đánh!`);
             }
 
-            // ponytail: % giảm sát thương theo DEF/ATK ratio, capped 80%
-            const defRatioP = playerDef / (enemyAtk + playerDef);
-            const reductionP = Math.min(0.80, defRatioP);
+            // BIG UPDATE: Balance rework - enemy damage formula
+            const defRatioP = playerDef / (enemyAtk * 0.7 + playerDef);
+            const reductionP = Math.min(0.70, defRatioP);
             let monsterDmg = Math.max(1, Math.round(enemyAtk * (1 - reductionP)));
-            monsterDmg = Math.round(monsterDmg * (0.9 + Math.random() * 0.2));
+            monsterDmg = Math.round(monsterDmg * (0.95 + Math.random() * 0.1));
 
             if (isPlayerCountered) {
               monsterDmg = Math.round(monsterDmg * 1.3);

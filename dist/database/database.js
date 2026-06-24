@@ -1590,8 +1590,46 @@ function initDatabase() {
       last_reset_week TEXT
     );
   `);
+    // Bảng từ điển Nối Từ
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS noitu_words (
+      word TEXT PRIMARY KEY,
+      source TEXT NOT NULL DEFAULT 'seed',
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS noitu_word_suggestions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      word TEXT NOT NULL UNIQUE,
+      suggested_by TEXT NOT NULL,
+      suggested_at INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+      reviewed_by TEXT,
+      reviewed_at INTEGER
+    );
+  `);
     // Seed Tâm Pháp
     seedHeartLaws();
+    // Seed từ điển Nối Từ
+    seedNoituWords();
+    // === Phase 1E: Performance Indexes ===
+    db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_inv_user_item ON inventories(user_id, item_id);
+    CREATE INDEX IF NOT EXISTS idx_inv_equipped ON inventories(user_id, is_equipped);
+    CREATE INDEX IF NOT EXISTS idx_inv_slot ON inventories(user_id, equipment_slot);
+    CREATE INDEX IF NOT EXISTS idx_dungeon_cd ON dungeon_cooldowns(user_id, dungeon_id);
+    CREATE INDEX IF NOT EXISTS idx_arena_elo ON arena_profiles(elo DESC);
+    CREATE INDEX IF NOT EXISTS idx_boss_contrib ON world_boss_contributions(boss_id);
+    CREATE INDEX IF NOT EXISTS idx_daily_quest_user ON daily_quests(user_id, assigned_at);
+    CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, is_read);
+    CREATE INDEX IF NOT EXISTS idx_market_item ON market_listings(item_id, status);
+    CREATE INDEX IF NOT EXISTS idx_achieve_user ON user_achievements(user_id, unlocked);
+    CREATE INDEX IF NOT EXISTS idx_pet_user ON pets(user_id, is_deployed);
+    CREATE INDEX IF NOT EXISTS idx_heart_law_user ON user_heart_laws(user_id);
+    CREATE INDEX IF NOT EXISTS idx_destiny_user ON user_destinies(user_id);
+    CREATE INDEX IF NOT EXISTS idx_skill_user ON user_skills(user_id);
+    CREATE INDEX IF NOT EXISTS idx_quest_chain_user ON quest_chain_progress(user_id);
+  `);
     console.log('✅ Cơ sở dữ liệu Hệ Thống Tu Hành đã được khởi tạo hoàn tất.');
 }
 /**
@@ -1679,6 +1717,36 @@ function seedAchievements() {
         { id: 'pvp_10', name: 'Bá Chủ Vạn Thế', category: 'pvp', description: 'Giữ vị trí #1 Arena trong 3 mùa liên tiếp', icon: '🏆', target_value: 3, reward_title: 'Bá Chủ Vạn Thế', reward_exp: 10000, reward_coins: 100000, sort_order: 72 },
         { id: 'sh_19', name: 'Trưởng Lão Minh Triết', category: 'sinh_hoat', description: 'Đào tạo thành công 5+ đệ tử tốt nghiệp', icon: '📜', target_value: 5, reward_title: 'Trưởng Lão', reward_exp: 3000, reward_coins: 30000, sort_order: 73 },
         { id: 'pvp_11', name: 'Chiến Thần Vô Song', category: 'pvp', description: 'Thắng 50 trận PvP liên tiếp', icon: '⚔️', target_value: 50, reward_title: 'Chiến Thần Vô Song', reward_exp: 5000, reward_coins: 50000, sort_order: 74 },
+        // ===== PHASE 2 NEW SYSTEMS - TAM MA (Inner Demons) =====
+        { id: 'dm_1', name: 'Diệt Ma Sơ Cấp', category: 'chien_dau', description: 'Chiến thắng 5 Tâm Ma', icon: '👹', target_value: 5, reward_title: null, reward_exp: 1000, reward_coins: 5000, sort_order: 75 },
+        { id: 'dm_2', name: 'Diệt Ma Trung Cấp', category: 'chien_dau', description: 'Chiến thắng 10 Tâm Ma', icon: '👹', target_value: 10, reward_title: 'Kẻ Diệt Ma', reward_exp: 3000, reward_coins: 15000, sort_order: 76 },
+        { id: 'dm_3', name: 'Diệt Ma Cao Cấp', category: 'chien_dau', description: 'Chiến thắng 25 Tâm Ma', icon: '👹', target_value: 25, reward_title: 'Thợ Săn Tâm Ma', reward_exp: 8000, reward_coins: 40000, sort_order: 77 },
+        { id: 'dm_4', name: 'Diệt Ma Tông Sư', category: 'chien_dau', description: 'Chiến thắng 50 Tâm Ma', icon: '👹', target_value: 50, reward_title: 'Tông Sư Diệt Ma', reward_exp: 15000, reward_coins: 80000, sort_order: 78 },
+        // ===== NGO DAO (Dao Comprehension) =====
+        { id: 'dao_1', name: 'Sơ Mộ Đạo', category: 'tu_luyen', description: 'Đạt Level 3 bất kỳ đạo nào', icon: '📖', target_value: 3, reward_title: null, reward_exp: 1000, reward_coins: 5000, sort_order: 79 },
+        { id: 'dao_2', name: 'Chánh Đạo', category: 'tu_luyen', description: 'Đạt Level 5 bất kỳ đạo nào', icon: '📖', target_value: 5, reward_title: 'Chánh Đạo', reward_exp: 5000, reward_coins: 25000, sort_order: 80 },
+        { id: 'dao_3', name: 'Đại Đạo', category: 'tu_luyen', description: 'Đạt Level 7 (Max) bất kỳ đạo nào', icon: '📖', target_value: 7, reward_title: 'Đại Đạo Tông Sư', reward_exp: 20000, reward_coins: 100000, sort_order: 81 },
+        { id: 'dao_4', name: 'Tong Hop Dao', category: 'tu_luyen', description: 'Tich luy 500 diem ngo dao tong cong', icon: '📖', target_value: 500, reward_title: 'Ngo Dao Chan Nhan', reward_exp: 5000, reward_coins: 30000, sort_order: 82 },
+        // ===== DI HOA (Rare Fires) =====
+        { id: 'rf_1', name: 'Sưu Tập Dị Hỏa', category: 'sinh_hoat', description: 'Sở hữu 1 loại Dị Hỏa', icon: '🔥', target_value: 1, reward_title: null, reward_exp: 500, reward_coins: 3000, sort_order: 83 },
+        { id: 'rf_2', name: 'Bách Hỏa Chi Thân', category: 'sinh_hoat', description: 'Sở hữu 3 loại Dị Hỏa', icon: '🔥', target_value: 3, reward_title: 'Bách Hỏa Chi Thân', reward_exp: 5000, reward_coins: 25000, sort_order: 84 },
+        { id: 'rf_3', name: 'Thiên Hỏa Thu Phục', category: 'sinh_hoat', description: 'Sở hữu 5 loại Dị Hỏa', icon: '🔥', target_value: 5, reward_title: 'Thiên Hỏa Tông Sư', reward_exp: 15000, reward_coins: 80000, sort_order: 85 },
+        // ===== DI THU (Rare Beasts) =====
+        { id: 'rb_1', name: 'Thu Phục Dị Thú', category: 'sinh_hoat', description: 'Thu phục 1 Dị Thú', icon: '🐾', target_value: 1, reward_title: null, reward_exp: 500, reward_coins: 3000, sort_order: 86 },
+        { id: 'rb_2', name: 'Người Thuần Thú', category: 'sinh_hoat', description: 'Thu phục 3 Dị Thú', icon: '🐾', target_value: 3, reward_title: 'Người Thuần Thú', reward_exp: 5000, reward_coins: 25000, sort_order: 87 },
+        { id: 'rb_3', name: 'Thú Vương', category: 'sinh_hoat', description: 'Thu phục 5 Dị Thú', icon: '🐾', target_value: 5, reward_title: 'Thú Vương', reward_exp: 15000, reward_coins: 80000, sort_order: 88 },
+        // ===== KY NGO (Random Cultivation Events) =====
+        { id: 'kn_1', name: 'Kỳ Ngộ Sơ Lâm', category: 'tu_luyen', description: 'Trải nghiệm 5 Kỳ Ngộ', icon: '✨', target_value: 5, reward_title: null, reward_exp: 500, reward_coins: 2000, sort_order: 89 },
+        { id: 'kn_2', name: 'Kỳ Ngộ Thường Truyện', category: 'tu_luyen', description: 'Trải nghiệm 20 Kỳ Ngộ', icon: '✨', target_value: 20, reward_title: 'Kỳ Ngộ Chi Tử', reward_exp: 3000, reward_coins: 15000, sort_order: 90 },
+        { id: 'kn_3', name: 'Kỳ Ngộ Thiên Mệnh', category: 'tu_luyen', description: 'Trải nghiệm 50 Kỳ Ngộ', icon: '✨', target_value: 50, reward_title: 'Thiên Mệnh Kỳ Ngộ', reward_exp: 10000, reward_coins: 50000, sort_order: 91 },
+        // ===== ARENA STREAKS =====
+        { id: 'pvp_12', name: 'Chiến Binh Liên Thắng', category: 'pvp', description: 'Đạt chuỗi 5 thắng Arena', icon: '🏅', target_value: 5, reward_title: null, reward_exp: 1000, reward_coins: 5000, sort_order: 92 },
+        { id: 'pvp_13', name: 'Bất Bại Quân Vương', category: 'pvp', description: 'Đạt chuỗi 10 thắng Arena', icon: '🏅', target_value: 10, reward_title: 'Bất Bại', reward_exp: 5000, reward_coins: 25000, sort_order: 93 },
+        { id: 'pvp_14', name: 'Vô Địch Liên Thắng', category: 'pvp', description: 'Đạt chuỗi 20 thắng Arena', icon: '🏅', target_value: 20, reward_title: 'Vô Địch', reward_exp: 15000, reward_coins: 80000, sort_order: 94 },
+        // ===== BOSS PHASE PARTICIPATION =====
+        { id: 'cd_15', name: 'Boss Giai Đoạn 2', category: 'chien_dau', description: 'Tham gia đánh Boss khi ở Giai Đoạn 2', icon: '👿', target_value: 1, reward_title: null, reward_exp: 500, reward_coins: 2000, sort_order: 95 },
+        { id: 'cd_16', name: 'Boss Giai Đoạn 3', category: 'chien_dau', description: 'Tham gia đánh Boss khi ở Giai Đoạn 3', icon: '👿', target_value: 1, reward_title: 'Kẻ Đối Mặt Tuyệt Vọng', reward_exp: 2000, reward_coins: 10000, sort_order: 96 },
+        { id: 'cd_17', name: 'Boss MVP', category: 'chien_dau', description: 'Đạt MVP 5 lần Boss thế giới', icon: '🏆', target_value: 5, reward_title: 'Boss Hunter', reward_exp: 10000, reward_coins: 50000, sort_order: 97 },
     ];
     const stmt = db.prepare(`
     INSERT INTO achievements (id, name, category, description, icon, target_value, reward_title, reward_exp, reward_coins, sort_order)
@@ -3485,6 +3553,149 @@ function seedHeartLaws() {
     tx();
     console.log(`✅ Đã seed ${laws.length} bí kíp tâm pháp.`);
 }
+/**
+ * Seed từ điển Nối Từ — dùng fallback + thử tải Viet74K (74.000+ từ).
+ * Sử dụng execSync để đảm bảo đồng bộ với initDatabase()
+ */
+function seedNoituWords() {
+    const existingCount = db.prepare("SELECT COUNT(*) as c FROM noitu_words").get();
+    if (existingCount.c > 0)
+        return;
+    const words = new Set();
+    // Danh sách từ cơ bản (luôn có, không cần mạng)
+    const fallback = [
+        'bầu trời', 'mặt trăng', 'mặt trời', 'ngôi sao', 'gió mát',
+        'mưa rơi', 'tuyết rơi', 'sấm chớp', 'cầu vồng', 'mây trắng',
+        'biển cả', 'sông dài', 'núi cao', 'đồng bằng', 'thung lũng',
+        'hồ nước', 'suối nhỏ', 'rừng xanh', 'cỏ dại', 'lá rơi',
+        'hoa nở', 'hoa hồng', 'hoa cúc', 'hoa mai', 'hoa đào',
+        'hoa sen', 'hoa lan', 'giọt sương', 'ánh nắng', 'tia sáng',
+        'nắng vàng', 'mưa phùn', 'sương mù', 'đá cuội', 'cát trắng',
+        'nước sạch', 'lửa cháy', 'núi lửa', 'hòn đảo', 'bờ biển',
+        'học sinh', 'giáo viên', 'bác sĩ', 'kỹ sư', 'nông dân',
+        'nhà văn', 'nhà thơ', 'họa sĩ', 'nhạc sĩ', 'diễn viên',
+        'cơm tấm', 'phở bò', 'bún chả', 'bánh mì', 'bánh xèo',
+        'bánh chưng', 'cháo gà', 'bún bò', 'trà đá', 'nước mía',
+        'cà phê', 'sữa chua', 'đường phố', 'ngõ hẻm', 'phố cổ',
+        'nhà thờ', 'cầu treo', 'bến phà', 'ga tàu', 'sân bay',
+        'bến xe', 'xe buýt', 'xe tải', 'xe máy', 'xe đạp',
+        'tàu hỏa', 'máy bay', 'đồng hồ', 'máy tính', 'điện thoại',
+        'giường ngủ', 'bàn học', 'ghế ngồi', 'tủ kính', 'tường nhà',
+        'cửa sổ', 'phòng ngủ', 'phòng khách', 'nhà bếp', 'cầu thang',
+        'con mèo', 'con chó', 'con gà', 'con vịt', 'con ngựa',
+        'con bò', 'con heo', 'con dê', 'con cừu', 'con voi',
+        'con hổ', 'con báo', 'con gấu', 'con sói', 'con thỏ',
+        'con nai', 'con công', 'con quạ', 'con rắn', 'con ếch',
+        'con tôm', 'con cua', 'con mực', 'con cá', 'con sò',
+        'con ong', 'con bướm', 'con kiến', 'con sâu', 'con rùa',
+        'vui vẻ', 'hạnh phúc', 'buồn bã', 'giận dữ', 'sợ hãi',
+        'ngạc nhiên', 'tự hào', 'nhớ nhung', 'yêu thương', 'thân thiện',
+        'tự tin', 'can đảm', 'kiên cường', 'phấn khởi', 'hào hứng',
+        'tu luyện', 'đắc đạo', 'phi thăng', 'thiên kiếp', 'pháp bảo',
+        'đan dược', 'kiếm khí', 'công pháp', 'ngũ hành', 'thiên địa',
+        'bí cảnh', 'tiên cảnh', 'thần thông', 'thần lực', 'long tộc',
+        'cửu thiên', 'tam giới', 'lục đạo', 'bát quái', 'tông môn',
+        'đệ tử', 'trưởng lão', 'tông chủ', 'phong ấn', 'tiên thiên',
+        'yêu tinh', 'ma vương', 'bất diệt', 'vô cùng', 'vô hạn',
+        'vô địch', 'đại đạo', 'thiên đạo', 'đầu óc', 'vai rộng',
+        'tay chân', 'bàn tay', 'cánh tay', 'buổi sáng', 'buổi trưa',
+        'buổi chiều', 'buổi tối', 'mùa xuân', 'mùa hè', 'mùa thu',
+        'mùa đông', 'năm mới', 'sách vở', 'bút chì', 'bút mực',
+        'cặp sách', 'điểm số', 'bài thi', 'câu hỏi', 'đáp án',
+        'khám bệnh', 'uống thuốc', 'bệnh viện', 'nhà thuốc',
+        'vũ trụ', 'hành tinh', 'thiên hà', 'năng lượng', 'đại dương',
+        'âm nhạc', 'hội họa', 'thơ ca', 'văn chương', 'điện ảnh',
+        'châu Á', 'châu Âu', 'châu Phi', 'châu Mỹ',
+        'bóng đá', 'bóng rổ', 'bóng chuyền', 'bóng bàn',
+        'cầu lông', 'bơi lội', 'phần mềm', 'phần cứng', 'công nghệ',
+        'thu nhập', 'chi tiêu', 'tiết kiệm', 'đầu tư', 'kinh doanh',
+        'rau muống', 'rau cải', 'cà rốt', 'cà chua', 'khoai tây',
+        'thịt bò', 'thịt gà', 'thịt heo', 'cá hồi', 'cá ngừ',
+        'ông bà', 'cha mẹ', 'anh chị', 'em út', 'cháu nhỏ',
+        'cộng đồng', 'xã hội', 'đô thị', 'nông thôn',
+        'thiền định', 'cầu nguyện', 'giác ngộ', 'từ bi',
+        'linh khí', 'linh mạch', 'linh căn', 'linh dược', 'linh thạch',
+        'kiếm thuật', 'thần kiếm', 'pháp trận', 'pháp thuật',
+        'hư không', 'tiên khí', 'phật tâm', 'ma pháp',
+    ];
+    for (const w of fallback) {
+        const clean = w.trim().toLowerCase();
+        if (clean.split(/\s+/).length >= 2)
+            words.add(clean);
+    }
+    // Thử tải từ điển mở rộng đồng bộ từ nhiều nguồn
+    const { execSync } = require('child_process');
+    const fetchText = (url, timeout = 70000) => {
+        try {
+            return execSync(`curl -sL --connect-timeout 10 --max-time 60 "${url}"`, { timeout, encoding: 'utf-8', maxBuffer: 20 * 1024 * 1024, windowsHide: true });
+        }
+        catch {
+            try {
+                return execSync(`powershell -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (Invoke-WebRequest -Uri '${url}' -UseBasicParsing).Content}"`, { timeout: 90000, encoding: 'utf-8', maxBuffer: 20 * 1024 * 1024, windowsHide: true });
+            }
+            catch {
+                return null;
+            }
+        }
+    };
+    const addWordsFromText = (raw, source) => {
+        const before = words.size;
+        for (const line of raw.split('\n')) {
+            const clean = line.trim().toLowerCase();
+            if (!clean || clean.length < 3)
+                continue;
+            if (clean.split(/\s+/).length >= 2)
+                words.add(clean);
+        }
+        console.log(`  📖 ${source}: +${words.size - before} từ`);
+    };
+    // 1. Viet74K
+    const viet74k = fetchText('https://vietnamese-wordlist.duyet.net/Viet74K.txt');
+    if (viet74k)
+        addWordsFromText(viet74k, 'Viet74K');
+    // 2. undertheseanlp/dictionary ~79K từ
+    const uts = fetchText('https://raw.githubusercontent.com/undertheseanlp/dictionary/master/dictionary/words.txt');
+    if (uts)
+        addWordsFromText(uts, 'undertheseanlp/dictionary');
+    // 3. NNBnh/noi-tu ~51K từ
+    const nnb = fetchText('https://raw.githubusercontent.com/NNBnh/noi-tu/main/words/words.txt');
+    if (nnb)
+        addWordsFromText(nnb, 'NNBnh/noi-tu');
+    // 4. minhqnd/Noi-Tu-Discord ~60K từ (wordPairs.json: { key_word: [val1, val2, ...] })
+    //     → mỗi cặp key+val tạo thành từ 2 âm tiết: "key val"
+    const wps = fetchText('https://raw.githubusercontent.com/minhqnd/Noi-Tu-Discord/main/src/assets/wordPairs.json');
+    if (wps) {
+        const before = words.size;
+        try {
+            const parsed = JSON.parse(wps);
+            for (const [k, vals] of Object.entries(parsed)) {
+                const key = k.trim().toLowerCase();
+                for (const v of vals) {
+                    const phrase = `${key} ${v.trim().toLowerCase()}`;
+                    if (phrase.split(/\s+/).length >= 2)
+                        words.add(phrase);
+                }
+            }
+        }
+        catch { /* skip malformed JSON */ }
+        console.log(`  📖 minhqnd/Noi-Tu-Discord: +${words.size - before} từ`);
+    }
+    if (viet74k || uts || nnb || wps) {
+        console.log(`✅ Tổng số từ sau khi tải từ điển mở rộng: ${words.size}`);
+    }
+    else {
+        console.log(`ℹ️ Không tải được từ điển mở rộng, dùng fallback ${fallback.length} từ.`);
+    }
+    // Batch insert
+    const insert = db.prepare('INSERT OR IGNORE INTO noitu_words (word, source) VALUES (?, ?)');
+    const tx = db.transaction(() => {
+        for (const w of words) {
+            insert.run(w, 'seed');
+        }
+    });
+    tx();
+    console.log(`✅ Đã seed ${words.size} từ cho game Nối Từ.`);
+}
 // Tạo index cho các cột thường query (tối ưu hiệu năng)
 try {
     db.exec(`
@@ -3509,5 +3720,182 @@ try {
 }
 catch (e) {
     console.log(`ℹ️ Index đã tồn tại, bỏ qua.`);
+}
+// ═══════════════════════════════════════════════════════════════════
+// BIG UPDATE: New tables + indexes for new systems
+// ═══════════════════════════════════════════════════════════════════
+try {
+    db.exec(`
+    -- Kỳ ngộ (Random Cultivation Events)
+    CREATE TABLE IF NOT EXISTS ky_ngo_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      event_data TEXT NOT NULL DEFAULT '{}',
+      selected_choice TEXT,
+      result_data TEXT,
+      completed INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+      expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_kyngo_user ON ky_ngo_events(user_id, completed);
+
+    -- Tâm Ma (Inner Demons)
+    CREATE TABLE IF NOT EXISTS inner_demons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      demon_type TEXT NOT NULL,
+      demon_name TEXT NOT NULL,
+      power INTEGER NOT NULL,
+      defeated INTEGER DEFAULT 0,
+      defeated_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_demon_user ON inner_demons(user_id, defeated);
+
+    -- Ngộ Đạo (Dao Comprehension)
+    CREATE TABLE IF NOT EXISTS dao_comprehension (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      dao_type TEXT NOT NULL,
+      points INTEGER DEFAULT 0,
+      level INTEGER DEFAULT 1,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+      UNIQUE(user_id, dao_type)
+    );
+    CREATE INDEX IF NOT EXISTS idx_dao_user ON dao_comprehension(user_id);
+
+    -- Dị Hỏa (Rare Flames)
+    CREATE TABLE IF NOT EXISTS rare_fires (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      fire_type TEXT NOT NULL,
+      fire_name TEXT NOT NULL,
+      tier INTEGER NOT NULL DEFAULT 1,
+      level INTEGER NOT NULL DEFAULT 1,
+      exp INTEGER DEFAULT 0,
+      equipped INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+      UNIQUE(user_id, fire_type)
+    );
+    CREATE INDEX IF NOT EXISTS idx_rarefire_user ON rare_fires(user_id, equipped);
+
+    -- Dị Thú (Rare Beasts)
+    CREATE TABLE IF NOT EXISTS rare_beasts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      beast_type TEXT NOT NULL,
+      beast_name TEXT NOT NULL,
+      rarity TEXT NOT NULL DEFAULT 'rare',
+      level INTEGER NOT NULL DEFAULT 1,
+      exp INTEGER DEFAULT 0,
+      stars INTEGER DEFAULT 1,
+      equipped INTEGER DEFAULT 0,
+      skills TEXT DEFAULT '[]',
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+      UNIQUE(user_id, beast_type)
+    );
+    CREATE INDEX IF NOT EXISTS idx_rarebeast_user ON rare_beasts(user_id, equipped);
+
+    -- Ranked Arena seasons
+    CREATE TABLE IF NOT EXISTS ranked_seasons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      season_number INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      started_at INTEGER NOT NULL,
+      ended_at INTEGER,
+      status TEXT DEFAULT 'active'
+    );
+    CREATE INDEX IF NOT EXISTS idx_ranked_season ON ranked_seasons(status);
+
+    -- Ranked season rewards tracking
+    CREATE TABLE IF NOT EXISTS ranked_rewards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      season_id INTEGER NOT NULL,
+      user_id TEXT NOT NULL,
+      rank_tier TEXT NOT NULL,
+      rank_position INTEGER DEFAULT 0,
+      rewards_json TEXT NOT NULL DEFAULT '{}',
+      claimed INTEGER DEFAULT 0,
+      claimed_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_ranked_reward_season ON ranked_rewards(season_id, user_id);
+
+    -- Arena spectators
+    CREATE TABLE IF NOT EXISTS arena_spectators (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      match_id INTEGER NOT NULL,
+      viewer_id TEXT NOT NULL,
+      joined_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_spectator_match ON arena_spectators(match_id);
+
+    -- Boss guild contributions
+    CREATE TABLE IF NOT EXISTS boss_guild_contributions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      boss_id TEXT NOT NULL,
+      sect_id INTEGER NOT NULL,
+      total_damage INTEGER DEFAULT 0,
+      member_count INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+      UNIQUE(boss_id, sect_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_boss_guild ON boss_guild_contributions(boss_id);
+  `);
+    console.log('✅ Đã tạo bảng mới cho BIG UPDATE.');
+}
+catch (e) {
+    console.log('ℹ️ Bảng BIG UPDATE đã tồn tại, bỏ qua.');
+}
+// ALTER TABLE migrations for new columns (idempotent)
+const alterStatements = [
+    `ALTER TABLE active_tribulations ADD COLUMN mood TEXT DEFAULT 'normal'`,
+    `ALTER TABLE active_tribulations ADD COLUMN dao_bonus INTEGER DEFAULT 0`,
+    `ALTER TABLE arena_profiles ADD COLUMN season_wins INTEGER DEFAULT 0`,
+    `ALTER TABLE arena_profiles ADD COLUMN season_losses INTEGER DEFAULT 0`,
+    `ALTER TABLE arena_profiles ADD COLUMN highest_streak INTEGER DEFAULT 0`,
+    `ALTER TABLE world_boss ADD COLUMN phase INTEGER DEFAULT 1`,
+    `ALTER TABLE world_boss ADD COLUMN current_weakness TEXT DEFAULT 'hoa'`,
+    `ALTER TABLE world_boss_contributions ADD COLUMN phase_damages TEXT DEFAULT '{}'`,
+    `ALTER TABLE world_boss_contributions ADD COLUMN mvp_score INTEGER DEFAULT 0`,
+    `ALTER TABLE world_boss_contributions ADD COLUMN last_hit INTEGER DEFAULT 0`,
+    `ALTER TABLE world_boss ADD COLUMN max_phases INTEGER DEFAULT 3`,
+    `ALTER TABLE world_boss ADD COLUMN abilities_json TEXT DEFAULT '[]'`,
+    `ALTER TABLE world_boss ADD COLUMN weakness_rotation TEXT DEFAULT '[]'`,
+    `ALTER TABLE arena_profiles ADD COLUMN daily_wins INTEGER DEFAULT 0`,
+    `ALTER TABLE arena_profiles ADD COLUMN daily_reset_at INTEGER DEFAULT 0`,
+    `ALTER TABLE arena_history ADD COLUMN season_id INTEGER`,
+    `ALTER TABLE arena_history ADD COLUMN damage_log TEXT`,
+    `ALTER TABLE arena_history ADD COLUMN spectator_count INTEGER DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN qi_deviation INTEGER DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN total_dao_points INTEGER DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN cultivation_speed_bonus INTEGER DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN breakthrough_bonus INTEGER DEFAULT 0`,
+];
+for (const stmt of alterStatements) {
+    try {
+        db.exec(stmt);
+    }
+    catch { }
+}
+// Performance indexes for BIG UPDATE
+try {
+    db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_inv_user_item ON inventories(user_id, item_id);
+    CREATE INDEX IF NOT EXISTS idx_inv_equipped ON inventories(user_id, is_equipped);
+    CREATE INDEX IF NOT EXISTS idx_dungeon_cd ON dungeon_cooldowns(user_id, dungeon_id);
+    CREATE INDEX IF NOT EXISTS idx_arena_elo ON arena_profiles(elo DESC);
+    CREATE INDEX IF NOT EXISTS idx_boss_contrib ON world_boss_contributions(boss_id);
+    CREATE INDEX IF NOT EXISTS idx_daily_quest_user ON daily_quests(user_id, assigned_at);
+    CREATE INDEX IF NOT EXISTS idx_market_item ON market_listings(item_id, status);
+    CREATE INDEX IF NOT EXISTS idx_achieve_user ON user_achievements(user_id, is_completed);
+    CREATE INDEX IF NOT EXISTS idx_pet_user ON pets(user_id, is_deployed);
+    CREATE INDEX IF NOT EXISTS idx_skill_user ON user_skills(user_id);
+    CREATE INDEX IF NOT EXISTS idx_quest_chain_user ON quest_chain_progress(user_id);
+  `);
+    console.log('✅ Đã thêm performance indexes.');
+}
+catch (e) {
+    console.log('ℹ️ Performance indexes đã tồn tại.');
 }
 exports.default = db;

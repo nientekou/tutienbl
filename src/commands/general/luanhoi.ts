@@ -1,16 +1,17 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_FLAG } from '../../utils/v2Components';
+import type { ContainerBuilder } from 'discord.js';
 
-export function getLuanHoiEmbed(userId: string): EmbedBuilder {
+export function getLuanHoiEmbed(userId: string): ContainerBuilder {
   const user = userRepository.get(userId);
   if (!user) {
-    return new EmbedBuilder()
-      .setTitle('🌌 LUÂN HỒI CHUYỂN THẾ')
-      .setColor(EMBED_COLORS.REINCARNATION)
-      .setDescription('Chưa khởi tạo nhân vật.');
+    return container(0x8E44AD, [
+      header('🌌 LUÂN HỒI CHUYỂN THẾ'),
+      body('Chưa khởi tạo nhân vật.'),
+    ]);
   }
 
   const currentLuanHoi = user.luan_hoi_count || 0;
@@ -28,12 +29,12 @@ export function getLuanHoiEmbed(userId: string): EmbedBuilder {
 
   const isEligible = user.level >= 380;
 
-  return new EmbedBuilder()
-    .setTitle(`🌌 LUÂN HỒI CHUYỂN THẾ - ${user.name}`)
-    .setColor(isEligible ? '#9b59b6' : '#95a5a6')
-    .setDescription(desc)
-    .setFooter({ text: isEligible ? 'Nhấn nút phía dưới để xác nhận đi vào Luân Hồi đại trận!' : 'Hãy tiếp tục tu luyện đạt Đăng Tiên Kỳ Đại Viên Mãn!' })
-    .setTimestamp();
+  return container(isEligible ? 0x9b59b6 : 0x95a5a6, [
+    header(`🌌 LUÂN HỒI CHUYỂN THẾ - ${user.name}`),
+    body(desc),
+    separator(),
+    body(isEligible ? 'Nhấn nút phía dưới để xác nhận đi vào Luân Hồi đại trận!' : 'Hãy tiếp tục tu luyện đạt Đăng Tiên Kỳ Đại Viên Mãn!'),
+  ]);
 }
 
 export function getLuanHoiComponents(userId: string, isEligible: boolean): ActionRowBuilder<ButtonBuilder> {
@@ -70,9 +71,9 @@ export default class LuanHoiCommand extends Command {
       return;
     }
 
-    const embed = getLuanHoiEmbed(discordId);
+    const comp = getLuanHoiEmbed(discordId);
     const row = getLuanHoiComponents(discordId, user.level >= 380);
 
-    await interaction.editReply(toV2Payload([embed], [row] ));
+    await interaction.editReply({ components: [comp, row], flags: V2_FLAG });
   }
 }

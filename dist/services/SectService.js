@@ -8,21 +8,23 @@ const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const AchievementService_1 = require("./AchievementService");
 const LeylineService_1 = require("./LeylineService");
+const gameConstants_1 = require("../config/gameConstants");
 const revengeWindows = new Map();
 class SectService {
     /**
-     * Tạo Tông Môn mới (Tiêu hao 500 Linh thạch)
+     * Tao Tong Mon moi (Tieu hao SECT_CREATE_COST_LT Linh thach)
      */
     createSect(userId, name, description) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật.' };
+            return { success: false, message: 'Dao huu chua khoi tao nhan vat.' };
         }
         if (user.sect_id) {
-            return { success: false, message: 'Đạo hữu đã có Tông Môn! Vui lòng rời Tông Môn cũ trước khi sáng lập môn phái mới.' };
+            return { success: false, message: 'Dao huu da co Tong Mon! Vui long roi Tong Mon cu truoc khi sang lap mon phai moi.' };
         }
-        if (user.coin_ha_pham < 500) {
-            return { success: false, message: `Đạo hữu không đủ Linh Thạch để lập Tông Môn! (Yêu cầu **500** Linh Thạch, hiện có **${user.coin_ha_pham}**)` };
+        const cost = gameConstants_1.GAME_CONSTANTS.SECT_CREATE_COST_LT;
+        if (user.coin_ha_pham < cost) {
+            return { success: false, message: `Dao huu khong du Linh Thach de lap Tong Mon! (Yeu cau **${cost}** Linh Thach, hien co **${user.coin_ha_pham}**)` };
         }
         const nameRegex = /^[a-zA-Z0-9À-ỹ\s]{2,20}$/;
         if (!nameRegex.test(name.trim())) {
@@ -44,7 +46,7 @@ class SectService {
                 sect_id: sect.id,
                 sect_contribution: 100, // Thưởng 100 điểm đóng góp khởi lập
                 joined_sect_at: now,
-                coin_ha_pham: user.coin_ha_pham - 500
+                coin_ha_pham: user.coin_ha_pham - gameConstants_1.GAME_CONSTANTS.SECT_CREATE_COST_LT
             });
             return {
                 success: true,

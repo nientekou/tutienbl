@@ -472,5 +472,46 @@ export class CultivationInteractionHandler {
       await safeV2Update(interaction, [embed], [row]);
       return;
     }
+
+    // --- Kỳ Ngộ ---
+    if (action === 'kyngo') {
+      const sub = parts[1]; // 'choose' or 'view'
+      const { kyNgoService } = require('../../services/KyNgoService');
+
+      if (sub === 'choose') {
+        const eventId = parseInt(parts[2], 10);
+        const choiceId = parts[3];
+        const user = userRepository.get(targetUserId);
+        if (!user) return;
+
+        const result = kyNgoService.resolveChoice(eventId, targetUserId, choiceId, (user as any).luck || 0, (user as any).linh_can || '[]');
+        kyNgoService.applyEffects(targetUserId, result.effects);
+
+        const { container, header, body, V2_COLORS } = require('../../utils/v2Components');
+        const comp = container(result.success ? V2_COLORS.success : V2_COLORS.danger, [
+          header(result.success ? '✅ Kỳ Ngộ Thành Công!' : '❌ Kỳ Ngộ Thất Bít!'),
+          body(result.message)
+        ]);
+        await safeV2Update(interaction, [comp]);
+        return;
+      }
+
+      if (sub === 'view') {
+        const events = kyNgoService.getPendingEvents(targetUserId);
+        if (!events.length) {
+          await safeV2TextUpdate(interaction, '📭 Không có kỳ ngộ nào đang chờ.');
+          return;
+        }
+        const { container, header, body, V2_COLORS } = require('../../utils/v2Components');
+        let desc = '';
+        for (const evt of events) {
+          const data = JSON.parse(evt.event_data);
+          desc += `**${data.title}**\n${data.description}\n\n`;
+        }
+        const comp = container(V2_COLORS.mystic, [header('✨ Kỳ Ngộ Đang Chờ'), body(desc)]);
+        await safeV2Update(interaction, [comp]);
+        return;
+      }
+    }
   }
 }

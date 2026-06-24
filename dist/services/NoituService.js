@@ -1,15 +1,17 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.noituService = exports.NoituService = void 0;
 const discord_js_1 = require("discord.js");
 const uiSystem_1 = require("../utils/uiSystem");
 const UserRepository_1 = require("../database/repositories/UserRepository");
-const API_BASE = 'https://dict.minhqnd.com/api/v1';
+const database_1 = __importDefault(require("../database/database"));
 // ── Constants ──
 const TURN_TIME_MS = 3_600_000; // ponytail: 1 hour per turn (was 45s)
 const MAX_NO_ANSWER = 5;
 const WIN_REWARD = 500;
-const API_TIMEOUT_MS = 5_000;
 const STARTING_WORDS = [
     'mặt trời', 'mặt trăng', 'ngôi sao', 'bầu trời', 'gió mát',
     'mưa rơi', 'tuyết rơi', 'sấm chớp', 'cầu vồng', 'mây trắng',
@@ -107,23 +109,61 @@ const globalAny = global;
 if (!globalAny.__activeNoituGames) {
     globalAny.__activeNoituGames = new Map();
 }
-// ── API helpers ──
-async function lookupWord(word) {
-    try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-        const res = await fetch(`${API_BASE}/lookup?word=${encodeURIComponent(word)}&lang=vi`, {
-            signal: controller.signal,
-        });
-        clearTimeout(timeout);
-        if (!res.ok)
-            return false;
-        const data = await res.json();
-        return data.exists === true;
-    }
-    catch {
+// ── API sources cho từ điển mở rộng ──
+// ponytail: Thêm URL vào mảng này để mở rộng nguồn tra. Response parser (`isWordValid`) tự động nhận dạng
+//           { exists: boolean }, { valid: boolean }, hoặc array (tồn tại nếu length > 0).
+const API_SOURCES = [
+    'https://dict.minhqnd.com/api/v1/lookup?word=${word}&lang=vi',
+    'https://vietnamese-dictionary-api.vercel.app/api/search?word=${word}',
+    'https://freedictionaryapi.com/api/v1/entries/vi/${word}',
+    'https://api.dictionaryapi.dev/api/v2/entries/vi/${word}',
+];
+// ── DB helpers ──
+function isValidWord(word) {
+    const row = database_1.default.prepare('SELECT 1 FROM noitu_words WHERE word = ?').get(word.trim().toLowerCase());
+    return !!row;
+}
+function addWord(word, source) {
+    database_1.default.prepare('INSERT OR IGNORE INTO noitu_words (word, source) VALUES (?, ?)').run(word.trim().toLowerCase(), source);
+}
+async function lookupExternal(word) {
+    const results = await Promise.allSettled(API_SOURCES.map(url => {
+        const full = url.replace('${word}', encodeURIComponent(word));
+        return fetch(full, { signal: AbortSignal.timeout(5000) })
+            .then(r => (r.ok ? r.json() : null))
+            .then(d => isWordValid(d));
+    }));
+    return results.some(r => r.status === 'fulfilled' && r.value === true);
+}
+function isWordValid(data) {
+    if (!data)
         return false;
-    }
+    if (Array.isArray(data))
+        return data.length > 0;
+    if (typeof data !== 'object')
+        return false;
+    const d = data;
+    if (d.exists === true)
+        return true;
+    if (d.valid === true)
+        return true;
+    return false;
+}
+async function validateAndCache(word) {
+    const clean = word.trim().toLowerCase();
+    if (isValidWord(clean))
+        return true;
+    const valid = await lookupExternal(clean);
+    if (valid)
+        addWord(clean, 'api_cache');
+    return valid;
+}
+function moduleGetPendingSuggestions() {
+    return database_1.default.prepare("SELECT id, word, suggested_by, suggested_at FROM noitu_word_suggestions WHERE status = 'pending' ORDER BY suggested_at ASC").all();
+}
+function moduleGetSuggestionCount() {
+    const row = database_1.default.prepare("SELECT COUNT(*) as c FROM noitu_word_suggestions WHERE status = 'pending'").get();
+    return row.c;
 }
 function giveReward(userId) {
     if (!userId)
@@ -135,6 +175,45 @@ function giveReward(userId) {
         }
     }
     catch { }
+}
+function moduleSuggestWord(word, userId) {
+    const clean = word.trim().toLowerCase();
+    const syls = clean.split(/\s+/);
+    if (syls.length < 2)
+        return 'submitted'; // `too_short` catches this before calling us
+    if (isValidWord(clean))
+        return 'exists';
+    const existing = database_1.default.prepare("SELECT status FROM noitu_word_suggestions WHERE word = ?").get(clean);
+    if (existing)
+        return 'pending_exists';
+    database_1.default.prepare('INSERT INTO noitu_word_suggestions (word, suggested_by, suggested_at) VALUES (?, ?, ?)').run(clean, userId, Math.floor(Date.now() / 1000));
+    return 'submitted';
+}
+function moduleReviewSuggestion(id, action, reviewerId) {
+    const suggestion = database_1.default.prepare('SELECT * FROM noitu_word_suggestions WHERE id = ?').get(id);
+    if (!suggestion)
+        return 'not_found';
+    if (suggestion.status !== 'pending')
+        return 'already_reviewed';
+    if (action === 'approve') {
+        addWord(suggestion.word, 'suggested');
+    }
+    database_1.default.prepare('UPDATE noitu_word_suggestions SET status = ?, reviewed_by = ?, reviewed_at = ? WHERE id = ?').run(action === 'approve' ? 'approved' : 'rejected', reviewerId, Math.floor(Date.now() / 1000), id);
+    return action === 'approve' ? 'approved' : 'rejected';
+}
+function moduleBulkApproveSuggestions(reviewerId) {
+    const pending = database_1.default.prepare("SELECT id, word FROM noitu_word_suggestions WHERE status = 'pending'").all();
+    if (pending.length === 0)
+        return 0;
+    const now = Math.floor(Date.now() / 1000);
+    const tx = database_1.default.transaction(() => {
+        for (const s of pending) {
+            addWord(s.word, 'suggested');
+            database_1.default.prepare('UPDATE noitu_word_suggestions SET status = ?, reviewed_by = ?, reviewed_at = ? WHERE id = ?').run('approved', reviewerId, now, s.id);
+        }
+    });
+    tx();
+    return pending.length;
 }
 // ── Service ──
 class NoituService {
@@ -188,7 +267,7 @@ class NoituService {
             return 'wrong_start';
         if (w.split(/\s+/).length < 2)
             return 'too_short';
-        const valid = await lookupWord(w);
+        const valid = await validateAndCache(w);
         if (!valid)
             return 'wrong_api';
         this.clearSkipVote(gameKey);
@@ -440,6 +519,25 @@ class NoituService {
             .setTitle('Nối Từ')
             .setColor(uiSystem_1.EMBED_COLORS.NEUTRAL)
             .setDescription(`Không còn từ để nối tiếp. Không có ai chiến thắng.`);
+    }
+    getWordCount() {
+        const row = database_1.default.prepare('SELECT COUNT(*) as c FROM noitu_words').get();
+        return row.c;
+    }
+    suggestWord(word, userId) {
+        return moduleSuggestWord(word, userId);
+    }
+    getPendingSuggestions() {
+        return moduleGetPendingSuggestions();
+    }
+    getSuggestionCount() {
+        return moduleGetSuggestionCount();
+    }
+    reviewSuggestion(id, action, reviewerId) {
+        return moduleReviewSuggestion(id, action, reviewerId);
+    }
+    bulkApproveSuggestions(reviewerId) {
+        return moduleBulkApproveSuggestions(reviewerId);
     }
 }
 exports.NoituService = NoituService;

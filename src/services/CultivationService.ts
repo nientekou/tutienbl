@@ -19,13 +19,13 @@ export class CultivationService {
    */
   public generateLinhCan(): string {
     const rand = Math.random() * 100;
-    let elementCount = 3;
+    let elementCount = 2;
 
-    if (rand < 5) elementCount = 1;
-    else if (rand < 20) elementCount = 2;
-    else if (rand < 50) elementCount = 3;
-    else if (rand < 85) elementCount = 4;
-    else elementCount = 5;
+    // BIG UPDATE: Linh Can RNG rework - more single/dual, less quad+
+    if (rand < 15) elementCount = 1;       // 15% single (was 5%)
+    else if (rand < 65) elementCount = 2;  // 50% dual (was 15%)
+    else if (rand < 90) elementCount = 3;  // 25% triple (was 30%)
+    else elementCount = 4;                  // 10% quad (was 35% quad + 15% penta)
 
     const basicElements = ['Hỏa', 'Thủy', 'Mộc', 'Kim', 'Thổ']; // ponytail: thêm Kim (trước 4 elements)
     const mutantElements = ['Lôi', 'Phong'];
@@ -406,6 +406,27 @@ export class CultivationService {
     }
 
     const gained = Math.round(baseGained * speedMultiplier * leylineExpBuff * eventMultiplier * heartLawExpBuff * alignmentSpeedMultiplier);
+
+    // Kỳ Ngộ trigger
+    try {
+      const { kyNgoService } = require('./KyNgoService');
+      const event = kyNgoService.maybeTriggerEvent(discordId, user.level, user.base_luck ?? 0);
+      if (event) {
+        kyNgoService.createEvent(discordId, event);
+      }
+    } catch {}
+
+    // Tâm Ma trigger — higher qi_deviation = higher chance
+    try {
+      const { tamMaService } = require('./TamMaService');
+      const uAny = user as any;
+      const qiDev = uAny.qi_deviation ?? 0;
+      const demon = tamMaService.maybeSummonDemon(discordId, user.level, qiDev);
+      if (demon) {
+        const playerPower = (user.base_atk ?? 0) + (user.base_def ?? 0) + (user.base_hp ?? 0);
+        tamMaService.summonDemon(discordId, demon, playerPower);
+      }
+    } catch {}
 
     // Tỷ lệ tẩu hỏa nhập ma
     let deviationChance = 0.03;

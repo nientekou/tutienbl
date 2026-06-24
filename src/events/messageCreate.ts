@@ -34,7 +34,7 @@ export default class MessageCreateEvent extends Event<'messageCreate'> {
       if (result === 'wrong_start') reason = `Phải bắt đầu bằng **${game.lastSyllable}**`;
       else if (result === 'already_used') reason = 'Từ đã được dùng';
       else if (result === 'too_short') reason = 'Cần ít nhất 2 âm tiết';
-      else if (result === 'wrong_api') reason = 'Từ không có trong từ điển';
+      else if (result === 'wrong_api') reason = 'Từ không có trong từ điển. Dùng `/noitu donggop` để đề xuất thêm từ.';
       else if (result === 'same_user') reason = 'Bạn đã nối rồi, hãy đợi người khác trả lời trước';
       if (reason) {
         const reply = await message.reply({ content: reason }).catch(() => null);

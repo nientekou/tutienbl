@@ -412,6 +412,48 @@ class InventoryService {
         else {
             stats.elementResonance = resonance; // lưu cả khi không resonance để hiển thị
         }
+        // --- BIG UPDATE: Dị Hỏa (Rare Fire) Combat Bonuses ---
+        try {
+            const { rareFireService } = require('./RareFireService');
+            const fireBonus = rareFireService.getEquippedBonus(userId);
+            if (fireBonus.combatPassive) {
+                stats.rare_fire_passive = fireBonus.combatPassive;
+                stats.rare_fire_value = fireBonus.combatValue;
+            }
+        }
+        catch (e) { }
+        // --- BIG UPDATE: Dị Thú (Rare Beast) Combat Bonuses ---
+        try {
+            const { rareBeastService } = require('./RareBeastService');
+            const beastBonus = rareBeastService.getEquippedBonuses(userId);
+            stats.atk += beastBonus.atk;
+            stats.def += beastBonus.def;
+            stats.hp += beastBonus.hp;
+            if (beastBonus.passive) {
+                stats.rare_beast_passive = beastBonus.passive;
+                stats.rare_beast_value = beastBonus.passiveValue;
+            }
+        }
+        catch (e) { }
+        // --- BIG UPDATE: Ngộ Đạo (Dao Comprehension) Passives ---
+        try {
+            const { tamMaService } = require('./TamMaService');
+            const daoBonuses = tamMaService.getDaoBonuses(userId);
+            if (daoBonuses.atk_bonus)
+                multipliers.atk += daoBonuses.atk_bonus / 100;
+            if (daoBonuses.def_bonus)
+                multipliers.def += daoBonuses.def_bonus / 100;
+            if (daoBonuses.hp_bonus) {
+                stats.hp += daoBonuses.hp_bonus;
+            }
+            if (daoBonuses.crit_bonus)
+                stats.crit += daoBonuses.crit_bonus;
+            if (daoBonuses.dodge_bonus)
+                stats.dodge += daoBonuses.dodge_bonus;
+            if (daoBonuses.mp_regen)
+                stats.mp_regen = (stats.mp_regen || 0) + daoBonuses.mp_regen;
+        }
+        catch (e) { }
         // Áp dụng % multipliers vào final stats
         stats.hp = Math.round(stats.hp * multipliers.hp);
         stats.mp = Math.round(stats.mp * multipliers.mp);

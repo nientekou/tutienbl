@@ -40,7 +40,7 @@ class MessageCreateEvent extends Event_1.Event {
             else if (result === 'too_short')
                 reason = 'Cần ít nhất 2 âm tiết';
             else if (result === 'wrong_api')
-                reason = 'Từ không có trong từ điển';
+                reason = 'Từ không có trong từ điển. Dùng `/noitu donggop` để đề xuất thêm từ.';
             else if (result === 'same_user')
                 reason = 'Bạn đã nối rồi, hãy đợi người khác trả lời trước';
             if (reason) {

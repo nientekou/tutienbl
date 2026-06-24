@@ -4,7 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { cultivationService } from '../../services/CultivationService';
 import { formatLinhCan } from '../../utils/constants';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { EMBED_COLORS, toV2Payload, toV2TextUpdate } from '../../utils/uiSystem';
 import { BACKGROUNDS, DESTINIES, COMBO_BONUSES, getLinhCanFlavorText, getOpeningScene, getDestinyLine, generateProphecy, generateHeirloom } from '../../data/creationLore';
 import db from '../../database/database';
 import { InteractionLock } from '../../services/InteractionLock';
@@ -173,7 +173,7 @@ export default class TaoNhanVatCommand extends Command {
     const filter = (i: any) => i.user.id === interaction.user.id && i.customId.startsWith('bg_');
     const collected = await replyMsg.awaitMessageComponent({ filter, componentType: ComponentType.Button, time: 30000 }).catch(() => null);
     if (!collected) {
-      await interaction.editReply({ content: '⏰ Hết thời gian chọn. Hãy dùng lại lệnh /taonhanvat.', components: [] });
+      await interaction.editReply(toV2TextUpdate('⏰ Hết thời gian chọn. Hãy dùng lại lệnh /taonhanvat.'));
       return null;
     }
 
@@ -227,7 +227,7 @@ export default class TaoNhanVatCommand extends Command {
     const filter2 = (i: any) => i.user.id === interaction.user.id && i.customId.startsWith('dest_');
     const collected = await replyMsg2.awaitMessageComponent({ filter: filter2, componentType: ComponentType.Button, time: 30000 }).catch(() => null);
     if (!collected) {
-      await interaction.editReply({ content: '⏰ Hết thời gian chọn. Hãy dùng lại lệnh /taonhanvat.', components: [] });
+      await interaction.editReply(toV2TextUpdate('⏰ Hết thời gian chọn. Hãy dùng lại lệnh /taonhanvat.'));
       return null;
     }
 
@@ -346,7 +346,7 @@ export default class TaoNhanVatCommand extends Command {
 
     } catch (error) {
       console.error('Lỗi tạo nhân vật:', error);
-      await interaction.editReply({ content: '❌ Lỗi hệ thống khi khai sinh nhân vật. Xin thử lại!', embeds: [], components: [] });
+      await interaction.editReply(toV2TextUpdate('❌ Lỗi hệ thống khi khai sinh nhân vật. Xin thử lại!'));
     }
   }
 }
