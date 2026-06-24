@@ -3,6 +3,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import db from '../../database/database';
 import { noituService } from '../../services/NoituService';
+import { toV2Payload } from '../../utils/uiSystem';
 
 export default class NoituCommand extends Command {
   constructor() {
@@ -31,6 +32,11 @@ export default class NoituCommand extends Command {
           sub
             .setName('stop')
             .setDescription('Dừng ván Nối Từ')
+        )
+        .addSubcommand(sub =>
+          sub
+            .setName('skip')
+            .setDescription('Bỏ phiếu bỏ qua từ hiện tại (cần 3 vote)')
         )
     );
   }
@@ -76,7 +82,7 @@ export default class NoituCommand extends Command {
       const game = noituService.startGame(interaction.guildId!, interaction.channelId);
       game.client = client;
 
-      await interaction.editReply(`Nối từ bắt đầu. Từ hiện tại: **${game.currentWord}**. Viết từ bắt đầu bằng **${game.lastSyllable}** trong 45s.`);
+      await interaction.editReply(`Nối từ bắt đầu. Từ hiện tại: **${game.currentWord}**. Viết từ bắt đầu bằng **${game.lastSyllable}** (thời gian: 1 tiếng).`);
       return;
     }
 
@@ -90,6 +96,40 @@ export default class NoituCommand extends Command {
 
       noituService.stopGame(gameKey);
       await interaction.editReply(`Đã dừng. Tổng từ: **${game.usedWords.size}**`);
+      return;
+    }
+
+    if (sub === 'skip') {
+      const config = db.prepare('SELECT noitu_channel_id FROM guild_configs WHERE guild_id = ?').get(interaction.guildId!) as any;
+      if (!config?.noitu_channel_id) {
+        await interaction.editReply('❌ Chưa thiết lập kênh. Dùng `/noitu setchannel` trước!');
+        return;
+      }
+      if (interaction.channelId !== config.noitu_channel_id) {
+        await interaction.editReply(`❌ Dùng tại kênh <#${config.noitu_channel_id}>!`);
+        return;
+      }
+
+      const gameKey = `${interaction.guildId}:${interaction.channelId}`;
+      const game = noituService.getGame(gameKey);
+      if (!game) {
+        await interaction.editReply('❌ Không có ván Nối Từ nào!');
+        return;
+      }
+
+      if (game.lastAnswererId === interaction.user.id) {
+        await interaction.editReply('❌ Bạn là người trả lời cuối, hãy để người khác bỏ phiếu bỏ qua!');
+        return;
+      }
+
+      const result = noituService.startSkipVote(gameKey);
+      if (!result) {
+        await interaction.editReply('❌ Đã có phiếu bỏ phiếu bỏ qua trước đó!');
+        return;
+      }
+
+      game.client = client;
+      await interaction.editReply(toV2Payload([result.embed], [result.row]));
       return;
     }
   }

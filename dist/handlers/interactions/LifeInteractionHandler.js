@@ -33,7 +33,7 @@ class LifeInteractionHandler {
                 const luyenDanCmd = new luyendan_1.default();
                 const updatedEmbed = luyenDanCmd.getAlchemyEmbed(targetUserId);
                 const updatedComponents = luyenDanCmd.getAlchemyComponents(targetUserId);
-                await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], updatedComponents, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [updatedEmbed], updatedComponents);
                 return;
             }
             if (subAction === 'craft' || subAction === 'select') {
@@ -77,7 +77,7 @@ class LifeInteractionHandler {
                 let resultIcon = res.success ? '✅' : '💥';
                 updatedEmbed.setDescription(`🔔 **Kết quả luyện chế:** ${resultIcon} ${res.message}\n\n${currentDesc}`);
                 const updatedComponents = luyenDanCmd.getAlchemyComponents(targetUserId);
-                await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], updatedComponents, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [updatedEmbed], updatedComponents);
             }
             return;
         }

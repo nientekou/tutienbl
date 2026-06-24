@@ -17,6 +17,8 @@ exports.toV2TextPayload = toV2TextPayload;
 exports.toV2TextUpdate = toV2TextUpdate;
 exports.toV2Update = toV2Update;
 exports.toLegacyUpdate = toLegacyUpdate;
+exports.safeV2Update = safeV2Update;
+exports.safeV2TextUpdate = safeV2TextUpdate;
 const discord_js_1 = require("discord.js");
 // ==================== COLOR SYSTEM ====================
 exports.UI_COLORS = {
@@ -174,25 +176,48 @@ function embedToV2(embed) {
         footerParts.push(`<t:${ts}:R>`);
     }
     // ── Assemble with smart separators ──
-    const hasHeader = headerParts.length > 0;
-    const hasBody = bodyParts.length > 0;
-    const hasFooter = footerParts.length > 0;
-    if (hasHeader) {
-        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(headerParts.join('\n')));
+    // ponytail: Discord V2 limits total displayable text to 4000 chars across
+    // ALL TextDisplays in a message. If the body is too long, truncate it.
+    // Upgrade path: paginate commands that generate large embeds.
+    const MAX_TOTAL = 4000;
+    const headerText = headerParts.join('\n');
+    const bodyText = bodyParts.join('\n');
+    const footerText = footerParts.join(' • ');
+    const hasHeader = headerText.length > 0;
+    const hasBody = bodyText.length > 0;
+    const hasFooter = footerText.length > 0;
+    // Reserve space for separators (2 chars each: \n\n)
+    const sepCost = (hasHeader && hasBody ? 2 : 0) + (hasBody && hasFooter ? 2 : 0);
+    // Header & footer are typically short so we keep them whole; body gets truncated if needed.
+    let finalBody = bodyText;
+    const overhead = headerText.length + footerText.length + sepCost;
+    if (hasBody && finalBody.length + overhead > MAX_TOTAL) {
+        const available = MAX_TOTAL - overhead - 3; // 3 for '...'
+        if (available > 0) {
+            finalBody = finalBody.slice(0, available) + '...';
+        }
+        else {
+            finalBody = '';
+        }
     }
-    if (hasHeader && hasBody) {
+    function addText(text) {
+        if (text.length > 4000)
+            text = text.slice(0, 3997) + '...';
+        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(text || '\u200b'));
+    }
+    if (hasHeader)
+        addText(headerText);
+    if (hasHeader && hasBody && finalBody.length > 0) {
         container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
     }
-    if (hasBody) {
-        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(bodyParts.join('\n')));
-    }
-    if (hasBody && hasFooter) {
+    if (hasBody && finalBody.length > 0)
+        addText(finalBody);
+    if (hasBody && hasFooter && finalBody.length > 0) {
         container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
     }
-    if (hasFooter) {
-        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(footerParts.join(' • ')));
-    }
-    if (!hasHeader && !hasBody && !hasFooter) {
+    if (hasFooter)
+        addText(footerText);
+    if (!hasHeader && !(hasBody && finalBody.length > 0) && !hasFooter) {
         container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent('\u200b'));
     }
     return container;
@@ -205,7 +230,13 @@ function toV2Payload(embeds, rows, extraFlags) {
  *  messages (close/cancel notices, simple confirmations) where mixing a legacy
  *  `content` field with V2 components throws MESSAGE_CANNOT_USE_LEGACY_FIELDS_WITH_COMPONENTS_V2. */
 function textToV2(text) {
-    return new discord_js_1.ContainerBuilder().addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(text || '\u200b'));
+    const container = new discord_js_1.ContainerBuilder();
+    let content = text || '\u200b';
+    // ponytail: total displayable text across all components is capped at 4000
+    if (content.length > 4000)
+        content = content.slice(0, 3997) + '...';
+    container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(content));
+    return container;
 }
 /** Text-only V2 create/reply payload (includes V2 flag). */
 function toV2TextPayload(text, extraFlags) {
@@ -226,6 +257,22 @@ function toV2Update(embeds, rows, _source) {
 /** Legacy update payload — works with interaction.update() which can't use V2. */
 function toLegacyUpdate(embeds, rows, _source) {
     return { embeds, components: rows ?? [] };
+}
+// ==================== SAFE V2 UPDATE (bypass MessagePayload bug) ====================
+/** Safe V2 update via raw REST — bypasses discord.js MessagePayload bug.
+ *  discord.js interaction.update() always injects 'content' into body → Discord rejects V2_FLAG.
+ *  This calls the interaction callback endpoint directly.
+ */
+async function safeV2Update(interaction, embeds, rows) {
+    const components = [...embeds.map(embedToV2), ...(rows ?? [])];
+    await interaction.client.rest.post(discord_js_1.Routes.interactionCallback(interaction.id, interaction.token), { body: { type: 7, data: { components, flags: exports.V2_FLAG } } });
+    interaction.replied = true;
+}
+/** Safe V2 text update via raw REST — bypasses discord.js MessagePayload bug. */
+async function safeV2TextUpdate(interaction, text) {
+    const components = [textToV2(text)];
+    await interaction.client.rest.post(discord_js_1.Routes.interactionCallback(interaction.id, interaction.token), { body: { type: 7, data: { components, flags: exports.V2_FLAG } } });
+    interaction.replied = true;
 }
 // ==================== EMBED COMPAT HELPERS ====================
 exports.EMBED_COLORS = {

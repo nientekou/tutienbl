@@ -45,7 +45,7 @@ class DuelInteractionHandler {
             const row1 = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_xuất_kiếm`).setLabel('⚔️ Xuất Kiếm').setStyle(discord_js_1.ButtonStyle.Danger), new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_phòng_thủ`).setLabel('🛡️ Phòng Thủ').setStyle(discord_js_1.ButtonStyle.Primary));
             const row2 = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_linh_pháp`).setLabel('🔮 Linh Pháp').setStyle(discord_js_1.ButtonStyle.Success), new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_tụ_khí`).setLabel('💫 Tụ Khí').setStyle(discord_js_1.ButtonStyle.Secondary));
             const row3 = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_tuyệt_kỹ`).setLabel('🔥 Tuyệt Kỹ').setStyle(discord_js_1.ButtonStyle.Danger), new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_dùng_vật_phẩm`).setLabel('💊 Dùng Vật Phẩm').setStyle(discord_js_1.ButtonStyle.Secondary));
-            await interaction.update({ embeds: [embed], components: [row1, row2, row3] });
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row1, row2, row3]);
             return;
         }
         if (action === 'duelrefuse') {
@@ -60,7 +60,7 @@ class DuelInteractionHandler {
                 .setColor(uiSystem_1.EMBED_COLORS.NEUTRAL)
                 .setDescription(`Đạo hữu <@${interaction.user.id}> đã khước từ lời khiêu chiến quyết đấu của <@${res.duel.challengerId}>.`)
                 .setTimestamp();
-            await interaction.update({ embeds: [embed], components: [] });
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], []);
             return;
         }
         if (action === 'duelchoose' || action === 'dueluseitem') {
@@ -149,7 +149,7 @@ class DuelInteractionHandler {
                         stolenText + `\n\n📈 PvP: <@${winnerId}> (+${pvpResult.pvpGain}) | <@${loserId}> (${pvpResult.pvpLoss})`);
                 }
                 if (interaction.isButton() && !interaction.replied) {
-                    await interaction.update({ embeds: [embed], components: [] });
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], []);
                 }
                 else {
                     await interaction.followUp((0, uiSystem_1.toV2Payload)([embed], []));
@@ -176,7 +176,7 @@ class DuelInteractionHandler {
                 const row2 = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_linh_pháp`).setLabel('🔮 Linh Pháp').setStyle(discord_js_1.ButtonStyle.Success), new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_tụ_khí`).setLabel('💫 Tụ Khí').setStyle(discord_js_1.ButtonStyle.Secondary));
                 const row3 = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_tuyệt_kỹ`).setLabel('🔥 Tuyệt Kỹ').setStyle(discord_js_1.ButtonStyle.Danger), new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_dùng_vật_phẩm`).setLabel('💊 Dùng Vật Phẩm').setStyle(discord_js_1.ButtonStyle.Secondary));
                 if (interaction.isButton() && !interaction.replied) {
-                    await interaction.update({ embeds: [embed], components: [row1, row2, row3] });
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row1, row2, row3]);
                 }
                 else {
                     await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(interaction.channelId, interaction.message.id), { body: { components: [(0, uiSystem_1.embedToV2)(embed), row1, row2, row3], flags: uiSystem_1.V2_FLAG } });
@@ -201,7 +201,7 @@ class DuelInteractionHandler {
                 const row2 = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_linh_pháp`).setLabel('🔮 Linh Pháp').setStyle(discord_js_1.ButtonStyle.Success), new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_tụ_khí`).setLabel('💫 Tụ Khí').setStyle(discord_js_1.ButtonStyle.Secondary));
                 const row3 = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_tuyệt_kỹ`).setLabel('🔥 Tuyệt Kỹ').setStyle(discord_js_1.ButtonStyle.Danger), new discord_js_1.ButtonBuilder().setCustomId(`duelchoose_${duel.id}_dùng_vật_phẩm`).setLabel('💊 Dùng Vật Phẩm').setStyle(discord_js_1.ButtonStyle.Secondary));
                 if (interaction.isButton() && !interaction.replied) {
-                    await interaction.update({ embeds: [embed], components: [row1, row2, row3] });
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row1, row2, row3]);
                 }
                 else {
                     await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(interaction.channelId, interaction.message.id), { body: { components: [(0, uiSystem_1.embedToV2)(embed), row1, row2, row3], flags: uiSystem_1.V2_FLAG } });
@@ -217,7 +217,7 @@ class DuelInteractionHandler {
             const targetPage = parseInt(parts[2], 10) || 1;
             const history = MinigameService_1.minigameService.getDuelHistory(targetId, targetPage);
             if (history.records.length === 0) {
-                await interaction.update({ embeds: [new discord_js_1.EmbedBuilder().setDescription('📜 **Không còn dữ liệu lịch sử nào.**')], components: [] });
+                await (0, uiSystem_1.safeV2Update)(interaction, [new discord_js_1.EmbedBuilder().setDescription('📜 **Không còn dữ liệu lịch sử nào.**')], []);
                 return;
             }
             const embed = new discord_js_1.EmbedBuilder()
@@ -251,7 +251,7 @@ class DuelInteractionHandler {
                 });
             }
             const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`duellichsu_${targetId}_${history.currentPage - 1}`).setLabel('◀ Trang Trước').setStyle(discord_js_1.ButtonStyle.Primary).setDisabled(history.currentPage <= 1), new discord_js_1.ButtonBuilder().setCustomId(`duellichsu_${targetId}_${history.currentPage + 1}`).setLabel('Trang Sau ▶').setStyle(discord_js_1.ButtonStyle.Primary).setDisabled(history.currentPage >= history.totalPages));
-            await interaction.update({ embeds: [embed], components: [row] });
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
             return;
         }
     }

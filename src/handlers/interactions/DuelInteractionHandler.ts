@@ -5,7 +5,7 @@ import { dailyQuestService } from '../../services/DailyQuestService';
 import { questChainService } from '../../services/QuestChainService';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { ITEMS } from '../../config/itemConstants';
-import { EMBED_COLORS, toV2Payload, embedToV2, V2_FLAG } from '../../utils/uiSystem';
+import { EMBED_COLORS, toV2Payload, embedToV2, V2_FLAG, safeV2Update } from '../../utils/uiSystem';
 
 export class DuelInteractionHandler {
   public static async handle(
@@ -62,7 +62,7 @@ export class DuelInteractionHandler {
         new ButtonBuilder().setCustomId(`duelchoose_${duel.id}_dùng_vật_phẩm`).setLabel('💊 Dùng Vật Phẩm').setStyle(ButtonStyle.Secondary)
       );
 
-      await interaction.update({ embeds: [embed], components: [row1, row2, row3] });
+      await safeV2Update(interaction, [embed], [row1, row2, row3]);
       return;
     }
 
@@ -80,7 +80,7 @@ export class DuelInteractionHandler {
         .setDescription(`Đạo hữu <@${interaction.user.id}> đã khước từ lời khiêu chiến quyết đấu của <@${res.duel!.challengerId}>.`)
         .setTimestamp();
 
-      await interaction.update({ embeds: [embed], components: [] });
+      await safeV2Update(interaction, [embed], []);
       return;
     }
 
@@ -193,7 +193,7 @@ export class DuelInteractionHandler {
         }
 
         if (interaction.isButton() && !interaction.replied) {
-          await interaction.update({ embeds: [embed], components: [] });
+          await safeV2Update(interaction, [embed], []);
         } else {
           await interaction.followUp(toV2Payload([embed], [] ));
         }
@@ -234,7 +234,7 @@ export class DuelInteractionHandler {
         );
 
         if (interaction.isButton() && !interaction.replied) {
-          await interaction.update({ embeds: [embed], components: [row1, row2, row3] });
+          await safeV2Update(interaction, [embed], [row1, row2, row3]);
         } else {
           await interaction.client.rest.patch(
             Routes.channelMessage(interaction.channelId, interaction.message.id),
@@ -276,7 +276,7 @@ export class DuelInteractionHandler {
         );
 
         if (interaction.isButton() && !interaction.replied) {
-          await interaction.update({ embeds: [embed], components: [row1, row2, row3] });
+          await safeV2Update(interaction, [embed], [row1, row2, row3]);
         } else {
           await interaction.client.rest.patch(
             Routes.channelMessage(interaction.channelId, interaction.message.id),
@@ -299,7 +299,7 @@ export class DuelInteractionHandler {
       const history = minigameService.getDuelHistory(targetId, targetPage);
 
       if (history.records.length === 0) {
-        await interaction.update({ embeds: [new EmbedBuilder().setDescription('📜 **Không còn dữ liệu lịch sử nào.**')], components: [] });
+        await safeV2Update(interaction, [new EmbedBuilder().setDescription('📜 **Không còn dữ liệu lịch sử nào.**')], []);
         return;
       }
 
@@ -341,7 +341,7 @@ export class DuelInteractionHandler {
         new ButtonBuilder().setCustomId(`duellichsu_${targetId}_${history.currentPage + 1}`).setLabel('Trang Sau ▶').setStyle(ButtonStyle.Primary).setDisabled(history.currentPage >= history.totalPages)
       );
 
-      await interaction.update({ embeds: [embed], components: [row] });
+      await safeV2Update(interaction, [embed], [row]);
       return;
     }
   }

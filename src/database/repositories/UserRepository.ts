@@ -24,6 +24,7 @@ export interface UserEntity {
   coin_trung_pham: number;
   coin_thuong_pham: number;
   knb: number;
+  boss_points: number;
   sect_id: number | null;
   sect_role: string;
   sect_contribution: number;

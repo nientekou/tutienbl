@@ -1,6 +1,6 @@
 import { ButtonInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import { tradeService } from '../../services/TradeService';
-import { toLegacyUpdate } from '../../utils/uiSystem';
+import { safeV2Update } from '../../utils/uiSystem';
 
 export class TradeInteractionHandler {
   public static async handle(
@@ -28,7 +28,7 @@ export class TradeInteractionHandler {
       }
       const ui = tradeService.renderTradeUI(tradeId);
       if (ui) {
-        await interaction.update(toLegacyUpdate(ui.embeds, ui.components, interaction));
+        await safeV2Update(interaction, ui.embeds, ui.components);
       }
     } 
     
@@ -38,7 +38,7 @@ export class TradeInteractionHandler {
         await interaction.reply({ content: `❌ ${res.message}`, flags: MessageFlags.Ephemeral });
         return;
       }
-      await interaction.update(toLegacyUpdate([new EmbedBuilder().setDescription(`❌ Giao dịch đã bị hủy bởi <@${userId}>.`)], []));
+      await safeV2Update(interaction, [new EmbedBuilder().setDescription(`❌ Giao dịch đã bị hủy bởi <@${userId}>.`)], []);
     } 
     
     else if (subAction === 'lock') {
@@ -49,7 +49,7 @@ export class TradeInteractionHandler {
       }
       const ui = tradeService.renderTradeUI(tradeId);
       if (ui) {
-        await interaction.update(toLegacyUpdate(ui.embeds, ui.components, interaction));
+        await safeV2Update(interaction, ui.embeds, ui.components);
       }
     } 
     
@@ -60,11 +60,11 @@ export class TradeInteractionHandler {
         return;
       }
       if (res.isComplete) {
-        await interaction.update(toLegacyUpdate([new EmbedBuilder().setDescription(`🎉 **${res.message}**`)], []));
+        await safeV2Update(interaction, [new EmbedBuilder().setDescription(`🎉 **${res.message}**`)], []);
       } else {
         const ui = tradeService.renderTradeUI(tradeId);
         if (ui) {
-          await interaction.update(toLegacyUpdate(ui.embeds, ui.components, interaction));
+          await safeV2Update(interaction, ui.embeds, ui.components);
         }
       }
     }

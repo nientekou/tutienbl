@@ -40,12 +40,12 @@ class CultivationInteractionHandler {
             }
             const embed = (0, luanhoi_1.getLuanHoiEmbed)(targetUserId);
             const row = (0, luanhoi_1.getLuanHoiComponents)(targetUserId, false);
-            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
             await interaction.followUp({ content: result.message });
             return;
         }
         if (action === 'luanhoicancel') {
-            await interaction.update((0, uiSystem_1.toLegacyUpdate)([new discord_js_1.EmbedBuilder().setDescription('Đạo hữu đã chọn tiếp tục tu hành ở kiếp này.')], []));
+            await (0, uiSystem_1.safeV2Update)(interaction, [new discord_js_1.EmbedBuilder().setDescription('Đạo hữu đã chọn tiếp tục tu hành ở kiếp này.')], []);
             return;
         }
         if (action === 'ycanhawaken') {
@@ -56,7 +56,7 @@ class CultivationInteractionHandler {
             }
             const embed = (0, ycanh_1.getYCanhEmbed)(targetUserId);
             const row = (0, ycanh_1.getYCanhComponents)(targetUserId);
-            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
             await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
             return;
         }
@@ -89,7 +89,7 @@ class CultivationInteractionHandler {
             const practiceRes = CultivationService_1.cultivationService.practice(targetUserId);
             const updatedEmbed = (0, hoso_1.getHoSoTabEmbed)(targetUserId, 'chiso');
             const allComponents = (0, hoso_1.getHoSoAllComponents)(targetUserId, 'chiso');
-            await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], allComponents, interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [updatedEmbed], allComponents);
             DailyQuestService_1.dailyQuestService.updateProgress(targetUserId, 'daily_tuluyen', 1);
             const msg = practiceRes.success ? practiceRes.message : `🧘 **Thiền Định:** Đạo hữu thiền định tu luyện thành công!`;
             await interaction.followUp({ content: msg, flags: discord_js_1.MessageFlags.Ephemeral });
@@ -108,7 +108,7 @@ class CultivationInteractionHandler {
                     const result = CultivationService_1.cultivationService.breakthrough(targetUserId, false);
                     const updatedEmbed = (0, hoso_1.getHoSoTabEmbed)(targetUserId, 'chiso');
                     const btComponents = (0, hoso_1.getHoSoAllComponents)(targetUserId, 'chiso');
-                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], btComponents, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [updatedEmbed], btComponents);
                     await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else {
@@ -147,7 +147,7 @@ class CultivationInteractionHandler {
                         .setFooter({ text: 'Nhấn nút bên dưới để bắt đầu lôi kiếp hoặc chọn Bế Quan!' })
                         .setTimestamp();
                     const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`loi_start_${targetUserId}`).setLabel('⚡ Nghênh Tiếp Lôi Kiếp!').setStyle(discord_js_1.ButtonStyle.Danger), new discord_js_1.ButtonBuilder().setCustomId(`dotpha_bequan_${targetUserId}`).setLabel(`Bế Quan (${bequanMajorCost} LThạch)`).setStyle(discord_js_1.ButtonStyle.Success).setDisabled(user.coin_ha_pham < bequanMajorCost), new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại').setStyle(discord_js_1.ButtonStyle.Secondary));
-                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
                 }
             }
             else {
@@ -196,7 +196,7 @@ class CultivationInteractionHandler {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('Quay Lại')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
                         return;
                     }
                 }
@@ -210,7 +210,7 @@ class CultivationInteractionHandler {
                     .setColor(result.success ? uiSystem_1.EMBED_COLORS.SUCCESS : uiSystem_1.EMBED_COLORS.ERROR)
                     .setDescription(result.message)
                     .setTimestamp();
-                await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [], interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], []);
             }
             return;
         }
@@ -219,15 +219,15 @@ class CultivationInteractionHandler {
             const { majorIndex } = (0, constants_1.getRealmDetails)(user.level);
             if (subAction === 'start') {
                 const { embed, rows } = TribulationService_1.tribulationService.start(targetUserId, user.name, majorIndex);
-                await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
             }
             else {
                 const res = TribulationService_1.tribulationService.handleAction(targetUserId, subAction);
                 if (res.finished) {
-                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([res.embed], [], interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [res.embed], []);
                 }
                 else {
-                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([res.embed], res.rows, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [res.embed], res.rows);
                 }
             }
             return;
@@ -243,7 +243,7 @@ class CultivationInteractionHandler {
                     .setFooter({ text: 'Hãy cân nhắc trước khi tiến hành hoán đổi căn cốt!' })
                     .setTimestamp();
                 const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`taytuyexecute_${targetUserId}`).setLabel('🌀 Xác Nhận Tẩy Tủy (100 LThạch)').setStyle(discord_js_1.ButtonStyle.Primary), new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
-                await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
                 return;
             }
             if (user.coin_ha_pham < 100) {
@@ -277,7 +277,7 @@ class CultivationInteractionHandler {
             if (action === 'taytuyexecute') {
                 row.addComponents(new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
             }
-            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
             await interaction.followUp({ content: `🌀 **Tẩy Tủy Thành Công!** Linh căn mới của đạo hữu là: ${formattedLinhCan}`, flags: discord_js_1.MessageFlags.Ephemeral });
             return;
         }
@@ -289,7 +289,7 @@ class CultivationInteractionHandler {
                 .setColor(result.success ? uiSystem_1.EMBED_COLORS.SUCCESS : uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription(result.message)
                 .setTimestamp();
-            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [], interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], []);
             return;
         }
         if (action === 'dotphastabilize') {
@@ -306,7 +306,7 @@ class CultivationInteractionHandler {
                 .setColor(result.success ? uiSystem_1.EMBED_COLORS.SUCCESS : uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription(`✨ Đạo hữu tiêu hao **${cost}** Linh Thạch ổn định đạo tâm, khôi phục nguyên trạng tỷ lệ đột phá thành công!\n\n` + result.message)
                 .setTimestamp();
-            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [], interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], []);
             return;
         }
         if (action === 'select' && parts[1] === 'alignment') {
@@ -337,7 +337,7 @@ class CultivationInteractionHandler {
                 .setCustomId(`hosoback_${targetUserId}`)
                 .setLabel('🔙 Quay Lại')
                 .setStyle(discord_js_1.ButtonStyle.Secondary));
-            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
             return;
         }
         if (action === 'confirmalignment') {
@@ -374,7 +374,7 @@ class CultivationInteractionHandler {
                 .setCustomId(`hosoback_${targetUserId}`)
                 .setLabel('🔙 Trở Lại Hồ Sơ')
                 .setStyle(discord_js_1.ButtonStyle.Secondary));
-            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
             return;
         }
     }

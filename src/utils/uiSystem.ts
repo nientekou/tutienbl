@@ -11,8 +11,6 @@ import {
   MessageFlags,
   Routes,
   type MessageActionRowComponentBuilder,
-  type ButtonInteraction,
-  type StringSelectMenuInteraction,
 } from 'discord.js';
 
 // ==================== COLOR SYSTEM ====================
@@ -234,33 +232,49 @@ export function embedToV2(embed: EmbedBuilder): ContainerBuilder {
   }
 
   // ── Assemble with smart separators ──
-  const hasHeader = headerParts.length > 0;
-  const hasBody = bodyParts.length > 0;
-  const hasFooter = footerParts.length > 0;
+  // ponytail: Discord V2 limits total displayable text to 4000 chars across
+  // ALL TextDisplays in a message. If the body is too long, truncate it.
+  // Upgrade path: paginate commands that generate large embeds.
+  const MAX_TOTAL = 4000;
 
-  if (hasHeader) {
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(headerParts.join('\n')),
-    );
+  const headerText = headerParts.join('\n');
+  const bodyText = bodyParts.join('\n');
+  const footerText = footerParts.join(' • ');
+
+  const hasHeader = headerText.length > 0;
+  const hasBody = bodyText.length > 0;
+  const hasFooter = footerText.length > 0;
+
+  // Reserve space for separators (2 chars each: \n\n)
+  const sepCost = (hasHeader && hasBody ? 2 : 0) + (hasBody && hasFooter ? 2 : 0);
+  // Header & footer are typically short so we keep them whole; body gets truncated if needed.
+  let finalBody = bodyText;
+  const overhead = headerText.length + footerText.length + sepCost;
+  if (hasBody && finalBody.length + overhead > MAX_TOTAL) {
+    const available = MAX_TOTAL - overhead - 3; // 3 for '...'
+    if (available > 0) {
+      finalBody = finalBody.slice(0, available) + '...';
+    } else {
+      finalBody = '';
+    }
   }
-  if (hasHeader && hasBody) {
+
+  function addText(text: string) {
+    if (text.length > 4000) text = text.slice(0, 3997) + '...';
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(text || '\u200b'));
+  }
+
+  if (hasHeader) addText(headerText);
+  if (hasHeader && hasBody && finalBody.length > 0) {
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(1));
   }
-  if (hasBody) {
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(bodyParts.join('\n')),
-    );
-  }
-  if (hasBody && hasFooter) {
+  if (hasBody && finalBody.length > 0) addText(finalBody);
+  if (hasBody && hasFooter && finalBody.length > 0) {
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(1));
   }
-  if (hasFooter) {
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(footerParts.join(' • ')),
-    );
-  }
+  if (hasFooter) addText(footerText);
 
-  if (!hasHeader && !hasBody && !hasFooter) {
+  if (!hasHeader && !(hasBody && finalBody.length > 0) && !hasFooter) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent('\u200b'));
   }
   return container;
@@ -279,9 +293,12 @@ export function toV2Payload(
  *  messages (close/cancel notices, simple confirmations) where mixing a legacy
  *  `content` field with V2 components throws MESSAGE_CANNOT_USE_LEGACY_FIELDS_WITH_COMPONENTS_V2. */
 export function textToV2(text: string): ContainerBuilder {
-  return new ContainerBuilder().addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(text || '\u200b'),
-  );
+  const container = new ContainerBuilder();
+  let content = text || '\u200b';
+  // ponytail: total displayable text across all components is capped at 4000
+  if (content.length > 4000) content = content.slice(0, 3997) + '...';
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
+  return container;
 }
 
 /** Text-only V2 create/reply payload (includes V2 flag). */
@@ -317,6 +334,38 @@ export function toLegacyUpdate(
   _source?: unknown,
 ): { embeds: EmbedBuilder[]; components: any[] } {
   return { embeds, components: rows ?? [] };
+}
+
+// ==================== SAFE V2 UPDATE (bypass MessagePayload bug) ====================
+
+/** Safe V2 update via raw REST — bypasses discord.js MessagePayload bug.
+ *  discord.js interaction.update() always injects 'content' into body → Discord rejects V2_FLAG.
+ *  This calls the interaction callback endpoint directly.
+ */
+export async function safeV2Update(
+  interaction: { client: any; id: string; token: string },
+  embeds: EmbedBuilder[],
+  rows?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
+): Promise<void> {
+  const components = [...embeds.map(embedToV2), ...(rows ?? [])];
+  await interaction.client.rest.post(
+    Routes.interactionCallback(interaction.id, interaction.token),
+    { body: { type: 7, data: { components, flags: V2_FLAG } } }
+  );
+  (interaction as any).replied = true;
+}
+
+/** Safe V2 text update via raw REST — bypasses discord.js MessagePayload bug. */
+export async function safeV2TextUpdate(
+  interaction: { client: any; id: string; token: string },
+  text: string,
+): Promise<void> {
+  const components = [textToV2(text)];
+  await interaction.client.rest.post(
+    Routes.interactionCallback(interaction.id, interaction.token),
+    { body: { type: 7, data: { components, flags: V2_FLAG } } }
+  );
+  (interaction as any).replied = true;
 }
 
 // ==================== EMBED COMPAT HELPERS ====================

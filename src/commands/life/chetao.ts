@@ -6,7 +6,7 @@ import { RECIPES } from '../../config/recipes';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import db from '../../database/database';
-import { EMBED_COLORS } from '../../utils/uiSystem';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 /**
  * Tạo Embed hiển thị Lò Chế Tạo
@@ -164,9 +164,6 @@ export default class CheTaoCommand extends Command {
     const embed = getCraftingEmbed(userId);
     const components = getCraftingComponents(userId);
 
-    await interaction.editReply({
-      embeds: [embed],
-      components: components as any[]
-    });
+    await interaction.editReply(toV2Payload([embed], components as any[]));
   }
 }

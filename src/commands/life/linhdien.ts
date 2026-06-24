@@ -7,7 +7,7 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import db from '../../database/database';
 import { getProgressBar } from '../../utils/constants';
 import { ITEMS } from '../../config/itemConstants';
-import { EMBED_COLORS } from '../../utils/uiSystem';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 /**
  * Tạo Embed hiển thị trạng thái Linh Điền
@@ -253,9 +253,6 @@ export default class LinhDienCommand extends Command {
     const embed = getLinhDienEmbed(userId);
     const components = getLinhDienComponents(userId);
 
-    await interaction.editReply({
-      embeds: [embed],
-      components: components as any[]
-    });
+    await interaction.editReply(toV2Payload([embed], components as any[]));
   }
 }

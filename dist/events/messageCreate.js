@@ -41,6 +41,8 @@ class MessageCreateEvent extends Event_1.Event {
                 reason = 'Cần ít nhất 2 âm tiết';
             else if (result === 'wrong_api')
                 reason = 'Từ không có trong từ điển';
+            else if (result === 'same_user')
+                reason = 'Bạn đã nối rồi, hãy đợi người khác trả lời trước';
             if (reason) {
                 const reply = await message.reply({ content: reason }).catch(() => null);
                 if (reply)

@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuil
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { combatService } from '../../services/CombatService';
+import { bossSeasonService } from '../../services/BossSeasonService';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { getProgressBar } from '../../utils/constants';
 import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
@@ -25,15 +26,33 @@ export function getWorldBossEmbed(userId: string): EmbedBuilder {
       `Thiên địa linh khí chấn động, yêu ma viễn cổ phá phong ấn bước ra tàn phá chúng sinh! Chư vị đạo hữu hãy đồng lòng trảm ma cứu thế!\n\n` +
       `❤️ **Sinh Lực Boss:** ${hpBar} (${boss.hp}/${boss.maxHp})\n` +
       `⚔️ **Công Kích:** ${boss.atk} | 🛡️ **Phòng Thủ:** ${boss.def}\n\n` +
-      `*Khi tiêu diệt thành công Boss, toàn bộ tu sĩ tham gia đều nhận được phần thưởng Tu Vi và Linh Thạch xứng đáng dựa theo cống hiến sát thương!*`
+      `*Tham gia đánh Boss nhận Tu Vi, Linh Thạch, Boss Point (BP) và có cơ hội nhận Rương hiếm!*`
     );
   } else {
     embed.setDescription(
       `💀 **World Boss đã bị tiêu diệt!**\n\n` +
-      `• Người ra đòn kết liễu: <@${boss.defeatedBy}>\n` +
+      `• Người ra đón kết liễu: <@${boss.defeatedBy}>\n` +
       `• Thời gian hồi sinh boss tiếp theo: **${boss.respawnTimeRemaining || 0} giây**.\n\n` +
       `*Linh hồn Boss tiếp theo sẽ ngưng tụ ở Cấp Độ cao hơn và mạnh hơn vượt trội!*`
     );
+  }
+
+  // BXH season
+  const season = bossSeasonService.getCurrentSeason();
+  if (season) {
+    embed.addFields({
+      name: `🏆 Mùa ${season.season_number} — Còn ${season.days_left} ngày`,
+      value: `Đã tiêu diệt **${season.total_kills}** boss${season.top_player ? `\nTop sát thương: <@${season.top_player}> (${season.top_damage} dmg)` : ''}`
+    });
+  }
+
+  // Boss Points của người chơi
+  if (user) {
+    const bp = user.boss_points || 0;
+    embed.addFields({
+      name: '⭐ Boss Point (BP)',
+      value: `Đạo hữu hiện có: **${bp}** BP — Dùng đổi Rương Boss, Vé Bí Cảnh, Nguyên liệu hiếm tại shop!`
+    });
   }
 
   // Lấy danh sách Top cống hiến sát thương
@@ -42,12 +61,20 @@ export function getWorldBossEmbed(userId: string): EmbedBuilder {
     const leaderboardText = contribs
       .map((c, i) => {
         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🔹';
-        return `${medal} **Hạng ${i + 1}**: ${c.name} — **${c.damage}** sát thương (${c.attacks} lần công)`;
+        return `${medal} **Hạng ${i + 1}**: ${c.name} — **${c.damage}** sát thương (${c.attacks} lần)`;
       })
       .join('\n');
-    embed.addFields({ name: '📊 Bảng Xếp Hạng Sát Thương Vòng Này', value: leaderboardText });
+    embed.addFields({ name: '📊 BXH Sát Thương Vòng Này', value: leaderboardText });
   } else {
-    embed.addFields({ name: '📊 Bảng Xếp Hạng Sát Thương Vòng Này', value: '*Chưa có tu sĩ nào gây sát thương lên boss.*' });
+    embed.addFields({ name: '📊 BXH Sát Thương Vòng Này', value: '*Chưa có tu sĩ nào gây sát thương lên boss.*' });
+  }
+
+  // Mốc đóng góp (hiển thị cho người chơi)
+  if (user && boss.status === 'active') {
+    embed.addFields({
+      name: '🎯 Mốc Thưởng',
+      value: `Tham gia → **5 BP** | 1% dmg → **+5 BP** | 3% → **+10 BP** | 5% → **+15 BP** | 10% → **+25 BP** | 15% → **+35 BP** | 20% → **+50 BP**`
+    });
   }
 
   // Trạng thái cooldown của người chơi
@@ -67,12 +94,12 @@ export function getWorldBossEmbed(userId: string): EmbedBuilder {
     if (cdSec > 0) {
       embed.addFields({ 
         name: '⏳ Trạng Thái Trấn Nạp Linh Khí', 
-        value: `Đạo hữu đang kiệt sức điều khí. Cần **${cdSec} giây** để hồi phục hoàn toàn.` 
+        value: `Đạo hữu đang kiệt sức điều khí. Cần **${cdSec} giây** để hồi phục.` 
       });
     } else {
       embed.addFields({ 
-        name: '⏳ Trạng Thái Trấn Nạp Linh Khí', 
-        value: `🟢 **Đã hồi phục hoàn tất!** Sẵn sàng xuất chiêu.` 
+        name: '⏳ Trạng Thái', 
+        value: `🟢 **Sẵn sàng xuất chiêu!**` 
       });
     }
   }
@@ -144,9 +171,6 @@ export default class WorldBossCommand extends Command {
     const embed = getWorldBossEmbed(userId);
     const row = getWorldBossComponents(userId);
 
-    await interaction.editReply({
-      embeds: [embed],
-      components: [row]
-    });
+    await interaction.editReply(toV2Payload([embed], [row]));
   }
 }

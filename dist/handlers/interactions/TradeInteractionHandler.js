@@ -22,7 +22,7 @@ class TradeInteractionHandler {
             }
             const ui = TradeService_1.tradeService.renderTradeUI(tradeId);
             if (ui) {
-                await interaction.update((0, uiSystem_1.toLegacyUpdate)(ui.embeds, ui.components, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, ui.embeds, ui.components);
             }
         }
         else if (subAction === 'cancel') {
@@ -31,7 +31,7 @@ class TradeInteractionHandler {
                 await interaction.reply({ content: `❌ ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
-            await interaction.update((0, uiSystem_1.toLegacyUpdate)([new discord_js_1.EmbedBuilder().setDescription(`❌ Giao dịch đã bị hủy bởi <@${userId}>.`)], []));
+            await (0, uiSystem_1.safeV2Update)(interaction, [new discord_js_1.EmbedBuilder().setDescription(`❌ Giao dịch đã bị hủy bởi <@${userId}>.`)], []);
         }
         else if (subAction === 'lock') {
             const res = TradeService_1.tradeService.toggleLock(tradeId, userId);
@@ -41,7 +41,7 @@ class TradeInteractionHandler {
             }
             const ui = TradeService_1.tradeService.renderTradeUI(tradeId);
             if (ui) {
-                await interaction.update((0, uiSystem_1.toLegacyUpdate)(ui.embeds, ui.components, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, ui.embeds, ui.components);
             }
         }
         else if (subAction === 'confirm') {
@@ -51,12 +51,12 @@ class TradeInteractionHandler {
                 return;
             }
             if (res.isComplete) {
-                await interaction.update((0, uiSystem_1.toLegacyUpdate)([new discord_js_1.EmbedBuilder().setDescription(`🎉 **${res.message}**`)], []));
+                await (0, uiSystem_1.safeV2Update)(interaction, [new discord_js_1.EmbedBuilder().setDescription(`🎉 **${res.message}**`)], []);
             }
             else {
                 const ui = TradeService_1.tradeService.renderTradeUI(tradeId);
                 if (ui) {
-                    await interaction.update((0, uiSystem_1.toLegacyUpdate)(ui.embeds, ui.components, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, ui.embeds, ui.components);
                 }
             }
         }

@@ -11,14 +11,14 @@ class ProfileInteractionHandler {
             const tabName = parts[1];
             const embed = (0, hoso_1.getHoSoTabEmbed)(targetUserId, tabName);
             const components = (0, hoso_1.getHoSoAllComponents)(targetUserId, tabName);
-            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
             return;
         }
         // Nút quay lại hồ sơ từ các menu khác (như tẩy tủy, lôi kiếp)
         if (action === 'hosoback') {
             const embed = (0, hoso_1.getHoSoTabEmbed)(targetUserId, 'chiso');
             const components = (0, hoso_1.getHoSoAllComponents)(targetUserId, 'chiso');
-            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
             return;
         }
         // Nút chuyển danh mục Bảng Phong Thần
@@ -26,7 +26,7 @@ class ProfileInteractionHandler {
             const lbType = parts[1]; // combatPower, realm, wealth, sectContribution
             const embed = getLeaderboardEmbed(targetUserId, lbType);
             const components = (0, hoso_1.getHoSoAllComponents)(targetUserId, 'bangxephang');
-            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
             return;
         }
     }

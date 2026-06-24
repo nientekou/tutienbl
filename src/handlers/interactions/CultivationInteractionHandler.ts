@@ -10,7 +10,7 @@ import { dailyQuestService } from '../../services/DailyQuestService';
 import { inventoryService } from '../../services/InventoryService';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { ITEMS } from '../../config/itemConstants';
-import { EMBED_COLORS, toLegacyUpdate } from '../../utils/uiSystem';
+import { EMBED_COLORS, safeV2Update, safeV2TextUpdate } from '../../utils/uiSystem';
 
 // Cần quản lý cooldown chung cho thiền định
 export const practiceCooldowns = new Map<string, number>();
@@ -46,13 +46,13 @@ export class CultivationInteractionHandler {
       }
       const embed = getLuanHoiEmbed(targetUserId);
       const row = getLuanHoiComponents(targetUserId, false);
-      await interaction.update(toLegacyUpdate([embed], [row], interaction));
+      await safeV2Update(interaction, [embed], [row]);
       await interaction.followUp({ content: result.message });
       return;
     }
 
     if (action === 'luanhoicancel') {
-      await interaction.update(toLegacyUpdate([new EmbedBuilder().setDescription('Đạo hữu đã chọn tiếp tục tu hành ở kiếp này.')], []));
+      await safeV2Update(interaction, [new EmbedBuilder().setDescription('Đạo hữu đã chọn tiếp tục tu hành ở kiếp này.')], []);
       return;
     }
 
@@ -64,7 +64,7 @@ export class CultivationInteractionHandler {
       }
       const embed = getYCanhEmbed(targetUserId);
       const row = getYCanhComponents(targetUserId);
-      await interaction.update(toLegacyUpdate([embed], [row], interaction));
+      await safeV2Update(interaction, [embed], [row]);
       await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
       return;
     }
@@ -105,7 +105,7 @@ export class CultivationInteractionHandler {
       const updatedEmbed = getHoSoTabEmbed(targetUserId, 'chiso');
       const allComponents = getHoSoAllComponents(targetUserId, 'chiso');
 
-      await interaction.update(toLegacyUpdate([updatedEmbed], allComponents, interaction));
+      await safeV2Update(interaction, [updatedEmbed], allComponents);
       dailyQuestService.updateProgress(targetUserId, 'daily_tuluyen', 1);
 
       const msg = practiceRes.success ? practiceRes.message : `🧘 **Thiền Định:** Đạo hữu thiền định tu luyện thành công!`;
@@ -129,7 +129,7 @@ export class CultivationInteractionHandler {
           const updatedEmbed = getHoSoTabEmbed(targetUserId, 'chiso');
           const btComponents = getHoSoAllComponents(targetUserId, 'chiso');
 
-          await interaction.update(toLegacyUpdate([updatedEmbed], btComponents, interaction));
+          await safeV2Update(interaction, [updatedEmbed], btComponents);
           await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
         } else {
           const bolts = 3 + majorIndex * 2;
@@ -180,7 +180,7 @@ export class CultivationInteractionHandler {
             new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại').setStyle(ButtonStyle.Secondary)
           );
 
-          await interaction.update(toLegacyUpdate([embed], [row], interaction));
+          await safeV2Update(interaction, [embed], [row]);
         }
       } else {
         // Đột phá bằng đan dược (trong /dotpha) hoặc đột phá không đan
@@ -237,7 +237,7 @@ export class CultivationInteractionHandler {
                 .setStyle(ButtonStyle.Secondary)
             );
 
-            await interaction.update(toLegacyUpdate([embed], [row], interaction));
+            await safeV2Update(interaction, [embed], [row]);
             return;
           }
         }
@@ -255,7 +255,7 @@ export class CultivationInteractionHandler {
           .setDescription(result.message)
           .setTimestamp();
 
-        await interaction.update(toLegacyUpdate([embed], [], interaction));
+        await safeV2Update(interaction, [embed], []);
       }
       return;
     }
@@ -266,13 +266,13 @@ export class CultivationInteractionHandler {
 
       if (subAction === 'start') {
         const { embed, rows } = tribulationService.start(targetUserId, user.name, majorIndex);
-        await interaction.update(toLegacyUpdate([embed], rows, interaction));
+        await safeV2Update(interaction, [embed], rows);
       } else {
         const res = tribulationService.handleAction(targetUserId, subAction as any);
         if (res.finished) {
-          await interaction.update(toLegacyUpdate([res.embed], [], interaction));
+          await safeV2Update(interaction, [res.embed], []);
         } else {
-          await interaction.update(toLegacyUpdate([res.embed], res.rows, interaction));
+          await safeV2Update(interaction, [res.embed], res.rows);
         }
       }
       return;
@@ -298,7 +298,7 @@ export class CultivationInteractionHandler {
           new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
         );
 
-        await interaction.update(toLegacyUpdate([embed], [row], interaction));
+        await safeV2Update(interaction, [embed], [row]);
         return;
       }
 
@@ -345,7 +345,7 @@ export class CultivationInteractionHandler {
         row.addComponents(new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary));
       }
 
-      await interaction.update(toLegacyUpdate([embed], [row], interaction));
+      await safeV2Update(interaction, [embed], [row]);
       await interaction.followUp({ content: `🌀 **Tẩy Tủy Thành Công!** Linh căn mới của đạo hữu là: ${formattedLinhCan}`, flags: MessageFlags.Ephemeral });
       return;
     }
@@ -360,7 +360,7 @@ export class CultivationInteractionHandler {
         .setDescription(result.message)
         .setTimestamp();
 
-      await interaction.update(toLegacyUpdate([embed], [], interaction));
+      await safeV2Update(interaction, [embed], []);
       return;
     }
 
@@ -382,7 +382,7 @@ export class CultivationInteractionHandler {
         .setDescription(`✨ Đạo hữu tiêu hao **${cost}** Linh Thạch ổn định đạo tâm, khôi phục nguyên trạng tỷ lệ đột phá thành công!\n\n` + result.message)
         .setTimestamp();
 
-      await interaction.update(toLegacyUpdate([embed], [], interaction));
+      await safeV2Update(interaction, [embed], []);
       return;
     }
 
@@ -422,7 +422,7 @@ export class CultivationInteractionHandler {
           .setStyle(ButtonStyle.Secondary)
       );
 
-      await interaction.update(toLegacyUpdate([embed], [row], interaction));
+      await safeV2Update(interaction, [embed], [row]);
       return;
     }
 
@@ -469,7 +469,7 @@ export class CultivationInteractionHandler {
           .setStyle(ButtonStyle.Secondary)
       );
 
-      await interaction.update(toLegacyUpdate([embed], [row], interaction));
+      await safeV2Update(interaction, [embed], [row]);
       return;
     }
   }

@@ -376,11 +376,10 @@ export default class QuyetAuCommand extends Command {
         .setStyle(ButtonStyle.Danger)
     );
 
-    await interaction.editReply({
-      content: `<@${targetUser.id}>, đạo hữu nhận được một lời khiêu chiến **Tam Hồi Linh Chiến**!`,
-      embeds: [embed],
-      components: [row]
-    });
+    const description = `<@${targetUser.id}>, đạo hữu nhận được một lời khiêu chiến **Tam Hồi Linh Chiến**!\n\n${embed.data.description ?? ''}`;
+    embed.setDescription(description);
+
+    await interaction.editReply(toV2Payload([embed], [row]));
   }
 
   /**

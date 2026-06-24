@@ -363,6 +363,45 @@ export function initDatabase() {
     );
   `);
 
+  // Boss Points — đơn vị tiền tệ World Boss
+  const hasBossPoints = db.prepare("PRAGMA table_info(users)").all().some((c: any) => c.name === 'boss_points');
+  if (!hasBossPoints) {
+    db.exec(`ALTER TABLE users ADD COLUMN boss_points INTEGER DEFAULT 0`);
+  }
+
+  // Bảng mùa giải Boss
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS boss_seasons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      season_number INTEGER NOT NULL,
+      started_at INTEGER NOT NULL,
+      ended_at INTEGER,
+      total_kills INTEGER DEFAULT 0,
+      top_damage_user TEXT,
+      top_damage_amount INTEGER DEFAULT 0
+    );
+  `);
+
+  // Bảng lịch sử boss kill (dùng cho season + thống kê)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS boss_kill_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      boss_name TEXT NOT NULL,
+      boss_level INTEGER NOT NULL,
+      killed_at INTEGER NOT NULL,
+      total_damage INTEGER DEFAULT 0,
+      participant_count INTEGER DEFAULT 0,
+      final_blower TEXT,
+      season_id INTEGER REFERENCES boss_seasons(id)
+    );
+  `);
+
+  // Thêm season_id vào contributions nếu chưa có
+  const hasContribSeason = db.prepare("PRAGMA table_info(world_boss_contributions)").all().some((c: any) => c.name === 'season_id');
+  if (!hasContribSeason) {
+    db.exec(`ALTER TABLE world_boss_contributions ADD COLUMN season_id INTEGER DEFAULT NULL`);
+  }
+
   // Bảng Audit Log
   db.exec(`
     CREATE TABLE IF NOT EXISTS audit_logs (

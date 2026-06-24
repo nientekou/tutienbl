@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
@@ -7,7 +7,7 @@ import { soulImprintRepository } from '../../database/repositories/SoulImprintRe
 import { soulImprintService } from '../../services/SoulImprintService';
 import { getProgressBar } from '../../utils/constants';
 import { ITEMS } from '../../config/itemConstants';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { EMBED_COLORS, toV2Payload, textToV2 } from '../../utils/uiSystem';
 
 const GROUP_NAMES: Record<string, string> = {
   'weapon': '⚔️ Bộ Vũ Khí Thượng Cổ',
@@ -184,10 +184,7 @@ export default class AnkyCommand extends Command {
         });
 
         const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-        await interaction.editReply({
-          content: '🧘 **Đúc Luyện Ấn Ký Linh Hồn**\n*Hãy chọn một trang bị 5 Sao bên dưới để tiêu hủy và lưu giữ chỉ số vĩnh viễn (Chi phí: 5,000 LT + 10 Mảnh Trang Bị):*',
-          components: [row]
-        });
+        await interaction.editReply({ components: [textToV2('🧘 **Đúc Luyện Ấn Ký Linh Hồn**\n*Hãy chọn một trang bị 5 Sao bên dưới để tiêu hủy và lưu giữ chỉ số vĩnh viễn (Chi phí: 5,000 LT + 10 Mảnh Trang Bị):*'), row], flags: MessageFlags.IsComponentsV2 });
       }
     }
 

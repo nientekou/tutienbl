@@ -4,7 +4,7 @@ import { TuTienClient } from '../../client/TuTienClient';
 import { sectService, SectDetails } from '../../services/SectService';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { getProgressBar } from '../../utils/constants';
-import { EMBED_COLORS } from '../../utils/uiSystem';
+import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
 /**
  * Tạo Embed hiển thị thông tin Tông Môn
@@ -202,9 +202,6 @@ export default class TongMonCommand extends Command {
     const embed = getSectEmbed(userId);
     const components = getSectComponents(userId);
 
-    await interaction.editReply({
-      embeds: [embed],
-      components: components as any[]
-    });
+    await interaction.editReply(toV2Payload([embed], components as any[]));
   }
 }

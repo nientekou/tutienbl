@@ -139,10 +139,7 @@ class CheTaoCommand extends Command_1.Command {
         }
         const embed = getCraftingEmbed(userId);
         const components = getCraftingComponents(userId);
-        await interaction.editReply({
-            embeds: [embed],
-            components: components
-        });
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
     }
 }
 exports.default = CheTaoCommand;

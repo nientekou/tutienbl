@@ -161,10 +161,7 @@ class AnkyCommand extends Command_1.Command {
                         .setValue(c.id.toString()));
                 });
                 const row = new discord_js_1.ActionRowBuilder().addComponents(selectMenu);
-                await interaction.editReply({
-                    content: '🧘 **Đúc Luyện Ấn Ký Linh Hồn**\n*Hãy chọn một trang bị 5 Sao bên dưới để tiêu hủy và lưu giữ chỉ số vĩnh viễn (Chi phí: 5,000 LT + 10 Mảnh Trang Bị):*',
-                    components: [row]
-                });
+                await interaction.editReply({ components: [(0, uiSystem_1.textToV2)('🧘 **Đúc Luyện Ấn Ký Linh Hồn**\n*Hãy chọn một trang bị 5 Sao bên dưới để tiêu hủy và lưu giữ chỉ số vĩnh viễn (Chi phí: 5,000 LT + 10 Mảnh Trang Bị):*'), row], flags: discord_js_1.MessageFlags.IsComponentsV2 });
             }
         }
         else if (sub === 'bo-suu-tap') {

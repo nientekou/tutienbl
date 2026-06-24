@@ -6,7 +6,7 @@ const uiSystem_1 = require("../utils/uiSystem");
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const API_BASE = 'https://dict.minhqnd.com/api/v1';
 // ── Constants ──
-const TURN_TIME_MS = 45_000;
+const TURN_TIME_MS = 3_600_000; // ponytail: 1 hour per turn (was 45s)
 const MAX_NO_ANSWER = 5;
 const WIN_REWARD = 500;
 const API_TIMEOUT_MS = 5_000;
@@ -158,6 +158,8 @@ class NoituService {
             turnNumber: 1,
             usedWords: new Set([word]),
             noAnswerStreak: 0,
+            skipVotes: new Set(),
+            skipMessageId: null,
         };
         this.games.set(gameKey, game);
         this.startTimer(game);
@@ -167,6 +169,10 @@ class NoituService {
         const game = this.games.get(gameKey);
         if (game?.timer)
             clearTimeout(game.timer);
+        if (game) {
+            game.skipVotes.clear();
+            game.skipMessageId = null;
+        }
         this.games.delete(gameKey);
     }
     async handleWord(gameKey, userId, username, word) {
@@ -174,6 +180,8 @@ class NoituService {
         if (!game)
             return 'no_game';
         const w = word.trim().toLowerCase();
+        if (game.lastAnswererId === userId)
+            return 'same_user';
         if (game.usedWords.has(w))
             return 'already_used';
         if (this.firstSyl(w) !== game.lastSyllable)
@@ -183,6 +191,7 @@ class NoituService {
         const valid = await lookupWord(w);
         if (!valid)
             return 'wrong_api';
+        this.clearSkipVote(gameKey);
         game.usedWords.add(w);
         game.currentWord = w;
         game.lastSyllable = this.lastSyl(w);
@@ -208,6 +217,8 @@ class NoituService {
             const oldSyllable = g.lastSyllable;
             const winnerName = g.lastAnswererName;
             const winnerId = g.lastAnswererId;
+            g.skipVotes.clear();
+            g.skipMessageId = null;
             g.noAnswerStreak++;
             g.turnNumber++;
             if (g.noAnswerStreak >= MAX_NO_ANSWER) {
@@ -250,6 +261,8 @@ class NoituService {
         const oldSyllable = g.lastSyllable;
         const winnerName = g.lastAnswererName;
         const winnerId = g.lastAnswererId;
+        g.skipVotes.clear();
+        g.skipMessageId = null;
         g.noAnswerStreak++;
         g.turnNumber++;
         if (g.noAnswerStreak >= MAX_NO_ANSWER) {
@@ -299,7 +312,98 @@ class NoituService {
         return word.trim().split(/\s+/)[0] || word;
     }
     buildStartMessage(game) {
-        return `Nối từ bắt đầu. Từ hiện tại: **${game.currentWord}**. Viết từ bắt đầu bằng **${game.lastSyllable}** trong 45s.`;
+        return `Nối từ bắt đầu. Từ hiện tại: **${game.currentWord}**. Viết từ bắt đầu bằng **${game.lastSyllable}** (thời gian: 1 tiếng).`;
+    }
+    // ── Skip vote ──
+    buildSkipVoteEmbed(game) {
+        const votes = game.skipVotes.size;
+        const needed = 3;
+        return new discord_js_1.EmbedBuilder()
+            .setTitle('⏭ Bỏ phiếu bỏ qua từ')
+            .setColor(uiSystem_1.EMBED_COLORS.WARNING)
+            .setDescription(`Từ hiện tại: **${game.currentWord}**\n` +
+            `Bỏ phiếu bỏ qua từ này? (${votes}/${needed})\n` +
+            `Người trả lời cuối: **${game.lastAnswererName || 'Chưa có'}** sẽ nhận thưởng nếu bỏ qua.`);
+    }
+    buildSkipVoteRow(gameKey) {
+        return new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
+            .setCustomId(`noituskip_${gameKey}`)
+            .setLabel('Đồng ý bỏ qua')
+            .setStyle(discord_js_1.ButtonStyle.Danger));
+    }
+    buildSkipPassedEmbed(winnerName, game) {
+        const lines = [
+            `⏭ Đã bỏ qua từ cũ.`,
+            winnerName
+                ? `**${winnerName}** nhận **${WIN_REWARD}** Hạ Phẩm Linh Thạch.`
+                : '',
+            '',
+            `Ván mới tiếp tục bắt đầu:`,
+            `**${game.currentWord}** → Viết từ bắt đầu bằng chữ **${game.lastSyllable}**`,
+        ];
+        return new discord_js_1.EmbedBuilder()
+            .setTitle('Nối Từ')
+            .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
+            .setDescription(lines.filter(Boolean).join('\n'));
+    }
+    startSkipVote(gameKey) {
+        const game = this.games.get(gameKey);
+        if (!game)
+            return null;
+        if (game.skipVotes.size > 0)
+            return null;
+        game.skipVotes = new Set();
+        return {
+            embed: this.buildSkipVoteEmbed(game),
+            row: this.buildSkipVoteRow(gameKey),
+        };
+    }
+    handleSkipVote(gameKey, userId) {
+        const game = this.games.get(gameKey);
+        if (!game)
+            return 'no_game';
+        if (game.skipVotes.has(userId))
+            return 'already_voted';
+        game.skipVotes.add(userId);
+        if (game.skipVotes.size >= 3) {
+            this.executeSkip(gameKey);
+            return 'skip_passed';
+        }
+        return 'voted';
+    }
+    executeSkip(gameKey) {
+        const game = this.games.get(gameKey);
+        if (!game)
+            return;
+        const winnerId = game.lastAnswererId;
+        giveReward(winnerId);
+        if (game.timer)
+            clearTimeout(game.timer);
+        const newWord = this.pickNewWord(game);
+        game.currentWord = newWord;
+        game.lastSyllable = this.lastSyl(newWord);
+        game.usedWords.add(newWord);
+        game.lastAnswererId = '';
+        game.lastAnswererName = '';
+        game.turnNumber++;
+        game.noAnswerStreak = 0;
+        this.startTimer(game);
+        game.skipVotes = new Set();
+        game.skipMessageId = null;
+    }
+    clearSkipVote(gameKey) {
+        const game = this.games.get(gameKey);
+        if (!game)
+            return;
+        // Delete stale skip vote message if exists
+        if (game.skipMessageId && game.client) {
+            const channel = game.client.channels.cache.get(game.channelId);
+            if (channel && 'messages' in channel) {
+                channel.messages.delete(game.skipMessageId).catch(() => { });
+            }
+        }
+        game.skipVotes = new Set();
+        game.skipMessageId = null;
     }
     buildWinEmbed(winnerName, oldSyllable, newWord, newSyllable) {
         if (winnerName) {
@@ -315,7 +419,7 @@ class NoituService {
                 .setDescription(lines.join('\n'));
         }
         const lines = [
-            `Không ai nối **${oldSyllable}** trong 45s.`,
+            `Không ai nối **${oldSyllable}** trong 1 tiếng.`,
             '',
             `Ván mới tiếp tục bắt đầu:`,
             `**${newWord || '???'}** → Viết từ bắt đầu bằng chữ **${newSyllable || '???'}**`,

@@ -229,9 +229,11 @@ export class TravelerService {
    * Khởi tạo service và cronjob kiểm tra spawn ngẫu nhiên mỗi giờ
    */
   public init(client: Client) {
+    // Spawn ngay lần đầu khi bot khởi động (sau 30s)
+    setTimeout(() => this.checkRandomSpawn(client), 30_000);
     setInterval(() => {
       this.checkRandomSpawn(client);
-    }, 60 * 60 * 1000); // Mỗi giờ chạy 1 lần
+    }, 30 * 60 * 1000); // Mỗi 30 phút chạy 1 lần
   }
 
   /**
@@ -244,15 +246,15 @@ export class TravelerService {
       if (!targetChannelId) continue;
 
       const activity = g.interaction_count || 0;
-      // Tỷ lệ xuất hiện cơ bản 2%, mỗi lượt tương tác tăng thêm 1% cơ hội, tối đa 50%
-      const chance = Math.min(0.50, 0.02 + activity * 0.01);
+      // Tỷ lệ xuất hiện cơ bản 10%, mỗi lượt tương tác tăng thêm 2% cơ hội, tối đa 60%
+      const chance = Math.min(0.60, 0.10 + activity * 0.02);
       
       if (Math.random() < chance) {
         this.spawnTraveler(client, targetChannelId);
       }
 
-      // Khấu hao (decay) điểm hoạt động 50% mỗi giờ để sự kiện phụ thuộc vào độ hoạt động gần đây
-      const newActivity = Math.floor(activity * 0.5);
+      // Khấu hao (decay) điểm hoạt động 30% mỗi 30 phút
+      const newActivity = Math.floor(activity * 0.7);
       db.prepare('UPDATE guild_configs SET interaction_count = ? WHERE guild_id = ?').run(newActivity, g.guild_id);
     }
   }

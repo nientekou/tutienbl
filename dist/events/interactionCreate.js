@@ -7,6 +7,7 @@ const Event_1 = require("../structures/Event");
 const InteractionLock_1 = require("../services/InteractionLock");
 const SystemConfigService_1 = require("../services/SystemConfigService");
 const database_1 = __importDefault(require("../database/database"));
+const NoituService_1 = require("../services/NoituService");
 const discord_js_1 = require("discord.js");
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryService_1 = require("../services/InventoryService");
@@ -236,7 +237,8 @@ class InteractionCreateEvent extends Event_1.Event {
                     interaction.customId.startsWith('bptselect_') ||
                     interaction.customId.startsWith('adminpanel_') ||
                     interaction.customId.startsWith('adminuser_') ||
-                    interaction.customId.startsWith('adminfixpets_')))) {
+                    interaction.customId.startsWith('adminfixpets_') ||
+                    interaction.customId.startsWith('alch_select_')))) {
                 let customId = interaction.customId;
                 if (interaction.isStringSelectMenu() && (customId.startsWith('hosoaction_') || customId.startsWith('hosoaction1_') || customId.startsWith('hosoaction2_'))) {
                     customId = `${interaction.values[0]}_${customId.split('_')[1]}`;
@@ -312,7 +314,8 @@ class InteractionCreateEvent extends Event_1.Event {
                 const isPublicAction = [
                     'worldbossattack', 'duelaccept', 'duelrefuse', 'duelchoose', 'duellichsu',
                     'trade', 'suachua', 'traveler_buy', 'traveler_buy_item', 'traveler_rob',
-                    'joinparty', 'leaveparty', 'startparty', 'edenter', 'edattack', 'edretreat'
+                    'joinparty', 'leaveparty', 'startparty', 'edenter', 'edattack', 'edretreat',
+                    'noituskip'
                 ].includes(action);
                 if (isPublicAction) {
                     targetUserId = interaction.user.id;
@@ -520,7 +523,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setPlaceholder('Chọn vật phẩm muốn mua')
                             .addOptions(options);
                         const row = new ActionRowBuilder().addComponents(selectMenu);
-                        await interaction.reply({ content: 'Đạo hữu muốn mua gì?', components: [row], flags: discord_js_1.MessageFlags.Ephemeral });
+                        await interaction.reply({ components: [(0, uiSystem_1.textToV2)('Đạo hữu muốn mua gì?'), row], flags: discord_js_1.MessageFlags.IsComponentsV2 | discord_js_1.MessageFlags.Ephemeral });
                     }
                     else if (action === 'traveler_buy_item' && interaction.isStringSelectMenu()) {
                         const eventId = parseInt(parts[1], 10);
@@ -529,7 +532,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         try {
                             const result = travelerService.buyItem(interaction.user.id, eventId, itemId, 1);
                             if (result.success) {
-                                await interaction.update({ content: result.message, components: [] });
+                                await (0, uiSystem_1.safeV2TextUpdate)(interaction, result.message);
                                 // Nếu mua thành công, thử update message gốc
                                 try {
                                     const event = database_1.default.prepare('SELECT * FROM traveler_events WHERE id = ?').get(eventId);
@@ -549,12 +552,12 @@ class InteractionCreateEvent extends Event_1.Event {
                                                     embed.setTitle('👺 Lữ Khách Thần Bí (Đã Rời Đi)');
                                                     embed.setDescription('Lữ Khách đã bán hết sạch hàng và rời đi.');
                                                     embed.setFields([]); // clear fields
-                                                    await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(event.channel_id, event.message_id), { body: { components: [(0, uiSystem_1.embedToV2)(embed)], flags: uiSystem_1.V2_FLAG } });
+                                                    await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(event.channel_id, event.message_id), { body: { embeds: [embed.toJSON()], components: [] } });
                                                 }
                                                 else {
                                                     const newFields = { name: '💰 Hàng Hoá', value: Object.values(inv).map((i) => `- **${i.name}** (Còn: ${i.quantity}) - Giá: ${i.price} LT`).join('\n') };
                                                     embed.setFields([newFields]);
-                                                    await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(event.channel_id, event.message_id), { body: { components: [(0, uiSystem_1.embedToV2)(embed)], flags: uiSystem_1.V2_FLAG } });
+                                                    await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(event.channel_id, event.message_id), { body: { embeds: [embed.toJSON()], components: [] } });
                                                 }
                                             }
                                         }
@@ -565,7 +568,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                 }
                             }
                             else {
-                                await interaction.update({ content: `❌ ${result.message}`, components: [] });
+                                await (0, uiSystem_1.safeV2TextUpdate)(interaction, `❌ ${result.message}`);
                             }
                         }
                         catch (buyErr) {
@@ -600,7 +603,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                             embed.setTitle('👺 Lữ Khách Thần Bí (Đã Bỏ Chạy)');
                                             embed.setDescription(`Lữ Khách đã bị **${interaction.user.username}** đánh bại và cướp sạch hàng hoá!`);
                                             embed.setFields([]);
-                                            await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(event.channel_id, event.message_id), { body: { components: [(0, uiSystem_1.embedToV2)(embed)], flags: uiSystem_1.V2_FLAG } });
+                                            await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(event.channel_id, event.message_id), { body: { embeds: [embed.toJSON()], components: [] } });
                                         }
                                     }
                                 }
@@ -616,7 +619,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const inventoryId = parseInt(interaction.values[0], 10);
                         const CuongHuaCommand = require('../commands/general/cuonghoa').default;
                         const preview = CuongHuaCommand.buildEnhancePreview(targetUserId, inventoryId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([preview.embed], preview.rows, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [preview.embed], preview.rows);
                     }
                     else if (action === 'enhance_confirm') {
                         const inventoryId = parseInt(parts[1], 10);
@@ -624,10 +627,10 @@ class InteractionCreateEvent extends Event_1.Event {
                         const result = enhanceService.enhanceItem(targetUserId, inventoryId);
                         const CuongHuaCommand = require('../commands/general/cuonghoa').default;
                         const preview = CuongHuaCommand.buildEnhancePreview(targetUserId, inventoryId, result);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([preview.embed], preview.rows, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [preview.embed], preview.rows);
                     }
                     else if (action === 'enhance_cancel') {
-                        await interaction.update({ content: '📴 Đã đóng giao diện cường hóa trang bị.', components: [] });
+                        await (0, uiSystem_1.safeV2TextUpdate)(interaction, '📴 Đã đóng giao diện cường hóa trang bị.');
                     }
                     else if (action === 'linhmach_select' && interaction.isStringSelectMenu()) {
                         const selected = interaction.values[0];
@@ -637,7 +640,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const { buildLeylineEmbed, buildLeylineComponents } = require('../commands/general/linhmach');
                         const updatedEmbed = buildLeylineEmbed(targetUserId);
                         const updatedComponents = buildLeylineComponents(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], updatedComponents, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [updatedEmbed], updatedComponents);
                         if (result.success) {
                             await interaction.followUp({ content: `✅ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
@@ -646,31 +649,31 @@ class InteractionCreateEvent extends Event_1.Event {
                         }
                     }
                     else if (action === 'linhmach_close') {
-                        await interaction.update({ content: '📴 Đã đóng giao diện Linh Mạch Địa Đồ.', components: [] });
+                        await (0, uiSystem_1.safeV2TextUpdate)(interaction, '📴 Đã đóng giao diện Linh Mạch Địa Đồ.');
                     }
                     else if (action === 'anky_select' && interaction.isStringSelectMenu()) {
                         const inventoryId = parseInt(interaction.values[0], 10);
                         const { soulImprintService } = require('../services/SoulImprintService');
                         const result = soulImprintService.imprintItem(targetUserId, inventoryId);
                         if (result.success) {
-                            await interaction.update({ content: `✅ ${result.message}`, components: [] });
+                            await (0, uiSystem_1.safeV2TextUpdate)(interaction, `✅ ${result.message}`);
                         }
                         else {
-                            await interaction.update({ content: `❌ ${result.message}`, components: [] });
+                            await (0, uiSystem_1.safeV2TextUpdate)(interaction, `❌ ${result.message}`);
                         }
                     }
                     else if (action === 'dungkynang_select' && interaction.isStringSelectMenu()) {
                         const bookId = interaction.values[0];
                         const result = dungkynang_1.default.learnSkill(targetUserId, bookId);
                         if (!result.success) {
-                            await interaction.update({ content: result.message, components: [] });
+                            await (0, uiSystem_1.safeV2TextUpdate)(interaction, result.message);
                         }
                         else {
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([result.embed], interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [result.embed]);
                         }
                     }
                     else if (action === 'dungkynang_cancel') {
-                        await interaction.update({ content: '📴 Đã đóng giao diện Lĩnh Ngộ Kỹ Năng.', components: [] });
+                        await (0, uiSystem_1.safeV2TextUpdate)(interaction, '📴 Đã đóng giao diện Lĩnh Ngộ Kỹ Năng.');
                     }
                     else if (action === 'doitienselect' && interaction.isStringSelectMenu()) {
                         const selectedValue = interaction.values[0];
@@ -858,6 +861,41 @@ class InteractionCreateEvent extends Event_1.Event {
                         await TradeInteractionHandler.handle(interaction, action, parts, targetUserId);
                         return;
                     }
+                    // --- Nút Bỏ phiếu Bỏ qua Nối Từ ---
+                    if (action === 'noituskip') {
+                        const gameKey = parts.slice(1).join('_');
+                        if (!gameKey) {
+                            await interaction.reply({ content: '❌ Lỗi thiếu thông tin game.', flags: 64 });
+                            return;
+                        }
+                        // Save winner info before executeSkip clears it
+                        const gameBefore = NoituService_1.noituService.getGame(gameKey);
+                        const winnerName = gameBefore?.lastAnswererName || '';
+                        const result = NoituService_1.noituService.handleSkipVote(gameKey, interaction.user.id);
+                        const game = NoituService_1.noituService.getGame(gameKey);
+                        if (result === 'no_game') {
+                            await interaction.reply({ content: '❌ Không có ván Nối Từ nào!', flags: 64 });
+                            return;
+                        }
+                        if (result === 'already_voted') {
+                            await interaction.reply({ content: 'Bạn đã bỏ phiếu bỏ qua từ này rồi!', flags: 64 });
+                            return;
+                        }
+                        if (result === 'voted' && game) {
+                            const updatedEmbed = NoituService_1.noituService.buildSkipVoteEmbed(game);
+                            const updatedRow = NoituService_1.noituService.buildSkipVoteRow(gameKey);
+                            await (0, uiSystem_1.safeV2Update)(interaction, [updatedEmbed], [updatedRow]);
+                            return;
+                        }
+                        if (result === 'skip_passed') {
+                            if (game) {
+                                const passedEmbed = NoituService_1.noituService.buildSkipPassedEmbed(winnerName, game);
+                                await (0, uiSystem_1.safeV2Update)(interaction, [passedEmbed], []);
+                            }
+                            return;
+                        }
+                        return;
+                    }
                     // --- Nút Bảng Phong Thần ---
                     else if (action === 'bpt') {
                         const subType = parts[1];
@@ -865,7 +903,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const targetUserId = parts[parts.length - 1];
                         const { buildLeaderboardUpdate } = require('../commands/general/bangphongthan');
                         const updateOptions = buildLeaderboardUpdate(targetUserId, subType, page);
-                        await interaction.update(updateOptions);
+                        await (0, uiSystem_1.safeV2Update)(interaction, updateOptions.embeds, updateOptions.components);
                         return;
                     }
                     // --- Dropdown Bảng Phong Thần ---
@@ -874,7 +912,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const targetUserId = parts[1];
                         const { buildLeaderboardUpdate } = require('../commands/general/bangphongthan');
                         const updateOptions = buildLeaderboardUpdate(targetUserId, category, 1);
-                        await interaction.update(updateOptions);
+                        await (0, uiSystem_1.safeV2Update)(interaction, updateOptions.embeds, updateOptions.components);
                         return;
                     }
                     // --- Nút Động Phủ ---
@@ -900,7 +938,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         if (result.success) {
                             const updatedEmbed = buildDongPhuEmbed(targetUserId);
                             const updatedComponents = buildDongPhuComponents(targetUserId);
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], updatedComponents, interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [updatedEmbed], updatedComponents);
                             await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         else {
@@ -994,7 +1032,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         // Tính toán lại chỉ số active khi quay lại để cập nhật thay đổi trang bị
                         const embed = (0, hoso_1.getHoSoTabEmbed)(targetUserId, 'chiso');
                         const rows = (0, hoso_1.getHoSoAllComponents)(targetUserId, 'chiso');
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                     }
                     // --- Nút: KHIÊU CHIẾN BÍ CẢNH (Chọn phó bản) ---
                     else if (action === 'bicanhselect') {
@@ -1067,7 +1105,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`bicanhreact_${dungeonId}:${difficulty}:${monsterAction}:def_${targetUserId}`)
                             .setLabel('🛡️ Phòng Thủ')
                             .setStyle(discord_js_1.ButtonStyle.Danger));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
                     }
                     // --- Nút: PHẢN ỨNG RA CHIÊU BÍ CẢNH (Thực chiến quyết định) ---
                     else if (action === 'bicanhreact') {
@@ -1162,7 +1200,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         // Cập nhật tiến trình nhiệm vụ hàng ngày khi hoàn thành bí cảnh
                         DailyQuestService_1.dailyQuestService.updateProgress(targetUserId, 'daily_bicanh', 1);
                         QuestChainService_1.questChainService.updateProgress(targetUserId, 'kill', 1);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
                     }
                     // --- Nút: XEM NHẬT KÝ CHIẾN ĐẤU BÍ CẢNH ---
                     else if (action === 'bicanhlogs') {
@@ -1173,7 +1211,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     else if (action === 'bicanhback') {
                         const embed = (0, bicanh_1.getDungeonEmbed)(targetUserId);
                         const row = (0, bicanh_1.getDungeonComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
                     }
                     // --- Nút: TẤN CÔNG WORLD BOSS (đã hợp nhất vào handler phía trên) ---
                     // (Đã được xử lý ở handler worldbossattack phía trên, không cần duplicate)
@@ -1191,7 +1229,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     else if (action === 'worldbossrefresh') {
                         const embed = (0, worldboss_1.getWorldBossEmbed)(targetUserId);
                         const row = (0, worldboss_1.getWorldBossComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
                     }
                     // --- Nút: THU HOẠCH LINH ĐIỀN ---
                     else if (action === 'linhdienharvest') {
@@ -1214,7 +1252,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         QuestChainService_1.questChainService.updateProgress(targetUserId, 'collect', harvested.length);
                         const embed = (0, linhdien_1.getLinhDienEmbed)(targetUserId);
                         const components = (0, linhdien_1.getLinhDienComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                         await interaction.followUp({ content: `✨ Đạo hữu thu hoạch thành công: ${harvested.map(h => `**${h}**`).join(', ')}!`, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: KHAI KHẨN LINH ĐIỀN ---
@@ -1226,14 +1264,14 @@ class InteractionCreateEvent extends Event_1.Event {
                         }
                         const embed = (0, linhdien_1.getLinhDienEmbed)(targetUserId);
                         const components = (0, linhdien_1.getLinhDienComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                         await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: LÀM MỚI LINH ĐIỀN ---
                     else if (action === 'linhdienrefresh') {
                         const embed = (0, linhdien_1.getLinhDienEmbed)(targetUserId);
                         const components = (0, linhdien_1.getLinhDienComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                     }
                     // --- Nút: ĐỘNG PHỦ - NGÂM LINH TUYỀN ---
                     else if (action === 'dongphuspring') {
@@ -1247,7 +1285,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const { buildCaveEmbed, buildCaveComponents } = require('../commands/life/dongphu');
                         const updatedEmbed = buildCaveEmbed(targetUserId);
                         const updatedComponents = buildCaveComponents(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], updatedComponents, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [updatedEmbed], updatedComponents);
                         await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: ĐỘNG PHỦ - NÂNG CẤP ---
@@ -1307,7 +1345,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const { buildCaveEmbed, buildCaveComponents } = require('../commands/life/dongphu');
                         const updatedEmbed = buildCaveEmbed(targetUserId);
                         const updatedComponents = buildCaveComponents(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([updatedEmbed], updatedComponents, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [updatedEmbed], updatedComponents);
                         await interaction.followUp({ content: `🎉 Chúc mừng! Đạo hữu đã nâng cấp thành công Động Phủ lên **Cấp ${cave.level + 1}**!`, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: MỞ MODAL THÀNH LẬP TÔNG MÔN ---
@@ -1337,14 +1375,14 @@ class InteractionCreateEvent extends Event_1.Event {
                         }
                         const embed = (0, tongmon_1.getSectEmbed)(targetUserId);
                         const components = (0, tongmon_1.getSectComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                         await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: LÀM MỚI TÔNG MÔN ---
                     else if (action === 'sectrefresh') {
                         const embed = (0, tongmon_1.getSectEmbed)(targetUserId);
                         const components = (0, tongmon_1.getSectComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                     }
                     // --- Nút: TÔNG CHỦ NÂNG CẤP KIẾN TRÚC TÔNG MÔN ---
                     else if (action === 'sectupgrade') {
@@ -1356,7 +1394,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         }
                         const embed = (0, tongmon_1.getSectEmbed)(targetUserId);
                         const components = (0, tongmon_1.getSectComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                         await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: NHẬN THÀNH PHẨM CHẾ TẠO (THU LÒ) ---
@@ -1370,14 +1408,14 @@ class InteractionCreateEvent extends Event_1.Event {
                         LeylineService_1.leylineService.addEnergy(targetUserId, 'thuthap', 10);
                         const embed = (0, chetao_1.getCraftingEmbed)(targetUserId);
                         const components = (0, chetao_1.getCraftingComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                         await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: LÀM MỚI LÒ CHẾ TẠO ---
                     else if (action === 'craftrefresh') {
                         const embed = (0, chetao_1.getCraftingEmbed)(targetUserId);
                         const components = (0, chetao_1.getCraftingComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                     }
                     // --- Nút: ĐI ĐẾN LUYỆN ĐAN (từ hồ sơ) ---
                     else if (action === 'luyendannav') {
@@ -1390,7 +1428,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                 .setLabel('🔙 Quay Lại Hồ Sơ')
                                 .setStyle(discord_js_1.ButtonStyle.Secondary));
                         }
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], row, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], row);
                     }
                     // --- Nút: ĐI ĐẾN TÔNG MÔN (từ hồ sơ) ---
                     else if (action === 'tonmonnav') {
@@ -1400,13 +1438,13 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...sectComps, backRow], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [...sectComps, backRow]);
                     }
                     // --- Nút: ĐI ĐẾN BÍ CẢNH (từ hồ sơ) ---
                     else if (action === 'bicanhnaav') {
                         const embed = (0, bicanh_1.getDungeonEmbed)(targetUserId);
                         const row = (0, bicanh_1.getDungeonComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
                     }
                     // --- Nút: ĐI ĐẾN LEO THÁP (từ hồ sơ) ---
                     else if (action === 'leothapnav') {
@@ -1417,7 +1455,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
                         const rowsArr = Array.isArray(rows) ? rows : [rows];
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...rowsArr, backRow], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [...rowsArr, backRow]);
                     }
                     // --- Nút: ĐI ĐẾN LÀM VIỆC (từ hồ sơ) ---
                     else if (action === 'lamviecnav') {
@@ -1446,7 +1484,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [workRow, backRow], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [workRow, backRow]);
                     }
                     // --- Nút: THỰC THI LÀM VIỆC (từ menu Làm Việc trong hồ sơ) ---
                     else if (action === 'lamviecwork') {
@@ -1504,7 +1542,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             });
                             resultComponents.push(row);
                         }
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [workRow, backRow], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [workRow, backRow]);
                         await interaction.followUp((0, uiSystem_1.toV2Payload)([result.embed], resultComponents, discord_js_1.MessageFlags.Ephemeral));
                     }
                     // --- Nút: ĐI ĐẾN ĐỘNG PHỦ (từ hồ sơ) ---
@@ -1516,7 +1554,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...comps, backRow], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [...comps, backRow]);
                     }
                     // --- Đại Hệ Thống: BẢN MỆNH PHÁP BẢO ---
                     else if (action === 'pb') {
@@ -1556,7 +1594,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                 .setCustomId(`pb_banmenh_nav_${targetUserId}`)
                                 .setLabel('🔙 Quay Lại')
                                 .setStyle(discord_js_1.ButtonStyle.Secondary));
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row1, row2], interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row1, row2]);
                         }
                         // --- 2. pb_bind_select_<userId>: Thực thi liên kết Huyết Tế ---
                         else if (pbSub === 'bind' && pbType === 'select' && interaction.isStringSelectMenu()) {
@@ -1568,7 +1606,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             }
                             const embed = getBanMenhEmbed(targetUserId);
                             const comps = getBanMenhComponents(targetUserId);
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], comps, interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], comps);
                             await interaction.followUp({ content: `✅ ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         // --- 3. pb_swap_nav_<userId>: Hiển thị danh sách vật phẩm hoán đổi Bản Mệnh (Yêu cầu Huyết Tế Ma Bảng) ---
@@ -1613,7 +1651,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                 .setCustomId(`pb_banmenh_nav_${targetUserId}`)
                                 .setLabel('🔙 Quay Lại')
                                 .setStyle(discord_js_1.ButtonStyle.Secondary));
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row1, row2], interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row1, row2]);
                         }
                         // --- 4. pb_swap_select_<userId>: Thực thi hoán đổi Bản Mệnh ---
                         else if (pbSub === 'swap' && pbType === 'select' && interaction.isStringSelectMenu()) {
@@ -1642,14 +1680,14 @@ class InteractionCreateEvent extends Event_1.Event {
                             InventoryRepository_1.inventoryRepository.removeItem(targetUserId, itemConstants_1.ITEMS.ITEM_LIFE_BIND_SCROLL, 1);
                             const embed = getBanMenhEmbed(targetUserId);
                             const comps = getBanMenhComponents(targetUserId);
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], comps, interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], comps);
                             await interaction.followUp({ content: `✅ ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         // --- 5. pb_banmenh_nav_<userId>: Quay lại màn hình Bản Mệnh chính ---
                         else if (pbSub === 'banmenh' && pbType === 'nav') {
                             const embed = getBanMenhEmbed(targetUserId);
                             const comps = getBanMenhComponents(targetUserId);
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], comps, interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], comps);
                         }
                     }
                     // --- Nút: ĐI ĐẾN LINH ĐIỀN (từ hồ sơ) ---
@@ -1660,7 +1698,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...linhComps, backRow], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [...linhComps, backRow]);
                     }
                     // --- Nút: ĐI ĐẾN CHẾ TẠO (từ hồ sơ) ---
                     else if (action === 'chetaonav') {
@@ -1670,14 +1708,14 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...craftComps, backRow], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [...craftComps, backRow]);
                     }
                     // --- Nút: ĐI ĐẾN SHOP KỸ NĂNG (từ hồ sơ) ---
                     else if (action === 'shopkynangnav') {
                         const embed = (0, shopkynang_1.getShopKyNangEmbed)(targetUserId);
                         const sknComps = (0, shopkynang_1.getShopKyNangComponents)(targetUserId);
                         const rowsArr = Array.isArray(sknComps) ? sknComps : [sknComps];
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rowsArr, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], rowsArr);
                     }
                     // --- Nút: ĐI ĐẾN WORLD BOSS (từ hồ sơ) ---
                     else if (action === 'worldbossnav') {
@@ -1687,7 +1725,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [wbRow, backRow], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [wbRow, backRow]);
                     }
                     // --- Nút: ĐI ĐẾN VẠN BẢO LÂU (từ hồ sơ) ---
                     else if (action === 'vanbaolaunav') {
@@ -1721,7 +1759,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [backRow], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [backRow]);
                     }
                     // --- Nút: ĐI ĐẾN NGỘ Ý CẢNH (từ hồ sơ) ---
                     else if (action === 'ycanhnaav') {
@@ -1731,7 +1769,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row, backRow], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row, backRow]);
                     }
                     // --- Nút: ĐI ĐẾN LUÂN HỒI (từ hồ sơ) ---
                     else if (action === 'luanhoinnav') {
@@ -1741,7 +1779,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row, backRow], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row, backRow]);
                     }
                     // --- Nút: ĐI ĐẾN SỦNG THÚ (từ hồ sơ) ---
                     else if (action === 'sungthunaav') {
@@ -1752,7 +1790,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
                         const rowsArr = Array.isArray(rows) ? rows : [rows];
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...rowsArr, backRow], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [...rowsArr, backRow]);
                     }
                     // --- Nút: PHÂN TRANG SỦNG THÚ ---
                     else if (action === 'sungthu') {
@@ -1764,14 +1802,14 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
                         const rowsArr = Array.isArray(rows) ? rows : [rows];
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [...rowsArr, backRow], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [...rowsArr, backRow]);
                     }
                     // --- Nút: ĐI ĐẾN CỬA HÀNG (từ hồ sơ) ---
                     else if (action === 'shopnav') {
                         const embed = (0, shop_1.getShopEmbed)(targetUserId);
                         const rows = (0, shop_1.getShopComponents)(targetUserId);
                         const rowsArr = Array.isArray(rows) ? rows : [rows];
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rowsArr, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], rowsArr);
                     }
                     // --- Nút: CỬA HÀNG PHÂN KHU (Shop Revamp) ---
                     else if (action === 'shop') {
@@ -1792,7 +1830,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const embed = (0, shop_1.getShopEmbed)(targetUserId, primaryId, subId, page);
                         const rows = (0, shop_1.getShopComponents)(targetUserId, primaryId, subId, page);
                         const rowsArr = Array.isArray(rows) ? rows : [rows];
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rowsArr, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], rowsArr);
                     }
                     // --- Nút: TÌM KIẾM CỬA HÀNG ---
                     else if (action === 'shopsearch') {
@@ -1822,7 +1860,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             // Re-render hunt menu
                             const embed = (0, sanyeuthu_1.getSanYeuThuEmbed)(targetUserId);
                             const rows = (0, sanyeuthu_1.getSanYeuThuComponents)(targetUserId);
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                             if (!huntResult.success) {
                                 await interaction.followUp({ content: `❌ ${huntResult.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                                 return;
@@ -1854,7 +1892,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             // Mở menu săn yêu thú (màn hình xác nhận)
                             const embed = (0, sanyeuthu_1.getSanYeuThuEmbed)(targetUserId);
                             const rows = (0, sanyeuthu_1.getSanYeuThuComponents)(targetUserId);
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                         }
                     }
                     // --- Nút: ĐI ĐẾN TRANG BỊ (từ hồ sơ) ---
@@ -1878,7 +1916,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
                     }
                     // --- Nút: ĐI ĐẾN QUYẾT ĐẤU (từ hồ sơ) ---
                     else if (action === 'quyetau') {
@@ -1899,13 +1937,13 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
                     }
                     // --- Nút: ĐI ĐẾN KHÁM PHÁ DÃ NGOẠI (từ hồ sơ) ---
                     else if (action === 'khambhanav') {
                         const embed = (0, khambha_1.getKhamBhaEmbed)(targetUserId);
                         const rows = (0, khambha_1.getKhamBhaComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                     }
                     // --- Nút: BẮT ĐẦU THÁM HIỂM (chọn địa điểm) ---
                     else if (action === 'khambhastart') {
@@ -1917,7 +1955,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         }
                         const embed = (0, khambha_1.getKhamBhaEmbed)(targetUserId);
                         const rows = (0, khambha_1.getKhamBhaComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                         await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: VỀ LẤY THƯỞNG THÁM HIỂM ---
@@ -1942,7 +1980,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                     .setLabel(choice.label)
                                     .setStyle(discord_js_1.ButtonStyle.Primary));
                             }
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [choiceRow], interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], [choiceRow]);
                         }
                         else {
                             // Thu hoạch bình thường
@@ -1950,7 +1988,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             QuestChainService_1.questChainService.updateProgress(targetUserId, 'explore', 1);
                             const embed = (0, khambha_1.getKhamBhaEmbed)(targetUserId);
                             const rows = (0, khambha_1.getKhamBhaComponents)(targetUserId);
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                             await interaction.followUp({ content: result.message });
                         }
                     }
@@ -1963,14 +2001,14 @@ class InteractionCreateEvent extends Event_1.Event {
                         QuestChainService_1.questChainService.updateProgress(targetUserId, 'explore', 1);
                         const embed = (0, khambha_1.getKhamBhaEmbed)(targetUserId);
                         const rows = (0, khambha_1.getKhamBhaComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                         await interaction.followUp({ content: result.message });
                     }
                     // --- Nút: ĐI ĐẾN NHIỆM VỤ HÀNG NGÀY (từ hồ sơ) ---
                     else if (action === 'nhiemvunav') {
                         const embed = (0, nhiemvu_1.getNhiemVuEmbed)(targetUserId);
                         const rows = (0, nhiemvu_1.getNhiemVuComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                     }
                     // --- Nút: NHẬN THƯỞNG NHIỆM VỤ ---
                     else if (action === 'nhiemvuclaim') {
@@ -1982,7 +2020,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         }
                         const embed = (0, nhiemvu_1.getNhiemVuEmbed)(targetUserId);
                         const rows = (0, nhiemvu_1.getNhiemVuComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                         await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: BẮT ĐẦU CHUỖI NHIỆM VỤ ---
@@ -1991,7 +2029,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const result = QuestChainService_1.questChainService.startChain(targetUserId, chainId);
                         const embed = (0, nhiemvu_1.getQuestChainEmbed)(targetUserId);
                         const rows = (0, nhiemvu_1.getQuestChainComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                         if (result.message) {
                             await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
@@ -2002,7 +2040,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const result = QuestChainService_1.questChainService.claimStepReward(targetUserId);
                         const embed = (0, nhiemvu_1.getQuestChainEmbed)(targetUserId);
                         const rows = (0, nhiemvu_1.getQuestChainComponents)(targetUserId);
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rows, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                         await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     // --- Nút: LAPDOI - TẤT CẢ HÀNH ĐỘNG (ready/start/leave/disband/refresh) ---
@@ -2026,7 +2064,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             const host = UserRepository_1.userRepository.get(room.host_id);
                             const embed = (0, lapdoi_1.getPartyRoomEmbed)(room, host);
                             const components = (0, lapdoi_1.getPartyRoomComponents)(room, userId);
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                         }
                         else if (lapdoiAction === 'start') {
                             const room = database_1.default.prepare("SELECT * FROM party_rooms WHERE id = ? AND host_id = ? AND status = 'waiting'").get(roomId, userId);
@@ -2129,7 +2167,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             if (logStr.length > 3000)
                                 logStr = logStr.substring(0, 3000) + '\n... (Rút gọn)';
                             const logEmbed = new discord_js_1.EmbedBuilder().setTitle('📜 Diễn Biến').setDescription(logStr).setColor(uiSystem_1.EMBED_COLORS.DARK);
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed, logEmbed], interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed, logEmbed]);
                         }
                         else if (lapdoiAction === 'leave') {
                             const room = database_1.default.prepare("SELECT * FROM party_rooms WHERE id = ? AND status != 'closed'").get(roomId);
@@ -2142,7 +2180,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             if (room.host_id === userId || updatedMembers.length === 0) {
                                 database_1.default.prepare("UPDATE party_rooms SET status = 'closed' WHERE id = ?").run(roomId);
                                 lapdoi_1.readyStates.delete(roomId);
-                                await interaction.update({ content: '💥 Phòng đã được giải tán!', components: [] });
+                                await (0, uiSystem_1.safeV2TextUpdate)(interaction, '💥 Phòng đã được giải tán!');
                             }
                             else {
                                 database_1.default.prepare("UPDATE party_rooms SET member_ids = ? WHERE id = ?")
@@ -2154,7 +2192,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                 const updatedRoom = database_1.default.prepare("SELECT * FROM party_rooms WHERE id = ?").get(roomId);
                                 const embed = (0, lapdoi_1.getPartyRoomEmbed)(updatedRoom, host);
                                 const components = (0, lapdoi_1.getPartyRoomComponents)(updatedRoom, userId);
-                                await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                                await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                             }
                         }
                         else if (lapdoiAction === 'disband') {
@@ -2165,7 +2203,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             }
                             database_1.default.prepare("UPDATE party_rooms SET status = 'closed' WHERE id = ?").run(roomId);
                             lapdoi_1.readyStates.delete(roomId);
-                            await interaction.update({ content: '💥 Phòng đã được giải tán!', components: [] });
+                            await (0, uiSystem_1.safeV2TextUpdate)(interaction, '💥 Phòng đã được giải tán!');
                         }
                         else if (lapdoiAction === 'refresh') {
                             const room = database_1.default.prepare("SELECT * FROM party_rooms WHERE id = ? AND status != 'closed'").get(roomId);
@@ -2178,7 +2216,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             const { getPartyRoomComponents } = require('./interactionCreate'); // Re-import or use local function if available
                             // Let's just require the components function directly since it's exported in interactionCreate.ts
                             const components = module.exports.getPartyRoomComponents ? module.exports.getPartyRoomComponents(room, userId) : getPartyRoomComponents(room, userId);
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                         }
                     }
                     // --- Nút: BÍ CẢNH (Co-op Dungeon) ---
@@ -2221,10 +2259,10 @@ class InteractionCreateEvent extends Event_1.Event {
                         if (updatedParty) {
                             const { buildCoopPartyEmbed } = require('../commands/combat/bicanh');
                             const embed = buildCoopPartyEmbed(partyId);
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed]);
                         }
                         else {
-                            await interaction.update({ content: '✅ Đã tham gia.', components: [] });
+                            await (0, uiSystem_1.safeV2TextUpdate)(interaction, '✅ Đã tham gia.');
                         }
                     }
                     else if (action === 'leaveparty') {
@@ -2237,12 +2275,12 @@ class InteractionCreateEvent extends Event_1.Event {
                         }
                         const party = partyService.getParty(partyId);
                         if (!party) {
-                            await interaction.update({ content: '💥 Đội đã giải tán!', components: [] });
+                            await (0, uiSystem_1.safeV2TextUpdate)(interaction, '💥 Đội đã giải tán!');
                         }
                         else {
                             const { buildCoopPartyEmbed } = require('../commands/combat/bicanh');
                             const embed = buildCoopPartyEmbed(partyId);
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed]);
                         }
                     }
                     else if (action === 'startparty') {
@@ -2305,7 +2343,7 @@ class InteractionCreateEvent extends Event_1.Event {
               ON CONFLICT(user_id, dungeon_id) DO UPDATE SET daily_entries = excluded.daily_entries, last_entry_at = excluded.last_entry_at
             `).run(mId, dungeon.id, entriesToday + 1, now);
                         }
-                        await interaction.update({ content: '⚔️ **ĐANG CHUẨN BỊ TRẬN CHIẾN...**', components: [] });
+                        await (0, uiSystem_1.safeV2TextUpdate)(interaction, '⚔️ **ĐANG CHUẨN BỊ TRẬN CHIẾN...**');
                         try {
                             // Chuẩn bị team
                             const partyMembers = [];
@@ -2474,7 +2512,7 @@ class InteractionCreateEvent extends Event_1.Event {
                                 .setDescription(statusText +
                                 `\n\n_Dùng \`/guildwar thongtin\` để xem chi tiết đầy đủ._`)
                                 .setTimestamp();
-                            await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [], interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], []);
                         }
                     }
                     // --- Nút: CHẤP NHẬN / TỪ CHỐI KẾT HÔN ---
@@ -2482,17 +2520,17 @@ class InteractionCreateEvent extends Event_1.Event {
                         const proposerId = parts[1];
                         const targetId = parts[2];
                         if (action === 'marriagerefuse') {
-                            await interaction.update({ content: `💔 Đạo hữu <@${targetId}> đã uyển chuyển từ chối lời cầu hôn của <@${proposerId}>. Duyên phận chưa tới!`, components: [] });
+                            await (0, uiSystem_1.safeV2TextUpdate)(interaction, `💔 Đạo hữu <@${targetId}> đã uyển chuyển từ chối lời cầu hôn của <@${proposerId}>. Duyên phận chưa tới!`);
                             return;
                         }
                         // Chấp nhận
                         const { marriageService } = require('../services/MarriageService');
                         const result = marriageService.acceptProposal(proposerId, targetId);
                         if (result.success) {
-                            await interaction.update({ content: result.message, components: [] });
+                            await (0, uiSystem_1.safeV2TextUpdate)(interaction, result.message);
                         }
                         else {
-                            await interaction.update({ content: `❌ Cầu hôn thất bại: ${result.message}`, components: [] });
+                            await (0, uiSystem_1.safeV2TextUpdate)(interaction, `❌ Cầu hôn thất bại: ${result.message}`);
                         }
                     }
                     // --- Nút: SỬA CHỮA TRANG BỊ (từ /suachua danhsach) ---
@@ -2532,7 +2570,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             `**Sect C:** ${battle.sect_c_id} (HP: ${battle.sect_c_hp})\n\n` +
                             `Dùng \`/combat sectwar tancong\` để tham chiến!`)
                             .setTimestamp();
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], []);
                         return;
                     }
                     // --- Nút: LỰA CHỌN ENCOUNTER (Kỳ Ngộ Làm Việc / Săn Yêu Thú) ---
@@ -2552,12 +2590,12 @@ class InteractionCreateEvent extends Event_1.Event {
                         ];
                         const encounter = allEncounters.find((e) => e.id === encounterId);
                         if (!encounter) {
-                            await interaction.update({ content: '❌ Kỳ ngộ này không còn tồn tại hoặc bị lỗi.', components: [] });
+                            await (0, uiSystem_1.safeV2TextUpdate)(interaction, '❌ Kỳ ngộ này không còn tồn tại hoặc bị lỗi.');
                             return;
                         }
                         const choice = encounter.choices[choiceIndex];
                         if (!choice) {
-                            await interaction.update({ content: '❌ Lựa chọn không hợp lệ.', components: [] });
+                            await (0, uiSystem_1.safeV2TextUpdate)(interaction, '❌ Lựa chọn không hợp lệ.');
                             return;
                         }
                         const result = encounterService.resolveEncounter(userIdFromParts, encounterId, choice.id);
@@ -2585,7 +2623,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         if (rewardTexts.length > 0) {
                             embed.addFields({ name: '🎁 Biến Động Thuộc Tính', value: rewardTexts.join('\n') });
                         }
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], []);
                         return;
                     }
                     // --- Nút: ĐÁNH THỨC LINH KHÍ (Spirit Weapon Interact) ---
@@ -2652,7 +2690,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
                     }
                     // --- Nút: ĐI ĐẾN TỌA KỴ (từ hồ sơ) ---
                     else if (action === 'toakynav') {
@@ -2681,7 +2719,7 @@ class InteractionCreateEvent extends Event_1.Event {
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], [row], interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
                     }
                 }
                 catch (error) {
@@ -2728,7 +2766,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     const selectedCategory = interaction.values[0];
                     const { buildLeaderboardMessage } = require('../commands/general/bangphongthan');
                     const messageOptions = buildLeaderboardMessage(targetUserId, selectedCategory, 1);
-                    await interaction.update(messageOptions);
+                    await (0, uiSystem_1.safeV2Update)(interaction, messageOptions.embeds, messageOptions.components);
                     return;
                 }
                 // --- Menu: HƯỚNG DẪN ---
@@ -2777,7 +2815,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     // Cập nhật lại giao diện túi đồ tại trang hiện tại
                     const { embed, totalPages, itemsOnPage } = (0, hoso_1.getInventoryEmbed)(targetUserId, page);
                     const components = (0, hoso_1.getInventoryComponents)(targetUserId, page, totalPages, itemsOnPage);
-                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                     // Gửi thông báo nổi xác thực hành động thành công
                     await interaction.followUp({ content: `💼 ${resultMessage}`, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
@@ -2796,7 +2834,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     }
                     const embed = (0, linhdien_1.getLinhDienEmbed)(targetUserId);
                     const components = (0, linhdien_1.getLinhDienComponents)(targetUserId);
-                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                 }
                 else if (actionType === 'linhdienspeedupselect') {
                     const plotIndex = parseInt(interaction.values[0], 10);
@@ -2807,7 +2845,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     }
                     const embed = (0, linhdien_1.getLinhDienEmbed)(targetUserId);
                     const components = (0, linhdien_1.getLinhDienComponents)(targetUserId);
-                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                     await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else if (actionType === 'linhdiencareselect') {
@@ -2834,7 +2872,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     }
                     const embed = (0, linhdien_1.getLinhDienEmbed)(targetUserId);
                     const components = (0, linhdien_1.getLinhDienComponents)(targetUserId);
-                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                     await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else if (actionType === 'sectjoinselect') {
@@ -2846,7 +2884,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     }
                     const embed = (0, tongmon_1.getSectEmbed)(targetUserId);
                     const components = (0, tongmon_1.getSectComponents)(targetUserId);
-                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                     await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else if (actionType === 'sectdonateselect') {
@@ -2862,7 +2900,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     LeylineService_1.leylineService.addEnergy(targetUserId, 'tongmon', Math.max(10, Math.floor(amount / 5)));
                     const embed = (0, tongmon_1.getSectEmbed)(targetUserId);
                     const components = (0, tongmon_1.getSectComponents)(targetUserId);
-                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                     await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else if (actionType === 'luyenkhiselect') {
@@ -2875,7 +2913,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     if (user) {
                         const embed = interaction.message.embeds[0];
                         const newEmbed = discord_js_1.EmbedBuilder.from(embed).setFooter({ text: `Thể lực hiện tại: ${user.stamina}/500 | Linh Thạch: ${user.coin_ha_pham}` });
-                        await interaction.message.edit((0, uiSystem_1.toV2Payload)([newEmbed]));
+                        await interaction.client.rest.patch(discord_js_1.Routes.channelMessage(interaction.channelId, interaction.message.id), { body: { components: [(0, uiSystem_1.embedToV2)(newEmbed)], flags: uiSystem_1.V2_FLAG } });
                     }
                 }
                 else if (actionType === 'craftselect') {
@@ -2887,7 +2925,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     }
                     const embed = (0, chetao_1.getCraftingEmbed)(targetUserId);
                     const components = (0, chetao_1.getCraftingComponents)(targetUserId);
-                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], components, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                     await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 // --- Menu: MUA NHANH VẬT PHẨM CỬA HÀNG (từ /hoso) ---
@@ -2938,7 +2976,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     const embed = (0, shop_1.getShopEmbed)(targetUserId, primaryId, undefined, pageNum);
                     const sknComps = (0, shop_1.getShopComponents)(targetUserId, primaryId, undefined, pageNum);
                     const rowsArr = Array.isArray(sknComps) ? sknComps : [sknComps];
-                    await interaction.update((0, uiSystem_1.toLegacyUpdate)([embed], rowsArr, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], rowsArr);
                     await interaction.followUp({ content: `📚 Thỉnh thành công **1x ${book.name}** (−${book.price} Linh Thạch)! Dùng \`/dungkynang item_id: ${book.id}\` để lĩnh ngộ.`, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 return;
@@ -2972,7 +3010,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     }
                     const embed = (0, tongmon_1.getSectEmbed)(targetUserId);
                     const components = (0, tongmon_1.getSectComponents)(targetUserId);
-                    await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                     await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else if (action === 'doitienmodal') {
@@ -2993,7 +3031,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     const embed = getDoiTienEmbed(targetUserId);
                     const components = getDoiTienComponents(targetUserId);
                     if (interaction.update) {
-                        await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                         await interaction.followUp({ content: `✅ Quy đổi thành công! ${res.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                     }
                     else {
@@ -3046,7 +3084,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const shopComps = (0, shop_1.getShopComponents)(targetUserId, activeCategory, undefined, pageNum);
                         const rowsArr = Array.isArray(shopComps) ? shopComps : [shopComps];
                         if (interaction.update) {
-                            await interaction.update((0, uiSystem_1.toV2Update)([embed], rowsArr, interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], rowsArr);
                             await interaction.followUp({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} KNB)!`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         else {
@@ -3075,7 +3113,7 @@ class InteractionCreateEvent extends Event_1.Event {
                         const shopComps = (0, shop_1.getShopComponents)(targetUserId, activeCategory, undefined, pageNum);
                         const rowsArr = Array.isArray(shopComps) ? shopComps : [shopComps];
                         if (interaction.update) {
-                            await interaction.update((0, uiSystem_1.toV2Update)([embed], rowsArr, interaction));
+                            await (0, uiSystem_1.safeV2Update)(interaction, [embed], rowsArr);
                             await interaction.followUp({ content: `🛒 Mua thành công **${qty}x ${item.name}** (−${totalCost} Linh Thạch)!`, flags: discord_js_1.MessageFlags.Ephemeral });
                         }
                         else {
@@ -3089,7 +3127,7 @@ class InteractionCreateEvent extends Event_1.Event {
                     const embed = (0, shop_1.getShopEmbed)(targetUserId, undefined, undefined, 1, searchQuery);
                     const rows = (0, shop_1.getShopComponents)(targetUserId, undefined, undefined, 1, searchQuery);
                     if (interaction.update) {
-                        await interaction.update((0, uiSystem_1.toV2Update)([embed], rows, interaction));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                     }
                     else {
                         await interaction.reply((0, uiSystem_1.toV2Payload)([embed], rows));
