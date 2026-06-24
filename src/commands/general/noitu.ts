@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, SlashCommandBuilder, PermissionFlagsBits, 
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import db from '../../database/database';
+import type { NoituService } from '../../services/NoituService';
 import { noituService } from '../../services/NoituService';
 import { toV2Payload } from '../../utils/uiSystem';
 

@@ -27,7 +27,7 @@ class CombatService {
         if (!boss)
             throw new Error('World boss not found in database');
         const now = Math.floor(Date.now() / 1000);
-        const respawnCooldown = 30; // 30 giây hồi sinh cho Boss kế tiếp
+        const respawnCooldown = 45; // ponytail: đồng bộ với BossSpawnService (trước 30)
         // Daily reset logic: if the boss's last_spawned_at is from a previous calendar day, reset it to level 1
         const lastSpawnedDate = new Date((boss.last_spawned_at || 0) * 1000).toDateString();
         const todayDate = new Date().toDateString();
@@ -495,16 +495,16 @@ class CombatService {
                 message: `World Boss đã bị tiêu diệt! Đang ngưng tụ nguyên hồn, vui lòng đợi **${Math.max(0, respawnTime)} giây** để hồi sinh.`
             };
         }
-        // Kiểm tra cooldown cá nhân (10 phút = 600 giây)
+        // Kiểm tra cooldown cá nhân (200 giây)
         const contrib = database_1.default.prepare("SELECT last_attack_at, attacks FROM world_boss_contributions WHERE user_id = ? AND boss_id = 'world_boss_current'")
             .get(userId);
         let isCooldown = false;
         let cdSec = 0;
         if (contrib) {
             const elapsed = now - contrib.last_attack_at;
-            if (elapsed < 600) {
+            if (elapsed < 200) {
                 isCooldown = true;
-                cdSec = 600 - elapsed;
+                cdSec = 200 - elapsed;
             }
         }
         if (isCooldown) {
@@ -721,7 +721,7 @@ class CombatService {
         // Tính sức mạnh trung bình server để catch-up
         let serverMedianPower = 500;
         try {
-            const allUsers = database_1.default.prepare('SELECT base_hp, base_atk, base_def FROM users LIMIT 200').all();
+            const allUsers = database_1.default.prepare('SELECT base_hp, base_atk, base_def FROM users ORDER BY RANDOM() LIMIT 200').all();
             if (allUsers.length > 0) {
                 const powers = allUsers.map(u => (u.base_hp || 100) * 0.2 + (u.base_atk || 15) * 3 + (u.base_def || 10) * 5);
                 powers.sort((a, b) => a - b);
@@ -774,7 +774,7 @@ class CombatService {
             const itemsGained = [];
             // ── 1. Thưởng tham gia (ai cũng nhận) ──
             gainedExp = Math.round(500 * factor);
-            gainedCoins = Math.round(250 * factor);
+            gainedCoins = Math.round(150 * factor); // ponytail: giảm participation reward (trước 250)
             gainedBossPoints = 5;
             // ── 2. Thưởng theo % đóng góp (log + soft cap) ──
             gainedExp += logReward(600 * factor, cappedPercent);
@@ -799,55 +799,51 @@ class CombatService {
                     break; // chỉ mốc cao nhất
                 }
             }
-            // ── 4. Thưởng hạng (giảm BP gap) ──
-            // ponytail: giảm BP rank, thêm BP cho hạng thấp để không quá chênh lệch
+            // ── 4. Thưởng hạng (thu hẹp gap) ──
             if (i === 0) {
-                gainedExp += Math.round(150 * factor);
-                gainedCoins += Math.round(75 * factor);
-                gainedBossPoints += 10;
+                gainedExp += Math.round(80 * factor);
+                gainedCoins += Math.round(40 * factor);
+                gainedBossPoints += 5;
                 itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.SERVER_RAID_CHEST, quantity: 1 });
                 itemsGained.push('1x Rương Boss Thế Giới');
             }
             else if (i <= 2) {
-                gainedExp += Math.round(100 * factor);
-                gainedCoins += Math.round(50 * factor);
-                gainedBossPoints += 7;
-            }
-            else if (i <= 5) {
-                gainedExp += Math.round(70 * factor);
-                gainedCoins += Math.round(35 * factor);
+                gainedExp += Math.round(60 * factor);
+                gainedCoins += Math.round(30 * factor);
                 gainedBossPoints += 4;
             }
-            else if (i <= 10) {
+            else if (i <= 5) {
                 gainedExp += Math.round(40 * factor);
                 gainedCoins += Math.round(20 * factor);
+                gainedBossPoints += 3;
+            }
+            else if (i <= 10) {
+                gainedExp += Math.round(25 * factor);
+                gainedCoins += Math.round(12 * factor);
                 gainedBossPoints += 2;
             }
             else {
-                gainedExp += Math.round(20 * factor);
-                gainedCoins += Math.round(10 * factor);
-                gainedBossPoints += 1; // ponytail: thêm 1 BP cho hạng thấp để khích lệ
+                gainedExp += Math.round(15 * factor);
+                gainedCoins += Math.round(8 * factor);
+                gainedBossPoints += 1;
             }
-            // ── 5. Catch-up: mạnh hơn, + thuế cho whale ──
-            // ponytail: người yếu hơn median nhận bonus, mạnh hơn 2x median bị thuế
+            // ── 5. Catch-up: người yếu +bonus, whale thuế ──
             const userPower = (pUser.base_hp || 100) * 0.2 + (pUser.base_atk || 15) * 3 + (pUser.base_def || 10) * 5;
             if (userPower < serverMedianPower) {
                 const ratio = userPower / serverMedianPower;
-                // Yếu < 50% median: +100%; yếu 50-100%: +50%
-                const catchUpMultiplier = ratio < 0.5 ? 2.0 : 1.5;
+                const catchUpMultiplier = ratio < 0.5 ? 1.5 : 1.25;
                 gainedExp = Math.round(gainedExp * catchUpMultiplier);
                 gainedCoins = Math.round(gainedCoins * catchUpMultiplier);
                 gainedBossPoints = Math.round(gainedBossPoints * catchUpMultiplier);
             }
             else if (userPower > serverMedianPower * 2) {
-                // ponytail: whale thuế -10% để tránh quá chênh lệch
                 const whaleTax = 0.90;
                 gainedExp = Math.round(gainedExp * whaleTax);
                 gainedCoins = Math.round(gainedCoins * whaleTax);
                 gainedBossPoints = Math.round(gainedBossPoints * whaleTax);
             }
-            // ── 6. Lucky Reward: mỗi người đều có vé quay ──
-            const luckyChance = dmgPercent >= 0.05 ? 0.40 : dmgPercent >= 0.01 ? 0.25 : 0.15;
+            // ── 6. Lucky Reward ──
+            const luckyChance = dmgPercent >= 0.10 ? 0.30 : dmgPercent >= 0.03 ? 0.20 : 0.12;
             if (Math.random() < luckyChance) {
                 const luckyRoll = Math.random();
                 if (luckyRoll < 0.05) {
@@ -868,12 +864,11 @@ class CombatService {
                     itemsGained.push('⭐ +5 Boss Point (Lucky!)');
                 }
             }
-            // ── 7. Last Hit ──
+            // ── 7. Last Hit (Trảm Sát) — giảm phần thưởng ──
             if (p.user_id === finalBlowerId) {
-                gainedCoins += Math.round(50 * factor);
-                gainedBossPoints += 10;
-                itemsToAdd.push({ userId: p.user_id, itemId: itemConstants_1.ITEMS.SERVER_RAID_CHEST, quantity: 1 });
-                itemsGained.push('⚡ 1x Rương Boss (Trảm Sát)');
+                gainedCoins += Math.round(30 * factor);
+                gainedBossPoints += 5;
+                itemsGained.push('⚡ **Trảm Sát** — +30 LT, +5 BP');
             }
             // ── 8. Giới hạn KNB: chỉ top 3 nhận, tối đa 1 ──
             if (i < 3) {
@@ -973,6 +968,37 @@ class CombatService {
             name: item.name,
             damage: item.damage,
             attacks: item.attacks
+        }));
+    }
+    /**
+     * Ghi log tấn công boss (dùng cho nhật ký chiến đấu UI)
+     */
+    logBossAttack(userId, damage, skill, isCrit, bossHpPercent) {
+        try {
+            database_1.default.prepare(`INSERT INTO boss_attack_log (user_id, damage, skill, is_crit, boss_hp_percent, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
+                .run(userId, damage, skill, isCrit ? 1 : 0, Math.round(bossHpPercent * 100) / 100, Math.floor(Date.now() / 1000));
+            // Giữ chỉ 20 log gần nhất
+            database_1.default.prepare(`DELETE FROM boss_attack_log WHERE id NOT IN (SELECT id FROM boss_attack_log ORDER BY created_at DESC LIMIT 20)`).run();
+        }
+        catch (e) { }
+    }
+    /**
+     * Lấy nhật ký chiến đấu gần nhất
+     */
+    getRecentBossAttacks(limit = 5) {
+        const rows = database_1.default.prepare(`
+      SELECT l.user_id, l.damage, l.is_crit, l.boss_hp_percent, l.skill, u.name
+      FROM boss_attack_log l
+      JOIN users u ON l.user_id = u.discord_id
+      ORDER BY l.created_at DESC
+      LIMIT ?
+    `).all(limit);
+        return rows.map((r) => ({
+            name: r.name,
+            damage: r.damage,
+            skill: r.skill || 'Công Kích',
+            isCrit: !!r.is_crit,
+            hpPercent: r.boss_hp_percent != null ? Math.round(r.boss_hp_percent * 100) : 0,
         }));
     }
 }

@@ -35,7 +35,7 @@ class CultivationService {
             elementCount = 4;
         else
             elementCount = 5;
-        const basicElements = ['Hỏa', 'Thủy', 'Mộc', 'Thổ'];
+        const basicElements = ['Hỏa', 'Thủy', 'Mộc', 'Kim', 'Thổ']; // ponytail: thêm Kim (trước 4 elements)
         const mutantElements = ['Lôi', 'Phong'];
         const selectedElements = [];
         // Chọn các hệ linh căn
@@ -126,7 +126,7 @@ class CultivationService {
         let def = Math.floor((10 + (level - 1) * 3) * realmMultiplier);
         let crit = 0.05 + (majorIndex * 0.01); // 5% base + 1% mỗi cảnh giới
         let critRes = 0.0 + (majorIndex * 0.005);
-        const luck = 10; // May mắn cố định thô
+        const luck = 10 + majorIndex * 2; // ponytail: scale theo realm (trước hardcode 10)
         let speed = 100;
         // Cộng hưởng từ Linh Căn
         try {
@@ -151,6 +151,10 @@ class CultivationService {
                     case 'Mộc':
                         hp += Math.round(hp * 0.15 * ratio); // 100% Mộc tăng 15% sinh lực
                         mp += Math.round(mp * 0.10 * ratio); // 100% Mộc tăng 10% linh lực
+                        break;
+                    case 'Kim':
+                        atk += Math.round(atk * 0.15 * ratio); // 100% Kim tăng 15% công
+                        crit += 0.05 * ratio; // 100% Kim tăng 5% bạo kích
                         break;
                     case 'Thổ':
                         def += Math.round(def * 0.20 * ratio); // 100% Thổ tăng 20% thủ

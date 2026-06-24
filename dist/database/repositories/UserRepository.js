@@ -41,6 +41,17 @@ class UserRepository {
                 user.last_stamina_recover_at = newRecoverAt;
             }
         }
+        // Hồi phục HP theo thời gian (1 HP / 10s)
+        if (user.hp < user.base_hp) {
+            const elapsedHp = now - (user.updated_at || user.created_at);
+            if (elapsedHp >= 10) {
+                const recoverHp = Math.floor(elapsedHp / 10);
+                const newHp = Math.min(user.base_hp, user.hp + recoverHp);
+                database_1.default.prepare('UPDATE users SET hp = ?, updated_at = ? WHERE discord_id = ?')
+                    .run(newHp, now, discordId);
+                user.hp = newHp;
+            }
+        }
         // Hồi phục MP theo thời gian
         const lastMpRecover = user.updated_at || user.created_at;
         if (user.mp < user.max_mp) {
@@ -66,7 +77,7 @@ class UserRepository {
         const stmt = database_1.default.prepare(`
       INSERT INTO users (
         discord_id, name, title, level, tu_vi, exp_needed,
-        base_hp, base_mp, base_atk, base_def, base_crit, base_crit_res, base_luck, base_speed, base_dodge, mp, max_mp,
+        base_hp, hp, base_mp, base_atk, base_def, base_crit, base_crit_res, base_luck, base_speed, base_dodge, mp, max_mp,
         linh_can, coin_ha_pham, coin_trung_pham, coin_thuong_pham, knb,
         alchemy_level, alchemy_exp, forging_level, forging_exp,
         partner_id, intimacy, last_songtu_at,
@@ -75,7 +86,7 @@ class UserRepository {
         created_at, updated_at
       ) VALUES (
         ?, ?, 'Tán Tu', 1, 0, 100,
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, 100, 100,
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 100, 100,
         ?, ?, 0, 0, ?,
         1, 0, 1, 0,
         NULL, 0, 0,
@@ -84,7 +95,8 @@ class UserRepository {
         ?, ?
       )
     `);
-        stmt.run(user.discord_id, user.name, user.base_hp, user.base_mp, user.base_atk, user.base_def, user.base_crit, user.base_crit_res, user.base_luck, speed, dodge, user.linh_can, user.coin_ha_pham ?? 100, user.knb ?? 0, user.background ?? '', user.destiny ?? '', user.starting_skills ?? '[]', user.prophecy ?? '', user.heirloom ?? '', user.claimed_starting_bonus ?? 0, now, now);
+        stmt.run(user.discord_id, user.name, user.base_hp, user.base_hp, // hp = base_hp lúc tạo nhân vật
+        user.base_mp, user.base_atk, user.base_def, user.base_crit, user.base_crit_res, user.base_luck, speed, dodge, user.linh_can, user.coin_ha_pham ?? 100, user.knb ?? 0, user.background ?? '', user.destiny ?? '', user.starting_skills ?? '[]', user.prophecy ?? '', user.heirloom ?? '', user.claimed_starting_bonus ?? 0, now, now);
     }
     update(discordId, updates) {
         const keys = Object.keys(updates);

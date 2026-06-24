@@ -142,7 +142,7 @@ class SuaChuaCommand extends Command_1.Command {
             }
         }
         // Không có đá dưỡng → dùng Linh Thạch
-        const costPerPoint = 3; // 3 Linh Thạch cho 1 điểm độ bền
+        const costPerPoint = 2; // ponytail: giảm chi phí sửa (trước 3)
         const totalCost = durabilityLost * costPerPoint;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user || user.coin_ha_pham < totalCost) {
@@ -186,7 +186,7 @@ function repairAllEquipped(userId, equippedItems) {
     if (needRepair.length === 0) {
         return { success: false, message: '✅ Tất cả trang bị của đạo hữu đều còn nguyên vẹn, không cần sửa chữa!' };
     }
-    const costPerPoint = 3;
+    const costPerPoint = 2; // ponytail: giảm chi phí sửa (trước 3)
     let totalCost = 0;
     for (const item of needRepair) {
         totalCost += (item.max_durability - item.durability) * costPerPoint;

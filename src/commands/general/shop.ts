@@ -40,11 +40,14 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: ITEMS.TALISMAN_SPEED_1, name: '📜 Thần Hành Phù', price: 25, levelReq: 1, desc: '└ Gia tốc linh thực/thám hiểm 1 giờ.' },
 
   // --- Nguyên Liệu - Hạt Giống ---
-  { id: ITEMS.SEED_LINH_THAO_1, name: '🌾 Hạt Giống Linh Thảo', price: 5, levelReq: 1, desc: '└ Hạt giống trồng linh thảo hạ phẩm.' },
-  { id: ITEMS.SEED_NHAN_SAM_1, name: '🌾 Hạt Giống Nhân Sâm', price: 15, levelReq: 5, desc: '└ Hạt giống trồng Huyết Nhân Sâm.' },
+  { id: ITEMS.SEED_LINH_THAO_1, name: '🌾 Hạt Giống Linh Thảo', price: 2, levelReq: 1, desc: '└ Hạt giống trồng linh thảo hạ phẩm.' }, // ponytail: giảm giá (trước 5)
+  { id: ITEMS.SEED_NHAN_SAM_1, name: '🌾 Hạt Giống Nhân Sâm', price: 8, levelReq: 5, desc: '└ Hạt giống trồng Huyết Nhân Sâm.' }, // ponytail: giảm giá (trước 15)
   { id: ITEMS.SEED_TUYET_LIEN, name: '🌾 Hạt Giống Tuyết Liên', price: 300, levelReq: 20, desc: '└ Hạt giống Thiên Sơn Tuyết Liên.' },
   { id: ITEMS.SEED_LINGZHI, name: '🌾 Hạt Giống Linh Chi', price: 500, levelReq: 30, desc: '└ Hạt giống Cửu Diệp Linh Chi.' },
   { id: ITEMS.SEED_NGODONG, name: '🌾 Hạt Giống Ngô Đồng', price: 800, levelReq: 50, desc: '└ Hạt giống Ngô Đồng Quả.' },
+  { id: ITEMS.SEED_BLOOD_FLOWER, name: '🌾 Hạt Giống Huyết Hoa', price: 200, levelReq: 20, desc: '└ Hạt giống Huyết Hoa hiếm, dùng luyện Huyết Nguyên Đan.' },
+  { id: ITEMS.SEED_VOID_HERB, name: '🌾 Hạt Giống Hư Không Thảo', price: 300, levelReq: 30, desc: '└ Hạt giống Hư Không Thảo, dùng luyện Hư Không Đan.' },
+  { id: ITEMS.SEED_WIND_LEAF, name: '🌾 Hạt Giống Phong Diệp', price: 300, levelReq: 30, desc: '└ Hạt giống Phong Diệp, dùng luyện Thiên Phong Đan.' },
 
   // --- Nguyên Liệu - Luyện Khí ---
   { id: ITEMS.CAULDRON_LOW, name: '🔥 Lò Luyện Đan - Hạ Phẩm', price: 500, levelReq: 1, desc: '└ Lò đất sét nung, +0% tỷ lệ (10% nứt).' },
@@ -98,7 +101,7 @@ export const SHOP_CATEGORIES: ShopPrimaryCategory[] = [
   {
     id: 'nguyenlieu', name: 'Nguyên Liệu', emoji: '🌾',
     subcategories: [
-      { id: 'hatgiong', name: 'Hạt Giống', items: [ITEMS.SEED_LINH_THAO_1, ITEMS.SEED_NHAN_SAM_1, ITEMS.SEED_TUYET_LIEN, ITEMS.SEED_LINGZHI, ITEMS.SEED_NGODONG] },
+      { id: 'hatgiong', name: 'Hạt Giống', items: [ITEMS.SEED_LINH_THAO_1, ITEMS.SEED_NHAN_SAM_1, ITEMS.SEED_TUYET_LIEN, ITEMS.SEED_LINGZHI, ITEMS.SEED_NGODONG, ITEMS.SEED_BLOOD_FLOWER, ITEMS.SEED_VOID_HERB, ITEMS.SEED_WIND_LEAF] },
       { id: 'luyenkhi', name: 'Luyện Khí', items: [ITEMS.CAULDRON_LOW, ITEMS.CAULDRON_MID, ITEMS.CAULDRON_HIGH] },
     ]
   },
@@ -197,7 +200,7 @@ export function getCategoryItems(categoryId: string): ShopItem[] {
     return SHOP_ITEMS.filter(i => ([ITEMS.PILL_HP_1, ITEMS.PILL_HP_2, ITEMS.PILL_STAMINA_1, ITEMS.PILL_STAMINA_2, ITEMS.PILL_STAMINA_3, ITEMS.POTION_STAMINA_WEEKLY, ITEMS.PILL_TU_VI_LOW, ITEMS.PILL_BREAK_1, ITEMS.PILL_BREAK_MINOR_1, ITEMS.PILL_BREAK_MINOR_2, ITEMS.PILL_BREAK_MINOR_3] as string[]).includes(i.id));
   }
   if (categoryId === 'nguyenlieu') {
-    return SHOP_ITEMS.filter(i => ([ITEMS.SEED_LINH_THAO_1, ITEMS.SEED_NHAN_SAM_1, ITEMS.SEED_TUYET_LIEN, ITEMS.SEED_LINGZHI, ITEMS.SEED_NGODONG, ITEMS.CAULDRON_LOW, ITEMS.CAULDRON_MID, ITEMS.CAULDRON_HIGH] as string[]).includes(i.id));
+    return SHOP_ITEMS.filter(i => ([ITEMS.SEED_LINH_THAO_1, ITEMS.SEED_NHAN_SAM_1, ITEMS.SEED_TUYET_LIEN, ITEMS.SEED_LINGZHI, ITEMS.SEED_NGODONG, ITEMS.SEED_BLOOD_FLOWER, ITEMS.SEED_VOID_HERB, ITEMS.SEED_WIND_LEAF, ITEMS.CAULDRON_LOW, ITEMS.CAULDRON_MID, ITEMS.CAULDRON_HIGH] as string[]).includes(i.id));
   }
   if (categoryId === 'bua') {
     return SHOP_ITEMS.filter(i => ([ITEMS.TALISMAN_ANTI_LOI, ITEMS.TALISMAN_SPEED_1] as string[]).includes(i.id));

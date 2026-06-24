@@ -44,6 +44,10 @@ const NPC_BUYBACK_PRICES = {
     // Đạo lữ
     [itemConstants_1.ITEMS.ITEM_TAM_SINH_THACH]: { price: 2500 },
     [itemConstants_1.ITEMS.ITEM_TUYET_TINH_NUOC]: { price: 1000 },
+    // Hạt giống mới
+    [itemConstants_1.ITEMS.SEED_BLOOD_FLOWER]: { price: 100 },
+    [itemConstants_1.ITEMS.SEED_VOID_HERB]: { price: 150 },
+    [itemConstants_1.ITEMS.SEED_WIND_LEAF]: { price: 150 },
     // Nguyên liệu
     [itemConstants_1.ITEMS.MATERIAL_IRON_1]: { price: 5 },
     [itemConstants_1.ITEMS.MAT_HUYEN_THIET]: { price: 15 },

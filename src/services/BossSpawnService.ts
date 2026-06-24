@@ -1,16 +1,13 @@
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { TuTienClient } from '../client/TuTienClient';
 import db from '../database/database';
-import { getProgressBar } from '../utils/constants';
 import { WorldBossEntity } from '../utils/types';
-import { EMBED_COLORS } from '../utils/uiSystem';
+import { buildBossSpawnContainer, buildBossDefeatedContainer } from '../commands/combat/worldboss';
+import { toV2Payload } from '../utils/uiSystem';
+import { EmbedBuilder } from 'discord.js';
 
 export class BossSpawnService {
   private schedulerInterval: NodeJS.Timeout | null = null;
 
-  /**
-   * Khởi động scheduler chạy ngầm quét kiểm tra Boss mỗi 15 giây
-   */
   public startScheduler(client: TuTienClient): void {
     const { CronManager } = require('../utils/CronManager');
     CronManager.registerTask('world_boss_spawner', 15000, async () => {
@@ -18,38 +15,26 @@ export class BossSpawnService {
     });
   }
 
-  /**
-   * Kiểm tra trạng thái hồi sinh của Boss
-   */
   public async checkBossSpawn(client: TuTienClient): Promise<void> {
     const boss = db.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get() as WorldBossEntity | undefined;
     if (!boss) return;
 
     const now = Math.floor(Date.now() / 1000);
-    const respawnCooldown = 60; // 1 phút hồi sinh phục vụ thử nghiệm và demo live
+    const respawnCooldown = 45;
 
-    // Daily reset logic: if the boss's last_spawned_at is from a previous calendar day, reset it to level 1
     const lastSpawnedDate = new Date((boss.last_spawned_at || 0) * 1000).toDateString();
     const todayDate = new Date().toDateString();
     if (lastSpawnedDate !== todayDate) {
-      const nextLevel = 1;
       const newMaxHp = 5000;
-      const newAtk = 80;
-      const newDef = 50;
-
       db.prepare(`
         UPDATE world_boss
-        SET hp = ?, max_hp = ?, atk = ?, def = ?, level = ?, status = 'active', last_spawned_at = ?, defeated_at = NULL, defeated_by = NULL
+        SET hp = ?, max_hp = ?, atk = 80, def = 50, level = 1, status = 'active', last_spawned_at = ?, defeated_at = NULL, defeated_by = NULL
         WHERE id = 'world_boss_current'
-      `).run(newMaxHp, newMaxHp, newAtk, newDef, nextLevel, now);
-
-      // Xóa bảng đóng góp sát thương cũ
+      `).run(newMaxHp, newMaxHp, now);
       db.prepare("DELETE FROM world_boss_contributions").run();
 
       const updatedBoss = db.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get() as WorldBossEntity;
-      console.log(`[BossSpawnService] 👹 Daily Reset: Boss thế giới đã hồi sinh về Cấp 1! HP: ${updatedBoss.max_hp}`);
-      
-      // Gửi thông báo tới toàn bộ các guild
+      console.log(`[BossSpawnService] 👹 Daily Reset: Boss thế giới đã hồi sinh về Cấp 1!`);
       await this.broadcastBossSpawn(client, updatedBoss);
       return;
     }
@@ -57,75 +42,51 @@ export class BossSpawnService {
     if (boss.status === 'defeated') {
       const elapsed = now - (boss.defeated_at || 0);
       if (elapsed >= respawnCooldown) {
-        // Tiến hành hồi sinh Boss ở cấp độ tiếp theo
         const nextLevel = boss.level + 1;
-        const newMaxHp = Math.round(5000 * Math.pow(1.2, nextLevel - 1));
-        const newAtk = Math.round(80 * Math.pow(1.15, nextLevel - 1));
-        const newDef = Math.round(50 * Math.pow(1.15, nextLevel - 1));
+        const newMaxHp = Math.round(5000 * Math.pow(1.3, nextLevel - 1));
+        const newAtk = Math.round(80 * Math.pow(1.2, nextLevel - 1));
+        const newDef = Math.round(50 * Math.pow(1.2, nextLevel - 1));
 
         db.prepare(`
           UPDATE world_boss
           SET hp = ?, max_hp = ?, atk = ?, def = ?, level = ?, status = 'active', last_spawned_at = ?, defeated_at = NULL, defeated_by = NULL
           WHERE id = 'world_boss_current'
         `).run(newMaxHp, newMaxHp, newAtk, newDef, nextLevel, now);
-
-        // Xóa bảng đóng góp sát thương cũ
         db.prepare("DELETE FROM world_boss_contributions").run();
 
         const updatedBoss = db.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get() as WorldBossEntity;
-        console.log(`[BossSpawnService] 👹 Boss thế giới đã hồi sinh! Cấp độ: ${updatedBoss.level}, HP: ${updatedBoss.max_hp}`);
-        
-        // Gửi thông báo tới toàn bộ các guild
+        console.log(`[BossSpawnService] 👹 Boss thế giới đã hồi sinh! Cấp: ${updatedBoss.level}, HP: ${updatedBoss.max_hp}`);
         await this.broadcastBossSpawn(client, updatedBoss);
       }
     } else if (boss.status === 'active') {
-      // Nếu boss đang hoạt động nhưng chưa có tin nhắn thông báo nào được lưu
-      const activeAnnouncementsCount = (db.prepare('SELECT COUNT(*) as count FROM boss_announcements').get() as { count: number }).count;
-      if (activeAnnouncementsCount === 0) {
-        console.log(`[BossSpawnService] 👹 Phát hiện Boss đang hoạt động nhưng chưa phát thông điệp. Đang phát thông báo...`);
+      const activeCount = (db.prepare('SELECT COUNT(*) as count FROM boss_announcements').get() as { count: number }).count;
+      if (activeCount === 0) {
         await this.broadcastBossSpawn(client, boss);
       }
     }
   }
 
-  /**
-   * Phát thông báo Boss xuất thế đến các guild đã cấu hình
-   */
   public async broadcastBossSpawn(client: TuTienClient, boss: WorldBossEntity): Promise<void> {
-    // Dọn dẹp các tin nhắn cũ phòng trường hợp rác
     db.prepare('DELETE FROM boss_announcements').run();
-
     const guilds = db.prepare('SELECT guild_id, boss_channel_id FROM guild_configs').all() as any[];
 
     for (const gConfig of guilds) {
       try {
         const guild = client.guilds.cache.get(gConfig.guild_id) || await client.guilds.fetch(gConfig.guild_id);
         if (!guild) continue;
-
         if (!gConfig.boss_channel_id || gConfig.boss_channel_id === 'null' || !/^\d{17,20}$/.test(gConfig.boss_channel_id)) continue;
         const channel = guild.channels.cache.get(gConfig.boss_channel_id) || await guild.channels.fetch(gConfig.boss_channel_id);
         if (!channel || !channel.isTextBased()) continue;
 
-        const embed = this.createBossEmbed(boss);
-        const row = this.createBossComponents();
-
-        const msg = await channel.send({
-          content: '🔔 **THƯỢNG CỔ MA THẦN XUẤT THẾ!**',
-          embeds: [embed],
-          components: [row] as any[]
-        });
-
-        db.prepare('INSERT INTO boss_announcements (guild_id, channel_id, message_id) VALUES (?, ?, ?)')
-          .run(guild.id, channel.id, msg.id);
+        const payload = buildBossSpawnContainer(boss);
+        const msg = await (channel as any).send(payload);
+        db.prepare('INSERT INTO boss_announcements (guild_id, channel_id, message_id) VALUES (?, ?, ?)').run(guild.id, channel.id, msg.id);
       } catch (err) {
         console.error(`[BossSpawnService] Lỗi phát thông báo Boss tại Guild ${gConfig.guild_id}:`, err);
       }
     }
   }
 
-  /**
-   * Cập nhật tin nhắn HP Boss ở các Guild
-   */
   public async updateBossEmbeds(client: TuTienClient, boss: WorldBossEntity): Promise<void> {
     const announcements = db.prepare('SELECT * FROM boss_announcements').all() as any[];
 
@@ -133,7 +94,6 @@ export class BossSpawnService {
       try {
         const guild = client.guilds.cache.get(ann.guild_id);
         if (!guild) continue;
-
         const channel = guild.channels.cache.get(ann.channel_id);
         if (!channel || !channel.isTextBased()) continue;
 
@@ -142,19 +102,13 @@ export class BossSpawnService {
           if (!msg) continue;
 
           if (boss.status === 'defeated') {
-            const embed = new EmbedBuilder()
-              .setTitle(`💀 WORLD BOSS ĐÃ BỊ TIÊU DIỆT - LEVEL ${boss.level}`)
-              .setColor(EMBED_COLORS.NEUTRAL)
-              .setDescription(`👹 **${boss.name}** đã bị tiêu diệt hoàn toàn! Tinh phách ma thú tan rã. Thiên địa tạm thời quy về thái bình.\n\n*Hồi sinh sau: 1 phút.*`)
-              .setTimestamp();
-
-            await msg.edit({ embeds: [embed], components: [] });
+            const payload = buildBossDefeatedContainer(boss, []);
+            await msg.edit(payload);
           } else {
-            const embed = this.createBossEmbed(boss);
-            await msg.edit({ embeds: [embed] });
+            const payload = buildBossSpawnContainer(boss);
+            await msg.edit(payload);
           }
         } catch (msgErr) {
-          // Tin nhắn bị xóa thủ công
           db.prepare('DELETE FROM boss_announcements WHERE message_id = ?').run(ann.message_id);
         }
       } catch (err) {
@@ -167,65 +121,22 @@ export class BossSpawnService {
     }
   }
 
-  /**
-   * Phát bảng xếp hạng và danh sách phần thưởng khi diệt boss
-   */
   public async broadcastBossDefeatedLogs(client: TuTienClient, boss: WorldBossEntity, rewardsLogs: string[]): Promise<void> {
     const guilds = db.prepare('SELECT boss_channel_id FROM guild_configs').all() as any[];
-
-    const embed = new EmbedBuilder()
-      .setTitle(`🏆 BẢNG PHONG THẦN THẢO PHẠT BOSS - LEVEL ${boss.level}`)
-      .setColor(EMBED_COLORS.GOLD)
-      .setDescription(
-        `👹 **${boss.name}** đã ngã xuống! Linh khí tản mát hóa thành tài bảo ban thưởng cho các đệ tử dũng cảm:\n\n` +
-        (rewardsLogs.length > 0 ? rewardsLogs.join('\n') : '*Không có đệ tử nào tham gia thảo phạt.*')
-      )
-      .setTimestamp();
+    const payload = buildBossDefeatedContainer(boss, rewardsLogs);
 
     for (const gConfig of guilds) {
       try {
         const guild = client.guilds.cache.get(gConfig.guild_id);
         if (!guild) continue;
-
         if (!gConfig.boss_channel_id || gConfig.boss_channel_id === 'null' || !/^\d{17,20}$/.test(gConfig.boss_channel_id)) continue;
         const channel = guild.channels.cache.get(gConfig.boss_channel_id);
         if (!channel || !channel.isTextBased()) continue;
-
-        await channel.send({ embeds: [embed] });
+        await (channel as any).send(payload);
       } catch (err) {
         console.error(`[BossSpawnService] Lỗi gửi kết quả Boss tại Guild ${gConfig.guild_id}:`, err);
       }
     }
-  }
-
-  /**
-   * Tạo Embed thông tin Boss
-   */
-  public createBossEmbed(boss: WorldBossEntity): EmbedBuilder {
-    const progressBar = getProgressBar(boss.hp, boss.max_hp, 15);
-
-    return new EmbedBuilder()
-      .setTitle(`👹 WORLD BOSS XUẤT THẾ - LEVEL ${boss.level}`)
-      .setColor(EMBED_COLORS.ERROR)
-      .setDescription(
-        `⚠️ **CẢNH BÁO TAM GIỚI:** **${boss.name}** đang tàn phá thế giới! Mau liên thủ trảm ma vệ đạo!\n\n` +
-        `🩸 **Trạng thái Sinh Lực (HP):** ${progressBar} (\`${boss.hp}/${boss.max_hp}\` HP)\n` +
-        `⚔️ **Công Kích:** \`${boss.atk}\` | 🛡️ **Phòng Thủ:** \`${boss.def}\``
-      )
-      .setFooter({ text: 'Bấm nút ⚔️ Tấn Công bên dưới để trực tiếp tham chiến!' })
-      .setTimestamp();
-  }
-
-  /**
-   * Tạo nút bấm chiến đấu
-   */
-  public createBossComponents(): ActionRowBuilder<ButtonBuilder> {
-    return new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId('worldbossattack_global')
-        .setLabel('⚔️ Tấn Công')
-        .setStyle(ButtonStyle.Danger)
-    );
   }
 }
 

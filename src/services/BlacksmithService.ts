@@ -135,6 +135,7 @@ export class BlacksmithService {
           customStats[rareAttr.key] = (customStats[rareAttr.key] || 0) + rareAttr.value;
 
           customStats.is_masterpiece = true;
+          customStats.forge_bonus = true; // ponytail: đồ tự rèn +2%
           
           inventoryRepository.addItem(userId, recipe.product.itemId, 1, JSON.stringify(customStats));
           rewardName = `✨ **[CỰC PHẨM] ${rewardName}** (Thêm: ${rareAttr.label})`;
@@ -142,7 +143,7 @@ export class BlacksmithService {
           inventoryRepository.addItem(userId, recipe.product.itemId, 1, null);
         }
       } else {
-        inventoryRepository.addItem(userId, recipe.product.itemId, 1, null);
+        inventoryRepository.addItem(userId, recipe.product.itemId, 1, JSON.stringify({ forge_bonus: true })); // ponytail: đồ tự rèn +2%
       }
 
       // Tăng EXP Luyện Khí Sư
@@ -257,9 +258,9 @@ export class BlacksmithService {
     const currentStars = item.stars || 0;
     if (currentStars >= 5) return { success: false, message: 'Trang bị đã đạt cấp Tinh Luyện tối đa (5 Sao)!' };
 
-    // Yêu cầu chi phí: (Sao hiện tại + 1) * 10 Huyền Thiết và (Sao hiện tại + 1) * 50,000 LT
+    // ponytail: giảm LT cost (trước 50K)
     const htNeeded = (currentStars + 1) * 10;
-    const ltNeeded = (currentStars + 1) * 50000;
+    const ltNeeded = (currentStars + 1) * 10000;
 
     if (user.coin_ha_pham < ltNeeded) return { success: false, message: `Không đủ Linh Thạch! (Cần: ${ltNeeded})` };
 

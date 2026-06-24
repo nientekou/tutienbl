@@ -218,9 +218,9 @@ export const RECIPES: Record<string, RecipeConfig> = {
     duration: 600,
     cost: 2000,
     ingredients: [
-      { itemId: ITEMS.MATERIAL_TINH_THIET_1, quantity: 5 },
-      { itemId: ITEMS.MATERIAL_MYTHRIL_1, quantity: 20 },
-      { itemId: ITEMS.MATERIAL_BLOOD_FLOWER, quantity: 10 }
+      { itemId: ITEMS.MATERIAL_TINH_THIET_1, quantity: 3 }, // ponytail: giảm (trước 5)
+      { itemId: ITEMS.MATERIAL_MYTHRIL_1, quantity: 15 }, // ponytail: giảm (trước 20)
+      { itemId: ITEMS.MATERIAL_BLOOD_FLOWER, quantity: 5 } // ponytail: giảm (trước 10)
     ],
     product: {
       itemId: ITEMS.WEAPON_SWORD_A,
@@ -236,9 +236,9 @@ export const RECIPES: Record<string, RecipeConfig> = {
     duration: 600,
     cost: 2000,
     ingredients: [
-      { itemId: ITEMS.MATERIAL_TINH_THIET_1, quantity: 5 },
-      { itemId: ITEMS.MATERIAL_MYTHRIL_1, quantity: 15 },
-      { itemId: ITEMS.MATERIAL_VOID_HERB, quantity: 10 }
+      { itemId: ITEMS.MATERIAL_TINH_THIET_1, quantity: 3 }, // ponytail: giảm (trước 5)
+      { itemId: ITEMS.MATERIAL_MYTHRIL_1, quantity: 10 }, // ponytail: giảm (trước 15)
+      { itemId: ITEMS.MATERIAL_VOID_HERB, quantity: 5 } // ponytail: giảm (trước 10)
     ],
     product: {
       itemId: ITEMS.ARMOR_ROBE_A,
@@ -254,10 +254,10 @@ export const RECIPES: Record<string, RecipeConfig> = {
     duration: 1200,
     cost: 5000,
     ingredients: [
-      { itemId: ITEMS.MATERIAL_TINH_THIET_1, quantity: 15 },
-      { itemId: ITEMS.MATERIAL_MYTHRIL_1, quantity: 50 },
-      { itemId: ITEMS.MATERIAL_WIND_LEAF, quantity: 15 },
-      { itemId: ITEMS.MATERIAL_NGODONG, quantity: 10 }
+      { itemId: ITEMS.MATERIAL_TINH_THIET_1, quantity: 10 }, // ponytail: giảm (trước 15)
+      { itemId: ITEMS.MATERIAL_MYTHRIL_1, quantity: 30 }, // ponytail: giảm (trước 50)
+      { itemId: ITEMS.MATERIAL_WIND_LEAF, quantity: 8 }, // ponytail: giảm (trước 15)
+      { itemId: ITEMS.MATERIAL_NGODONG, quantity: 5 } // ponytail: giảm (trước 10)
     ],
     product: {
       itemId: ITEMS.WEAPON_SWORD_S,
@@ -273,10 +273,10 @@ export const RECIPES: Record<string, RecipeConfig> = {
     duration: 1200,
     cost: 5000,
     ingredients: [
-      { itemId: ITEMS.MATERIAL_TINH_THIET_1, quantity: 15 },
-      { itemId: ITEMS.MATERIAL_MYTHRIL_1, quantity: 40 },
-      { itemId: ITEMS.MATERIAL_TUYET_LIEN, quantity: 15 },
-      { itemId: ITEMS.MATERIAL_LINGZHI, quantity: 10 }
+      { itemId: ITEMS.MATERIAL_TINH_THIET_1, quantity: 10 }, // ponytail: giảm (trước 15)
+      { itemId: ITEMS.MATERIAL_MYTHRIL_1, quantity: 25 }, // ponytail: giảm (trước 40)
+      { itemId: ITEMS.MATERIAL_TUYET_LIEN, quantity: 8 }, // ponytail: giảm (trước 15)
+      { itemId: ITEMS.MATERIAL_LINGZHI, quantity: 5 } // ponytail: giảm (trước 10)
     ],
     product: {
       itemId: ITEMS.ARMOR_ROBE_S,

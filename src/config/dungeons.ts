@@ -38,7 +38,7 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
     name: 'U Minh Cốc (Luyện Khí)',
     description: 'Thung lũng u ám bao phủ bởi sương mù độc, là nơi thích hợp cho tu sĩ Luyện Khí Kỳ rèn luyện.',
     minLevel: 1,
-    maxDailyEntries: 3,
+    maxDailyEntries: 5, // ponytail: tăng từ 3→5
     monster: {
       name: 'U Minh Khuyển',
       element: 'Thổ',
@@ -50,9 +50,9 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
       critRes: 0.0,
     },
     rewards: {
-      exp: 100, // Tăng 100 tu vi
-      coinMin: 20,
-      coinMax: 40,
+      exp: 100,
+      coinMin: 26, // ponytail: +30% (trước 20)
+      coinMax: 52, // ponytail: +30% (trước 40)
       loots: [
         { itemId: ITEMS.PILL_HP_1, rate: 0.50, quantity: 1 },       // 50% hồi huyết đan hạ phẩm
         { itemId: ITEMS.WEAPON_SWORD_1, rate: 0.15, quantity: 1 },   // 15% kiếm gỗ thanh phong
@@ -65,8 +65,8 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
     id: 'dungeon_truc_co_1',
     name: 'Huyết Ma Động (Trúc Cơ)',
     description: 'Hang động cổ xưa nhuốm đầy máu của yêu ma, sinh vật bên trong cực kỳ hung tợn.',
-    minLevel: 39, // Trúc Cơ Kỳ Tầng 1
-    maxDailyEntries: 3,
+    minLevel: 39,
+    maxDailyEntries: 5, // ponytail: tăng từ 3→5
     monster: {
       name: 'Huyết Ma Binh',
       element: 'Hỏa',
@@ -79,8 +79,8 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
     },
     rewards: {
       exp: 800,
-      coinMin: 80,
-      coinMax: 150,
+      coinMin: 104, // ponytail: +30% (trước 80)
+      coinMax: 195, // ponytail: +30% (trước 150)
       loots: [
         { itemId: ITEMS.PILL_HP_2, rate: 0.50, quantity: 1 },       // 50% hồi huyết đan trung phẩm
         { itemId: ITEMS.PILL_BREAK_1, rate: 0.25, quantity: 1 },     // 25% trúc cơ đan
@@ -94,8 +94,8 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
     id: 'dungeon_kim_dan_1',
     name: 'Vạn Kiếm Lăng (Kim Đan)',
     description: 'Nghĩa địa kiếm cổ ngưng tụ linh lực kiếm ý bàng bạc, Kiếm Hồn Lão Tổ tọa trấn trung tâm.',
-    minLevel: 77, // Kim Đan Kỳ Tầng 1
-    maxDailyEntries: 3,
+    minLevel: 77,
+    maxDailyEntries: 5, // ponytail: tăng từ 3→5
     monster: {
       name: 'Kiếm Hồn Lão Tổ',
       element: 'Kim',
@@ -108,8 +108,8 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
     },
     rewards: {
       exp: 5000,
-      coinMin: 300,
-      coinMax: 600,
+      coinMin: 390, // ponytail: +30% (trước 300)
+      coinMax: 780, // ponytail: +30% (trước 600)
       loots: [
         { itemId: ITEMS.WEAPON_SWORD_3, rate: 0.20, quantity: 1 },   // 20% Thiên Cổ Phán Quyết (Epic)
         { itemId: ITEMS.ARMOR_ROBE_3, rate: 0.20, quantity: 1 },     // 20% Thăng Quang Huyền Giáp (Epic)

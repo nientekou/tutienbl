@@ -288,6 +288,15 @@ export class InventoryService {
           if (customBonus.atk_percent) multipliers.atk += customBonus.atk_percent * durabilityMult;
           if (customBonus.def_percent) multipliers.def += customBonus.def_percent * durabilityMult;
           if (customBonus.speed_percent) multipliers.speed += customBonus.speed_percent * durabilityMult;
+
+          // ponytail: đồ tự rèn +2% all stats
+          if (customBonus.forge_bonus === true) {
+            multipliers.hp += 0.02;
+            multipliers.mp += 0.02;
+            multipliers.atk += 0.02;
+            multipliers.def += 0.02;
+            multipliers.speed += 0.02;
+          }
         }
       } catch (e) {
         // Bỏ qua lỗi JSON

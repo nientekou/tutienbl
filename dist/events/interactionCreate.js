@@ -18,6 +18,7 @@ const InventoryRepository_1 = require("../database/repositories/InventoryReposit
 const CombatService_1 = require("../services/CombatService");
 const bicanh_1 = require("../commands/combat/bicanh");
 const worldboss_1 = require("../commands/combat/worldboss");
+const BossSeasonService_1 = require("../services/BossSeasonService");
 const dungeons_1 = require("../config/dungeons");
 const FarmingService_1 = require("../services/FarmingService");
 const SectService_1 = require("../services/SectService");
@@ -327,8 +328,12 @@ class InteractionCreateEvent extends Event_1.Event {
                 if (isPublicAction) {
                     targetUserId = interaction.user.id;
                 }
+                // Nút công khai không cần kiểm tra sở hữu, giữ nguyên targetUserId từ customId
+                const skipOwnershipCheck = [
+                    'worldbossrefresh', 'worldbosslb',
+                ].includes(action);
                 // Bảo mật: Chỉ cho phép người sở hữu hồ sơ nhấn nút tương tác
-                if (!isPublicAction) {
+                if (!isPublicAction && !skipOwnershipCheck) {
                     const { ValidationUtils } = require('../utils/ValidationUtils');
                     const isOwner = await ValidationUtils.verifyOwnership(interaction, targetUserId);
                     if (!isOwner)
@@ -369,9 +374,9 @@ class InteractionCreateEvent extends Event_1.Event {
                         }
                         const contrib = database_1.default.prepare("SELECT last_attack_at FROM world_boss_contributions WHERE user_id = ? AND boss_id = 'world_boss_current'")
                             .get(interaction.user.id);
-                        // ponytail: cooldown đồng nhất với command path (600s)
-                        if (contrib && now - contrib.last_attack_at < 600) {
-                            const cdSec = 600 - (now - contrib.last_attack_at);
+                        // Cooldown 200s
+                        if (contrib && now - contrib.last_attack_at < 200) {
+                            const cdSec = 200 - (now - contrib.last_attack_at);
                             await interaction.reply({ content: `⏳ Đạo hữu đang kiệt sức. Cần **${cdSec} giây** nữa để hồi phục!`, flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
@@ -388,13 +393,18 @@ class InteractionCreateEvent extends Event_1.Event {
                             const bossRow = database_1.default.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get();
                             if (!bossRow || bossRow.status === 'defeated')
                                 return { error: 'defeated' };
+                            // ── Boss Enrage: HP < 50% → ATK tăng 30% ──
+                            const hpPercent = bossRow.max_hp > 0 ? bossRow.hp / bossRow.max_hp : 1;
+                            const isEnraged = hpPercent < 0.5;
+                            const enrageMultiplier = isEnraged ? 1.30 : 1.0;
+                            // ── Level-scaled DEF multiplier: boss càng cao cấp, DEF càng cứng ──
+                            const levelDefBonus = 1 + (bossRow.level - 1) * 0.03;
                             const isCrit = Math.random() < (activeStats.crit + activeStats.luck * 0.001);
-                            // ponytail: dùng ratio-based damage (giống CombatEngine) thay vì ATK-DEF tuyến tính
-                            const effectiveDef = Math.round(bossRow.def * pveScale);
+                            const effectiveDef = Math.round(bossRow.def * pveScale * levelDefBonus);
                             const defRatio = effectiveDef / (activeStats.atk + effectiveDef);
-                            const reduction = Math.min(0.80, defRatio);
+                            const reduction = Math.min(0.85, defRatio);
                             let rawDmg = Math.max(1, Math.round(activeStats.atk * (1 - reduction)));
-                            rawDmg = Math.round(rawDmg * (0.9 + Math.random() * 0.2));
+                            rawDmg = Math.round(rawDmg * (0.85 + Math.random() * 0.3));
                             if (isCrit)
                                 rawDmg = Math.round(rawDmg * 1.5);
                             const pet = database_1.default.prepare('SELECT name, base_atk FROM pets WHERE user_id = ? AND is_deployed = 1')
@@ -425,31 +435,41 @@ class InteractionCreateEvent extends Event_1.Event {
                 VALUES (?, 'world_boss_current', ?, 1, ?)
               `).run(interaction.user.id, totalDmg, now);
                             }
-                            return { boss: bossRow, isCrit, totalDmg, isDefeated, pet, petDmg };
+                            return { boss: bossRow, isCrit, totalDmg, isDefeated, pet, petDmg, isEnraged };
                         });
                         const txResult = bossTx();
                         if ('error' in txResult) {
                             await interaction.reply({ content: '❌ World Boss đã bị tiêu diệt hoặc chưa xuất thế!', flags: discord_js_1.MessageFlags.Ephemeral });
                             return;
                         }
-                        const { boss: currentBossData, isCrit, totalDmg, isDefeated, pet, petDmg } = txResult;
+                        const { boss: currentBossData, isCrit, totalDmg, isDefeated, pet, petDmg, isEnraged } = txResult;
                         // Tính rank dựa trên tổng damage thực tế từ DB (đã bao gồm đòn hiện tại sau transaction)
                         const allContribs = database_1.default.prepare("SELECT user_id, damage FROM world_boss_contributions WHERE boss_id = 'world_boss_current' ORDER BY damage DESC")
                             .all();
                         const currentRank = allContribs.findIndex(c => c.user_id === interaction.user.id) + 1;
-                        // Phản phệ đồng nhất với full combat path: damageDealt * 0.05 + boss.atk * 0.1
-                        // ponytail: thay thế công thức %HP theo rank bằng công thức damage-based
-                        const reflectDmg = Math.round(totalDmg * 0.05 + currentBossData.atk * 0.1);
-                        const injuryChance = activeStats.hp < (currentBossData.atk * 5) ? 0.25 : 0.08;
+                        // ── Phản phệ: % máu hiện tại * rank ──
+                        const bossLevel = currentBossData.level || 1;
+                        const playerCurHp = user.hp ?? activeStats.hp;
+                        const playerMaxHp = activeStats.hp;
+                        const hpPercent = playerMaxHp > 0 ? playerCurHp / playerMaxHp : 1;
+                        const rankReflectMulti = Math.max(0.5, 1.5 - currentRank * 0.1); // rank 1: 1.4, rank 5: 1.0, rank 10: 0.5
+                        const reflectDmg = Math.round(playerMaxHp * hpPercent * 0.12 * rankReflectMulti);
+                        // ── Trọng thương scale theo cấp boss ──
+                        const baseInjuryChance = activeStats.hp < (currentBossData.atk * 5) ? 0.30 : 0.12;
+                        const injuryChance = Math.min(0.60, baseInjuryChance + bossLevel * 0.02);
                         const isInjured = Math.random() < injuryChance;
+                        const injuryDuration = 600; // 10 phút cố định
                         // Thưởng Ngộ Tính theo hạng: top 3 nhận nhiều hơn vì chịu phản phệ lớn hơn
                         const ngoTinhBonus = currentRank <= 3 ? 5 : 3;
                         const updatedUser = UserRepository_1.userRepository.get(interaction.user.id);
+                        // Áp dụng sát thương phản phệ lên HP người chơi
+                        const newHp = Math.max(1, (updatedUser.hp || updatedUser.base_hp) - reflectDmg);
                         const updates = {
+                            hp: isInjured ? 1 : newHp,
                             ngotinh: updatedUser.ngotinh + ngoTinhBonus
                         };
                         if (isInjured) {
-                            updates.injury_end_time = now + 600; // 10 phút trọng thương (giảm từ 15 xuống vì dễ đoán hơn)
+                            updates.injury_end_time = now + injuryDuration;
                         }
                         UserRepository_1.userRepository.update(interaction.user.id, updates);
                         // Cập nhật tiến trình nhiệm vụ hàng ngày
@@ -459,6 +479,9 @@ class InteractionCreateEvent extends Event_1.Event {
                         if (isDefeated) {
                             CombatService_1.combatService.recordBossKill(interaction.user.id, currentBossData.level);
                         }
+                        // Ghi log tấn công cho nhật ký chiến đấu UI
+                        const bossHpAfter = Math.max(0, currentBossData.hp - totalDmg);
+                        CombatService_1.combatService.logBossAttack(interaction.user.id, totalDmg, isCrit ? 'Bạo Kích' : 'Công Kích', isCrit, bossHpAfter / (currentBossData.max_hp || 1));
                         // Cập nhật lại Boss embeds ở tất cả các Guild
                         const currentBoss = database_1.default.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get();
                         await BossSpawnService_1.bossSpawnService.updateBossEmbeds(client, currentBoss);
@@ -485,10 +508,12 @@ class InteractionCreateEvent extends Event_1.Event {
                         const petText = pet ? ` (Sủng thú **${pet.name}** phụ trợ +${petDmg})` : '';
                         const critText = isCrit ? ' **[BẠO KÍCH]** 💥' : '';
                         const rankText = ` 🏆 **(Hạng #${currentRank})**`;
-                        const reflectText = `\n⚡ **Phản Phệ:** Đạo hữu chịu **-${reflectDmg}** sát thương phản chấn từ Boss thế giới!`;
-                        const injuryText = isInjured ? `\n🚨 **Chấn Thương:** Phản phệ chấn động kinh mạch, bị **Trọng Thương trong 10 phút**!` : '';
+                        const enrageText = isEnraged ? '\n🔴 **MA KHÍ BỪNG SỨC!** Boss đã Enrage — ATK tăng 30%!' : '';
+                        const reflectText = `\n⚡ **Phản Phệ:** Đạo hữu chịu **-${reflectDmg}** sát thương phản chấn từ Boss (Lv.${bossLevel})!`;
+                        const injuryMin = Math.floor(injuryDuration / 60);
+                        const injuryText = isInjured ? `\n🚨 **Chấn Thương:** Phản phệ chấn động kinh mạch, bị **Trọng Thương trong ${injuryMin} phút**!` : '';
                         await interaction.reply({
-                            content: `💥 Đạo hữu **${updatedUser.name}** vung đòn tấn công Boss thế giới, gây **-${totalDmg}** sát thương lên Boss${critText}${rankText}!${petText}${reflectText}${injuryText}\n🧘 Nhận được **+${ngoTinhBonus}** Điểm Ngộ Tính!${rewardsText}`
+                            content: `💥 Đạo hữu **${updatedUser.name}** vung đòn tấn công Boss thế giới, gây **-${totalDmg}** sát thương lên Boss${critText}${rankText}!${petText}${enrageText}${reflectText}${injuryText}\n🧘 Nhận được **+${ngoTinhBonus}** Điểm Ngộ Tính!${rewardsText}`
                         });
                         return;
                     }
@@ -1238,11 +1263,77 @@ class InteractionCreateEvent extends Event_1.Event {
                         const { renderCombatLog } = require('../utils/combatLogUtils');
                         await renderCombatLog(interaction, combatLogsCache.get(targetUserId)?.data, 'Chi tiết nhật ký trận săn');
                     }
-                    // --- Nút: QUAY LẠI / LÀM MỚI WORLD BOSS ---
+                    // --- Nút: LÀM MỚI WORLD BOSS ---
                     else if (action === 'worldbossrefresh') {
-                        const embed = (0, worldboss_1.getWorldBossEmbed)(targetUserId);
-                        const row = (0, worldboss_1.getWorldBossComponents)(targetUserId);
-                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
+                        const payload = (0, worldboss_1.buildWorldBossContainer)(targetUserId);
+                        await interaction.client.rest.post(discord_js_1.Routes.interactionCallback(interaction.id, interaction.token), { body: { type: 7, data: payload } });
+                        interaction.replied = true;
+                    }
+                    // --- Nút: HỒI MÁU (World Boss) — Hiển thị confirm ---
+                    else if (action === 'worldbossheal') {
+                        const user = UserRepository_1.userRepository.get(targetUserId);
+                        if (!user) {
+                            await interaction.reply({ content: '❌ Đạo hữu chưa có nhân vật!', flags: discord_js_1.MessageFlags.Ephemeral });
+                            return;
+                        }
+                        const confirmRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`wbhealconfirm_${targetUserId}`).setLabel('✅ Xác Nhận (500,000 LT)').setStyle(discord_js_1.ButtonStyle.Danger), new discord_js_1.ButtonBuilder().setCustomId(`wbhealcancel_${targetUserId}`).setLabel('❌ Hủy').setStyle(discord_js_1.ButtonStyle.Secondary));
+                        await interaction.reply({
+                            content: `💚 **Xác nhận Hồi Máu:**\nĐạo hữu muốn xóa trạng thái trọng thương và hồi phục HP?\n\n💰 **Chi phí:** **500,000** Linh Thạch\n🩹 **Hiệu quả:** Xóa trọng thương + Hồi 30% HP tối đa`,
+                            components: [confirmRow],
+                            flags: discord_js_1.MessageFlags.Ephemeral
+                        });
+                    }
+                    // --- Nút: XÁC NHẬN HỒI MÁU ---
+                    else if (action === 'wbhealconfirm') {
+                        const user = UserRepository_1.userRepository.get(targetUserId);
+                        if (!user) {
+                            await interaction.reply({ content: '❌ Đạo hữu chưa có nhân vật!', flags: discord_js_1.MessageFlags.Ephemeral });
+                            return;
+                        }
+                        const HEAL_COST = 500000;
+                        if (user.coin_ha_pham < HEAL_COST) {
+                            await interaction.reply({ content: `❌ Đạo hữu không đủ Linh Thạch! Cần **${HEAL_COST.toLocaleString()}** LT, hiện có **${user.coin_ha_pham.toLocaleString()}** LT.`, flags: discord_js_1.MessageFlags.Ephemeral });
+                            return;
+                        }
+                        const activeStats = InventoryService_1.inventoryService.getActiveStats(targetUserId);
+                        const maxHp = activeStats ? activeStats.hp : user.base_hp;
+                        const healAmount = Math.round(maxHp * 0.3);
+                        const newHp = Math.min(maxHp, (user.hp || user.base_hp) + healAmount);
+                        UserRepository_1.userRepository.update(targetUserId, {
+                            coin_ha_pham: user.coin_ha_pham - HEAL_COST,
+                            injury_end_time: 0,
+                            hp: newHp
+                        });
+                        await interaction.update({ content: `💚 Đạo hữu đã tĩnh dưỡng thành công! Mất **${HEAL_COST.toLocaleString()}** Linh Thạch.\n🩹 Đã xóa trạng thái trọng thương + Hồi **${healAmount.toLocaleString()}** HP (${newHp.toLocaleString()}/${maxHp.toLocaleString()})!`, components: [] });
+                    }
+                    // --- Nút: HỦY HỒI MÁU ---
+                    else if (action === 'wbhealcancel') {
+                        await interaction.update({ content: '❌ Đã hủy hồi máu.', components: [] });
+                    }
+                    // --- Nút: XẾP HẠNG WORLD BOSS ---
+                    else if (action === 'worldbosslb') {
+                        const contribs = CombatService_1.combatService.getBossContributions();
+                        const season = BossSeasonService_1.bossSeasonService.getCurrentSeason();
+                        let lbText = '';
+                        if (contribs.length > 0) {
+                            lbText = contribs.map((c, i) => {
+                                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🔹';
+                                return `${medal} **#${i + 1}** ${c.name} — **${c.damage.toLocaleString()}** sát thương (${c.attacks} lần)`;
+                            }).join('\n');
+                        }
+                        else {
+                            lbText = '*Chưa có ai gây sát thương.*';
+                        }
+                        const seasonText = season ? `🏆 Mùa ${season.season_number} — Còn ${season.days_left} ngày` : 'Không có season';
+                        await interaction.reply({ content: `**BXH Sát Thương Boss**\n${seasonText}\n\n${lbText}`, flags: discord_js_1.MessageFlags.Ephemeral });
+                    }
+                    // --- Nút: RỜI SẢNH (World Boss) ---
+                    else if (action === 'worldbossleave') {
+                        try {
+                            await interaction.message.delete();
+                        }
+                        catch (e) { }
+                        return;
                     }
                     // --- Boss Shop ---
                     else if (action === 'bossshop') {
@@ -1745,13 +1836,14 @@ class InteractionCreateEvent extends Event_1.Event {
                     }
                     // --- Nút: ĐI ĐẾN WORLD BOSS (từ hồ sơ) ---
                     else if (action === 'worldbossnav') {
-                        const embed = (0, worldboss_1.getWorldBossEmbed)(targetUserId);
-                        const wbRow = (0, worldboss_1.getWorldBossComponents)(targetUserId);
+                        const payload = (0, worldboss_1.buildWorldBossContainer)(targetUserId);
                         const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
                             .setCustomId(`hosoback_${targetUserId}`)
                             .setLabel('🔙 Quay Lại Hồ Sơ')
                             .setStyle(discord_js_1.ButtonStyle.Secondary));
-                        await (0, uiSystem_1.safeV2Update)(interaction, [embed], [wbRow, backRow]);
+                        payload.components.push(backRow);
+                        await interaction.client.rest.post(discord_js_1.Routes.interactionCallback(interaction.id, interaction.token), { body: { type: 7, data: payload } });
+                        interaction.replied = true;
                     }
                     // --- Nút: ĐI ĐẾN VẠN BẢO LÂU (từ hồ sơ) ---
                     else if (action === 'vanbaolaunav') {

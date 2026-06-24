@@ -8,6 +8,7 @@ export interface UserEntity {
   tu_vi: number;
   exp_needed: number;
   base_hp: number;
+  hp: number;
   base_mp: number;
   base_atk: number;
   base_def: number;
@@ -98,6 +99,18 @@ export class UserRepository {
       }
     }
 
+    // Hồi phục HP theo thời gian (1 HP / 10s)
+    if (user.hp < user.base_hp) {
+      const elapsedHp = now - (user.updated_at || user.created_at);
+      if (elapsedHp >= 10) {
+        const recoverHp = Math.floor(elapsedHp / 10);
+        const newHp = Math.min(user.base_hp, user.hp + recoverHp);
+        db.prepare('UPDATE users SET hp = ?, updated_at = ? WHERE discord_id = ?')
+          .run(newHp, now, discordId);
+        user.hp = newHp;
+      }
+    }
+
     // Hồi phục MP theo thời gian
     const lastMpRecover = user.updated_at || user.created_at;
     if (user.mp < user.max_mp) {
@@ -146,7 +159,7 @@ export class UserRepository {
     const stmt = db.prepare(`
       INSERT INTO users (
         discord_id, name, title, level, tu_vi, exp_needed,
-        base_hp, base_mp, base_atk, base_def, base_crit, base_crit_res, base_luck, base_speed, base_dodge, mp, max_mp,
+        base_hp, hp, base_mp, base_atk, base_def, base_crit, base_crit_res, base_luck, base_speed, base_dodge, mp, max_mp,
         linh_can, coin_ha_pham, coin_trung_pham, coin_thuong_pham, knb,
         alchemy_level, alchemy_exp, forging_level, forging_exp,
         partner_id, intimacy, last_songtu_at,
@@ -155,7 +168,7 @@ export class UserRepository {
         created_at, updated_at
       ) VALUES (
         ?, ?, 'Tán Tu', 1, 0, 100,
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, 100, 100,
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 100, 100,
         ?, ?, 0, 0, ?,
         1, 0, 1, 0,
         NULL, 0, 0,
@@ -169,6 +182,7 @@ export class UserRepository {
       user.discord_id,
       user.name,
       user.base_hp,
+      user.base_hp,  // hp = base_hp lúc tạo nhân vật
       user.base_mp,
       user.base_atk,
       user.base_def,

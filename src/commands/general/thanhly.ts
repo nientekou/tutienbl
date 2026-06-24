@@ -47,6 +47,11 @@ const NPC_BUYBACK_PRICES: Record<string, { price: number; currency?: 'knb' }> = 
   [ITEMS.ITEM_TAM_SINH_THACH]: { price: 2500 },
   [ITEMS.ITEM_TUYET_TINH_NUOC]: { price: 1000 },
 
+  // Hạt giống mới
+  [ITEMS.SEED_BLOOD_FLOWER]: { price: 100 },
+  [ITEMS.SEED_VOID_HERB]: { price: 150 },
+  [ITEMS.SEED_WIND_LEAF]: { price: 150 },
+
   // Nguyên liệu
   [ITEMS.MATERIAL_IRON_1]: { price: 5 },
   [ITEMS.MAT_HUYEN_THIET]: { price: 15 },

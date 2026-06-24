@@ -95,15 +95,22 @@ class AutoBalanceService {
             (user.base_crit || 0.05) * 1000 + (user.base_crit_res || 0) * 1000 +
             (user.base_luck || 10) * 10 + (user.base_speed || 100) * 10 +
             (user.base_dodge || 0.05) * 1000);
+        // ponytail: mở rộng middle range (trước chỉ 4 threshold)
         const ratio = userPower / stats.median;
         if (ratio > 3.0)
-            return 1.3; // Boss mạnh hơn 30%
+            return 1.30;
         if (ratio > 2.0)
-            return 1.15; // Boss mạnh hơn 15%
+            return 1.15;
+        if (ratio > 1.5)
+            return 1.10;
+        if (ratio > 1.2)
+            return 1.05;
         if (ratio < 0.5)
-            return 0.7; // Boss yếu hơn 30%
+            return 0.70;
+        if (ratio < 0.65)
+            return 0.80;
         if (ratio < 0.8)
-            return 0.85; // Boss yếu hơn 15%
+            return 0.85;
         return 1.0;
     }
     /**

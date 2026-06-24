@@ -200,9 +200,9 @@ exports.RECIPES = {
         duration: 600,
         cost: 2000,
         ingredients: [
-            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 5 },
-            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 20 },
-            { itemId: itemConstants_1.ITEMS.MATERIAL_BLOOD_FLOWER, quantity: 10 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 3 }, // ponytail: giảm (trước 5)
+            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 15 }, // ponytail: giảm (trước 20)
+            { itemId: itemConstants_1.ITEMS.MATERIAL_BLOOD_FLOWER, quantity: 5 } // ponytail: giảm (trước 10)
         ],
         product: {
             itemId: itemConstants_1.ITEMS.WEAPON_SWORD_A,
@@ -218,9 +218,9 @@ exports.RECIPES = {
         duration: 600,
         cost: 2000,
         ingredients: [
-            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 5 },
-            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 15 },
-            { itemId: itemConstants_1.ITEMS.MATERIAL_VOID_HERB, quantity: 10 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 3 }, // ponytail: giảm (trước 5)
+            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 10 }, // ponytail: giảm (trước 15)
+            { itemId: itemConstants_1.ITEMS.MATERIAL_VOID_HERB, quantity: 5 } // ponytail: giảm (trước 10)
         ],
         product: {
             itemId: itemConstants_1.ITEMS.ARMOR_ROBE_A,
@@ -236,10 +236,10 @@ exports.RECIPES = {
         duration: 1200,
         cost: 5000,
         ingredients: [
-            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 15 },
-            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 50 },
-            { itemId: itemConstants_1.ITEMS.MATERIAL_WIND_LEAF, quantity: 15 },
-            { itemId: itemConstants_1.ITEMS.MATERIAL_NGODONG, quantity: 10 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 10 }, // ponytail: giảm (trước 15)
+            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 30 }, // ponytail: giảm (trước 50)
+            { itemId: itemConstants_1.ITEMS.MATERIAL_WIND_LEAF, quantity: 8 }, // ponytail: giảm (trước 15)
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NGODONG, quantity: 5 } // ponytail: giảm (trước 10)
         ],
         product: {
             itemId: itemConstants_1.ITEMS.WEAPON_SWORD_S,
@@ -255,10 +255,10 @@ exports.RECIPES = {
         duration: 1200,
         cost: 5000,
         ingredients: [
-            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 15 },
-            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 40 },
-            { itemId: itemConstants_1.ITEMS.MATERIAL_TUYET_LIEN, quantity: 15 },
-            { itemId: itemConstants_1.ITEMS.MATERIAL_LINGZHI, quantity: 10 }
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TINH_THIET_1, quantity: 10 }, // ponytail: giảm (trước 15)
+            { itemId: itemConstants_1.ITEMS.MATERIAL_MYTHRIL_1, quantity: 25 }, // ponytail: giảm (trước 40)
+            { itemId: itemConstants_1.ITEMS.MATERIAL_TUYET_LIEN, quantity: 8 }, // ponytail: giảm (trước 15)
+            { itemId: itemConstants_1.ITEMS.MATERIAL_LINGZHI, quantity: 5 } // ponytail: giảm (trước 10)
         ],
         product: {
             itemId: itemConstants_1.ITEMS.ARMOR_ROBE_S,

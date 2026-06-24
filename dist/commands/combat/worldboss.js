@@ -3,8 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getWorldBossEmbed = getWorldBossEmbed;
-exports.getWorldBossComponents = getWorldBossComponents;
+exports.buildWorldBossContainer = buildWorldBossContainer;
+exports.buildBossSpawnContainer = buildBossSpawnContainer;
+exports.buildBossDefeatedContainer = buildBossDefeatedContainer;
 exports.getBossShopEmbed = getBossShopEmbed;
 exports.getBossShopComponents = getBossShopComponents;
 exports.handleBossShopPurchase = handleBossShopPurchase;
@@ -12,105 +13,123 @@ const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const CombatService_1 = require("../../services/CombatService");
 const BossSeasonService_1 = require("../../services/BossSeasonService");
+const InventoryService_1 = require("../../services/InventoryService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const constants_1 = require("../../utils/constants");
 const uiSystem_1 = require("../../utils/uiSystem");
 const itemConstants_1 = require("../../config/itemConstants");
 const database_1 = __importDefault(require("../../database/database"));
+const BOSS_IMAGE_URL = 'https://cdn.discordapp.com/attachments/1504101132610572290/1519223318459453470/29ba8699-9a41-4413-a42d-5b851c3d9fb9.png?ex=6a3cc678&is=6a3b74f8&hm=6acd7047bd8395515c0467a22da8dcbd099685ceb4572c06dc7f72ff04f1fc37';
+// ─── Boss Skill System ───
+function getBossSkillInfo(level) {
+    if (level >= 20)
+        return { name: 'Thánh Ma Phá Thiên', desc: 'Gây sát thương toàn thể, giảm 90% phòng thủ mục tiêu. Enrage: ATK +30% khi HP < 50%', emoji: '💀' };
+    if (level >= 15)
+        return { name: 'Ma Hỏa Liêu Nguyên', desc: 'Bốc cháy liên tục 5 hiệp, mỗi hiệp gây sát thương bằng 10% HP tối đa. Phản phệ +50%', emoji: '🔥' };
+    if (level >= 10)
+        return { name: 'Lôi Đình Vạn Quân', desc: 'Công kích 3 mục tiêu ngẫu nhiên với sát thương 200%. Trọng thương kéo dài', emoji: '⚡' };
+    if (level >= 5)
+        return { name: 'Huyết Mạch Áp Chế', desc: 'Giảm 80% giáp, sát thương bạo kích tăng 50%. Phản phệ tăng theo cấp', emoji: '🩸' };
+    return { name: 'Ma Khí Xâm Thực', desc: 'Xuyên phá 30% phòng thủ, hồi phục 5% HP mỗi hiệp', emoji: '☠️' };
+}
+function getBossStageName(level) {
+    if (level >= 20)
+        return 'Thánh Ma';
+    if (level >= 15)
+        return 'Đại Ma';
+    if (level >= 10)
+        return 'Ma Vương';
+    if (level >= 5)
+        return 'Ma Tướng';
+    return 'Ma Binh';
+}
 /**
- * Tạo Embed hiển thị thông tin World Boss hiện tại
+ * Tạo V2 Container UI cho World Boss — tinh chỉnh theo reference image
  */
-function getWorldBossEmbed(userId) {
+function buildWorldBossContainer(userId) {
     const boss = CombatService_1.combatService.getCurrentBoss();
     const user = UserRepository_1.userRepository.get(userId);
-    const embed = new discord_js_1.EmbedBuilder()
-        .setTitle(`👹 World Boss: ${boss.name} (Cấp ${boss.level})`)
-        .setColor(boss.status === 'active' ? uiSystem_1.EMBED_COLORS.ERROR : uiSystem_1.EMBED_COLORS.NEUTRAL)
-        .setTimestamp();
+    const skill = getBossSkillInfo(boss.level);
+    const stageName = getBossStageName(boss.level);
+    const hpPercent = boss.maxHp > 0 ? ((boss.hp / boss.maxHp) * 100).toFixed(1) : '0';
+    const hpBar = (0, constants_1.getProgressBar)(boss.hp, boss.maxHp, 15);
+    const container = new discord_js_1.ContainerBuilder();
+    container.setAccentColor(0x8b0000);
+    // ── Header ──
+    container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`# 👹 ${boss.name} (Cấp ${boss.level})`));
+    container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`*TAN BIẾN ĐI! THẾ GIỚI NÀY RỒI SẼ SỤP ĐỔ!*`));
+    // ── HP Section ──
+    container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
     if (boss.status === 'active') {
-        const hpBar = (0, constants_1.getProgressBar)(boss.hp, boss.maxHp, 15);
-        embed.setDescription(`Thiên địa linh khí chấn động, yêu ma viễn cổ phá phong ấn bước ra tàn phá chúng sinh! Chư vị đạo hữu hãy đồng lòng trảm ma cứu thế!\n\n` +
-            `❤️ **Sinh Lực Boss:** ${hpBar} (${boss.hp}/${boss.maxHp})\n` +
-            `⚔️ **Công Kích:** ${boss.atk} | 🛡️ **Phòng Thủ:** ${boss.def}\n\n` +
-            `*Tham gia đánh Boss nhận Tu Vi, Linh Thạch, Boss Point (BP) và có cơ hội nhận Rương hiếm!*`);
-    }
-    else {
-        embed.setDescription(`💀 **World Boss đã bị tiêu diệt!**\n\n` +
-            `• Người ra đón kết liễu: <@${boss.defeatedBy}>\n` +
-            `• Thời gian hồi sinh boss tiếp theo: **${boss.respawnTimeRemaining || 0} giây**.\n\n` +
-            `*Linh hồn Boss tiếp theo sẽ ngưng tụ ở Cấp Độ cao hơn và mạnh hơn vượt trội!*`);
-    }
-    // BXH season
-    const season = BossSeasonService_1.bossSeasonService.getCurrentSeason();
-    if (season) {
-        embed.addFields({
-            name: `🏆 Mùa ${season.season_number} — Còn ${season.days_left} ngày`,
-            value: `Đã tiêu diệt **${season.total_kills}** boss${season.top_player ? `\nTop sát thương: <@${season.top_player}> (${season.top_damage} dmg)` : ''}`
-        });
-    }
-    // Boss Points của người chơi
-    if (user) {
-        const bp = user.boss_points || 0;
-        embed.addFields({
-            name: '⭐ Boss Point (BP)',
-            value: `Đạo hữu hiện có: **${bp}** BP — Dùng đổi Rương Boss, Vé Bí Cảnh, Nguyên liệu hiếm tại shop!`
-        });
-    }
-    // Lấy danh sách Top cống hiến sát thương
-    const contribs = CombatService_1.combatService.getBossContributions();
-    if (contribs.length > 0) {
-        const leaderboardText = contribs
-            .map((c, i) => {
-            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🔹';
-            return `${medal} **Hạng ${i + 1}**: ${c.name} — **${c.damage}** sát thương (${c.attacks} lần)`;
-        })
-            .join('\n');
-        embed.addFields({ name: '📊 BXH Sát Thương Vòng Này', value: leaderboardText });
-    }
-    else {
-        embed.addFields({ name: '📊 BXH Sát Thương Vòng Này', value: '*Chưa có tu sĩ nào gây sát thương lên boss.*' });
-    }
-    // Mốc đóng góp (hiển thị cho người chơi)
-    if (user && boss.status === 'active') {
-        embed.addFields({
-            name: '🎯 Mốc Thưởng',
-            value: `Tham gia → **5 BP** | 1% dmg → **+3 BP** | 3% → **+5 BP** | 5% → **+10 BP** | 10% → **+15 BP** | 15% → **+20 BP** | 20% → **+30 BP**`
-        });
-    }
-    // Trạng thái cooldown của người chơi
-    if (user && boss.status === 'active') {
+        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`❤️ **SINH MỆNH:** ${hpBar}\n${boss.hp.toLocaleString()} / ${boss.maxHp.toLocaleString()}`));
+        // ── Combat Log ──
+        container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
+        const recentAttacks = CombatService_1.combatService.getRecentBossAttacks(5);
+        if (recentAttacks.length > 0) {
+            const logLines = recentAttacks.map(a => {
+                const critTag = a.isCrit ? ' **(Bạo)**' : '';
+                return `⚔️ **${a.name}** dùng **${a.skill}** gây **${a.damage.toLocaleString()}** ST${critTag} — HP: ${a.hpPercent}% 💀`;
+            }).join('\n');
+            container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`📋 **Nhật ký chiến đấu mới nhất:**\n${logLines}`));
+        }
+        else {
+            container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`📋 **Nhật ký chiến đấu mới nhất:**\n*Chưa có tấn công nào trong vòng này.*`));
+        }
+        // ── Stats Row ──
+        container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
+        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`⚔️ **Sát Lực:** ${boss.atk.toLocaleString()} │ 🛡️ **Phòng Thủ:** ${boss.def.toLocaleString()} │ 🌀 **Trạng Thái:** Giai đoạn ${stageName}`));
+        // ── Player Status ──
+        container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
+        const activeStats = InventoryService_1.inventoryService.getActiveStats(userId);
+        if (activeStats) {
+            const curHp = user && user.hp != null ? user.hp : activeStats.hp;
+            const maxHp = activeStats.hp;
+            const playerHpBar = (0, constants_1.getProgressBar)(curHp, maxHp, 10);
+            const isInjured = user && user.injury_end_time > Math.floor(Date.now() / 1000);
+            const injuryText = isInjured ? ' │ 🚨 **Trọng Thương**' : '';
+            container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`💪 **Sinh Lực Đạo Hữu:** ${playerHpBar} **${curHp.toLocaleString()} / ${maxHp.toLocaleString()}** HP${injuryText}\n⚔️ **ATK:** ${activeStats.atk.toLocaleString()} │ 🎯 **Bạo:** ${(activeStats.crit * 100).toFixed(1)}%`));
+        }
+        // ── Boss Skill ──
+        container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
+        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`${skill.emoji} **Tuyệt Kỹ Giai Đoạn: ${skill.name}**\n*${skill.desc}*`));
+        // ── Boss Image ──
+        container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
+        try {
+            const mg = new discord_js_1.MediaGalleryBuilder();
+            mg.addItems([{ media: { url: BOSS_IMAGE_URL } }]);
+            container.addMediaGalleryComponents(mg);
+        }
+        catch (e) { /* skip image if invalid */ }
+        // ── Cooldown Info ──
         const now = Math.floor(Date.now() / 1000);
         const contrib = database_1.default.prepare("SELECT last_attack_at FROM world_boss_contributions WHERE user_id = ? AND boss_id = 'world_boss_current'")
             .get(userId);
         let cdSec = 0;
         if (contrib) {
             const elapsed = now - contrib.last_attack_at;
-            if (elapsed < 200) {
+            if (elapsed < 200)
                 cdSec = 200 - elapsed;
-            }
         }
-        if (cdSec > 0) {
-            embed.addFields({
-                name: '⏳ Trạng Thái Trấn Nạp Linh Khí',
-                value: `Đạo hữu đang kiệt sức điều khí. Cần **${cdSec} giây** để hồi phục.`
-            });
-        }
-        else {
-            embed.addFields({
-                name: '⏳ Trạng Thái',
-                value: `🟢 **Sẵn sàng xuất chiêu!**`
-            });
-        }
+        const bp = user ? user.boss_points || 0 : 0;
+        const season = BossSeasonService_1.bossSeasonService.getCurrentSeason();
+        let footerText = `⭐ BP: **${bp}**`;
+        if (cdSec > 0)
+            footerText += ` │ ⏳ CD: **${cdSec}s**`;
+        else
+            footerText += ` │ 🟢 Sẵn sàng`;
+        if (season)
+            footerText += ` │ 🏆 Mùa ${season.season_number} (${season.days_left}d)`;
+        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(footerText));
     }
-    return embed;
-}
-/**
- * Tạo các nút hành động cho World Boss
- */
-function getWorldBossComponents(userId) {
-    const boss = CombatService_1.combatService.getCurrentBoss();
-    const row = new discord_js_1.ActionRowBuilder();
+    else {
+        // Boss defeated
+        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`💀 **WORLD BOSS ĐÃ BỊ TIÊU DIỆT!**\n\n` +
+            `Người ra đòn kết liễu: <@${boss.defeatedBy}>\n` +
+            `Thời gian hồi sinh: **${boss.respawnTimeRemaining || 0} giây**\n\n` +
+            `*Linh hồn Boss tiếp theo sẽ mạnh hơn vượt trội!*`));
+    }
+    // ── Buttons ──
     const isBossDead = boss.status === 'defeated';
     const now = Math.floor(Date.now() / 1000);
     const contrib = database_1.default.prepare("SELECT last_attack_at FROM world_boss_contributions WHERE user_id = ? AND boss_id = 'world_boss_current'")
@@ -118,49 +137,87 @@ function getWorldBossComponents(userId) {
     let cdSec = 0;
     if (contrib) {
         const elapsed = now - contrib.last_attack_at;
-        if (elapsed < 200) {
+        if (elapsed < 200)
             cdSec = 200 - elapsed;
-        }
     }
     const isCd = cdSec > 0;
-    // Nút Tấn công Miễn phí
-    row.addComponents(new discord_js_1.ButtonBuilder()
-        .setCustomId(`worldbossattack_${userId}_free`)
-        .setLabel(isCd ? `⚔️ CD Tấn Công (${cdSec}s)` : '⚔️ Khiêu Chiến Boss')
-        .setStyle(discord_js_1.ButtonStyle.Danger)
-        .setDisabled(isBossDead || isCd), 
-    // Nút Làm mới / Refresh
-    new discord_js_1.ButtonBuilder()
+    const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
         .setCustomId(`worldbossrefresh_${userId}`)
         .setLabel('🔄 Làm Mới')
+        .setStyle(discord_js_1.ButtonStyle.Secondary), new discord_js_1.ButtonBuilder()
+        .setCustomId(`worldbossattack_${userId}_free`)
+        .setLabel(isCd ? `⚔️ CD (${cdSec}s)` : '⚔️ Tấn Công Boss')
+        .setStyle(discord_js_1.ButtonStyle.Danger)
+        .setDisabled(isBossDead || isCd), new discord_js_1.ButtonBuilder()
+        .setCustomId(`worldbossheal_${userId}`)
+        .setLabel('💚 Hồi Máu')
+        .setStyle(discord_js_1.ButtonStyle.Success)
+        .setDisabled(isBossDead), new discord_js_1.ButtonBuilder()
+        .setCustomId(`worldbosslb_${userId}`)
+        .setLabel('🏆 Xếp Hạng')
+        .setStyle(discord_js_1.ButtonStyle.Primary), new discord_js_1.ButtonBuilder()
+        .setCustomId(`worldbossleave_${userId}`)
+        .setLabel('🚪 Rời Sảnh')
         .setStyle(discord_js_1.ButtonStyle.Secondary));
-    // Nút shop
-    row.addComponents(new discord_js_1.ButtonBuilder()
-        .setCustomId(`bossshop_${userId}`)
-        .setLabel('🏪 Boss Shop')
-        .setStyle(discord_js_1.ButtonStyle.Primary));
-    return row;
+    return { components: [container, row], flags: uiSystem_1.V2_FLAG };
 }
-// ponytail: giá cân bằng theo BP thực tế (top ~50 BP/kill, casual ~8 BP/kill)
-// Boss respawn liên tục, BP tích luỹ dần — giá cao để BP có giá trị lâu dài
+/**
+ * Tạo Embed cho Boss Spawn announcement (channel-wide)
+ */
+function buildBossSpawnContainer(boss) {
+    const hpBar = (0, constants_1.getProgressBar)(boss.hp, boss.max_hp, 15);
+    const skill = getBossSkillInfo(boss.level);
+    const container = new discord_js_1.ContainerBuilder();
+    container.setAccentColor(0xff0000);
+    container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`# 🔔 THƯỢNG CỔ MA THẦN XUẤT THẾ!`));
+    container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`⚠️ **CẢNH BÁO TAM GIỚI:** **${boss.name}** đang tàn phá thế giới! Mau liên thủ trảm ma vệ đạo!`));
+    container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
+    container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`❤️ **SINH MỆNH:** ${hpBar} **${((boss.hp / boss.max_hp) * 100).toFixed(1)}%**\n${boss.hp.toLocaleString()} / ${boss.max_hp.toLocaleString()}`));
+    container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`⚔️ **Công Kích:** ${boss.atk.toLocaleString()} │ 🛡️ **Phòng Thủ:** ${boss.def.toLocaleString()} │ Cấp **${boss.level}**`));
+    container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
+    container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`${skill.emoji} **${skill.name}** — *${skill.desc}*`));
+    try {
+        const mg = new discord_js_1.MediaGalleryBuilder();
+        mg.addItems([{ media: { url: BOSS_IMAGE_URL } }]);
+        container.addMediaGalleryComponents(mg);
+    }
+    catch (e) { }
+    const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId('worldbossattack_global').setLabel('⚔️ Tấn Công Boss').setStyle(discord_js_1.ButtonStyle.Danger));
+    return { components: [container, row], flags: uiSystem_1.V2_FLAG };
+}
+/**
+ * Container cho thông báo Boss bị tiêu diệt
+ */
+function buildBossDefeatedContainer(boss, rewardsLogs) {
+    const container = new discord_js_1.ContainerBuilder();
+    container.setAccentColor(0xf1c40f);
+    container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`# 🏆 BẢNG PHONG THẦN THẢO PHẠT BOSS`));
+    container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`👹 **${boss.name}** (Lv.${boss.level}) đã ngã xuống!\nLinh khí tản mát hóa thành tài bảo ban thưởng:`));
+    container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
+    const logText = rewardsLogs.length > 0
+        ? rewardsLogs.join('\n')
+        : '*Không có đệ tử nào tham gia thảo phạt.*';
+    // Truncate to 3800 chars max
+    const truncated = logText.length > 3800 ? logText.slice(0, 3797) + '...' : logText;
+    container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(truncated));
+    return { components: [container], flags: uiSystem_1.V2_FLAG };
+}
+// ─── Boss Shop ───
 const BOSS_SHOP_ITEMS = [
-    { key: 'chest', itemId: itemConstants_1.ITEMS.SERVER_RAID_CHEST, name: 'Rương Boss Thế Giới', cost: 3000, qty: 1, desc: 'Mở ra nhận trang bị S~EX' },
-    { key: 'lucky', itemId: itemConstants_1.ITEMS.LUCKY_CHEST, name: 'Rương Cơ Duyên', cost: 1000, qty: 1, desc: 'Mở ra nhận phôi F~SSS' },
-    { key: 'lenh', itemId: itemConstants_1.ITEMS.LENH_BAI, name: 'Lệnh Bài Bí Cảnh', cost: 2000, qty: 1, desc: 'Vào bí cảnh săn boss' },
+    { key: 'chest', itemId: itemConstants_1.ITEMS.LUCKY_CHEST, name: 'Rương Cơ Duyên x1', cost: 100, qty: 1, desc: 'Rương ngẫu nhiên, có cơ hội nhận vật phẩm hiếm' },
+    { key: 'raid', itemId: itemConstants_1.ITEMS.SERVER_RAID_CHEST, name: 'Rương Thảo Phạt x1', cost: 300, qty: 1, desc: 'Rương Boss, chứa vật phẩm cấp cao' },
     { key: 'stamina', itemId: itemConstants_1.ITEMS.PILL_ALCHEMY_STAMINA, name: 'Bổ Thiên Đan x5', cost: 500, qty: 5, desc: 'Hồi 20 thể lực/viên' },
     { key: 'coin', itemId: '', name: 'Linh Thạch 10000', cost: 500, qty: 0, desc: 'Quy đổi ra linh thạch' },
     { key: 'shard', itemId: itemConstants_1.ITEMS.TINH_THACH_SHARD, name: 'Mảnh Tinh Thạch x5', cost: 400, qty: 5, desc: 'Nguyên liệu cường hóa' },
-    { key: 'nhan', itemId: itemConstants_1.ITEMS.MATERIAL_NHAN_SAM_1, name: 'Huyết Nhân Sâm x10', cost: 400, qty: 10, desc: 'Nguyên liệu luyện đan' },
 ];
 function getBossShopEmbed(userId, message) {
     const user = UserRepository_1.userRepository.get(userId);
     const bp = user?.boss_points || 0;
-    const lines = BOSS_SHOP_ITEMS.map(item => `• **${item.name}** — **${item.cost}** BP\n${item.desc}`);
+    const lines = BOSS_SHOP_ITEMS.map(item => `• **${item.name}** — **${item.cost}** BP\n  ${item.desc}`);
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle('🏪 Boss Point Shop')
         .setColor(uiSystem_1.EMBED_COLORS.GOLD)
-        .setDescription(`⭐ **BP hiện có:** **${bp}**\n\n` +
-        lines.join('\n\n'))
+        .setDescription(`⭐ **BP hiện có:** **${bp}**\n\n${lines.join('\n\n')}`)
         .setFooter({ text: 'Chọn vật phẩm bên dưới để đổi.' });
     if (message)
         embed.setDescription(`${message}\n\n${embed.data.description}`);
@@ -215,9 +272,8 @@ class WorldBossCommand extends Command_1.Command {
             });
             return;
         }
-        const embed = getWorldBossEmbed(userId);
-        const row = getWorldBossComponents(userId);
-        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
+        const payload = buildWorldBossContainer(userId);
+        await interaction.editReply(payload);
     }
 }
 exports.default = WorldBossCommand;

@@ -21,15 +21,15 @@ export class EnhanceService {
     3: { level: 3, successRate: 1.00, costLinhThach: 1000, costShards: 2, dropOnFail: false },
     4: { level: 4, successRate: 1.00, costLinhThach: 2000, costShards: 3, dropOnFail: false },
     5: { level: 5, successRate: 0.30, costLinhThach: 4000, costShards: 4, dropOnFail: false },
-    6: { level: 6, successRate: 0.30, costLinhThach: 8000, costShards: 5, dropOnFail: false },
-    7: { level: 7, successRate: 0.30, costLinhThach: 16000, costShards: 5, dropOnFail: false },
-    8: { level: 8, successRate: 0.30, costLinhThach: 32000, costShards: 6, dropOnFail: false },
-    9: { level: 9, successRate: 0.30, costLinhThach: 65000, costShards: 7, dropOnFail: false },
-    10: { level: 10, successRate: 0.12, costLinhThach: 150000, costShards: 8, dropOnFail: true },
-    11: { level: 11, successRate: 0.12, costLinhThach: 300000, costShards: 9, dropOnFail: true },
-    12: { level: 12, successRate: 0.12, costLinhThach: 600000, costShards: 10, dropOnFail: true },
-    13: { level: 13, successRate: 0.10, costLinhThach: 1200000, costShards: 12, dropOnFail: true },
-    14: { level: 14, successRate: 0.05, costLinhThach: 2500000, costShards: 15, dropOnFail: true }
+    6: { level: 6, successRate: 0.30, costLinhThach: 7000, costShards: 5, dropOnFail: false },
+    7: { level: 7, successRate: 0.30, costLinhThach: 12000, costShards: 5, dropOnFail: false },
+    8: { level: 8, successRate: 0.30, costLinhThach: 21000, costShards: 6, dropOnFail: false },
+    9: { level: 9, successRate: 0.30, costLinhThach: 37000, costShards: 7, dropOnFail: false },
+    10: { level: 10, successRate: 0.12, costLinhThach: 65000, costShards: 8, dropOnFail: true },
+    11: { level: 11, successRate: 0.12, costLinhThach: 114000, costShards: 9, dropOnFail: true },
+    12: { level: 12, successRate: 0.12, costLinhThach: 200000, costShards: 10, dropOnFail: true },
+    13: { level: 13, successRate: 0.10, costLinhThach: 350000, costShards: 12, dropOnFail: true },
+    14: { level: 14, successRate: 0.05, costLinhThach: 610000, costShards: 15, dropOnFail: true } // ponytail: ×1.75 curve (trước ×2)
   };
 
   /**

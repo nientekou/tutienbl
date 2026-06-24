@@ -369,6 +369,13 @@ export function initDatabase() {
     db.exec(`ALTER TABLE users ADD COLUMN boss_points INTEGER DEFAULT 0`);
   }
 
+  // HP hiện tại của người chơi (cho World Boss phản phệ, etc.)
+  const hasHpCol = db.prepare("PRAGMA table_info(users)").all().some((c: any) => c.name === 'hp');
+  if (!hasHpCol) {
+    db.exec(`ALTER TABLE users ADD COLUMN hp INTEGER DEFAULT 100`);
+    db.exec(`UPDATE users SET hp = base_hp WHERE hp = 100 AND base_hp > 100`);
+  }
+
   // Bảng mùa giải Boss
   db.exec(`
     CREATE TABLE IF NOT EXISTS boss_seasons (
@@ -401,6 +408,19 @@ export function initDatabase() {
   if (!hasContribSeason) {
     db.exec(`ALTER TABLE world_boss_contributions ADD COLUMN season_id INTEGER DEFAULT NULL`);
   }
+
+  // Bảng nhật ký tấn công boss (cho UI combat log)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS boss_attack_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      damage INTEGER DEFAULT 0,
+      skill TEXT DEFAULT '',
+      is_crit INTEGER DEFAULT 0,
+      boss_hp_percent REAL DEFAULT 0,
+      created_at INTEGER NOT NULL
+    );
+  `);
 
   // Bảng Audit Log
   db.exec(`
