@@ -19,7 +19,9 @@ class TuTienClient extends discord_js_1.Client {
         super(options || {
             intents: [
                 discord_js_1.GatewayIntentBits.Guilds,
-                discord_js_1.GatewayIntentBits.GuildVoiceStates
+                discord_js_1.GatewayIntentBits.GuildVoiceStates,
+                discord_js_1.GatewayIntentBits.GuildMessages,
+                discord_js_1.GatewayIntentBits.MessageContent,
             ]
         });
         TuTienClient.instance = this;

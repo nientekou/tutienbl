@@ -9,6 +9,7 @@ const UserRepository_1 = require("../../database/repositories/UserRepository");
 const GuildWarService_1 = require("../../services/GuildWarService");
 const constants_1 = require("../../utils/constants");
 const database_1 = __importDefault(require("../../database/database"));
+const uiSystem_1 = require("../../utils/uiSystem");
 class GuildWarCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -71,7 +72,7 @@ class GuildWarCommand extends Command_1.Command {
             const defenderSect = GuildWarService_1.guildWarService.getSectInfo(targetSectId);
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('⚔️ TUYÊN CHIẾN TÔNG MÔN!')
-                .setColor('#e74c3c')
+                .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription(`**${challengerSect?.name}** ⚔️ **${defenderSect?.name}**\n\n` +
                 `Mã chiến: \`${result.warId}\`\n` +
                 `Số hiệp tối đa: **${warDetail?.max_rounds || 5}**\n` +
@@ -80,7 +81,7 @@ class GuildWarCommand extends Command_1.Command {
                 `Đệ tử **${defenderSect?.name}** hãy dùng \`/guildwar thamgia ma_chien: ${result.warId}\` để tham gia!`)
                 .setFooter({ text: 'Thư chiến sẽ tự động hết hạn sau 24 giờ.' })
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (sub === 'thamgia') {
             const warId = interaction.options.getString('ma_chien', true).toUpperCase();
@@ -101,7 +102,7 @@ class GuildWarCommand extends Command_1.Command {
             // Hiển thị thông tin chiến tranh
             const war = GuildWarService_1.guildWarService.getWarDetail(warId);
             const embed = this.getWarStatusEmbed(war);
-            await interaction.editReply({ content: '✅ ' + result.message, embeds: embed ? [embed] : [] });
+            await interaction.editReply(embed ? (0, uiSystem_1.toV2Payload)([embed]) : { content: '✅ ' + result.message });
         }
         else if (sub === 'tuchoi') {
             const warId = interaction.options.getString('ma_chien', true).toUpperCase();
@@ -130,8 +131,8 @@ class GuildWarCommand extends Command_1.Command {
         else if (sub === 'bangxephang') {
             const leaderboard = GuildWarService_1.guildWarService.getLeaderboard();
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('🏆 BẢNG XẾP HẠNG CHIẾN TRANH TÔNG MÔN 🏆')
-                .setColor('#f1c40f')
+                .setTitle('🏆 BẢNG XẾP HẠNG CHIẾN TRANH TÔNG MÔN')
+                .setColor(uiSystem_1.EMBED_COLORS.GOLD)
                 .setDescription('Bảng xếp hạng các Tông Môn có thành tích chiến tranh xuất sắc nhất.\n' +
                 '_Xếp hạng dựa trên số trận thắng và tổng sát thương._\n')
                 .setTimestamp();
@@ -152,7 +153,7 @@ class GuildWarCommand extends Command_1.Command {
                 }
                 embed.addFields({ name: '📊 Bảng Xếp Hạng', value: rankingText });
             }
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
         else if (sub === 'thongtin') {
             const war = GuildWarService_1.guildWarService.getUserActiveWar(userId);
@@ -165,7 +166,7 @@ class GuildWarCommand extends Command_1.Command {
                         const sectEntry = leaderboard.find(e => e.sectId === user.sect_id);
                         const embed = new discord_js_1.EmbedBuilder()
                             .setTitle(`🏛️ THÔNG TIN CHIẾN TRANH - ${sect.name}`)
-                            .setColor('#3498db')
+                            .setColor(uiSystem_1.EMBED_COLORS.INFO)
                             .setDescription(`Tông Môn của đạo hữu hiện không tham gia cuộc chiến nào.\n\n` +
                             `**Chiến tích:**\n` +
                             `• Thắng: **${sectEntry?.wins || 0}** trận\n` +
@@ -173,7 +174,7 @@ class GuildWarCommand extends Command_1.Command {
                             `• Tổng sát thương: **${(sectEntry?.totalDamage || 0).toLocaleString('vi-VN')}**\n\n` +
                             `_Tông Chủ có thể dùng \`/guildwar taophong\` để khiêu chiến Tông Môn khác._`)
                             .setTimestamp();
-                        await interaction.editReply({ embeds: [embed] });
+                        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
                         return;
                     }
                 }

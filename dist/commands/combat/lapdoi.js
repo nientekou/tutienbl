@@ -12,6 +12,7 @@ const UserRepository_1 = require("../../database/repositories/UserRepository");
 const database_1 = __importDefault(require("../../database/database"));
 const PartyService_1 = require("../../services/PartyService");
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 // Map lưu trạng thái sẵn sàng trong bộ nhớ
 exports.readyStates = new Map();
 /**
@@ -52,7 +53,7 @@ function getPartyRoomEmbed(room, host) {
     const elementalCycle = (0, PartyService_1.checkPartyElementalCycle)(members);
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`🏰 PHÒNG TỔ ĐỘI - BÍ CẢNH HỢP TÁC`)
-        .setColor('#9b59b6')
+        .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
         .setDescription(`**Mã phòng:** \`${room.id}\`\n` +
         `**Chủ phòng:** ${host?.name || 'Không xác định'}\n` +
         `**Bản đồ:** ${room.dungeon_id === 'coop_dungeon_2' ? 'Di Tích Viễn Cổ (Khó)' : 'Sơn Cốc Yêu Thú (Thường)'}\n` +

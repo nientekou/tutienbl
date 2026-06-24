@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const BloodlineService_1 = require("../../services/BloodlineService");
+const uiSystem_1 = require("../../utils/uiSystem");
 class HuyetMachCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -45,13 +46,13 @@ class HuyetMachCommand extends Command_1.Command {
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`🩸 Huyết Mạch: ${ub.name}`)
                 .setDescription(`**Cấp độ:** ${ub.level}${isMaxLevel ? ' (MAX)' : `\n**EXP:** ${ub.exp}/${nextLevelExp}`}\n\n*${ub.description}*`)
-                .setColor('#8b0000')
+                .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                 .addFields([
                 { name: '🌟 Nội Tại Kích Hoạt', value: passiveDesc || 'Chưa có', inline: false },
                 { name: '💢 Hiệu Ứng Nộ (Rage)', value: `Tăng sức mạnh x${ub.rage_effect.multiplier || 2} trong ${ub.rage_effect.duration || 3} hiệp (Cooldown: ${ub.rage_effect.cooldown || 10} phút).`, inline: false },
                 { name: '⚠️ Điểm Yếu', value: `*Sẽ bị ảnh hưởng bởi điểm yếu của ${ub.name} trong thực chiến.*`, inline: false }
             ]);
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         if (subCommand === 'danhsach') {
@@ -60,8 +61,8 @@ class HuyetMachCommand extends Command_1.Command {
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('📜 Danh Sách Huyết Mạch Thượng Cổ')
                 .setDescription(desc + '\n\n💡 *Dùng `/huyetmach chon <id>` để giác tỉnh (Phí 500 Linh thạch, cần Cấp 10).*')
-                .setColor('#8b0000');
-            await interaction.editReply({ embeds: [embed] });
+                .setColor(uiSystem_1.EMBED_COLORS.ERROR);
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         if (subCommand === 'chon') {

@@ -14,6 +14,7 @@ const PartyService_1 = require("../../services/PartyService");
 const dungeons_1 = require("../../config/dungeons");
 const database_1 = __importDefault(require("../../database/database"));
 const constants_1 = require("../../utils/constants");
+const uiSystem_1 = require("../../utils/uiSystem");
 exports.COOP_DUNGEONS = [
     {
         id: 'dc_1',
@@ -56,13 +57,13 @@ function getDungeonEmbed(userId) {
     if (!user) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('❌ Lỗi')
-            .setColor('#e74c3c')
+            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
             .setDescription('Đạo hữu chưa khởi tạo nhân vật! Hãy dùng `/taonhanvat` để bắt đầu.');
     }
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle('🔮 Bí Cảnh Phó Bản - Giới Luật Tu Hành')
         .setDescription('Nơi tu sĩ thử thách võ học bản thân, diệt quái thú linh dị đoạt lấy Tu Vi và bảo vật trời đất.')
-        .setColor('#9b59b6')
+        .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
         .setTimestamp();
     // Lấy danh sách CD của người chơi hôm nay
     const cds = database_1.default.prepare('SELECT dungeon_id, daily_entries, last_entry_at FROM dungeon_cooldowns WHERE user_id = ?').all(userId);
@@ -144,20 +145,20 @@ function buildCoopPartyEmbed(partyId) {
     if (!party) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('❌ Lỗi')
-            .setColor('#e74c3c')
+            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
             .setDescription('Tổ đội này không tồn tại hoặc đã bị giải tán.');
     }
     const dungeon = exports.COOP_DUNGEONS.find(d => d.id === party.dungeonId);
     if (!dungeon) {
         return new discord_js_1.EmbedBuilder()
             .setTitle('❌ Lỗi')
-            .setColor('#e74c3c')
+            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
             .setDescription('Bí cảnh không hợp lệ.');
     }
     const realmReq = (0, constants_1.getRealmDetails)(dungeon.minLevel).realmName;
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`⛩️ PHÒNG CHỜ BÍ CẢNH: ${dungeon.name}`)
-        .setColor('#e74c3c')
+        .setColor(uiSystem_1.EMBED_COLORS.ERROR)
         .setDescription(`*${dungeon.description}*\n\n` +
         `⚠️ **Cảnh giới tối thiểu:** **${realmReq}** (Cấp ${dungeon.minLevel})\n` +
         `👾 **Thủ Vệ Vương Giả:** **${dungeon.bossName}**\n` +
@@ -208,10 +209,7 @@ class BiCanhCommand extends Command_1.Command {
         if (subcmd === 'solo') {
             const embed = getDungeonEmbed(userId);
             const row = getDungeonComponents(userId);
-            await interaction.editReply({
-                embeds: [embed],
-                components: [row]
-            });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
         }
         else if (subcmd === 'taolap') {
             const dungeonId = interaction.options.getString('dungeon', true);
@@ -244,7 +242,7 @@ class BiCanhCommand extends Command_1.Command {
             const party = PartyService_1.partyService.createParty(userId, dungeonId, dungeon.maxMembers);
             const embed = buildCoopPartyEmbed(party.id);
             const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`joinparty_${party.id}`).setLabel('🤝 Tham Gia').setStyle(discord_js_1.ButtonStyle.Primary), new discord_js_1.ButtonBuilder().setCustomId(`startparty_${party.id}`).setLabel('⚔️ Bắt Đầu').setStyle(discord_js_1.ButtonStyle.Success), new discord_js_1.ButtonBuilder().setCustomId(`leaveparty_${party.id}`).setLabel('🚪 Rời Khỏi/Hủy').setStyle(discord_js_1.ButtonStyle.Danger));
-            await interaction.editReply({ embeds: [embed], components: [row] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
         }
         else if (subcmd === 'bangxephang') {
             const topPlayers = database_1.default.prepare(`
@@ -259,12 +257,12 @@ class BiCanhCommand extends Command_1.Command {
                 return;
             }
             const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('🏆 BẢNG XẾP HẠNG BÍ CẢNH 🏆')
-                .setColor('#f1c40f')
+                .setTitle('🏆 BẢNG XẾP HẠNG BÍ CẢNH')
+                .setColor(uiSystem_1.EMBED_COLORS.GOLD)
                 .setDescription('Danh sách các đại năng đã chinh phục nhiều Bí Cảnh nhất:\n\n' +
                 topPlayers.map((p, i) => `**#${i + 1}** ${p.name} (Cấp ${p.level}) - ⚔️ **${p.dungeon_clears}** lần phá đảo`).join('\n'))
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
     }
 }
