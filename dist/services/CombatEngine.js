@@ -79,6 +79,8 @@ class CombatEngine {
                 }
                 if (beastBonuses.passive === 'crit_hunt')
                     player.crit += 0.08;
+                if (beastBonuses.passive === 'metal_resist')
+                    player.def = Math.round(player.def * 1.10);
             }
             catch { }
         }

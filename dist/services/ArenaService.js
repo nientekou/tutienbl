@@ -226,37 +226,23 @@ class ArenaService {
             opponent.atk += Math.floor(oPetConfig.atk * 0.5); // Opponent pet damage is added to opponent's basic attack
         }
         const combatResult = CombatEngine_1.CombatEngine.run(challenger, opponent, cPetConfig, 15, false);
-        // Cập nhật ELO
+        const isChallengerWin = combatResult.winner === 'player';
+        const { rankedArenaService } = require('./RankedArenaService');
+        // ELO update qua RankedArenaService (bao gồm streak multiplier)
+        const eloChange = rankedArenaService.updateElo(isChallengerWin ? challengerId : opponentId, isChallengerWin ? opponentId : challengerId);
+        const eloChangeForChallenger = isChallengerWin ? eloChange.winnerGain : -eloChange.loserLoss;
+        // Season tracking
+        if (isChallengerWin)
+            rankedArenaService.recordWin(challengerId, opponentId);
+        else
+            rankedArenaService.recordWin(opponentId, challengerId);
+        // Update main profile (highest_elo tracking)
         const cProfile = this.getProfile(challengerId);
         const oProfile = this.getProfile(opponentId);
-        const isChallengerWin = combatResult.winner === 'player';
-        let eloChangeObj;
-        if (isChallengerWin) {
-            eloChangeObj = this.calculateEloChange(cProfile.elo, oProfile.elo);
-            this.updateProfileAfterMatch(challengerId, cProfile, true, eloChangeObj.winnerGain);
-            this.updateProfileAfterMatch(opponentId, oProfile, false, eloChangeObj.loserDrop);
-            this.updateLossesAndShield(challengerId, true);
-            this.updateLossesAndShield(opponentId, false);
-        }
-        else {
-            eloChangeObj = this.calculateEloChange(oProfile.elo, cProfile.elo);
-            this.updateProfileAfterMatch(challengerId, cProfile, false, eloChangeObj.loserDrop);
-            this.updateProfileAfterMatch(opponentId, oProfile, true, eloChangeObj.winnerGain);
-            this.updateLossesAndShield(challengerId, false);
-            this.updateLossesAndShield(opponentId, true);
-        }
-        const eloChangeForChallenger = isChallengerWin ? eloChangeObj.winnerGain : eloChangeObj.loserDrop;
-        // Sync với RankedArenaService để season tracking
-        try {
-            const { rankedArenaService } = require('./RankedArenaService');
-            rankedArenaService.getProfile(challengerId);
-            rankedArenaService.getProfile(opponentId);
-            if (isChallengerWin)
-                rankedArenaService.recordWin(challengerId, opponentId);
-            else
-                rankedArenaService.recordWin(opponentId, challengerId);
-        }
-        catch { }
+        this.updateProfileAfterMatch(challengerId, cProfile, isChallengerWin, eloChangeForChallenger);
+        this.updateProfileAfterMatch(opponentId, oProfile, !isChallengerWin, -eloChangeForChallenger);
+        this.updateLossesAndShield(challengerId, isChallengerWin);
+        this.updateLossesAndShield(opponentId, !isChallengerWin);
         // Lưu lịch sử
         const nowSec = Math.floor(Date.now() / 1000);
         const winnerId = isChallengerWin ? challengerId : opponentId;

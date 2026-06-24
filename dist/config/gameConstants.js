@@ -29,12 +29,16 @@ exports.GAME_CONSTANTS = {
     // Economy
     DAILY_BOSS_NGOTINH_PER_ATTACK: 3,
     DISCOUNT_ORTHODOX: 0.90,
-    MARKET_TAX_RATE: 0.05, // 5% tax on market sales (was 2%)
-    SECT_CREATE_COST_LT: 800, // 800 Linh Thach to create sect (was 500)
-    ENHANCE_COST_LT_PER_LEVEL: 150, // 150 LT per enhance level (was 100)
+    MARKET_TAX_RATE: 0.03, // 3% tax on market sales (reduced from 5% to boost trading)
+    SECT_CREATE_COST_LT: 800, // 800 Linh Thach to create sect
+    ENHANCE_COST_LT_PER_LEVEL: 150, // 150 LT per enhance level
     WORK_COIN_MULTIPLIER: 0.8, // 20% less coins from work
     NEW_PLAYER_BONUS_HOURS: 48, // Double EXP for first 48h
     NEW_PLAYER_DROP_RATE_BONUS: 1.5, // 50% more drops for first 48h
+    // Linh Can
+    LINH_CAN_PITY_THRESHOLD: 10, // After N rolls without element ≥40%, guarantee ≥35%
+    LINH_CAN_PITY_MIN_ELEMENT: 35, // Guaranteed minimum element % on pity roll
+    LINH_CAN_MINIMUM_GUARANTEE: 10, // Every player guaranteed at least 1 element ≥10%
     // Cache TTLs
     COMBAT_LOG_CACHE_TTL_MS: 600_000,
     INTERACTION_LOCK_TTL_MS: 300_000,

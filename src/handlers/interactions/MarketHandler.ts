@@ -472,5 +472,12 @@ export async function handleMarketAction(
 
   } catch (e) {
     console.error(`[MarketHandler] Lỗi xử lý action ${action}:`, e);
+    try {
+      if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: '❌ Có lỗi xảy ra!', flags: MessageFlags.Ephemeral });
+      } else if (interaction.isRepliable()) {
+        await interaction.followUp({ content: '❌ Có lỗi xảy ra!', flags: MessageFlags.Ephemeral });
+      }
+    } catch (_) {}
   }
 }

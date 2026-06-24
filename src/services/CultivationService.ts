@@ -77,6 +77,19 @@ export class CultivationService {
       linhCan[selectedElements[i]] = percentages[i];
     }
 
+    // Minimum guarantee: ensure at least 1 element ≥ 10%
+    const maxElement = Object.values(linhCan).reduce((a, b) => Math.max(a, b), 0);
+    if (maxElement < 10 && elementCount > 0) {
+      const keys = Object.keys(linhCan);
+      const boostAmount = 10 - maxElement;
+      linhCan[keys[0]] += boostAmount;
+      // Reduce the weakest element to compensate
+      if (keys.length > 1) {
+        const weakest = keys.reduce((a, b) => linhCan[a] < linhCan[b] ? a : b);
+        linhCan[weakest] = Math.max(1, linhCan[weakest] - boostAmount);
+      }
+    }
+
     return JSON.stringify(linhCan);
   }
 
@@ -342,6 +355,12 @@ export class CultivationService {
     if (!user) {
       return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!' };
     }
+
+    // Clean expired kyngo buffs
+    try {
+      const { kyNgoService } = require('./KyNgoService');
+      kyNgoService.cleanExpiredBuffs(discordId);
+    } catch {}
 
     const now = Math.floor(Date.now() / 1000);
     if (user.qi_deviation_until && user.qi_deviation_until > now) {

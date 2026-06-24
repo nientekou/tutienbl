@@ -40,6 +40,10 @@ async function handleNavigationAction(interaction, action, parts, userId) {
             }
             catch (e) {
                 console.error('[tuido] Lỗi mở túi đồ:', e?.message || e);
+                try {
+                    await interaction.editReply({ content: '❌ Lỗi mở túi đồ!' });
+                }
+                catch (_) { }
             }
             return;
         }
@@ -53,6 +57,10 @@ async function handleNavigationAction(interaction, action, parts, userId) {
             }
             catch (e) {
                 console.error('[invpage] Lỗi phân trang túi đồ:', e?.message || e);
+                try {
+                    await interaction.editReply({ content: '❌ Lỗi phân trang!' });
+                }
+                catch (_) { }
             }
             return;
         }
@@ -79,6 +87,10 @@ async function handleNavigationAction(interaction, action, parts, userId) {
             }
             catch (e) {
                 console.error('[mountpage] Lỗi phân trang tọa kỵ:', e?.message || e);
+                try {
+                    await interaction.editReply({ content: '❌ Lỗi phân trang tọa kỵ!' });
+                }
+                catch (_) { }
             }
             return;
         }
@@ -99,6 +111,10 @@ async function handleNavigationAction(interaction, action, parts, userId) {
             }
             catch (e) {
                 console.error('[spiritpage] Lỗi phân trang khí linh:', e?.message || e);
+                try {
+                    await interaction.editReply({ content: '❌ Lỗi phân trang khí linh!' });
+                }
+                catch (_) { }
             }
             return;
         }
@@ -113,6 +129,10 @@ async function handleNavigationAction(interaction, action, parts, userId) {
             }
             catch (e) {
                 console.error('[achpage] Lỗi phân trang thành tựu:', e?.message || e);
+                try {
+                    await interaction.editReply({ content: '❌ Lỗi phân trang thành tựu!' });
+                }
+                catch (_) { }
             }
             return;
         }
@@ -331,6 +351,7 @@ async function handleNavigationAction(interaction, action, parts, userId) {
             const firstUnderscore = selectedValue.indexOf('_');
             const itemAction = selectedValue.substring(0, firstUnderscore);
             const inventoryId = parseInt(selectedValue.substring(firstUnderscore + 1), 10);
+            console.log(`[invselect] action=${itemAction} id=${inventoryId} user=${targetUserId} value=${selectedValue}`);
             if (isNaN(inventoryId)) {
                 await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
@@ -353,9 +374,11 @@ async function handleNavigationAction(interaction, action, parts, userId) {
                 resultMessage = res.message;
             }
             if (!success) {
+                console.log(`[invselect] FAIL: ${resultMessage}`);
                 await interaction.reply({ content: `❌ ${resultMessage}`, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
+            console.log(`[invselect] OK: ${resultMessage}`);
             const pageNum = Math.max(1, parseInt(parts[1], 10) || 1);
             const { embed, totalPages, itemsOnPage } = (0, hoso_1.getInventoryEmbed)(targetUserId, pageNum);
             const components = (0, hoso_1.getInventoryComponents)(targetUserId, pageNum, totalPages, itemsOnPage);
@@ -431,5 +454,14 @@ async function handleNavigationAction(interaction, action, parts, userId) {
     }
     catch (e) {
         console.error(`[NavigationHandler] Lỗi xử lý action ${action}:`, e);
+        try {
+            if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: '❌ Có lỗi xảy ra!', flags: discord_js_1.MessageFlags.Ephemeral });
+            }
+            else if (interaction.isRepliable()) {
+                await interaction.followUp({ content: '❌ Có lỗi xảy ra!', flags: discord_js_1.MessageFlags.Ephemeral });
+            }
+        }
+        catch (_) { }
     }
 }

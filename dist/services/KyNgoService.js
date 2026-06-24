@@ -77,8 +77,14 @@ class KyNgoService {
         for (const eff of effects) {
             switch (eff.type) {
                 case 'cultivation_speed':
-                    database_1.default.prepare('UPDATE users SET cultivation_speed_bonus = COALESCE(cultivation_speed_bonus, 0) + ? WHERE discord_id = ?')
-                        .run(eff.value, userId);
+                    if (eff.duration) {
+                        // Duration-based buff: store in system_config with expiry
+                        this.addTimedBuff(userId, 'kyngo_speed', eff.value, eff.duration);
+                    }
+                    else {
+                        database_1.default.prepare('UPDATE users SET cultivation_speed_bonus = COALESCE(cultivation_speed_bonus, 0) + ? WHERE discord_id = ?')
+                            .run(eff.value, userId);
+                    }
                     break;
                 case 'breakthrough_rate':
                     database_1.default.prepare('UPDATE users SET breakthrough_bonus = COALESCE(breakthrough_bonus, 0) + ? WHERE discord_id = ?')
@@ -96,6 +102,37 @@ class KyNgoService {
                     database_1.default.prepare('UPDATE users SET qi_deviation = MIN(100, COALESCE(qi_deviation, 0) + ?) WHERE discord_id = ?')
                         .run(eff.value, userId);
                     break;
+            }
+        }
+    }
+    addTimedBuff(userId, buffType, value, durationHours) {
+        const expiresAt = Math.floor(Date.now() / 1000) + durationHours * 3600;
+        const key = `buff:${userId}:${buffType}`;
+        const existing = database_1.default.prepare('SELECT value FROM system_config WHERE key = ?').get(key);
+        if (existing) {
+            const data = JSON.parse(existing.value);
+            // Stack: add value, use later expiry
+            database_1.default.prepare('UPDATE system_config SET value = ? WHERE key = ?')
+                .run(JSON.stringify({ value: data.value + value, expiresAt: Math.max(data.expiresAt, expiresAt) }), key);
+        }
+        else {
+            database_1.default.prepare('INSERT INTO system_config (key, value) VALUES (?, ?)')
+                .run(key, JSON.stringify({ value, expiresAt }));
+        }
+        // Apply to user column immediately
+        database_1.default.prepare('UPDATE users SET cultivation_speed_bonus = COALESCE(cultivation_speed_bonus, 0) + ? WHERE discord_id = ?')
+            .run(value, userId);
+    }
+    cleanExpiredBuffs(userId) {
+        const now = Math.floor(Date.now() / 1000);
+        const buffs = database_1.default.prepare("SELECT key, value FROM system_config WHERE key LIKE ?").all(`buff:${userId}:%`);
+        for (const row of buffs) {
+            const data = JSON.parse(row.value);
+            if (data.expiresAt <= now) {
+                // Remove expired buff from user column
+                database_1.default.prepare('UPDATE users SET cultivation_speed_bonus = MAX(0, COALESCE(cultivation_speed_bonus, 0) - ?) WHERE discord_id = ?')
+                    .run(data.value, userId);
+                database_1.default.prepare('DELETE FROM system_config WHERE key = ?').run(row.key);
             }
         }
     }

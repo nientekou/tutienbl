@@ -42,6 +42,7 @@ export async function handleNavigationAction(
         await interaction.editReply(toV2Payload([embed], components));
       } catch (e: any) {
         console.error('[tuido] Lỗi mở túi đồ:', e?.message || e);
+        try { await interaction.editReply({ content: '❌ Lỗi mở túi đồ!' }); } catch (_) {}
       }
       return;
     }
@@ -55,6 +56,7 @@ export async function handleNavigationAction(
         await interaction.editReply(toV2Payload([embed], components));
       } catch (e: any) {
         console.error('[invpage] Lỗi phân trang túi đồ:', e?.message || e);
+        try { await interaction.editReply({ content: '❌ Lỗi phân trang!' }); } catch (_) {}
       }
       return;
     }
@@ -80,6 +82,7 @@ export async function handleNavigationAction(
         await interaction.editReply(toV2Payload([embed], components));
       } catch (e: any) {
         console.error('[mountpage] Lỗi phân trang tọa kỵ:', e?.message || e);
+        try { await interaction.editReply({ content: '❌ Lỗi phân trang tọa kỵ!' }); } catch (_) {}
       }
       return;
     }
@@ -98,6 +101,7 @@ export async function handleNavigationAction(
         await interaction.editReply(toV2Payload([embed], components));
       } catch (e: any) {
         console.error('[spiritpage] Lỗi phân trang khí linh:', e?.message || e);
+        try { await interaction.editReply({ content: '❌ Lỗi phân trang khí linh!' }); } catch (_) {}
       }
       return;
     }
@@ -112,6 +116,7 @@ export async function handleNavigationAction(
         await interaction.editReply(toV2Payload([embed], components));
       } catch (e: any) {
         console.error('[achpage] Lỗi phân trang thành tựu:', e?.message || e);
+        try { await interaction.editReply({ content: '❌ Lỗi phân trang thành tựu!' }); } catch (_) {}
       }
       return;
     }
@@ -383,6 +388,7 @@ export async function handleNavigationAction(
       const firstUnderscore = selectedValue.indexOf('_');
       const itemAction = selectedValue.substring(0, firstUnderscore);
       const inventoryId = parseInt(selectedValue.substring(firstUnderscore + 1), 10);
+      console.log(`[invselect] action=${itemAction} id=${inventoryId} user=${targetUserId} value=${selectedValue}`);
 
       if (isNaN(inventoryId)) {
         await interaction.reply({ content: '❌ Vật phẩm không hợp lệ!', flags: MessageFlags.Ephemeral });
@@ -407,10 +413,12 @@ export async function handleNavigationAction(
       }
 
       if (!success) {
+        console.log(`[invselect] FAIL: ${resultMessage}`);
         await interaction.reply({ content: `❌ ${resultMessage}`, flags: MessageFlags.Ephemeral });
         return;
       }
 
+      console.log(`[invselect] OK: ${resultMessage}`);
       const pageNum = Math.max(1, parseInt(parts[1], 10) || 1);
       const { embed, totalPages, itemsOnPage } = getInventoryEmbed(targetUserId, pageNum);
       const components = getInventoryComponents(targetUserId, pageNum, totalPages, itemsOnPage);
@@ -492,5 +500,12 @@ export async function handleNavigationAction(
 
   } catch (e) {
     console.error(`[NavigationHandler] Lỗi xử lý action ${action}:`, e);
+    try {
+      if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: '❌ Có lỗi xảy ra!', flags: MessageFlags.Ephemeral });
+      } else if (interaction.isRepliable()) {
+        await interaction.followUp({ content: '❌ Có lỗi xảy ra!', flags: MessageFlags.Ephemeral });
+      }
+    } catch (_) {}
   }
 }

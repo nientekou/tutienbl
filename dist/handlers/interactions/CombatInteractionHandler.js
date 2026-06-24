@@ -34,5 +34,14 @@ async function handleCombatAction(interaction, action, parts, userId) {
     }
     catch (error) {
         console.error(`[CombatInteractionHandler] Lỗi xử lý action ${action}:`, error);
+        try {
+            if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: '❌ Có lỗi xảy ra!', flags: discord_js_1.MessageFlags.Ephemeral });
+            }
+            else if (interaction.isRepliable()) {
+                await interaction.followUp({ content: '❌ Có lỗi xảy ra!', flags: discord_js_1.MessageFlags.Ephemeral });
+            }
+        }
+        catch (_) { }
     }
 }

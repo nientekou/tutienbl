@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.tamMaService = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const tamMaConstants_1 = require("../config/tamMaConstants");
+const CombatEngine_1 = require("./CombatEngine");
 const CacheService_1 = require("./CacheService");
 class TamMaService {
     maybeSummonDemon(userId, userLevel, qiDeviation) {
@@ -25,48 +26,45 @@ class TamMaService {
     `).run(userId, demon.type, demon.name, scaledPower);
         return info.lastInsertRowid;
     }
-    fightDemon(userId, demonId, playerStats) {
+    fightDemon(userId, demonId, playerCombatant) {
         const row = database_1.default.prepare('SELECT * FROM inner_demons WHERE id = ? AND user_id = ?')
             .get(demonId, userId);
         if (!row || row.defeated)
             return { victory: false, log: ['Tâm ma đã bị tiêu diệt hoặc không tồn tại!'], daoType: '', daoPoints: 0 };
         const demonDef = tamMaConstants_1.INNER_DEMON_TYPES.find(d => d.type === row.demon_type);
-        const log = [];
-        let playerHp = playerStats.hp;
-        let demonHp = row.power * 5;
-        const demonAtk = row.power;
-        const demonDefense = Math.floor(row.power * 0.6);
-        const elementAdvantage = {
-            kim: 'moc', moc: 'tho', tho: 'thuy', thuy: 'hoa', hoa: 'kim'
+        // Build demon as CombatEngine Combatant
+        const demonCombatant = {
+            name: row.demon_name,
+            hp: row.power * 5,
+            maxHp: row.power * 5,
+            atk: row.power,
+            def: Math.floor(row.power * 0.6),
+            crit: 10,
+            critRes: 5,
+            luck: 0,
+            element: demonDef.element,
+            equippedSkills: demonDef.skills.map(s => ({
+                id: s, element: demonDef.element, level: 1, name: s
+            }))
         };
-        for (let round = 1; round <= 20; round++) {
-            const playerDmg = Math.max(1, Math.floor(playerStats.atk * (0.8 + Math.random() * 0.4) - demonDefense * 0.5));
-            demonHp -= playerDmg;
-            log.push(`H#${round}: Đạo hữu tấn công -${playerDmg} HP`);
-            if (demonHp <= 0)
-                break;
-            const demonDmg = Math.max(1, Math.floor(demonAtk * (0.8 + Math.random() * 0.4) - playerStats.def * 0.5));
-            playerHp -= demonDmg;
-            log.push(`M#${round}: ${demonDef.name} tấn công -${demonDmg} HP`);
-            if (playerHp <= 0)
-                break;
-        }
-        const victory = demonHp <= 0;
+        // Use full CombatEngine for consistent combat mechanics
+        const result = CombatEngine_1.CombatEngine.run(playerCombatant, demonCombatant, null, 20);
+        const victory = result.winner === 'player';
         if (victory) {
             database_1.default.prepare('UPDATE inner_demons SET defeated = 1, defeated_at = ? WHERE id = ?')
                 .run(Math.floor(Date.now() / 1000), demonId);
             this.addDaoPoints(userId, demonDef.reward.daoType, demonDef.reward.points);
             database_1.default.prepare('UPDATE users SET qi_deviation = MAX(0, COALESCE(qi_deviation, 0) - 10) WHERE discord_id = ?')
                 .run(userId);
-            log.push(`✅ **Thắng!** Nhận ${demonDef.reward.points} điểm ${demonDef.reward.daoType}`);
+            result.log.push(`✅ **Thắng!** Nhận ${demonDef.reward.points} điểm ${demonDef.reward.daoType}`);
         }
         else {
             database_1.default.prepare(`UPDATE users SET qi_deviation = MIN(100, COALESCE(qi_deviation, 0) + ?) WHERE discord_id = ?`)
                 .run(demonDef.failurePenalty.qiDeviation, userId);
-            log.push(`❌ **Bại!** Lệch tâm +${demonDef.failurePenalty.qiDeviation}`);
+            result.log.push(`❌ **Bại!** Lệch tâm +${demonDef.failurePenalty.qiDeviation}`);
         }
         CacheService_1.cacheService.invalidatePrefix(`stats:${userId}`);
-        return { victory, log, daoType: demonDef.reward.daoType, daoPoints: victory ? demonDef.reward.points : 0 };
+        return { victory, log: result.log, daoType: demonDef.reward.daoType, daoPoints: victory ? demonDef.reward.points : 0 };
     }
     addDaoPoints(userId, daoType, points) {
         const existing = database_1.default.prepare('SELECT * FROM dao_comprehension WHERE user_id = ? AND dao_type = ?')

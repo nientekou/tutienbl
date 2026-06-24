@@ -209,7 +209,20 @@ class InteractionCreateEvent extends Event_1.Event {
                     interaction.customId.startsWith('adminpanel_') ||
                     interaction.customId.startsWith('adminuser_') ||
                     interaction.customId.startsWith('adminfixpets_') ||
-                    interaction.customId.startsWith('alch_select_')))) {
+                    interaction.customId.startsWith('alch_select_') ||
+                    interaction.customId.startsWith('invselect_') ||
+                    interaction.customId.startsWith('select_alignment_') ||
+                    interaction.customId.startsWith('bicanhselect_') ||
+                    interaction.customId.startsWith('craftselect_') ||
+                    interaction.customId.startsWith('linhdiengieoselect_') ||
+                    interaction.customId.startsWith('linhdienspeedupselect_') ||
+                    interaction.customId.startsWith('linhdiencareselect_') ||
+                    interaction.customId.startsWith('luyenkhiselect_') ||
+                    interaction.customId.startsWith('sectjoinselect_') ||
+                    interaction.customId.startsWith('sectdonateselect_') ||
+                    interaction.customId.startsWith('pb_bind_select_') ||
+                    interaction.customId.startsWith('pb_swap_select_') ||
+                    interaction.customId.startsWith('adminpanel_restoreselect_')))) {
                 let customId = interaction.customId;
                 if (interaction.isStringSelectMenu() && (customId.startsWith('hosoaction_') || customId.startsWith('hosoaction1_') || customId.startsWith('hosoaction2_'))) {
                     customId = `${interaction.values[0]}_${customId.split('_')[1]}`;

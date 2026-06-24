@@ -1621,9 +1621,8 @@ function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_arena_elo ON arena_profiles(elo DESC);
     CREATE INDEX IF NOT EXISTS idx_boss_contrib ON world_boss_contributions(boss_id);
     CREATE INDEX IF NOT EXISTS idx_daily_quest_user ON daily_quests(user_id, assigned_at);
-    CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, is_read);
     CREATE INDEX IF NOT EXISTS idx_market_item ON market_listings(item_id, status);
-    CREATE INDEX IF NOT EXISTS idx_achieve_user ON user_achievements(user_id, unlocked);
+    CREATE INDEX IF NOT EXISTS idx_achieve_user ON user_achievements(user_id, is_completed);
     CREATE INDEX IF NOT EXISTS idx_pet_user ON pets(user_id, is_deployed);
     CREATE INDEX IF NOT EXISTS idx_heart_law_user ON user_heart_laws(user_id);
     CREATE INDEX IF NOT EXISTS idx_destiny_user ON user_destinies(user_id);
