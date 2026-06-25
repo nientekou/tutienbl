@@ -14,7 +14,8 @@ import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { enhanceService } from '../../services/EnhanceService';
 import { ITEMS } from '../../config/itemConstants';
-import { container, header, body, separator, V2_COLORS, V2_FLAG } from '../../utils/v2Components';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
+import { safeV2EditReply } from '../../utils/uiSystem';
 
 export default class CuongHuaCommand extends Command {
   constructor() {
@@ -75,7 +76,7 @@ export default class CuongHuaCommand extends Command {
     });
 
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-    await interaction.reply({ components: [comp, row], flags: V2_FLAG });
+    await safeV2EditReply(interaction, [comp], [row]);
   }
 
   /**

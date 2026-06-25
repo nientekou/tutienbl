@@ -27,22 +27,12 @@ class MessageCreateEvent extends Event_1.Event {
         if (!word)
             return;
         const result = await NoituService_1.noituService.handleWord(gameKey, message.author.id, message.author.username, word);
-        if (result === 'valid') {
+        if (result.accepted) {
             await message.react('✅').catch(() => { });
         }
         else {
             await message.react('❌').catch(() => { });
-            let reason = '';
-            if (result === 'wrong_start')
-                reason = `Phải bắt đầu bằng **${game.lastSyllable}**`;
-            else if (result === 'already_used')
-                reason = 'Từ đã được dùng';
-            else if (result === 'too_short')
-                reason = 'Cần ít nhất 2 âm tiết';
-            else if (result === 'wrong_api')
-                reason = 'Từ không có trong từ điển. Dùng `/noitu donggop` để đề xuất thêm từ.';
-            else if (result === 'same_user')
-                reason = 'Bạn đã nối rồi, hãy đợi người khác trả lời trước';
+            const reason = result.message;
             if (reason) {
                 const reply = await message.reply({ content: reason }).catch(() => null);
                 if (reply)

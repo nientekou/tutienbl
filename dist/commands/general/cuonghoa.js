@@ -7,6 +7,7 @@ const InventoryRepository_1 = require("../../database/repositories/InventoryRepo
 const EnhanceService_1 = require("../../services/EnhanceService");
 const itemConstants_1 = require("../../config/itemConstants");
 const v2Components_1 = require("../../utils/v2Components");
+const uiSystem_1 = require("../../utils/uiSystem");
 class CuongHuaCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -53,7 +54,7 @@ class CuongHuaCommand extends Command_1.Command {
                 .setValue(item.id.toString()));
         });
         const row = new discord_js_1.ActionRowBuilder().addComponents(selectMenu);
-        await interaction.reply({ components: [comp, row], flags: v2Components_1.V2_FLAG });
+        await (0, uiSystem_1.safeV2EditReply)(interaction, [comp], [row]);
     }
     /**
      * Tạo giao diện xem trước thông tin cường hóa của trang bị cụ thể

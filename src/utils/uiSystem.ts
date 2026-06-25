@@ -368,6 +368,23 @@ export async function safeV2TextUpdate(
   (interaction as any).replied = true;
 }
 
+/** Safe V2 editReply via raw REST — edits a deferred slash-command reply with V2
+ *  components. Bypasses discord.js editReply() which injects 'content' and breaks V2_FLAG.
+ *  Uses PATCH /webhooks/{appId}/{token}/messages/@original.
+ */
+export async function safeV2EditReply(
+  interaction: { client: any; id: string; token: string },
+  embeds: (EmbedBuilder | ContainerBuilder)[],
+  rows?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
+): Promise<void> {
+  const components = [...embeds.map(e => e instanceof ContainerBuilder ? e : embedToV2(e)), ...(rows ?? [])];
+  await interaction.client.rest.patch(
+    Routes.webhookMessage(interaction.client.user.id, interaction.token, '@original'),
+    { body: { components, flags: V2_FLAG } }
+  );
+  (interaction as any).replied = true;
+}
+
 // ==================== EMBED COMPAT HELPERS ====================
 
 export const EMBED_COLORS = {

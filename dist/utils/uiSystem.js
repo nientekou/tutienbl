@@ -19,6 +19,7 @@ exports.toV2Update = toV2Update;
 exports.toLegacyUpdate = toLegacyUpdate;
 exports.safeV2Update = safeV2Update;
 exports.safeV2TextUpdate = safeV2TextUpdate;
+exports.safeV2EditReply = safeV2EditReply;
 const discord_js_1 = require("discord.js");
 // ==================== COLOR SYSTEM ====================
 exports.UI_COLORS = {
@@ -272,6 +273,15 @@ async function safeV2Update(interaction, embeds, rows) {
 async function safeV2TextUpdate(interaction, text) {
     const components = [textToV2(text)];
     await interaction.client.rest.post(discord_js_1.Routes.interactionCallback(interaction.id, interaction.token), { body: { type: 7, data: { components, flags: exports.V2_FLAG } } });
+    interaction.replied = true;
+}
+/** Safe V2 editReply via raw REST — edits a deferred slash-command reply with V2
+ *  components. Bypasses discord.js editReply() which injects 'content' and breaks V2_FLAG.
+ *  Uses PATCH /webhooks/{appId}/{token}/messages/@original.
+ */
+async function safeV2EditReply(interaction, embeds, rows) {
+    const components = [...embeds.map(e => e instanceof discord_js_1.ContainerBuilder ? e : embedToV2(e)), ...(rows ?? [])];
+    await interaction.client.rest.patch(discord_js_1.Routes.webhookMessage(interaction.client.user.id, interaction.token, '@original'), { body: { components, flags: exports.V2_FLAG } });
     interaction.replied = true;
 }
 // ==================== EMBED COMPAT HELPERS ====================

@@ -1946,15 +1946,14 @@ export default class AdminCommand extends Command {
 
         systemConfigService.writeAuditLog(adminId, 'admin_testmax', { targetUserId: adminId });
 
-        await interaction.reply({
+        await interaction.editReply({
           content: `🧪 **Test Max hoàn tất!**\n` +
             `• Level: 380 (Đăng Tiên)\n` +
             `• KNB: 99,999 | LT: 999,999,999\n` +
             `• Ngộ Tính: 9,999\n` +
             `• Equipment: EX +15 5-star\n` +
             `• Luân Hồi: 5 lần\n` +
-            `• Tiêu hao: 999x mỗi loại`,
-          ephemeral: true
+            `• Tiêu hao: 999x mỗi loại`
         });
         return;
       }

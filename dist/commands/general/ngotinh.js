@@ -15,7 +15,7 @@ class NgoTinhCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật! Dùng `/taonhanvat` để tạo.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật! Dùng `/taonhanvat` để tạo.' });
             return;
         }
         const activeBuffs = NgoTinhService_1.ngoTinhService.getActiveBuffs(userId);
@@ -52,7 +52,7 @@ class NgoTinhCommand extends Command_1.Command {
             }
             rows.push(row);
         }
-        await interaction.reply({ embeds: [embed], components: rows });
+        await interaction.editReply({ embeds: [embed], components: rows });
     }
 }
 exports.default = NgoTinhCommand;

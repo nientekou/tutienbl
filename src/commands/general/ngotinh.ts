@@ -19,7 +19,7 @@ export default class NgoTinhCommand extends Command {
     const user = userRepository.get(userId);
 
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật! Dùng `/taonhanvat` để tạo.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật! Dùng `/taonhanvat` để tạo.' });
       return;
     }
 
@@ -64,6 +64,6 @@ export default class NgoTinhCommand extends Command {
       rows.push(row);
     }
 
-    await interaction.reply({ embeds: [embed], components: rows });
+    await interaction.editReply({ embeds: [embed], components: rows });
   }
 }
