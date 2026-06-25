@@ -5,12 +5,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.noituService = exports.NoituService = void 0;
 const discord_js_1 = require("discord.js");
-const uiSystem_1 = require("../utils/uiSystem");
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const database_1 = __importDefault(require("../database/database"));
 const API_BASE = 'https://dict.minhqnd.com/api/v1';
 // ── Constants ──
-const TURN_TIME_MS = 45_000;
+const TURN_TIME_MS = 3_600_000; // 1 tiếng
 const MAX_NO_ANSWER = 5;
 const WIN_REWARD = 500;
 const STARTING_WORDS = [
@@ -271,17 +270,14 @@ class NoituService {
             if (!channel || !('send' in channel))
                 return;
             if (action === 'stop') {
-                const embed = new discord_js_1.EmbedBuilder()
-                    .setTitle('Nối Từ Kết Thúc')
-                    .setColor(uiSystem_1.EMBED_COLORS.GOLD)
-                    .setDescription([
-                    `**${MAX_NO_ANSWER} lượt liên tiếp không ai nối.**`,
-                    '',
-                    winnerName
+                const c = new discord_js_1.ContainerBuilder()
+                    .setAccentColor(0xf1c40f)
+                    .addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent('# 🔤 Nối Từ Kết Thúc\n' +
+                    `**${MAX_NO_ANSWER} lượt liên tiếp không ai nối.**\n\n` +
+                    (winnerName
                         ? `🏆 **${winnerName}** thắng — nhận **${WIN_REWARD}** Hạ Phẩm Linh Thạch!`
-                        : 'Không có ai chiến thắng.',
-                ].join('\n'));
-                channel.send({ embeds: [embed] }).catch(() => { });
+                        : 'Không có ai chiến thắng.')));
+                channel.send({ components: [c], flags: discord_js_1.MessageFlags.IsComponentsV2 }).catch(() => { });
                 // Give reward
                 if (winnerName) {
                     const g = this.games.get(gameKey);
@@ -297,22 +293,17 @@ class NoituService {
                 const g = this.games.get(gameKey);
                 if (!g)
                     return;
-                const embed = new discord_js_1.EmbedBuilder()
-                    .setTitle('Hết Thời Gian')
-                    .setColor(uiSystem_1.EMBED_COLORS.WARNING)
-                    .setDescription([
-                    winnerName
-                        ? `🏆 **${winnerName}** thắng ván này — nhận **${WIN_REWARD}** Hạ Phẩm Linh Thạch!`
-                        : `Không ai nối **"${oldSyllable}"**`,
-                    '',
-                    `🔄 **Ván mới:**`,
-                    `📜 **${g.currentWord}** → *${g.lastSyllable}*`,
-                    `⏱ 45s  •  Từ #${g.turnNumber}`,
-                    '',
-                    `💬 Gõ từ bắt đầu bằng **${g.lastSyllable}**`,
-                ].join('\n'))
-                    .setTimestamp();
-                channel.send({ embeds: [embed] }).catch(() => { });
+                const c = new discord_js_1.ContainerBuilder()
+                    .setAccentColor(0xf39c12)
+                    .addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent('# ⏰ Hết Thời Gian\n' +
+                    (winnerName
+                        ? `🏆 **${winnerName}** thắng ván này — nhận **${WIN_REWARD}** Hạ Phẩm Linh Thạch!\n\n`
+                        : `Không ai nối **"${oldSyllable}"**\n\n`) +
+                    `🔄 **Ván mới:**\n` +
+                    `📜 **${g.currentWord}** → *${g.lastSyllable}*\n` +
+                    `⏱ 1 tiếng  •  Từ #${g.turnNumber}\n\n` +
+                    `💬 Gõ từ bắt đầu bằng **${g.lastSyllable}**`));
+                channel.send({ components: [c], flags: discord_js_1.MessageFlags.IsComponentsV2 }).catch(() => { });
                 // Give reward
                 if (winnerName && g.lastAnswererId) {
                     const user = UserRepository_1.userRepository.get(g.lastAnswererId);
@@ -338,21 +329,18 @@ class NoituService {
     firstSyl(word) {
         return word.trim().split(/\s+/)[0] || word;
     }
-    buildGameEmbed(game, extra) {
-        const timeLeft = Math.max(0, Math.ceil((game.turnExpiry - Date.now()) / 1000));
-        const lines = [];
+    buildGameDisplay(game, extra) {
+        const lines = ['# 🔤 Nối Từ'];
         if (extra)
-            lines.push(extra, '');
-        lines.push(`📜 **${game.currentWord}** → *${game.lastSyllable}*`, `⏱ ${timeLeft}s  •  Từ #${game.turnNumber}`);
+            lines.push('', extra);
+        lines.push('', `📜 **${game.currentWord}** → *${game.lastSyllable}*`, `⏱ 1 tiếng  •  Từ #${game.turnNumber}`);
         if (game.noAnswerStreak > 0) {
             lines.push(`⚠️ ${game.noAnswerStreak}/${MAX_NO_ANSWER} lượt chưa ai nối`);
         }
         lines.push('', `💬 Gõ từ bắt đầu bằng **${game.lastSyllable}**`);
-        return new discord_js_1.EmbedBuilder()
-            .setTitle('Nối Từ')
-            .setColor(uiSystem_1.EMBED_COLORS.INFO)
-            .setDescription(lines.join('\n'))
-            .setTimestamp();
+        return new discord_js_1.ContainerBuilder()
+            .setAccentColor(0x3498db)
+            .addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(lines.join('\n')));
     }
     // ── Word count ──
     getWordCount() {
@@ -409,7 +397,7 @@ class NoituService {
             return null;
         this.skipVotes.set(gameKey, { voters: new Set(), channelId: game.channelId });
         return {
-            embed: this.buildSkipVoteEmbed(game),
+            display: this.buildSkipVoteDisplay(game),
             row: this.buildSkipVoteRow(gameKey),
         };
     }
@@ -429,16 +417,15 @@ class NoituService {
         }
         return 'voted';
     }
-    buildSkipVoteEmbed(game) {
+    buildSkipVoteDisplay(game) {
         const vote = this.skipVotes.get(`${game.guildId}:${game.channelId}`);
         const count = vote ? vote.voters.size : 0;
-        return new discord_js_1.EmbedBuilder()
-            .setTitle('🗳️ Bỏ Phiếu Bỏ Qua')
-            .setColor(uiSystem_1.EMBED_COLORS.WARNING)
-            .setDescription(`📜 Từ hiện tại: **${game.currentWord}** → *${game.lastSyllable}*\n\n` +
+        return new discord_js_1.ContainerBuilder()
+            .setAccentColor(0xf39c12)
+            .addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent('# 🗳️ Bỏ Phiếu Bỏ Qua\n' +
+            `📜 Từ hiện tại: **${game.currentWord}** → *${game.lastSyllable}*\n\n` +
             `👥 **${count}/${this.SKIP_VOTE_THRESHOLD}** phiếu cần để bỏ qua\n\n` +
-            `_Nhấn nút bên dưới để bỏ phiếu._`)
-            .setTimestamp();
+            `_Nhấn nút bên dưới để bỏ phiếu._`));
     }
     buildSkipVoteRow(gameKey) {
         return new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
@@ -446,18 +433,17 @@ class NoituService {
             .setLabel('🗳️ Bỏ Phiếu Bỏ Qua')
             .setStyle(discord_js_1.ButtonStyle.Primary));
     }
-    buildSkipPassedEmbed(winnerName, game) {
+    buildSkipPassedDisplay(winnerName, game) {
         const extra = winnerName
             ? `🏆 **${winnerName}** thắng — nhận **${WIN_REWARD}** Hạ Phẩm Linh Thạch!`
             : 'Không có ai chiến thắng.';
-        return new discord_js_1.EmbedBuilder()
-            .setTitle('✅ Đã Bỏ Qua Từ')
-            .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
-            .setDescription(`Từ **"${game.currentWord}"** đã được bỏ qua.\n` +
+        return new discord_js_1.ContainerBuilder()
+            .setAccentColor(0x2ecc71)
+            .addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent('# ✅ Đã Bỏ Qua Từ\n' +
+            `Từ **"${game.currentWord}"** đã được bỏ qua.\n` +
             `${extra}\n\n` +
             `🔄 **Từ mới:** *${game.lastSyllable}*\n` +
-            `💬 Gõ từ bắt đầu bằng **${game.lastSyllable}**`)
-            .setTimestamp();
+            `💬 Gõ từ bắt đầu bằng **${game.lastSyllable}**`));
     }
 }
 exports.NoituService = NoituService;

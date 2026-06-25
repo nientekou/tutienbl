@@ -1,6 +1,6 @@
 import { Event } from '../structures/Event';
 import { TuTienClient } from '../client/TuTienClient';
-import { Message } from 'discord.js';
+import { Message, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
 import { noituService } from '../services/NoituService';
 import db from '../database/database';
 
@@ -28,6 +28,12 @@ export default class MessageCreateEvent extends Event<'messageCreate'> {
 
     if (result.accepted) {
       await message.react('✅').catch(() => {});
+      try {
+        const display = noituService.buildGameDisplay(game, `✅ **${message.author.username}** đã nối: **${game.currentWord}**`);
+        if ((message.channel as any).send) {
+          await (message.channel as any).send({ components: [display], flags: MessageFlags.IsComponentsV2 });
+        }
+      } catch (_) {}
     } else {
       await message.react('❌').catch(() => {});
       const reason = result.message;

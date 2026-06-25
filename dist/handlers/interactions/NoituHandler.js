@@ -25,15 +25,15 @@ async function handleNoituAction(interaction, action, parts, userId) {
                 return;
             }
             if (result === 'voted' && game) {
-                const updatedEmbed = NoituService_1.noituService.buildSkipVoteEmbed(game);
+                const updatedDisplay = NoituService_1.noituService.buildSkipVoteDisplay(game);
                 const updatedRow = NoituService_1.noituService.buildSkipVoteRow(gameKey);
-                await (0, uiSystem_1.safeV2Update)(interaction, [updatedEmbed], [updatedRow]);
+                await (0, uiSystem_1.safeV2Update)(interaction, [updatedDisplay], [updatedRow]);
                 return;
             }
             if (result === 'skip_passed') {
                 if (game) {
-                    const passedEmbed = NoituService_1.noituService.buildSkipPassedEmbed(winnerName, game);
-                    await (0, uiSystem_1.safeV2Update)(interaction, [passedEmbed], []);
+                    const passedDisplay = NoituService_1.noituService.buildSkipPassedDisplay(winnerName, game);
+                    await (0, uiSystem_1.safeV2Update)(interaction, [passedDisplay], []);
                 }
                 return;
             }

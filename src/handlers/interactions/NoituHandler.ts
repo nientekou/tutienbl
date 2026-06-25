@@ -31,15 +31,15 @@ export async function handleNoituAction(
         return;
       }
       if (result === 'voted' && game) {
-        const updatedEmbed = noituService.buildSkipVoteEmbed(game);
+        const updatedDisplay = noituService.buildSkipVoteDisplay(game);
         const updatedRow = noituService.buildSkipVoteRow(gameKey);
-        await safeV2Update(interaction, [updatedEmbed], [updatedRow]);
+        await safeV2Update(interaction, [updatedDisplay], [updatedRow]);
         return;
       }
       if (result === 'skip_passed') {
         if (game) {
-          const passedEmbed = noituService.buildSkipPassedEmbed(winnerName, game);
-          await safeV2Update(interaction, [passedEmbed], []);
+          const passedDisplay = noituService.buildSkipPassedDisplay(winnerName, game);
+          await safeV2Update(interaction, [passedDisplay], []);
         }
         return;
       }

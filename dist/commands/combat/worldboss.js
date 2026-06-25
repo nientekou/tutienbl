@@ -248,13 +248,13 @@ function getBossShopComponents(userId) {
 function handleBossShopPurchase(userId, itemKey) {
     const item = BOSS_SHOP_ITEMS.find(i => i.key === itemKey);
     if (!item)
-        return { success: false, message: 'Vật phẩm không tồn tại.' };
+        return { success: false, message: '❌ Vật phẩm không tồn tại.' };
     const user = UserRepository_1.userRepository.get(userId);
     if (!user)
-        return { success: false, message: 'Đạo hữu chưa tạo nhân vật!' };
+        return { success: false, message: '❌ Đạo hữu chưa tạo nhân vật!' };
     const bp = user.boss_points || 0;
     if (bp < item.cost)
-        return { success: false, message: `Không đủ BP! Cần **${item.cost}** BP, hiện có **${bp}** BP.` };
+        return { success: false, message: `❌ Không đủ BP! Cần **${item.cost}** BP, hiện có **${bp}** BP.` };
     UserRepository_1.userRepository.update(userId, { boss_points: bp - item.cost });
     if (item.key === 'coin') {
         UserRepository_1.userRepository.update(userId, { coin_ha_pham: (user.coin_ha_pham || 0) + 10000 });

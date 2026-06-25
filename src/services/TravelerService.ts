@@ -59,7 +59,7 @@ export class TravelerService {
         console.error('[TravelerService] Invalid channelId (not a snowflake):', channelId);
         return false;
       }
-      const channel = await client.channels.fetch(channelId) as TextChannel;
+      const channel = (client.channels.cache.get(channelId) ?? await client.channels.fetch(channelId).catch(() => null)) as TextChannel | null;
       if (channel && channel.isTextBased()) {
         const embed = new EmbedBuilder()
           .setTitle('👺 Lữ Khách Thần Bí Xuất Hiện!')
@@ -242,13 +242,17 @@ export class TravelerService {
   public checkRandomSpawn(client: Client) {
     const guilds = db.prepare('SELECT guild_id, event_channel_id, tuluyen_channel_id, interaction_count FROM guild_configs').all() as any[];
     for (const g of guilds) {
+      if (!client.guilds.cache.has(g.guild_id)) {
+        db.prepare('DELETE FROM guild_configs WHERE guild_id = ?').run(g.guild_id);
+        continue;
+      }
       const targetChannelId = g.event_channel_id || g.tuluyen_channel_id;
       if (!targetChannelId) continue;
 
       const activity = g.interaction_count || 0;
       // Tỷ lệ xuất hiện cơ bản 10%, mỗi lượt tương tác tăng thêm 2% cơ hội, tối đa 60%
       const chance = Math.min(0.60, 0.10 + activity * 0.02);
-      
+
       if (Math.random() < chance) {
         this.spawnTraveler(client, targetChannelId);
       }

@@ -95,7 +95,8 @@ class NoituCommand extends Command_1.Command {
             }
             const game = NoituService_1.noituService.startGame(interaction.guildId, interaction.channelId);
             game.client = client;
-            await interaction.editReply(`Nối từ bắt đầu. Từ hiện tại: **${game.currentWord}**. Viết từ bắt đầu bằng **${game.lastSyllable}** (thời gian: 1 tiếng).`);
+            const display = NoituService_1.noituService.buildGameDisplay(game);
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([display]));
             return;
         }
         if (sub === 'stop') {
@@ -106,7 +107,11 @@ class NoituCommand extends Command_1.Command {
                 return;
             }
             NoituService_1.noituService.stopGame(gameKey);
-            await interaction.editReply(`Đã dừng. Tổng từ: **${game.usedWords.size}**`);
+            const stopContainer = new discord_js_1.ContainerBuilder()
+                .setAccentColor(0xe74c3c)
+                .addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent('# 🛑 Đã Dừng Nối Từ\n' +
+                `Tổng từ đã nối: **${game.usedWords.size}**`));
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([stopContainer]));
             return;
         }
         if (sub === 'skip') {
@@ -135,7 +140,7 @@ class NoituCommand extends Command_1.Command {
                 return;
             }
             game.client = client;
-            await interaction.editReply((0, uiSystem_1.toV2Payload)([result.embed], [result.row]));
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([result.display], [result.row]));
             return;
         }
     }

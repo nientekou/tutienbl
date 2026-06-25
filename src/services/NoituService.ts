@@ -1,6 +1,5 @@
 import { TuTienClient } from '../client/TuTienClient';
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { EMBED_COLORS } from '../utils/uiSystem';
+import { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { userRepository } from '../database/repositories/UserRepository';
 import db from '../database/database';
 
@@ -30,7 +29,7 @@ export interface WordResult {
 
 // ── Constants ──
 
-const TURN_TIME_MS = 45_000;
+const TURN_TIME_MS = 3_600_000; // 1 tiếng
 const MAX_NO_ANSWER = 5;
 const WIN_REWARD = 500;
 
@@ -315,17 +314,18 @@ export class NoituService {
       if (!channel || !('send' in channel)) return;
 
       if (action === 'stop') {
-        const embed = new EmbedBuilder()
-          .setTitle('Nối Từ Kết Thúc')
-          .setColor(EMBED_COLORS.GOLD)
-          .setDescription([
-            `**${MAX_NO_ANSWER} lượt liên tiếp không ai nối.**`,
-            '',
-            winnerName
-              ? `🏆 **${winnerName}** thắng — nhận **${WIN_REWARD}** Hạ Phẩm Linh Thạch!`
-              : 'Không có ai chiến thắng.',
-          ].join('\n'));
-        (channel as any).send({ embeds: [embed] }).catch(() => {});
+        const c = new ContainerBuilder()
+          .setAccentColor(0xf1c40f)
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              '# 🔤 Nối Từ Kết Thúc\n' +
+              `**${MAX_NO_ANSWER} lượt liên tiếp không ai nối.**\n\n` +
+              (winnerName
+                ? `🏆 **${winnerName}** thắng — nhận **${WIN_REWARD}** Hạ Phẩm Linh Thạch!`
+                : 'Không có ai chiến thắng.')
+            )
+          );
+        (channel as any).send({ components: [c], flags: MessageFlags.IsComponentsV2 }).catch(() => {});
 
         // Give reward
         if (winnerName) {
@@ -341,22 +341,21 @@ export class NoituService {
         const g = this.games.get(gameKey);
         if (!g) return;
 
-        const embed = new EmbedBuilder()
-          .setTitle('Hết Thời Gian')
-          .setColor(EMBED_COLORS.WARNING)
-          .setDescription([
-            winnerName
-              ? `🏆 **${winnerName}** thắng ván này — nhận **${WIN_REWARD}** Hạ Phẩm Linh Thạch!`
-              : `Không ai nối **"${oldSyllable}"**`,
-            '',
-            `🔄 **Ván mới:**`,
-            `📜 **${g.currentWord}** → *${g.lastSyllable}*`,
-            `⏱ 45s  •  Từ #${g.turnNumber}`,
-            '',
-            `💬 Gõ từ bắt đầu bằng **${g.lastSyllable}**`,
-          ].join('\n'))
-          .setTimestamp();
-        (channel as any).send({ embeds: [embed] }).catch(() => {});
+        const c = new ContainerBuilder()
+          .setAccentColor(0xf39c12)
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              '# ⏰ Hết Thời Gian\n' +
+              (winnerName
+                ? `🏆 **${winnerName}** thắng ván này — nhận **${WIN_REWARD}** Hạ Phẩm Linh Thạch!\n\n`
+                : `Không ai nối **"${oldSyllable}"**\n\n`) +
+              `🔄 **Ván mới:**\n` +
+              `📜 **${g.currentWord}** → *${g.lastSyllable}*\n` +
+              `⏱ 1 tiếng  •  Từ #${g.turnNumber}\n\n` +
+              `💬 Gõ từ bắt đầu bằng **${g.lastSyllable}**`
+            )
+          );
+        (channel as any).send({ components: [c], flags: MessageFlags.IsComponentsV2 }).catch(() => {});
 
         // Give reward
         if (winnerName && g.lastAnswererId) {
@@ -387,15 +386,15 @@ export class NoituService {
     return word.trim().split(/\s+/)[0] || word;
   }
 
-  buildGameEmbed(game: NoituGameState, extra?: string): EmbedBuilder {
-    const timeLeft = Math.max(0, Math.ceil((game.turnExpiry - Date.now()) / 1000));
-    const lines: string[] = [];
+  buildGameDisplay(game: NoituGameState, extra?: string): ContainerBuilder {
+    const lines: string[] = ['# 🔤 Nối Từ'];
 
-    if (extra) lines.push(extra, '');
+    if (extra) lines.push('', extra);
 
     lines.push(
+      '',
       `📜 **${game.currentWord}** → *${game.lastSyllable}*`,
-      `⏱ ${timeLeft}s  •  Từ #${game.turnNumber}`,
+      `⏱ 1 tiếng  •  Từ #${game.turnNumber}`,
     );
 
     if (game.noAnswerStreak > 0) {
@@ -404,11 +403,9 @@ export class NoituService {
 
     lines.push('', `💬 Gõ từ bắt đầu bằng **${game.lastSyllable}**`);
 
-    return new EmbedBuilder()
-      .setTitle('Nối Từ')
-      .setColor(EMBED_COLORS.INFO)
-      .setDescription(lines.join('\n'))
-      .setTimestamp();
+    return new ContainerBuilder()
+      .setAccentColor(0x3498db)
+      .addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join('\n')));
   }
 
   // ── Word count ──
@@ -478,7 +475,7 @@ export class NoituService {
 
   private SKIP_VOTE_THRESHOLD = 3;
 
-  startSkipVote(gameKey: string): { embed: EmbedBuilder; row: ActionRowBuilder<ButtonBuilder> } | null {
+  startSkipVote(gameKey: string): { display: ContainerBuilder; row: ActionRowBuilder<ButtonBuilder> } | null {
     if (this.skipVotes.has(gameKey)) return null;
 
     const game = this.games.get(gameKey);
@@ -487,7 +484,7 @@ export class NoituService {
     this.skipVotes.set(gameKey, { voters: new Set(), channelId: game.channelId });
 
     return {
-      embed: this.buildSkipVoteEmbed(game),
+      display: this.buildSkipVoteDisplay(game),
       row: this.buildSkipVoteRow(gameKey),
     };
   }
@@ -511,19 +508,18 @@ export class NoituService {
     return 'voted';
   }
 
-  buildSkipVoteEmbed(game: NoituGameState): EmbedBuilder {
+  buildSkipVoteDisplay(game: NoituGameState): ContainerBuilder {
     const vote = this.skipVotes.get(`${game.guildId}:${game.channelId}`);
     const count = vote ? vote.voters.size : 0;
 
-    return new EmbedBuilder()
-      .setTitle('🗳️ Bỏ Phiếu Bỏ Qua')
-      .setColor(EMBED_COLORS.WARNING)
-      .setDescription(
+    return new ContainerBuilder()
+      .setAccentColor(0xf39c12)
+      .addTextDisplayComponents(new TextDisplayBuilder().setContent(
+        '# 🗳️ Bỏ Phiếu Bỏ Qua\n' +
         `📜 Từ hiện tại: **${game.currentWord}** → *${game.lastSyllable}*\n\n` +
         `👥 **${count}/${this.SKIP_VOTE_THRESHOLD}** phiếu cần để bỏ qua\n\n` +
         `_Nhấn nút bên dưới để bỏ phiếu._`
-      )
-      .setTimestamp();
+      ));
   }
 
   buildSkipVoteRow(gameKey: string): ActionRowBuilder<ButtonBuilder> {
@@ -535,21 +531,20 @@ export class NoituService {
     );
   }
 
-  buildSkipPassedEmbed(winnerName: string, game: NoituGameState): EmbedBuilder {
+  buildSkipPassedDisplay(winnerName: string, game: NoituGameState): ContainerBuilder {
     const extra = winnerName
       ? `🏆 **${winnerName}** thắng — nhận **${WIN_REWARD}** Hạ Phẩm Linh Thạch!`
       : 'Không có ai chiến thắng.';
 
-    return new EmbedBuilder()
-      .setTitle('✅ Đã Bỏ Qua Từ')
-      .setColor(EMBED_COLORS.SUCCESS)
-      .setDescription(
+    return new ContainerBuilder()
+      .setAccentColor(0x2ecc71)
+      .addTextDisplayComponents(new TextDisplayBuilder().setContent(
+        '# ✅ Đã Bỏ Qua Từ\n' +
         `Từ **"${game.currentWord}"** đã được bỏ qua.\n` +
         `${extra}\n\n` +
         `🔄 **Từ mới:** *${game.lastSyllable}*\n` +
         `💬 Gõ từ bắt đầu bằng **${game.lastSyllable}**`
-      )
-      .setTimestamp();
+      ));
   }
 }
 

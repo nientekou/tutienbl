@@ -251,6 +251,8 @@ async function handleBossCombatAction(interaction, action, parts, userId) {
             const embed = (0, worldboss_1.getBossShopEmbed)(targetUserId, result.message);
             const row = (0, worldboss_1.getBossShopComponents)(targetUserId);
             await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
+            // ponytail: ephemeral followUp so the user always sees a popup notification
+            await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral }).catch(() => { });
         }
         if (action === 'sanyeuthulogs') {
             const { renderCombatLog } = require('../../utils/combatLogUtils');

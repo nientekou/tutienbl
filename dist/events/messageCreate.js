@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const Event_1 = require("../structures/Event");
+const discord_js_1 = require("discord.js");
 const NoituService_1 = require("../services/NoituService");
 const database_1 = __importDefault(require("../database/database"));
 class MessageCreateEvent extends Event_1.Event {
@@ -29,6 +30,13 @@ class MessageCreateEvent extends Event_1.Event {
         const result = await NoituService_1.noituService.handleWord(gameKey, message.author.id, message.author.username, word);
         if (result.accepted) {
             await message.react('✅').catch(() => { });
+            try {
+                const display = NoituService_1.noituService.buildGameDisplay(game, `✅ **${message.author.username}** đã nối: **${game.currentWord}**`);
+                if (message.channel.send) {
+                    await message.channel.send({ components: [display], flags: discord_js_1.MessageFlags.IsComponentsV2 });
+                }
+            }
+            catch (_) { }
         }
         else {
             await message.react('❌').catch(() => { });

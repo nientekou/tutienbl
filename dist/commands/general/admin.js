@@ -1190,7 +1190,7 @@ class AdminCommand extends Command_1.Command {
             if (subAction === 'refresh') {
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
-                await interaction.update((0, uiSystem_1.toV2Update)([embed], components));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
             }
             else if (subAction === 'maintenance') {
                 const currentMode = SystemConfigService_1.systemConfigService.isMaintenanceMode();
@@ -1199,7 +1199,7 @@ class AdminCommand extends Command_1.Command {
                 SystemConfigService_1.systemConfigService.writeAuditLog(adminId, 'admin_maintenance', { status: nextMode });
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
-                await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
             }
             else if (subAction === 'spawntraveler') {
                 const guildId = interaction.guildId;
@@ -1224,10 +1224,10 @@ class AdminCommand extends Command_1.Command {
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
                 if (success) {
-                    await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                 }
                 else {
-                    await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                 }
             }
             else if (subAction === 'spawnboss') {
@@ -1263,7 +1263,7 @@ class AdminCommand extends Command_1.Command {
                 SystemConfigService_1.systemConfigService.writeAuditLog(adminId, 'admin_killboss', { bossLevel: boss.level });
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
-                await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
             }
             else if (subAction === 'searchuser') {
                 const modal = new discord_js_1.ModalBuilder()
@@ -1297,7 +1297,7 @@ class AdminCommand extends Command_1.Command {
                 SystemConfigService_1.systemConfigService.writeAuditLog(adminId, 'admin_resetweekly', { affectedUsers: count });
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
-                await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
             }
             else if (subAction === 'dbcleanup') {
                 const { dataCleanupService } = require('../../services/DataCleanupService');
@@ -1312,7 +1312,7 @@ class AdminCommand extends Command_1.Command {
                         `• ${stats.marketListings} tin đăng Vạn Bảo Lâu\n` +
                         `• ${stats.dungeons} bản ghi cooldown bí cảnh`;
                 }
-                await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
             }
             else if (subAction === 'doubleexp') {
                 const { eventService } = require('../../services/EventService');
@@ -1321,7 +1321,7 @@ class AdminCommand extends Command_1.Command {
                 SystemConfigService_1.systemConfigService.writeAuditLog(adminId, 'admin_doubleexp', { status: nextMode });
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
-                await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
             }
             else if (subAction === 'auditlog') {
                 const logs = database_1.default.prepare('SELECT * FROM audit_logs ORDER BY id DESC LIMIT 10').all();
@@ -1343,7 +1343,7 @@ class AdminCommand extends Command_1.Command {
                     .setCustomId(`adminuser_back_null_${adminId}`)
                     .setLabel('🔙 Quay Lại Panel')
                     .setStyle(discord_js_1.ButtonStyle.Secondary));
-                await interaction.update((0, uiSystem_1.toV2Update)([embed], [row], interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
             }
             else if (subAction === 'broadcast') {
                 const modal = new discord_js_1.ModalBuilder()
@@ -1420,7 +1420,7 @@ class AdminCommand extends Command_1.Command {
                     .setLabel('🔙 Quay Lại Panel')
                     .setStyle(discord_js_1.ButtonStyle.Secondary));
                 rows.push(buttonsRow);
-                await interaction.update((0, uiSystem_1.toV2Update)([embed], rows, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
             }
             else if (subAction === 'createbackup') {
                 const { backupService } = require('../../services/BackupService');
@@ -1466,7 +1466,7 @@ class AdminCommand extends Command_1.Command {
                     .setLabel('🔙 Quay Lại Panel')
                     .setStyle(discord_js_1.ButtonStyle.Secondary));
                 rows.push(buttonsRow);
-                await interaction.update((0, uiSystem_1.toV2Update)([embed], rows, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
             }
             else if (subAction === 'restoreselect' && interaction.isStringSelectMenu()) {
                 const selectedBackup = interaction.values[0];
@@ -1490,11 +1490,11 @@ class AdminCommand extends Command_1.Command {
                     .setLabel('❌ Hủy Bỏ')
                     .setStyle(discord_js_1.ButtonStyle.Secondary);
                 const row = new discord_js_1.ActionRowBuilder().addComponents(confirmButton, cancelButton);
-                await interaction.update((0, uiSystem_1.toV2Update)([embed], [row], interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
             }
             else if (subAction === 'confirmrestore') {
                 const backupFilename = parts.slice(2, -1).join('_');
-                await interaction.update((0, uiSystem_1.toV2Update)([], [], interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [], []);
                 const { backupService } = require('../../services/BackupService');
                 await backupService.rollbackToBackup(backupFilename, adminId);
             }
@@ -1586,7 +1586,7 @@ class AdminCommand extends Command_1.Command {
                         fixedCount++;
                     }
                 }
-                await interaction.update((0, uiSystem_1.toV2Update)([], [], interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [], []);
             }
             else if (subAction === 'delete') {
                 const brokenPets = database_1.default.prepare("SELECT * FROM pets WHERE name IS NULL OR name = '' OR rarity NOT IN ('common','uncommon','rare','epic','legendary') OR level < 0").all();
@@ -1604,10 +1604,10 @@ class AdminCommand extends Command_1.Command {
                     database_1.default.prepare('DELETE FROM pets WHERE id = ?').run(orphan.id);
                     deletedCount++;
                 }
-                await interaction.update((0, uiSystem_1.toV2Update)([], [], interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [], []);
             }
             else if (subAction === 'cancel') {
-                await interaction.update((0, uiSystem_1.toV2Update)([], [], interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [], []);
             }
         }
         // ─── XỬ LÝ BUTTON CHECK ORPHAN ITEMS ──────────────────────
@@ -1649,10 +1649,10 @@ class AdminCommand extends Command_1.Command {
                     invalidQty: invalidQty.length,
                     total: deletedCount
                 });
-                await interaction.update((0, uiSystem_1.toV2Update)([], [], interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [], []);
             }
             else if (subAction === 'cancel') {
-                await interaction.update((0, uiSystem_1.toV2Update)([], [], interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [], []);
             }
         }
         else if (action === 'adminuser') {
@@ -1660,7 +1660,7 @@ class AdminCommand extends Command_1.Command {
             if (subAction === 'back') {
                 const embed = await AdminCommand.getPanelEmbed(client);
                 const components = AdminCommand.getPanelComponents(adminId);
-                await interaction.update((0, uiSystem_1.toV2Update)([embed], components, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
             }
             else if (subAction === 'givecoin') {
                 const modal = new discord_js_1.ModalBuilder()
@@ -1757,7 +1757,7 @@ class AdminCommand extends Command_1.Command {
                 });
                 const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
                 const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-                await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [userEmbed], userComponents);
             }
             else if (subAction === 'giveknb') {
                 const modal = new discord_js_1.ModalBuilder()
@@ -1785,7 +1785,7 @@ class AdminCommand extends Command_1.Command {
                 });
                 const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
                 const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-                await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [userEmbed], userComponents);
             }
             else if (subAction === 'resetweekly') {
                 const targetProfile = UserRepository_1.userRepository.get(targetUserId);
@@ -1812,7 +1812,7 @@ class AdminCommand extends Command_1.Command {
                 });
                 const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
                 const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-                await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
+                await (0, uiSystem_1.safeV2Update)(interaction, [userEmbed], userComponents);
             }
         }
     }
@@ -1846,7 +1846,7 @@ class AdminCommand extends Command_1.Command {
             await tempService.broadcastBossSpawn(client, updatedBoss);
             const panelEmbed = await AdminCommand.getPanelEmbed(client);
             const components = AdminCommand.getPanelComponents(adminId);
-            await interaction.update((0, uiSystem_1.toV2Update)([panelEmbed], components, interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [panelEmbed], components);
         }
         else if (subAction === 'searchuser') {
             const targetUserId = interaction.fields.getTextInputValue('target_user_id').trim();
@@ -1857,7 +1857,7 @@ class AdminCommand extends Command_1.Command {
             }
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [userEmbed], userComponents);
         }
         else if (subAction === 'givecoin') {
             const targetUserId = parts[3];
@@ -1882,7 +1882,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [userEmbed], userComponents);
         }
         else if (subAction === 'giveknb') {
             const targetUserId = parts[3];
@@ -1907,7 +1907,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [userEmbed], userComponents);
         }
         else if (subAction === 'giveitem') {
             const targetUserId = parts[3];
@@ -1938,7 +1938,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [userEmbed], userComponents);
         }
         else if (subAction === 'setlevel') {
             const targetUserId = parts[3];
@@ -1976,7 +1976,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [userEmbed], userComponents);
         }
         else if (subAction === 'editlinhcan') {
             const targetUserId = parts[3];
@@ -2003,7 +2003,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [userEmbed], userComponents);
         }
         else if (subAction === 'broadcast') {
             const title = interaction.fields.getTextInputValue('bc_title');
@@ -2108,7 +2108,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [userEmbed], userComponents);
         }
         else if (subAction === 'ban') {
             const targetUserId = parts[3];
@@ -2130,7 +2130,7 @@ class AdminCommand extends Command_1.Command {
             });
             const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
             const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-            await interaction.update((0, uiSystem_1.toV2Update)([userEmbed], userComponents, interaction));
+            await (0, uiSystem_1.safeV2Update)(interaction, [userEmbed], userComponents);
         }
     }
     async autocomplete(client, interaction) {

@@ -67,12 +67,14 @@ class BossSpawnService {
         const guilds = database_1.default.prepare('SELECT guild_id, boss_channel_id FROM guild_configs').all();
         for (const gConfig of guilds) {
             try {
-                const guild = client.guilds.cache.get(gConfig.guild_id) || await client.guilds.fetch(gConfig.guild_id);
-                if (!guild)
+                const guild = client.guilds.cache.get(gConfig.guild_id);
+                if (!guild) {
+                    database_1.default.prepare('DELETE FROM guild_configs WHERE guild_id = ?').run(gConfig.guild_id);
                     continue;
+                }
                 if (!gConfig.boss_channel_id || gConfig.boss_channel_id === 'null' || !/^\d{17,20}$/.test(gConfig.boss_channel_id))
                     continue;
-                const channel = guild.channels.cache.get(gConfig.boss_channel_id) || await guild.channels.fetch(gConfig.boss_channel_id);
+                const channel = guild.channels.cache.get(gConfig.boss_channel_id) || await guild.channels.fetch(gConfig.boss_channel_id).catch(() => null);
                 if (!channel || !channel.isTextBased())
                     continue;
                 const payload = (0, worldboss_1.buildBossSpawnContainer)(boss);

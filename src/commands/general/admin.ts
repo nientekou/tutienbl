@@ -8,7 +8,7 @@ import { cultivationService } from '../../services/CultivationService';
 import db from '../../database/database';
 import { config } from '../../config';
 import { getRealmDetails } from '../../utils/constants';
-import { EMBED_COLORS, toV2Payload, toV2Update } from '../../utils/uiSystem';
+import { EMBED_COLORS, toV2Payload, safeV2Update } from '../../utils/uiSystem';
 import { noituService } from '../../services/NoituService';
 
 /**
@@ -1504,7 +1504,7 @@ export default class AdminCommand extends Command {
       if (subAction === 'refresh') {
         const embed = await AdminCommand.getPanelEmbed(client);
         const components = AdminCommand.getPanelComponents(adminId);
-        await interaction.update(toV2Update([embed], components));
+        await safeV2Update(interaction, [embed], components);
       }
       
       else if (subAction === 'maintenance') {
@@ -1515,7 +1515,7 @@ export default class AdminCommand extends Command {
 
         const embed = await AdminCommand.getPanelEmbed(client);
         const components = AdminCommand.getPanelComponents(adminId);
-        await interaction.update(toV2Update([embed], components, interaction));
+        await safeV2Update(interaction, [embed], components);
       }
       
       else if (subAction === 'spawntraveler') {
@@ -1544,9 +1544,9 @@ export default class AdminCommand extends Command {
         const embed = await AdminCommand.getPanelEmbed(client);
         const components = AdminCommand.getPanelComponents(adminId);
         if (success) {
-          await interaction.update(toV2Update([embed], components, interaction));
+          await safeV2Update(interaction, [embed], components);
         } else {
-          await interaction.update(toV2Update([embed], components, interaction));
+          await safeV2Update(interaction, [embed], components);
         }
       }
       
@@ -1591,7 +1591,7 @@ export default class AdminCommand extends Command {
 
         const embed = await AdminCommand.getPanelEmbed(client);
         const components = AdminCommand.getPanelComponents(adminId);
-        await interaction.update(toV2Update([embed], components, interaction));
+        await safeV2Update(interaction, [embed], components);
       }
       
       else if (subAction === 'searchuser') {
@@ -1630,7 +1630,7 @@ export default class AdminCommand extends Command {
 
         const embed = await AdminCommand.getPanelEmbed(client);
         const components = AdminCommand.getPanelComponents(adminId);
-        await interaction.update(toV2Update([embed], components, interaction));
+        await safeV2Update(interaction, [embed], components);
       }
       
       else if (subAction === 'dbcleanup') {
@@ -1649,7 +1649,7 @@ export default class AdminCommand extends Command {
             `• ${stats.dungeons} bản ghi cooldown bí cảnh`;
         }
 
-        await interaction.update(toV2Update([embed], components, interaction));
+        await safeV2Update(interaction, [embed], components);
       }
       
       else if (subAction === 'doubleexp') {
@@ -1660,7 +1660,7 @@ export default class AdminCommand extends Command {
 
         const embed = await AdminCommand.getPanelEmbed(client);
         const components = AdminCommand.getPanelComponents(adminId);
-        await interaction.update(toV2Update([embed], components, interaction));
+        await safeV2Update(interaction, [embed], components);
       }
       
       else if (subAction === 'auditlog') {
@@ -1688,7 +1688,7 @@ export default class AdminCommand extends Command {
             .setLabel('🔙 Quay Lại Panel')
             .setStyle(ButtonStyle.Secondary)
         );
-        await interaction.update(toV2Update([embed], [row] , interaction));
+        await safeV2Update(interaction, [embed], [row] );
       }
 
       else if (subAction === 'broadcast') {
@@ -1784,7 +1784,7 @@ export default class AdminCommand extends Command {
         );
         rows.push(buttonsRow);
 
-        await interaction.update(toV2Update([embed], rows , interaction));
+        await safeV2Update(interaction, [embed], rows );
       }
 
       else if (subAction === 'createbackup') {
@@ -1840,7 +1840,7 @@ export default class AdminCommand extends Command {
         );
         rows.push(buttonsRow);
 
-        await interaction.update(toV2Update([embed], rows , interaction));
+        await safeV2Update(interaction, [embed], rows );
       }
 
       else if (subAction === 'restoreselect' && interaction.isStringSelectMenu()) {
@@ -1872,13 +1872,13 @@ export default class AdminCommand extends Command {
 
         const row = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton, cancelButton);
 
-        await interaction.update(toV2Update([embed], [row] , interaction));
+        await safeV2Update(interaction, [embed], [row] );
       }
 
       else if (subAction === 'confirmrestore') {
         const backupFilename = parts.slice(2, -1).join('_');
 
-        await interaction.update(toV2Update([], [], interaction));
+        await safeV2Update(interaction, [], []);
 
         const { backupService } = require('../../services/BackupService');
         await backupService.rollbackToBackup(backupFilename, adminId);
@@ -1979,7 +1979,7 @@ export default class AdminCommand extends Command {
           }
         }
 
-        await interaction.update(toV2Update([], [], interaction));
+        await safeV2Update(interaction, [], []);
       }
 
       else if (subAction === 'delete') {
@@ -2003,11 +2003,11 @@ export default class AdminCommand extends Command {
           deletedCount++;
         }
 
-        await interaction.update(toV2Update([], [], interaction));
+        await safeV2Update(interaction, [], []);
       }
 
       else if (subAction === 'cancel') {
-        await interaction.update(toV2Update([], [], interaction));
+        await safeV2Update(interaction, [], []);
       }
     }
 
@@ -2055,11 +2055,11 @@ export default class AdminCommand extends Command {
           total: deletedCount
         });
 
-        await interaction.update(toV2Update([], [], interaction));
+        await safeV2Update(interaction, [], []);
       }
 
       else if (subAction === 'cancel') {
-        await interaction.update(toV2Update([], [], interaction));
+        await safeV2Update(interaction, [], []);
       }
     }
     
@@ -2069,7 +2069,7 @@ export default class AdminCommand extends Command {
       if (subAction === 'back') {
         const embed = await AdminCommand.getPanelEmbed(client);
         const components = AdminCommand.getPanelComponents(adminId);
-        await interaction.update(toV2Update([embed], components, interaction));
+        await safeV2Update(interaction, [embed], components);
       }
       
       else if (subAction === 'givecoin') {
@@ -2192,7 +2192,7 @@ export default class AdminCommand extends Command {
 
         const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
         const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-        await interaction.update(toV2Update([userEmbed], userComponents, interaction));
+        await safeV2Update(interaction, [userEmbed], userComponents);
       }
       
       else if (subAction === 'giveknb') {
@@ -2226,7 +2226,7 @@ export default class AdminCommand extends Command {
 
         const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
         const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-        await interaction.update(toV2Update([userEmbed], userComponents, interaction));
+        await safeV2Update(interaction, [userEmbed], userComponents);
       }
 
       else if (subAction === 'resetweekly') {
@@ -2256,7 +2256,7 @@ export default class AdminCommand extends Command {
 
         const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
         const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-        await interaction.update(toV2Update([userEmbed], userComponents, interaction));
+        await safeV2Update(interaction, [userEmbed], userComponents);
       }
     }
   }
@@ -2305,7 +2305,7 @@ export default class AdminCommand extends Command {
       const panelEmbed = await AdminCommand.getPanelEmbed(client);
       const components = AdminCommand.getPanelComponents(adminId);
       
-      await interaction.update(toV2Update([panelEmbed], components, interaction));
+      await safeV2Update(interaction, [panelEmbed], components);
     }
     
     else if (subAction === 'searchuser') {
@@ -2319,7 +2319,7 @@ export default class AdminCommand extends Command {
 
       const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
       const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-      await interaction.update(toV2Update([userEmbed], userComponents, interaction));
+      await safeV2Update(interaction, [userEmbed], userComponents);
     }
     
     else if (subAction === 'givecoin') {
@@ -2350,7 +2350,7 @@ export default class AdminCommand extends Command {
 
       const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
       const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-      await interaction.update(toV2Update([userEmbed], userComponents, interaction));
+      await safeV2Update(interaction, [userEmbed], userComponents);
     }
     
     else if (subAction === 'giveknb') {
@@ -2381,7 +2381,7 @@ export default class AdminCommand extends Command {
 
       const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
       const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-      await interaction.update(toV2Update([userEmbed], userComponents, interaction));
+      await safeV2Update(interaction, [userEmbed], userComponents);
     }
     
     else if (subAction === 'giveitem') {
@@ -2419,7 +2419,7 @@ export default class AdminCommand extends Command {
 
       const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
       const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-      await interaction.update(toV2Update([userEmbed], userComponents, interaction));
+      await safeV2Update(interaction, [userEmbed], userComponents);
     }
     
     else if (subAction === 'setlevel') {
@@ -2464,7 +2464,7 @@ export default class AdminCommand extends Command {
 
       const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
       const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-      await interaction.update(toV2Update([userEmbed], userComponents, interaction));
+      await safeV2Update(interaction, [userEmbed], userComponents);
     }
     
     else if (subAction === 'editlinhcan') {
@@ -2496,7 +2496,7 @@ export default class AdminCommand extends Command {
 
       const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
       const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-      await interaction.update(toV2Update([userEmbed], userComponents, interaction));
+      await safeV2Update(interaction, [userEmbed], userComponents);
     }
 
     else if (subAction === 'broadcast') {
@@ -2614,7 +2614,7 @@ export default class AdminCommand extends Command {
 
       const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
       const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-      await interaction.update(toV2Update([userEmbed], userComponents, interaction));
+      await safeV2Update(interaction, [userEmbed], userComponents);
     }
 
     else if (subAction === 'ban') {
@@ -2641,7 +2641,7 @@ export default class AdminCommand extends Command {
 
       const userEmbed = AdminCommand.getUserPanelEmbed(targetUserId);
       const userComponents = AdminCommand.getUserPanelComponents(targetUserId, adminId);
-      await interaction.update(toV2Update([userEmbed], userComponents, interaction));
+      await safeV2Update(interaction, [userEmbed], userComponents);
     }
   }
 

@@ -50,7 +50,7 @@ class TravelerService {
                 console.error('[TravelerService] Invalid channelId (not a snowflake):', channelId);
                 return false;
             }
-            const channel = await client.channels.fetch(channelId);
+            const channel = (client.channels.cache.get(channelId) ?? await client.channels.fetch(channelId).catch(() => null));
             if (channel && channel.isTextBased()) {
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle('👺 Lữ Khách Thần Bí Xuất Hiện!')
@@ -210,6 +210,10 @@ class TravelerService {
     checkRandomSpawn(client) {
         const guilds = database_1.default.prepare('SELECT guild_id, event_channel_id, tuluyen_channel_id, interaction_count FROM guild_configs').all();
         for (const g of guilds) {
+            if (!client.guilds.cache.has(g.guild_id)) {
+                database_1.default.prepare('DELETE FROM guild_configs WHERE guild_id = ?').run(g.guild_id);
+                continue;
+            }
             const targetChannelId = g.event_channel_id || g.tuluyen_channel_id;
             if (!targetChannelId)
                 continue;

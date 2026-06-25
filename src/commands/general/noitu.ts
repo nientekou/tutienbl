@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, PermissionFlagsBits, ChannelType, ContainerBuilder, TextDisplayBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import db from '../../database/database';
@@ -118,7 +118,8 @@ export default class NoituCommand extends Command {
       const game = noituService.startGame(interaction.guildId!, interaction.channelId);
       game.client = client;
 
-      await interaction.editReply(`Nối từ bắt đầu. Từ hiện tại: **${game.currentWord}**. Viết từ bắt đầu bằng **${game.lastSyllable}** (thời gian: 1 tiếng).`);
+      const display = noituService.buildGameDisplay(game);
+      await interaction.editReply(toV2Payload([display]));
       return;
     }
 
@@ -131,7 +132,13 @@ export default class NoituCommand extends Command {
       }
 
       noituService.stopGame(gameKey);
-      await interaction.editReply(`Đã dừng. Tổng từ: **${game.usedWords.size}**`);
+      const stopContainer = new ContainerBuilder()
+        .setAccentColor(0xe74c3c)
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(
+          '# 🛑 Đã Dừng Nối Từ\n' +
+          `Tổng từ đã nối: **${game.usedWords.size}**`
+        ));
+      await interaction.editReply(toV2Payload([stopContainer]));
       return;
     }
 
@@ -165,7 +172,7 @@ export default class NoituCommand extends Command {
       }
 
       game.client = client;
-      await interaction.editReply(toV2Payload([result.embed], [result.row]));
+      await interaction.editReply(toV2Payload([result.display], [result.row]));
       return;
     }
   }
