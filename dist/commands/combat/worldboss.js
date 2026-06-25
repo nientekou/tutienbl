@@ -141,7 +141,7 @@ function buildWorldBossContainer(userId) {
             cdSec = 200 - elapsed;
     }
     const isCd = cdSec > 0;
-    const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
+    const mainRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
         .setCustomId(`worldbossrefresh_${userId}`)
         .setLabel('🔄 Làm Mới')
         .setStyle(discord_js_1.ButtonStyle.Secondary), new discord_js_1.ButtonBuilder()
@@ -159,7 +159,12 @@ function buildWorldBossContainer(userId) {
         .setCustomId(`worldbossleave_${userId}`)
         .setLabel('🚪 Rời Sảnh')
         .setStyle(discord_js_1.ButtonStyle.Secondary));
-    return { components: [container, row], flags: uiSystem_1.V2_FLAG };
+    // ponytail: second row with BP shop — prominent button so players can spend their hard-earned points
+    const bpRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
+        .setCustomId(`bossshop_${userId}`)
+        .setLabel('🏪 Shop BP')
+        .setStyle(discord_js_1.ButtonStyle.Success));
+    return { components: [container, mainRow, bpRow], flags: uiSystem_1.V2_FLAG };
 }
 /**
  * Tạo Embed cho Boss Spawn announcement (channel-wide)
@@ -203,12 +208,14 @@ function buildBossDefeatedContainer(boss, rewardsLogs) {
     return { components: [container], flags: uiSystem_1.V2_FLAG };
 }
 // ─── Boss Shop ───
+// ponytail: prices balanced for ~50-100+ BP per boss kill (top contributor).
+// Even a strong player needs several boss fights per item; average players need many more.
 const BOSS_SHOP_ITEMS = [
-    { key: 'chest', itemId: itemConstants_1.ITEMS.LUCKY_CHEST, name: 'Rương Cơ Duyên x1', cost: 100, qty: 1, desc: 'Rương ngẫu nhiên, có cơ hội nhận vật phẩm hiếm' },
-    { key: 'raid', itemId: itemConstants_1.ITEMS.SERVER_RAID_CHEST, name: 'Rương Thảo Phạt x1', cost: 300, qty: 1, desc: 'Rương Boss, chứa vật phẩm cấp cao' },
-    { key: 'stamina', itemId: itemConstants_1.ITEMS.PILL_ALCHEMY_STAMINA, name: 'Bổ Thiên Đan x5', cost: 500, qty: 5, desc: 'Hồi 20 thể lực/viên' },
-    { key: 'coin', itemId: '', name: 'Linh Thạch 10000', cost: 500, qty: 0, desc: 'Quy đổi ra linh thạch' },
-    { key: 'shard', itemId: itemConstants_1.ITEMS.TINH_THACH_SHARD, name: 'Mảnh Tinh Thạch x5', cost: 400, qty: 5, desc: 'Nguyên liệu cường hóa' },
+    { key: 'chest', itemId: itemConstants_1.ITEMS.LUCKY_CHEST, name: 'Rương Cơ Duyên x1', cost: 200, qty: 1, desc: 'Rương ngẫu nhiên, có cơ hội nhận vật phẩm hiếm' },
+    { key: 'raid', itemId: itemConstants_1.ITEMS.SERVER_RAID_CHEST, name: 'Rương Thảo Phạt x1', cost: 500, qty: 1, desc: 'Rương Boss, chứa vật phẩm cấp cao' },
+    { key: 'stamina', itemId: itemConstants_1.ITEMS.PILL_ALCHEMY_STAMINA, name: 'Bổ Thiên Đan x5', cost: 800, qty: 5, desc: 'Hồi 20 thể lực/viên' },
+    { key: 'coin', itemId: '', name: 'Linh Thạch 10000', cost: 1000, qty: 0, desc: 'Quy đổi ra linh thạch' },
+    { key: 'shard', itemId: itemConstants_1.ITEMS.TINH_THACH_SHARD, name: 'Mảnh Tinh Thạch x5', cost: 600, qty: 5, desc: 'Nguyên liệu cường hóa' },
 ];
 function getBossShopEmbed(userId, message) {
     const user = UserRepository_1.userRepository.get(userId);

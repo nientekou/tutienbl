@@ -301,11 +301,11 @@ export function getBossShopComponents(userId: string): ActionRowBuilder<StringSe
 
 export function handleBossShopPurchase(userId: string, itemKey: string): { success: boolean; message: string } {
   const item = BOSS_SHOP_ITEMS.find(i => i.key === itemKey);
-  if (!item) return { success: false, message: 'Vật phẩm không tồn tại.' };
+  if (!item) return { success: false, message: '❌ Vật phẩm không tồn tại.' };
   const user = userRepository.get(userId);
-  if (!user) return { success: false, message: 'Đạo hữu chưa tạo nhân vật!' };
+  if (!user) return { success: false, message: '❌ Đạo hữu chưa tạo nhân vật!' };
   const bp = user.boss_points || 0;
-  if (bp < item.cost) return { success: false, message: `Không đủ BP! Cần **${item.cost}** BP, hiện có **${bp}** BP.` };
+  if (bp < item.cost) return { success: false, message: `❌ Không đủ BP! Cần **${item.cost}** BP, hiện có **${bp}** BP.` };
   userRepository.update(userId, { boss_points: bp - item.cost });
   if (item.key === 'coin') {
     userRepository.update(userId, { coin_ha_pham: (user.coin_ha_pham || 0) + 10000 });

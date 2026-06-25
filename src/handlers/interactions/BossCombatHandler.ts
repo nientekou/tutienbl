@@ -291,6 +291,8 @@ export async function handleBossCombatAction(interaction: BossCombatInteraction,
       const embed = getBossShopEmbed(targetUserId, result.message);
       const row = getBossShopComponents(targetUserId);
       await safeV2Update(interaction, [embed], [row]);
+      // ponytail: ephemeral followUp so the user always sees a popup notification
+      await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral }).catch(() => {});
     }
 
     if (action === 'sanyeuthulogs') {

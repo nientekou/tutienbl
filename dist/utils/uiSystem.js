@@ -266,14 +266,29 @@ function toLegacyUpdate(embeds, rows, _source) {
  */
 async function safeV2Update(interaction, embeds, rows) {
     const components = [...embeds.map(e => e instanceof discord_js_1.ContainerBuilder ? e : embedToV2(e)), ...(rows ?? [])];
-    interaction.replied = true; // ponytail: set before POST — if Discord accepts but response times out, |replied| is already true so catch blocks don't try a second response (10062)
-    await interaction.client.rest.post(discord_js_1.Routes.interactionCallback(interaction.id, interaction.token), { body: { type: 7, data: { components, flags: exports.V2_FLAG } } });
+    interaction.replied = true;
+    try {
+        await interaction.client.rest.post(discord_js_1.Routes.interactionCallback(interaction.id, interaction.token), { body: { type: 7, data: { components, flags: exports.V2_FLAG } } });
+    }
+    catch (e) {
+        // ponytail: 40060 = duplicate event (WS resume replay), first invocation already handled it
+        if (e?.code === 40060 || e?.rawError?.code === 40060)
+            return;
+        throw e;
+    }
 }
 /** Safe V2 text update via raw REST — bypasses discord.js MessagePayload bug. */
 async function safeV2TextUpdate(interaction, text) {
     const components = [textToV2(text)];
-    interaction.replied = true; // ponytail: set before POST (see safeV2Update)
-    await interaction.client.rest.post(discord_js_1.Routes.interactionCallback(interaction.id, interaction.token), { body: { type: 7, data: { components, flags: exports.V2_FLAG } } });
+    interaction.replied = true;
+    try {
+        await interaction.client.rest.post(discord_js_1.Routes.interactionCallback(interaction.id, interaction.token), { body: { type: 7, data: { components, flags: exports.V2_FLAG } } });
+    }
+    catch (e) {
+        if (e?.code === 40060 || e?.rawError?.code === 40060)
+            return;
+        throw e;
+    }
 }
 /** Safe V2 editReply via raw REST — edits a deferred slash-command reply with V2
  *  components. Bypasses discord.js editReply() which injects 'content' and breaks V2_FLAG.
