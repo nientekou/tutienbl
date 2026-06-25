@@ -77,10 +77,13 @@ export async function handleMarketAction(
 
     // --- LỮ KHÁCH THẦN BÍ: MỞ MENU CHỌN ---
     if (action === 'traveler_buy') {
+      // ponytail: deferUpdate immediately — DB + JSON.parse can exceed Discord's 3s window
+      await interaction.deferUpdate();
+
       const eventId = parseInt(parts[1], 10);
       const event = db.prepare('SELECT * FROM traveler_events WHERE id = ?').get(eventId) as any;
       if (!event || event.status !== 'active') {
-        await interaction.reply({ content: '❌ Lữ Khách đã không còn ở đây nữa!', flags: MessageFlags.Ephemeral });
+        await interaction.followUp({ content: '❌ Lữ Khách đã không còn ở đây nữa!', flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -99,7 +102,7 @@ export async function handleMarketAction(
       }
 
       if (options.length === 0) {
-        await interaction.reply({ content: '❌ Lữ Khách đã hết sạch hàng!', flags: MessageFlags.Ephemeral });
+        await interaction.followUp({ content: '❌ Lữ Khách đã hết sạch hàng!', flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -110,72 +113,35 @@ export async function handleMarketAction(
         .addOptions(options);
 
       const row = new AR().addComponents(selectMenu);
-      await interaction.reply({ components: [textToV2('Đạo hữu muốn mua gì?'), row], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+      await interaction.followUp({ components: [textToV2('Đạo hữu muốn mua gì?'), row], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+      return;
     }
 
     // --- LỮ KHÁCH: MUA VẬT PHẨM ---
     else if (action === 'traveler_buy_item' && interaction.isStringSelectMenu()) {
+      // ponytail: Always deferUpdate() first — acknowledges the interaction within 3s
+      // so even if processing is slow, we don't get Unknown interaction (10062).
+      await interaction.deferUpdate();
+
       const eventId = parseInt(parts[1], 10);
       const itemId = interaction.values[0];
       const { travelerService } = require('../../services/TravelerService');
 
+      let message: string;
       try {
         const result = travelerService.buyItem(interaction.user.id, eventId, itemId, 1);
-        if (result.success) {
-          await safeV2TextUpdate(interaction, result.message);
-
-          try {
-            const event = db.prepare('SELECT * FROM traveler_events WHERE id = ?').get(eventId) as any;
-            if (event && event.message_id && event.channel_id && /^\d{17,20}$/.test(event.channel_id)) {
-              const channel = await interaction.client.channels.fetch(event.channel_id) as any;
-              if (channel) {
-                const msg = await channel.messages.fetch(event.message_id).catch(() => null);
-                if (msg) {
-                  let inv: Record<string, any> = {};
-                  try { inv = JSON.parse(event.inventory || '{}'); } catch (e) {}
-
-                  const { EmbedBuilder: EB } = require('discord.js');
-                  const embed = EB.from(msg.embeds[0]);
-
-                  if (event.status === 'sold_out') {
-                    embed.setTitle('👺 Lữ Khách Thần Bí (Đã Rời Đi)');
-                    embed.setDescription('Lữ Khách đã bán hết sạch hàng và rời đi.');
-                    embed.setFields([]);
-                    await interaction.client.rest.patch(Routes.channelMessage(event.channel_id, event.message_id), { body: { embeds: [embed.toJSON()], components: [] } });
-                  } else {
-                    const newFields = { name: '💰 Hàng Hoá', value: Object.values(inv).map((i: any) => `- **${i.name}** (Còn: ${i.quantity}) - Giá: ${i.price} LT`).join('\n') };
-                    embed.setFields([newFields]);
-                    const { ButtonBuilder: LBB, ButtonStyle: LS, ActionRowBuilder: LAR } = require('discord.js');
-                    const buyBtn = new LBB()
-                      .setCustomId(`traveler_buy_${eventId}`)
-                      .setLabel('💰 Giao Dịch')
-                      .setStyle(LS.Success);
-                    const robBtn = new LBB()
-                      .setCustomId(`traveler_rob_${eventId}`)
-                      .setLabel('⚔️ Cướp Đoạt')
-                      .setStyle(LS.Danger);
-                    const row = new LAR().addComponents(buyBtn, robBtn);
-                    await interaction.client.rest.patch(Routes.channelMessage(event.channel_id, event.message_id), { body: { embeds: [embed.toJSON()], components: [row.toJSON()] } });
-                  }
-                }
-              }
-            }
-          } catch (e) {
-            console.error('Update traveler message failed', e);
-          }
-        } else {
-          await safeV2TextUpdate(interaction, `❌ ${result.message}`);
-        }
+        message = result.success ? result.message : `❌ ${result.message}`;
       } catch (buyErr: any) {
         console.error('[TravelerBuy] Lỗi mua hàng:', buyErr);
-        try {
-          if (interaction.deferred || interaction.replied) {
-            await interaction.followUp({ content: '❌ Có lỗi xảy ra khi mua hàng từ Lữ Khách!', flags: MessageFlags.Ephemeral });
-          } else {
-            await interaction.reply({ content: '❌ Có lỗi xảy ra khi mua hàng từ Lữ Khách!', flags: MessageFlags.Ephemeral });
-          }
-        } catch (_) {}
+        message = '❌ Có lỗi xảy ra khi mua hàng từ Lữ Khách!';
       }
+
+      // Send result via ephemeral followUp (available because we deferred)
+      await interaction.followUp({ content: message, flags: MessageFlags.Ephemeral });
+
+      // Update the public traveler event message (best-effort, fire-and-forget)
+      if (message.startsWith('❌')) return;
+      updateTravelerMessage(interaction, eventId).catch(() => {});
     }
 
     // --- LỮ KHÁCH: CƯỚP ---
@@ -293,7 +259,14 @@ export async function handleMarketAction(
         new ActionRowBuilder<TextInputBuilder>().addComponents(qtyInput)
       );
 
-      await (interaction as any).showModal(modal);
+      try {
+        await (interaction as any).showModal(modal);
+      } catch (modalErr: any) {
+        // ponytail: interaction may have been acknowledged by a duplicate event (WS resume replay)
+        if (modalErr?.code !== 40060 && modalErr?.code !== 10062 && modalErr?.rawError?.code !== 40060 && modalErr?.rawError?.code !== 10062) {
+          console.error('[MarketHandler] Lỗi showModal shopbuy:', modalErr);
+        }
+      }
     }
 
     // --- CỬA HÀNG MODAL: XÁC NHẬN MUA ---
@@ -479,5 +452,45 @@ export async function handleMarketAction(
         await interaction.followUp({ content: '❌ Có lỗi xảy ra!', flags: MessageFlags.Ephemeral });
       }
     } catch (_) {}
+  }
+}
+
+/** Update the public traveler-announcement message after a successful purchase. */
+async function updateTravelerMessage(interaction: AnyInteraction, eventId: number): Promise<void> {
+  try {
+    const event = db.prepare('SELECT * FROM traveler_events WHERE id = ?').get(eventId) as any;
+    if (!event || !event.message_id || !event.channel_id || !/^\d{17,20}$/.test(event.channel_id)) return;
+
+    const channel = await (interaction.client as any).channels.fetch(event.channel_id) as any;
+    if (!channel) return;
+    const msg = await channel.messages.fetch(event.message_id).catch(() => null);
+    if (!msg) return;
+
+    let inv: Record<string, any> = {};
+    try { inv = JSON.parse(event.inventory || '{}'); } catch (e) {}
+
+    const embed = EmbedBuilder.from(msg.embeds[0]);
+
+    if (event.status === 'sold_out') {
+      embed.setTitle('👺 Lữ Khách Thần Bí (Đã Rời Đi)');
+      embed.setDescription('Lữ Khách đã bán hết sạch hàng và rời đi.');
+      embed.setFields([]);
+      await (interaction.client as any).rest.patch(Routes.channelMessage(event.channel_id, event.message_id), { body: { embeds: [embed.toJSON()], components: [] } });
+    } else {
+      const newFields = { name: '💰 Hàng Hoá', value: Object.values(inv).map((i: any) => `- **${i.name}** (Còn: ${i.quantity}) - Giá: ${i.price} LT`).join('\n') };
+      embed.setFields([newFields]);
+      const buyBtn = new ButtonBuilder()
+        .setCustomId(`traveler_buy_${eventId}`)
+        .setLabel('💰 Giao Dịch')
+        .setStyle(ButtonStyle.Success);
+      const robBtn = new ButtonBuilder()
+        .setCustomId(`traveler_rob_${eventId}`)
+        .setLabel('⚔️ Cướp Đoạt')
+        .setStyle(ButtonStyle.Danger);
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(buyBtn, robBtn);
+      await (interaction.client as any).rest.patch(Routes.channelMessage(event.channel_id, event.message_id), { body: { embeds: [embed.toJSON()], components: [row.toJSON()] } });
+    }
+  } catch (e) {
+    console.error('Update traveler message failed', e);
   }
 }

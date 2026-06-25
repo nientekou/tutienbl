@@ -348,11 +348,11 @@ export async function safeV2Update(
   rows?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
 ): Promise<void> {
   const components = [...embeds.map(e => e instanceof ContainerBuilder ? e : embedToV2(e)), ...(rows ?? [])];
+  (interaction as any).replied = true;  // ponytail: set before POST — if Discord accepts but response times out, |replied| is already true so catch blocks don't try a second response (10062)
   await interaction.client.rest.post(
     Routes.interactionCallback(interaction.id, interaction.token),
     { body: { type: 7, data: { components, flags: V2_FLAG } } }
   );
-  (interaction as any).replied = true;
 }
 
 /** Safe V2 text update via raw REST — bypasses discord.js MessagePayload bug. */
@@ -361,11 +361,11 @@ export async function safeV2TextUpdate(
   text: string,
 ): Promise<void> {
   const components = [textToV2(text)];
+  (interaction as any).replied = true;  // ponytail: set before POST (see safeV2Update)
   await interaction.client.rest.post(
     Routes.interactionCallback(interaction.id, interaction.token),
     { body: { type: 7, data: { components, flags: V2_FLAG } } }
   );
-  (interaction as any).replied = true;
 }
 
 /** Safe V2 editReply via raw REST — edits a deferred slash-command reply with V2
@@ -378,11 +378,11 @@ export async function safeV2EditReply(
   rows?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
 ): Promise<void> {
   const components = [...embeds.map(e => e instanceof ContainerBuilder ? e : embedToV2(e)), ...(rows ?? [])];
+  (interaction as any).replied = true;  // ponytail: set before POST (see safeV2Update)
   await interaction.client.rest.patch(
     Routes.webhookMessage(interaction.client.user.id, interaction.token, '@original'),
     { body: { components, flags: V2_FLAG } }
   );
-  (interaction as any).replied = true;
 }
 
 // ==================== EMBED COMPAT HELPERS ====================

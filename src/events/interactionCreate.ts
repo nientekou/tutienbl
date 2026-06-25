@@ -126,7 +126,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         try {
           await interaction.deferReply();
         } catch (deferErr: any) {
-          if (deferErr?.code !== 10062 && deferErr?.rawError?.code !== 10062) {
+          // ponytail: 40060 = event replayed during WS resume, 10062 = 3s window expired — both are safe to ignore
+          if (deferErr?.code !== 10062 && deferErr?.code !== 40060 && deferErr?.rawError?.code !== 10062 && deferErr?.rawError?.code !== 40060) {
             console.error('[Defer] Lỗi defer reply:', deferErr);
           }
           return;
