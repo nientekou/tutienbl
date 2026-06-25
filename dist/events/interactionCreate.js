@@ -212,6 +212,8 @@ class InteractionCreateEvent extends Event_1.Event {
                     interaction.customId.startsWith('alch_select_') ||
                     interaction.customId.startsWith('invselect_') ||
                     interaction.customId.startsWith('select_alignment_') ||
+                    interaction.customId.startsWith('shopbuy_') ||
+                    interaction.customId.startsWith('sknbuy_') ||
                     interaction.customId.startsWith('bicanhselect_') ||
                     interaction.customId.startsWith('craftselect_') ||
                     interaction.customId.startsWith('linhdiengieoselect_') ||
