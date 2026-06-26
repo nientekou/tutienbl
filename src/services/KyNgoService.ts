@@ -176,10 +176,10 @@ class KyNgoService {
       case 'cultivation_speed': return `Tốc độ tu luyện +${eff.value}%${eff.duration ? ` (${eff.duration}h)` : ''}`;
       case 'breakthrough_rate': return `Tỷ lệ đột phá +${eff.value}%`;
       case 'tu_vi': return `${eff.value > 0 ? 'Nhận' : 'Mất'} ${Math.abs(eff.value)} Tu Vi`;
-      case 'exp': return `${eff.value > 0 ? 'Nhận' : 'Mất'} ${Math.abs(eff.value)} EXP`;
+      case 'exp': return `${eff.value > 0 ? 'Nhận' : 'Mất'} ${Math.abs(eff.value)} Tu Vi`;
       case 'qi_deviation': return `Lệch tâm +${eff.value}`;
-      case 'heart_law_exp': return `Nhận ${eff.value} Tâm Pháp EXP`;
-      case 'prestige_token': return `Nhận ${eff.value} Prestige Token`;
+      case 'heart_law_exp': return `Nhận ${eff.value} Tâm Pháp Tu Vi`;
+      case 'prestige_token': return `${eff.value > 0 ? 'Nhận' : 'Mất'} ${Math.abs(eff.value)} Phiếu Luân Hồi`;
       default: return '';
     }
   }

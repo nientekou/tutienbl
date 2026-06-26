@@ -142,13 +142,13 @@ class CraftingMasteryService {
         const needed = MASTERY_EXP_PER_LEVEL * mastery.mastery_level;
         const progress = Math.round((mastery.mastery_exp / needed) * 100);
         const quality = this.getQualityTier(mastery.mastery_level);
-        let msg = `⚒️ **${craftType.toUpperCase()} Mastery** — Level **${mastery.mastery_level}**/${MAX_MASTERY_LEVEL}\n`;
+        let msg = `⚒️ **${craftType.toUpperCase()}** — Cấp **${mastery.mastery_level}**/${MAX_MASTERY_LEVEL}\n`;
         msg += `EXP: ${mastery.mastery_exp}/${needed} (${progress}%)\n`;
         msg += `Quality: ${quality.color} **${quality.name}** (+${Math.round(quality.bonus * 100)}% stats)\n`;
         const recipes = this.getDiscoveredRecipes(userId, craftType);
         const discovered = recipes.filter(r => r.discovered);
         if (discovered.length > 0) {
-            msg += `\n**Recipes đã mở khóa:**\n`;
+            msg += `\n**Công thức đã mở khóa:**\n`;
             for (const r of discovered) {
                 msg += `• ${r.name}\n`;
             }
@@ -242,15 +242,70 @@ class CraftingMasteryService {
         const alchemy = this.getMastery(userId, 'alchemy');
         const forging = this.getMastery(userId, 'forging');
         const cooking = this.getMastery(userId, 'cooking');
-        let msg = `⚒️ **Crafting Mastery**\n`;
+        let msg = `⚒️ **Luyện Chế**\n`;
         msg += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
-        msg += `🧪 **Alchemy:** Level ${alchemy.mastery_level}/10\n`;
-        msg += `🔨 **Forging:** Level ${forging.mastery_level}/10\n`;
-        msg += `🍳 **Cooking:** Level ${cooking.mastery_level}/10\n`;
+        msg += `🧪 **Luyện Đan:** Cấp ${alchemy.mastery_level}/10\n`;
+        msg += `🔨 **Rèn:** Cấp ${forging.mastery_level}/10\n`;
+        msg += `🍳 **Nấu Ăn:** Cấp ${cooking.mastery_level}/10\n`;
         if (this.isCraftingEventActive()) {
-            msg += `\n🎉 **Crafting Event Active!** Double quality chance!`;
+            msg += `\n🎉 **Sự Kiện Luyện Chế!** Nhân đôi cơ hội chất lượng!`;
         }
         return msg;
+    }
+    // === B-03: Secret Crafting Recipes ===
+    static SECRET_RECIPES = [
+        { id: 'secret_thien_hoa', name: 'Thiên Hỏa Đan', type: 'alchemy', condition: 'burn_100', description: 'Đốt cháy 100 vật phẩm' },
+        { id: 'secret_binh_phach', name: 'Băng Phách Kiếm', type: 'forging', condition: 'fail_5', description: 'Thất bại 5 lần liên tiếp' },
+        { id: 'secret_van_doc', name: 'Vạn Độc Tán', type: 'alchemy', condition: 'gather_50', description: 'Thu thập 50 thảo dược' },
+        { id: 'secret_phoi_sinh', name: 'Phục Sinh Đan', type: 'alchemy', condition: 'boss_100', description: 'Đánh bại 100 boss' },
+        { id: 'secret_thien_ly', name: 'Thiên Lý Truyền Thư', type: 'forging', condition: 'trade_50', description: 'Giao dịch 50 lần' },
+    ];
+    getSecretRecipes(userId) {
+        this.initTable();
+        const discovered = database_1.default.prepare("SELECT value FROM system_config WHERE key = ?").get(`secret_recipes:${userId}`);
+        const discoveredIds = discovered ? JSON.parse(discovered.value) : [];
+        return CraftingMasteryService.SECRET_RECIPES.map(r => ({
+            recipe: r,
+            discovered: discoveredIds.includes(r.id)
+        }));
+    }
+    discoverSecretRecipe(userId, recipeId) {
+        this.initTable();
+        const recipe = CraftingMasteryService.SECRET_RECIPES.find(r => r.id === recipeId);
+        if (!recipe)
+            return false;
+        const discovered = database_1.default.prepare("SELECT value FROM system_config WHERE key = ?").get(`secret_recipes:${userId}`);
+        const ids = discovered ? JSON.parse(discovered.value) : [];
+        if (ids.includes(recipeId))
+            return false;
+        ids.push(recipeId);
+        database_1.default.prepare('INSERT OR REPLACE INTO system_config (key, value) VALUES (?, ?)')
+            .run(`secret_recipes:${userId}`, JSON.stringify(ids));
+        return true;
+    }
+    checkSecretRecipeTriggers(userId) {
+        // Check audit_logs for trigger conditions
+        const checks = [
+            { condition: 'burn_100', query: "SELECT COUNT(*) as c FROM audit_logs WHERE user_id = ? AND action = 'item_salvage'" },
+            { condition: 'fail_5', query: "SELECT COUNT(*) as c FROM audit_logs WHERE user_id = ? AND action = 'enhance_fail'" },
+            { condition: 'boss_100', query: "SELECT COUNT(*) as c FROM audit_logs WHERE user_id = ? AND action = 'world_boss'" },
+            { condition: 'trade_50', query: "SELECT COUNT(*) as c FROM audit_logs WHERE user_id = ? AND action = 'market_buy'" },
+        ];
+        for (const check of checks) {
+            const row = database_1.default.prepare(check.query).get(userId);
+            if (!row)
+                continue;
+            const recipe = CraftingMasteryService.SECRET_RECIPES.find(r => r.condition === check.condition);
+            if (!recipe)
+                continue;
+            const target = check.condition === 'burn_100' ? 100 : check.condition === 'fail_5' ? 5 : check.condition === 'boss_100' ? 100 : 50;
+            if (row.c >= target) {
+                const result = this.discoverSecretRecipe(userId, recipe.id);
+                if (result)
+                    return { recipe: recipe.id, name: recipe.name };
+            }
+        }
+        return null;
     }
 }
 exports.craftingMasteryService = new CraftingMasteryService();

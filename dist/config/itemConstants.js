@@ -175,6 +175,11 @@ exports.ITEMS = {
     MAT_HUYEN_THIET: 'mat_huyen_thiet',
     ITEM_PET_EVOLVE: 'item_pet_evolve',
     ITEM_FORTUNE_ELIXIR: 'item_fortune_elixir',
+    // ---- Infinite Dungeon Materials ----
+    INFINITE_SHARD: 'infinite_shard',
+    INFINITE_CORE: 'infinite_core',
+    // ---- Prestige Materials ----
+    PRESTIGE_MATERIAL: 'prestige_material',
 };
 // ---- Helper: Get dynamic item ID by grade ----
 function getWeaponByGrade(grade) {

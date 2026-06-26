@@ -873,15 +873,15 @@ class SectService {
     getGuildLevels() {
         return [
             { level: 1, memberLimit: 10, benefits: 'Tính năng tông môn cơ bản' },
-            { level: 2, memberLimit: 15, benefits: '+5% EXP cho thành viên' },
+            { level: 2, memberLimit: 15, benefits: '+5% Tu Vi cho thành viên' },
             { level: 3, memberLimit: 20, benefits: 'Mở khóa Cửa Hàng Tông Môn' },
-            { level: 4, memberLimit: 25, benefits: '+10% EXP cho thành viên' },
+            { level: 4, memberLimit: 25, benefits: '+10% Tu Vi cho thành viên' },
             { level: 5, memberLimit: 30, benefits: 'Mở khóa cửa hàng nâng cao + Kỹ Năng Tông Môn' },
-            { level: 6, memberLimit: 35, benefits: '+15% EXP + Thành Tựu Tông Môn' },
+            { level: 6, memberLimit: 35, benefits: '+15% Tu Vi + Thành Tựu Tông Môn' },
             { level: 7, memberLimit: 40, benefits: 'Mở khóa Sự Kiện Tông Môn' },
-            { level: 8, memberLimit: 45, benefits: '+20% EXP + Cửa Hàng Tinh Anh' },
+            { level: 8, memberLimit: 45, benefits: '+20% Tu Vi + Cửa Hàng Tinh Anh' },
             { level: 9, memberLimit: 50, benefits: 'Mở khóa Boss Tông Môn' },
-            { level: 10, memberLimit: 60, benefits: '+25% EXP + Cửa Hàng Huyền Thoại + Tùy Biến Tông Môn' },
+            { level: 10, memberLimit: 60, benefits: '+25% Tu Vi + Cửa Hàng Huyền Thoại + Tùy Biến Tông Môn' },
         ];
     }
     /**
@@ -889,7 +889,7 @@ class SectService {
      */
     getGuildSkills() {
         return [
-            { id: 'gs_exp', name: 'EXP Gia Trì', description: '+5% EXP cho tất cả thành viên', bonus: 'exp_bonus', levelReq: 5 },
+            { id: 'gs_exp', name: 'EXP Gia Trì', description: '+5% Tu Vi cho tất cả thành viên', bonus: 'exp_bonus', levelReq: 5 },
             { id: 'gs_atk', name: 'ATK Gia Trì', description: '+3% ATK cho tất cả thành viên', bonus: 'atk_bonus', levelReq: 6 },
             { id: 'gs_def', name: 'DEF Gia Trì', description: '+3% DEF cho tất cả thành viên', bonus: 'def_bonus', levelReq: 7 },
             { id: 'gs_hp', name: 'HP Gia Trì', description: '+5% HP cho tất cả thành viên', bonus: 'hp_bonus', levelReq: 8 },
@@ -918,8 +918,8 @@ class SectService {
      */
     getGuildAchievements() {
         return [
-            { id: 'ga_member_10', name: 'Phát Triển', description: 'Đạt 10 thành viên', target: 10, reward: '5000 EXP tông môn' },
-            { id: 'ga_member_25', name: 'Tông Môn Hùng Mạnh', description: 'Đạt 25 thành viên', target: 25, reward: '10000 EXP tông môn + Danh hiệu' },
+            { id: 'ga_member_10', name: 'Phát Triển', description: 'Đạt 10 thành viên', target: 10, reward: '5000 Tu Vi tông môn' },
+            { id: 'ga_member_25', name: 'Tông Môn Hùng Mạnh', description: 'Đạt 25 thành viên', target: 25, reward: '10000 Tu Vi tông môn + Danh hiệu' },
             { id: 'ga_level_5', name: 'Có Chỗ Đứng', description: 'Đạt cấp tông môn 5', target: 5, reward: 'Mở khóa Kỹ Năng Tông Môn' },
             { id: 'ga_level_10', name: 'Tông Môn Huyền Thoại', description: 'Đạt cấp tông môn 10', target: 10, reward: 'Danh hiệu Huyền Thoại + Tọa Kỵ' },
             { id: 'ga_donate_100k', name: 'Hiến Tế Rộng Lượng', description: 'Hiến tế tổng cộng 100,000', target: 100000, reward: 'Trang Phục Độc Quyền' },
@@ -949,16 +949,16 @@ class SectService {
         const levels = this.getGuildLevels();
         const currentLevel = levels.find(l => l.level === sect.level) || levels[0];
         const nextLevel = levels.find(l => l.level === sect.level + 1);
-        let msg = `☯️ **${sect.name}** (Level ${sect.level})\n`;
+        let msg = `☯️ **${sect.name}** (Cấp ${sect.level})\n`;
         msg += `👥 Members: ${this.getMemberCount(sect.id)}/${currentLevel.memberLimit}\n`;
         msg += `📊 Benefits: ${currentLevel.benefits}\n`;
         if (nextLevel) {
-            msg += `📈 Next Level: ${nextLevel.benefits}\n`;
+            msg += `📈 Cấp Tiếp Theo: ${nextLevel.benefits}\n`;
         }
         // Show active skills
         const skills = this.getActiveGuildSkills(sect.id);
         if (skills.length > 0) {
-            msg += `\n**Guild Skills:**\n`;
+            msg += `\n**Kỹ Năng Tông Môn:**\n`;
             for (const s of skills) {
                 msg += `• ${s.name}: ${s.bonus}\n`;
             }

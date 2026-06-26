@@ -157,5 +157,34 @@ class CommunityQuestService {
     `).all(userId, limit);
         return quests;
     }
+    // V12 C-02: Auto-scheduler for community quests (every 48h)
+    startScheduler() {
+        if (this.schedulerInterval)
+            return;
+        console.log('[CommunityQuestService] ⏳ Scheduler started');
+        this.checkAndStartQuest();
+        this.schedulerInterval = setInterval(() => {
+            try {
+                this.checkAndStartQuest();
+            }
+            catch (err) {
+                console.error('[CommunityQuestService] Scheduler error:', err);
+            }
+        }, 60 * 60 * 1000); // Check every hour
+    }
+    schedulerInterval = null;
+    checkAndStartQuest() {
+        // Check if there's an active quest
+        const active = database_1.default.prepare("SELECT id FROM community_quests WHERE status = 'active' LIMIT 1").get();
+        if (active)
+            return;
+        // Check last quest end time — wait 48h between quests
+        const lastQuest = database_1.default.prepare("SELECT ends_at FROM community_quests ORDER BY ends_at DESC LIMIT 1").get();
+        const now = Math.floor(Date.now() / 1000);
+        if (lastQuest && now - lastQuest.ends_at < 48 * 3600)
+            return;
+        // Start a new random quest
+        this.startRandomQuest();
+    }
 }
 exports.communityQuestService = new CommunityQuestService();

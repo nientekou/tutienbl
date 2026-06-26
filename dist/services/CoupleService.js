@@ -357,8 +357,8 @@ class CoupleService {
      */
     getJointSkillsDescription() {
         return `💕 **Kỹ Năng Đôi:**\n\n` +
-            `🧘 **Song Tu** — +30% EXP cho cả 2 (0 TL)\n` +
-            `⚔️ **Hợp Kích** — +100% damage 1 đòn (50 TL)\n` +
+            `🧘 **Song Tu** — +30% Tu Vi cho cả 2 (0 TL)\n` +
+            `⚔️ **Hợp Kích** — +100% sát thương 1 đòn (50 TL)\n` +
             `💚 **Tình Duyên Trị Liệu** — Hồi 15% HP cho partner (30 TL)\n\n` +
             `*Dùng lệnh couple để kích hoạt*`;
     }

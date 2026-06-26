@@ -214,12 +214,12 @@ class RareBeastService {
     // Check if already training
     const existing = db.prepare("SELECT * FROM beast_training WHERE user_id = ? AND beast_id = ? AND status = 'training'")
       .get(userId, beastId) as any;
-    if (existing) return { success: false, message: '❌ Linh thú này đang training!' };
+    if (existing) return { success: false, message: '❌ Linh thú này đang huấn luyện!' };
 
     // Check max 3 training at once
     const trainingCount = db.prepare("SELECT COUNT(*) as c FROM beast_training WHERE user_id = ? AND status = 'training'")
       .get(userId) as { c: number };
-    if (trainingCount.c >= 3) return { success: false, message: '❌ Đã đủ 3 linh thú training! Đợi một trong số chúng hoàn thành.' };
+    if (trainingCount.c >= 3) return { success: false, message: '❌ Đã đủ 3 linh thú huấn luyện! Đợi một trong số chúng hoàn thành.' };
 
     const now = Math.floor(Date.now() / 1000);
     const duration = (4 + Math.floor(Math.random() * 5)) * 3600; // 4-8 hours
@@ -239,12 +239,12 @@ class RareBeastService {
 
     const training = db.prepare("SELECT * FROM beast_training WHERE user_id = ? AND beast_id = ? AND status = 'training'")
       .get(userId, beastId) as any;
-    if (!training) return { success: false, message: '❌ Không có training nào đang diễn ra!' };
+    if (!training) return { success: false, message: '❌ Không có huấn luyện nào đang diễn ra!' };
 
     const now = Math.floor(Date.now() / 1000);
     if (now < training.end_time) {
       const remainMin = Math.ceil((training.end_time - now) / 60);
-      return { success: false, message: `❌ Còn **${remainMin} phút** nữa training hoàn thành!` };
+      return { success: false, message: `❌ Còn **${remainMin} phút** nữa huấn luyện hoàn thành!` };
     }
 
     const beast = db.prepare('SELECT * FROM rare_beasts WHERE id = ?').get(beastId) as any;
@@ -256,8 +256,8 @@ class RareBeastService {
 
     db.prepare("UPDATE beast_training SET status = 'completed' WHERE id = ?").run(training.id);
 
-    const msg = `🏋️ **${beast.beast_name}** hoàn thành training!\n+${expGained} EXP` +
-      (result.levelUp ? `\n🎉 Level up! → Level **${result.newLevel}**` : '');
+    const msg = `🏋️ **${beast.beast_name}** hoàn thành huấn luyện!\n+${expGained} Tu Vi` +
+      (result.levelUp ? `\n🎉 Lên cấp! → Cấp **${result.newLevel}**` : '');
 
     return { success: true, message: msg };
   }

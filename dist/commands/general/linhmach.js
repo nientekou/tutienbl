@@ -45,7 +45,7 @@ function buildLeylineEmbed(userId) {
     const leylines = LeylineService_1.leylineService.getAllLeylines();
     const desc = `*Linh mạch đại lục là nguồn sinh khí nuôi dưỡng tu sĩ. Mọi hành động của các tu sĩ trên server sẽ tích tụ linh khí vào các linh mạch tương ứng. Khi đầy, linh mạch sẽ bùng nổ buff toàn server trong 2 giờ.*\n\n` +
         `🧘 **Trạng thái Dẫn dòng:** ${userLeyline.channeling_target ? `Đang tập trung dẫn dòng vào **${LEYLINE_NAMES[userLeyline.channeling_target]}**` : '`Chưa dẫn dòng`'}\n` +
-        `⏳ **Hồi thuật dẫn dòng:** ${userLeyline.channeling_cooldown > nowSec ? `\`${formatDuration(userLeyline.channeling_cooldown - nowSec)}\`` : '`Sẵn sàng` (Cooldown 6 giờ sau khi đổi)'}\n` +
+        `⏳ **Hồi thuật dẫn dòng:** ${userLeyline.channeling_cooldown > nowSec ? `\`${formatDuration(userLeyline.channeling_cooldown - nowSec)}\`` : '`Sẵn sàng` (Hồi chiêu 6 giờ sau khi đổi)'}\n` +
         `*(Dẫn dòng giúp tăng +50% linh khí đóng góp cho linh mạch đó, nhưng sẽ không tích tụ vào các mạch khác)*\n`;
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle(`🌟 LINH MẠCH ĐỊA ĐỒ - THẾ GIỚI TU CHÂN`)

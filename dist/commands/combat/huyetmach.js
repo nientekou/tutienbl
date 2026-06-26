@@ -49,7 +49,7 @@ class HuyetMachCommand extends Command_1.Command {
                 .setColor(uiSystem_1.EMBED_COLORS.ERROR)
                 .addFields([
                 { name: '🌟 Nội Tại Kích Hoạt', value: passiveDesc || 'Chưa có', inline: false },
-                { name: '💢 Hiệu Ứng Nộ (Rage)', value: `Tăng sức mạnh x${ub.rage_effect.multiplier || 2} trong ${ub.rage_effect.duration || 3} hiệp (Cooldown: ${ub.rage_effect.cooldown || 10} phút).`, inline: false },
+                { name: '💢 Hiệu Ứng Nộ (Rage)', value: `Tăng sức mạnh x${ub.rage_effect.multiplier || 2} trong ${ub.rage_effect.duration || 3} hiệp (Hồi chiêu: ${ub.rage_effect.cooldown || 10} phút).`, inline: false },
                 { name: '⚠️ Điểm Yếu', value: `*Sẽ bị ảnh hưởng bởi điểm yếu của ${ub.name} trong thực chiến.*`, inline: false }
             ]);
             await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));

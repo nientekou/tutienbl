@@ -105,6 +105,12 @@ class PvPService {
         AchievementService_1.achievementService.setProgress(winnerId, 'pvp_6', (winner.pvp_points || 0) + winnerGain);
         AchievementService_1.achievementService.setProgress(winnerId, 'pvp_7', (winner.pvp_points || 0) + winnerGain);
         AchievementService_1.achievementService.setProgress(winnerId, 'pvp_8', (winner.pvp_points || 0) + winnerGain);
+        // V12 D-01: Season Pass EXP for PvP win
+        try {
+            const { eventCalendarService } = require('./EventCalendarService');
+            eventCalendarService.addSeasonPassExp(winnerId, 8);
+        }
+        catch (_) { }
         // Cập nhật audit log
         const now = Math.floor(Date.now() / 1000);
         database_1.default.prepare(`

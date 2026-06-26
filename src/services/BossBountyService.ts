@@ -213,7 +213,7 @@ class BossBountyService {
 
     return {
       success: true,
-      message: `${diffEmoji} **Bounty hoàn thành!** ${bounty.target_desc}\n🟤 +${bounty.reward_coin} LT | 🌿 +${bounty.reward_exp} Tu Vi | 🎫 +${bounty.reward_tokens} Token`
+      message: `${diffEmoji} **Bounty hoàn thành!** ${bounty.target_desc}\n🟤 +${bounty.reward_coin} LT | 🌿 +${bounty.reward_exp} Tu Vi | 🎫 +${bounty.reward_tokens} Phiếu`
     };
   }
 
@@ -224,10 +224,10 @@ class BossBountyService {
     const user = userRepository.get(userId);
     const tokens = user?.bounty_tokens || 0;
 
-    let msg = `🎫 **Cửa Hàng Token Săn Thưởng** (Hiện có: **${tokens}** token)\n━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    let msg = `🎫 **Cửa Hàng Phiếu Săn Thưởng** (Hiện có: **${tokens}** Phiếu)\n━━━━━━━━━━━━━━━━━━━━━━━\n`;
     for (const item of TOKEN_SHOP) {
       const canBuy = tokens >= item.cost ? '✅' : '❌';
-      msg += `${canBuy} **${item.name}** — ${item.cost} token\n`;
+      msg += `${canBuy} **${item.name}** — ${item.cost} Phiếu\n`;
     }
     return msg;
   }

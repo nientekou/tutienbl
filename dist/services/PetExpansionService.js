@@ -7,7 +7,7 @@ exports.petExpansionService = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const PERSONALITY_BONUSES = {
-    friendly: { stat: 'exp_bonus', value: 0.05, description: '+5% EXP từ tu luyện' },
+    friendly: { stat: 'exp_bonus', value: 0.05, description: '+5% Tu Vi từ tu luyện' },
     lazy: { stat: 'hp_bonus', value: 0.08, description: '+8% HP' },
     aggressive: { stat: 'atk_bonus', value: 0.06, description: '+6% ATK' },
 };
@@ -162,7 +162,7 @@ class PetExpansionService {
                 .run(amount, mat.id);
             return {
                 success: true,
-                message: `🏋️ **${pet.name}** training thành công!\n+${expGained} EXP → Level **${newLevel}**!`
+                message: `🏋️ **${pet.name}** huấn luyện thành công!\n+${expGained} Tu Vi → Cấp **${newLevel}**!`
             };
         }
         database_1.default.prepare('UPDATE pets SET exp = ? WHERE id = ?').run(newExp, petId);
@@ -170,7 +170,7 @@ class PetExpansionService {
             .run(amount, mat.id);
         return {
             success: true,
-            message: `🏋️ **${pet.name}** training +${expGained} EXP (${newExp}/${needed})`
+            message: `🏋️ **${pet.name}** huấn luyện +${expGained} EXP (${newExp}/${needed})`
         };
     }
     /**

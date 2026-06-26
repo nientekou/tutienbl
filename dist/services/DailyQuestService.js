@@ -370,7 +370,7 @@ class DailyQuestService {
         let resultMessage = `✅ **${def?.emoji || '🎁'} ${def?.name || questId}** hoàn thành!`;
         resultMessage += `\n🟤 +${rewardCoin} Linh Thạch | 🌿 +${rewardExp} Tu Vi | 🧘 +${rewardNgotinh} Ngộ Tính`;
         if (quest.is_elite) {
-            resultMessage += `\n⭐ **Elite Quest!** x2 reward`;
+            resultMessage += `\n⭐ **Nhiệm Vụ Tinh Anh!** x2 phần thưởng`;
         }
         // P2-04: Calculate Perfect Day + Streak bonuses BEFORE transaction
         let perfectBonusCoin = 0, perfectBonusExp = 0, perfectBonusNgotinh = 0;
@@ -383,17 +383,17 @@ class DailyQuestService {
             perfectBonusCoin = Math.round(rewardCoin * 0.3);
             perfectBonusExp = Math.round(rewardExp * 0.3);
             perfectBonusNgotinh = Math.round(rewardNgotinh * 0.3);
-            resultMessage += `\n🎉 **Perfect Day!** Hoàn thành tất cả 3 nhiệm vụ → +30% bonus!`;
+            resultMessage += `\n🎉 **Perfect Day!** Hoàn thành tất cả 3 nhiệm vụ → +30% thưởng!`;
             resultMessage += `\n🟤 +${perfectBonusCoin} | 🌿 +${perfectBonusExp} | 🧘 +${perfectBonusNgotinh}`;
             if (streakInfo.isWeekBonus) {
                 streakBonusCoin = Math.round(rewardCoin * 0.5);
                 streakBonusExp = Math.round(rewardExp * 0.5);
                 streakBonusNgotinh = Math.round(rewardNgotinh * 0.5);
-                resultMessage += `\n🔥 **Streak x${streakInfo.streak}!** Tuần hoàn hảo → x1.5 bonus!`;
+                resultMessage += `\n🔥 **Chuỗi x${streakInfo.streak}!** Tuần hoàn hảo → x1.5 thưởng!`;
                 resultMessage += `\n🟤 +${streakBonusCoin} | 🌿 +${streakBonusExp} | 🧘 +${streakBonusNgotinh}`;
             }
             else {
-                resultMessage += `\n🔥 Streak: ${streakInfo.streak}/7 ngày`;
+                resultMessage += `\n🔥 Chuỗi: ${streakInfo.streak}/7 ngày`;
             }
         }
         // Single atomic transaction: claim + give all rewards
@@ -408,6 +408,12 @@ class DailyQuestService {
                 ngotinh: (user.ngotinh || 0) + totalNgotinh
             });
         })();
+        // V12 D-01: Season Pass EXP for daily quest completion
+        try {
+            const { eventCalendarService } = require('./EventCalendarService');
+            eventCalendarService.addSeasonPassExp(userId, 5);
+        }
+        catch (_) { }
         return { success: true, message: resultMessage };
     }
     /**
@@ -447,7 +453,7 @@ class DailyQuestService {
         msg += `✅ Hoàn thành: **${totalCompleted}/${totalAssigned}** (${completionRate}%)\n`;
         msg += `🎁 Đã nhận thưởng: **${totalClaimed}**\n`;
         if (eliteCompleted > 0) {
-            msg += `⭐ Elite hoàn thành: **${eliteCompleted}**\n`;
+            msg += `⭐ Nhiệm Vụ Tinh Anh hoàn thành: **${eliteCompleted}**\n`;
         }
         msg += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
         msg += `🟤 Linh Thạch: **+${totalCoin}**\n`;

@@ -150,7 +150,7 @@ class BlacksmithService {
                 forging_exp: currentExp
             });
             let responseMsg = `🎉 **Rèn đúc thành công!** Đạo hữu thu được **1x ${rewardName}**!\n`;
-            responseMsg += `📈 Nhận **+${expGained}** EXP Luyện Khí Sư (Hiện tại: **${currentExp}/${currentLevel * 150}**).`;
+            responseMsg += `📈 Nhận **+${expGained}** Tu Vi Luyện Khí Sư (Hiện tại: **${currentExp}/${currentLevel * 150}**).`;
             if (isLevelUp) {
                 responseMsg += `\n🌟 **Chúc mừng!** Đạo hữu đột phá Luyện Khí Đạo thăng lên **Cấp ${currentLevel} Luyện Khí Sư**!`;
             }

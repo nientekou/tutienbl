@@ -38,6 +38,7 @@ export interface Combatant {
   shadowMutation?: string; // P1-02: Dreamscape shadow mutation type
   effects?: CombatEffect[]; // E-02: Active combat effects
   selectedSkillIndex?: number; // A1: Player-selected opening skill index
+  action?: 'attack' | 'guard' | 'rage'; // V12 A-01/A-04: Guard/Defend/Rage action
 }
 
 export interface PetCombatConfig {
@@ -79,10 +80,17 @@ export class CombatEngine {
     let enemyParalyzed = false;
     let playerParalyzed = false;
     let playerDodge = false;
+    let playerGuarding = false; // V12 A-01: Guard/Defend
 
     // E-02: Initialize combat effects from combatant data
     let playerEffects: CombatEffect[] = player.effects ? [...player.effects.map(e => ({ ...e }))] : [];
     let enemyEffects: CombatEffect[] = enemy.effects ? [...enemy.effects.map(e => ({ ...e }))] : [];
+
+    // V12 A-03: Elemental Combo tracking
+    let lastUsedElement: string | null = null;
+    const ELEMENT_COUNTERS: Record<string, string> = {
+      'Hoa': 'Kim', 'Kim': 'Moc', 'Moc': 'Tho', 'Tho': 'Thuy', 'Thuy': 'Hoa', 'Loi': 'Thuy', 'Phong': 'Loi'
+    };
 
     // Load active Heart Laws
     let playerHeartLaws = player.heartLaws;
@@ -332,6 +340,9 @@ export class CombatEngine {
     while (playerHp > 0 && enemyHp > 0 && round <= maxRounds) {
       log.push(`\n=== ⏳ **Hiệp ${round}** ===`);
 
+      // V12 A-01: Reset guard at start of each round
+      playerGuarding = false;
+
       // Hồi phục từ sủng thú (healing skill)
       if (pet && pet.skills && pet.skills.includes('healing') && playerHp > 0 && !isDreamscape) {
         const petHeal = Math.round(playerMaxHp * 0.02);
@@ -381,7 +392,7 @@ export class CombatEngine {
         const peResult = combatEffectService.processEffects(playerEffects);
         if (peResult.damage > 0) {
           playerHp -= peResult.damage;
-          log.push(`💫 **[Trang Thai]** **${player.name}** chiu **-${peResult.damage}** sat thuong tu hieu ung! (Con lai: ${Math.max(0, playerHp)} HP)`);
+          log.push(`💫 **[Trạng Thái]** **${player.name}** chịu **-${peResult.damage}** sát thương từ hiệu ứng! (Còn lại: ${Math.max(0, playerHp)} HP)`);
         }
         for (const entry of peResult.log) log.push(`  ${entry}`);
       }
@@ -389,7 +400,7 @@ export class CombatEngine {
         const eeResult = combatEffectService.processEffects(enemyEffects);
         if (eeResult.damage > 0) {
           enemyHp -= eeResult.damage;
-          log.push(`💫 **[Trang Thai]** **${enemy.name}** chiu **-${eeResult.damage}** sat thuong tu hieu ung! (Con lai: ${Math.max(0, enemyHp)} HP)`);
+          log.push(`💫 **[Trạng Thái]** **${enemy.name}** chịu **-${eeResult.damage}** sát thương từ hiệu ứng! (Còn lại: ${Math.max(0, enemyHp)} HP)`);
         }
         for (const entry of eeResult.log) log.push(`  ${entry}`);
       }
@@ -412,6 +423,18 @@ export class CombatEngine {
         if (combatEffectService.isCC(playerEffects)) {
           const ccEffect = playerEffects.find(e => e.type === 'stun' || e.type === 'freeze' || e.type === 'sleep');
           log.push(`💫 **${player.name}** bị ${ccEffect?.type === 'stun' ? 'tê liệt' : ccEffect?.type === 'freeze' ? 'đóng băng' : 'ngủ'} bởi hiệu ứng, không thể hành động!`);
+          return;
+        }
+
+        // V12 A-01: Guard/Defend action
+        if (player.action === 'guard') {
+          // -50% damage this round, recover 10% max MP
+          playerGuarding = true;
+          const mpRecover = Math.round((player.maxMp || 100) * 0.10);
+          if (player.mp !== undefined && player.maxMp) {
+            player.mp = Math.min(player.maxMp, player.mp + mpRecover);
+          }
+          log.push(`🛡️ **${player.name}** phòng thủ! Giảm 50% sát thương, hồi **+${mpRecover}** MP.`);
           return;
         }
 
@@ -468,15 +491,27 @@ export class CombatEngine {
               baseRageRate = 0.1;
             }
 
-            if (!rageActive && player.bloodline.rage_cooldown <= nowSec && Math.random() < baseRageRate) {
-              rageActive = true;
-              rageTurnsLeft = r.duration || 3;
-              bloodlineMultiplier = r.multiplier || 2;
-              
-              // Cập nhật thời gian cooldown của Rage (tạm thời qua reference, thực tế service sẽ lưu DB sau trận)
-              player.bloodline.rage_cooldown = nowSec + (r.cooldown * 60) || nowSec + 600;
-              
-              log.push(`💢 **[HUYẾT MẠCH NỘ]** Sức mạnh **${player.bloodline.name}** bùng nổ! Tăng x${bloodlineMultiplier} hiệu ứng Huyết Mạch trong ${rageTurnsLeft} hiệp!`);
+            if (!rageActive && player.bloodline.rage_cooldown <= nowSec) {
+              // V12 A-04: Player can force-activate rage via action='rage', or RNG triggers
+              const forceRage = player.action === 'rage';
+              if (forceRage || Math.random() < baseRageRate) {
+                rageActive = true;
+                rageTurnsLeft = r.duration || 3;
+                bloodlineMultiplier = r.multiplier || 2;
+
+                // Force rage costs 20% HP
+                if (forceRage) {
+                  const hpCost = Math.round(playerMaxHp * 0.20);
+                  playerHp = Math.max(1, playerHp - hpCost);
+                  log.push(`💢 **[HUYẾT MẠCH NỘ - BÙNG CHÁY!]** Hiến 20% HP (**-${hpCost}**) để kích hoạt Rage!`);
+                }
+
+                player.bloodline.rage_cooldown = nowSec + (r.cooldown * 60) || nowSec + 600;
+
+                log.push(`💢 **[HUYẾT MẠCH NỘ]** Sức mạnh **${player.bloodline.name}** bùng nổ! Tăng x${bloodlineMultiplier} hiệu ứng Huyết Mạch trong ${rageTurnsLeft} hiệp!`);
+              } else if (player.action === 'rage') {
+                log.push(`💢 Rage chưa sẵn sàng! Cooldown còn ${(player.bloodline.rage_cooldown - nowSec)} giây.`);
+              }
             }
           }
 
@@ -623,7 +658,7 @@ export class CombatEngine {
 
             // E-02: Silence check - silenced characters cannot use skills
             if (activeSkill && combatEffectService.isSilenced(playerEffects)) {
-              log.push(`🔇 **${player.name}** bị câm tính, kỹ năng bị phong ấn!`);
+              log.push(`🔇 **${player.name}** bị câm lặng, kỹ năng bị phong ấn!`);
               activeSkill = null;
             }
 
@@ -688,6 +723,24 @@ export class CombatEngine {
                 baseDamage = Math.round(baseDamage * elemMult);
               }
             }
+
+            // V12 A-03: Elemental Combo System
+            if (activeSkill && lastUsedElement) {
+              const currentElement = activeSkill.element;
+              if (currentElement === lastUsedElement) {
+                // Same element combo: +20% damage
+                baseDamage = Math.round(baseDamage * 1.20);
+                elementText += ` 🔥 **LIÊN HOÀN ${currentElement.toUpperCase()}!** (+20%)`;
+              } else if (ELEMENT_COUNTERS[currentElement] === lastUsedElement) {
+                // Counter element: +30% damage
+                baseDamage = Math.round(baseDamage * 1.30);
+                elementText += ` ⚡ **KHẮC CHẾ!** (+30%)`;
+              }
+              lastUsedElement = currentElement;
+            } else if (activeSkill) {
+              lastUsedElement = activeSkill.element;
+            }
+
             if (activeSkill) {
               const vnToEngElement: Record<string, string> = {
                 'Kim': 'metal',
@@ -895,6 +948,11 @@ export class CombatEngine {
             }
             const reflectText = reflectDmg > 0 ? ` ⚡ *(Bị phản chấn ngược: -${reflectDmg} HP)*` : '';
 
+            // V12 A-01: Guard reduces incoming damage by 50%
+            if (playerGuarding) {
+              monsterDmg = Math.round(monsterDmg * 0.5);
+            }
+
             // Trừ vào khiên trước
             if (playerShield > 0) {
               if (playerShield >= monsterDmg) {
@@ -939,7 +997,7 @@ export class CombatEngine {
           case 'burn': {
             const burnDmg = Math.round(playerMaxHp * 0.05);
             playerHp -= burnDmg;
-            log.push(`🔥 **[Bóng Tối - Hỏa Thiêu]** Bóng Tối thiêu đốt, gây **-${burnDmg}** sát thương nộig`);
+            log.push(`🔥 **[Bóng Tối - Hỏa Thiêu]** Bóng Tối thiêu đốt, gây **-${burnDmg}** sát thương nội`);
             break;
           }
           case 'poison': {
@@ -1030,7 +1088,7 @@ export class CombatEngine {
    */
   static getCombatTechniques(): { id: string; name: string; description: string; element: string; unlockLevel: number }[] {
     return [
-      { id: 'ct_fire_burst', name: 'Hỏa Bạo Từ', description: 'Hỏa hệ sát thương AOE', element: 'Hoa', unlockLevel: 20 },
+      { id: 'ct_fire_burst', name: 'Hỏa Bạo Kích', description: 'Hỏa hệ sát thương AOE', element: 'Hoa', unlockLevel: 20 },
       { id: 'ct_water_heal', name: 'Thủy Linh Hồi', description: 'Thủy hệ hồi 20% HP', element: 'Thuy', unlockLevel: 20 },
       { id: 'ct_earth_shield', name: 'Thổ Giáp', description: 'Thổ hệ khiên 15% HP', element: 'Tho', unlockLevel: 20 },
       { id: 'ct_wind_dodge', name: 'Phong Hành Né', description: 'Phong hệ né +30%', element: 'Phong', unlockLevel: 20 },

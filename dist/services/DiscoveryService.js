@@ -19,7 +19,7 @@ const HIDDEN_NPCS = [
     { id: 'hn_3', name: 'Thương Nhân U Linh', description: 'Một thương nhân từ thế giới bên kia', quest: 'Trao đổi vật phẩm quý hiếm', reward: 'Vật Phẩm Hiếm' },
 ];
 const HIDDEN_ITEMS = [
-    { id: 'hi_1', name: 'Đồng Cổ', description: 'Một đồng xu từ thời thượng cổ', effect: '+10% EXP trong 1h' },
+    { id: 'hi_1', name: 'Đồng Cổ', description: 'Một đồng xu từ thời thượng cổ', effect: '+10% Tu Vi trong 1h' },
     { id: 'hi_2', name: 'Linh Thạch Nguyên Khí', description: 'Một viên đá thấm đẫm linh khí', effect: '+5% toàn thuộc tính trong 30p' },
     { id: 'hi_3', name: 'Bùa May Mắn', description: 'Tăng may mắn tạm thời', effect: '+10 May Mắn trong 1h' },
 ];

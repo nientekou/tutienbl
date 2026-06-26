@@ -32,23 +32,23 @@ class MartialArtsService {
   learnArt(userId: string, artId: string): { success: boolean; message: string } {
     this.initTable();
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'User not found' };
+    if (!user) return { success: false, message: 'Không tìm thấy người dùng!' };
 
     const art = MARTIAL_ARTS.find(a => a.id === artId);
-    if (!art) return { success: false, message: 'Martial art not found' };
+    if (!art) return { success: false, message: 'Võ công không tồn tại!' };
 
     if (user.level < art.unlockLevel) {
-      return { success: false, message: `Need level ${art.unlockLevel} (current: ${user.level})` };
+      return { success: false, message: `Cần cấp ${art.unlockLevel} (hiện tại: ${user.level})` };
     }
 
     const existing = db.prepare('SELECT * FROM user_martial_arts WHERE user_id = ? AND art_id = ?')
       .get(userId, artId);
-    if (existing) return { success: false, message: 'Already learned!' };
+    if (existing) return { success: false, message: 'Đã học võ công này rồi!' };
 
     db.prepare('INSERT INTO user_martial_arts (user_id, art_id, level, mastery, mastery_exp) VALUES (?, ?, 1, 1, 0)')
       .run(userId, artId);
 
-    return { success: true, message: `Learned **${art.name}**!` };
+    return { success: true, message: `Đã học **${art.name}**!` };
   }
 
   /**
@@ -109,17 +109,17 @@ class MartialArtsService {
       (f.ingredient1 === art2Id && f.ingredient2 === art1Id)
     );
 
-    if (!fusion) return { success: false, message: 'These arts cannot be fused!' };
+    if (!fusion) return { success: false, message: 'Các võ công này không thể dung hợp!' };
 
     // Check if user has both arts
     const art1 = db.prepare('SELECT * FROM user_martial_arts WHERE user_id = ? AND art_id = ?').get(userId, art1Id);
     const art2 = db.prepare('SELECT * FROM user_martial_arts WHERE user_id = ? AND art_id = ?').get(userId, art2Id);
 
-    if (!art1 || !art2) return { success: false, message: 'You need both martial arts to fuse!' };
+    if (!art1 || !art2) return { success: false, message: 'Cần cả hai võ công để dung hợp!' };
 
     // Check success rate
     if (Math.random() > fusion.successRate) {
-      return { success: false, message: `Fusion failed! Cong phap van con giu nguyen.` };
+      return { success: false, message: `Dung hợp thất bại! Công pháp vẫn còn giữ nguyên.` };
     }
 
     // Success: remove both, add result
@@ -129,7 +129,7 @@ class MartialArtsService {
       .run(userId, fusion.result);
 
     const newArt = MARTIAL_ARTS.find(a => a.id === fusion.result);
-    return { success: true, message: `Fusion successful! Learned **${newArt?.name || fusion.result}**!`, newArt: newArt || undefined };
+    return { success: true, message: `Dung hợp thành công! Đã học **${newArt?.name || fusion.result}**!`, newArt: newArt || undefined };
   }
 
   /**
@@ -145,7 +145,7 @@ class MartialArtsService {
       msg += `**Võ Công của bạn:**\n`;
       for (const art of arts) {
         const elementEmoji: Record<string, string> = { 'Hoa': '🔥', 'Thuy': '💧', 'Moc': '🌿', 'Kim': '⚔️', 'Tho': '🪨', 'Loi': '⚡', 'Phong': '🌀' };
-        msg += `${elementEmoji[art.def.element] || '❓'} **${art.def.name}** (Tier ${art.def.tier}) — Mastery ${art.mastery}/10\n`;
+        msg += `${elementEmoji[art.def.element] || '❓'} **${art.def.name}** (Tier ${art.def.tier}) — Tinh Thông ${art.mastery}/10\n`;
         msg += `   ${art.def.description}\n`;
         msg += `   Bonus: +${Math.round(art.def.statBonus.value * 100)}% ${art.def.statBonus.stat}\n`;
         msg += `   Effect: ${art.def.effect.type} (+${Math.round(art.def.effect.value * 100)}%, ${art.def.effect.duration} lượt)\n\n`;

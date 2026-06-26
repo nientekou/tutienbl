@@ -173,7 +173,7 @@ class RankedArenaService {
           WHERE user_id = ?
         `).run(resetElo, p.user_id);
                 if (rank <= 10) {
-                    topPlayers.push({ userId: p.user_id, rank, tier, reward: `${tierDef.rewards.ngotinh} Ngt, ${tierDef.rewards.coins} coins` });
+                    topPlayers.push({ userId: p.user_id, rank, tier, reward: `${tierDef.rewards.ngotinh} NT, ${tierDef.rewards.coins} coins` });
                 }
             });
         })();
@@ -181,6 +181,59 @@ class RankedArenaService {
         CacheService_1.cacheService.invalidatePrefix('arena_profile:');
         CacheService_1.cacheService.invalidateExact('arena_leaderboard');
         return { totalRewarded: players.length, topPlayers };
+    }
+    // === V12 C-03: PvP Season Visibility ===
+    getSeasonRewardsPreview() {
+        let msg = `🏆 **Phần Thưởng Mùa Giải**\n━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        for (const [tier, def] of Object.entries(arenaConstants_1.RANK_TIERS)) {
+            const rewards = def.rewards;
+            msg += `**${def.name}** (${def.minElo}+ ELO):\n`;
+            msg += `  🎁 ${rewards.ngotinh} Ngộ Tính, ${rewards.coins} LT`;
+            if (rewards.title)
+                msg += `, Danh hiệu "${rewards.title}"`;
+            msg += `\n`;
+        }
+        msg += `\n⏰ Mùa giải kết thúc mỗi 2 tuần. Top 10 nhận thưởng bonus!`;
+        return msg;
+    }
+    getPlayerRankInfo(userId) {
+        const profile = this.getProfile(userId);
+        if (!profile)
+            return '❌ Chưa có thông tin Arena.';
+        const rank = this.getRankDisplay(profile.elo);
+        const tier = this.getRankTier(profile.elo);
+        const tierDef = arenaConstants_1.RANK_TIERS[tier];
+        // Find position in leaderboard
+        const allProfiles = database_1.default.prepare('SELECT user_id, elo FROM arena_profiles ORDER BY elo DESC').all();
+        const position = allProfiles.findIndex(p => p.user_id === userId) + 1;
+        let msg = `🏆 **Thông Tin Arena**\n`;
+        msg += `📊 Rank: **${rank.name}**\n`;
+        msg += `📈 ELO: **${profile.elo}**\n`;
+        msg += `🏅 Thứ hạng: **#${position}** / ${allProfiles.length}\n`;
+        msg += `⚔️ W/L: ${profile.season_wins || 0}/${profile.season_losses || 0}\n`;
+        msg += `🔥 Streak: ${profile.win_streak || 0}\n\n`;
+        if (tierDef) {
+            const rewards = tierDef.rewards;
+            msg += `🎁 **Phần thưởng cuối mùa:** ${rewards.ngotinh} NT, ${rewards.coins} LT`;
+            if (rewards.title)
+                msg += `, "${rewards.title}"`;
+            msg += `\n`;
+        }
+        // Next rank info
+        const nextTier = this.getNextTier(tier);
+        if (nextTier) {
+            const nextDef = arenaConstants_1.RANK_TIERS[nextTier];
+            const eloNeeded = nextDef.minElo - profile.elo;
+            if (eloNeeded > 0) {
+                msg += `\n📈 Cần **+${eloNeeded} ELO** để lên **${nextDef.name}**`;
+            }
+        }
+        return msg;
+    }
+    getNextTier(currentTier) {
+        const tiers = Object.keys(arenaConstants_1.RANK_TIERS);
+        const idx = tiers.indexOf(currentTier);
+        return idx < tiers.length - 1 ? tiers[idx + 1] : null;
     }
 }
 exports.rankedArenaService = new RankedArenaService();

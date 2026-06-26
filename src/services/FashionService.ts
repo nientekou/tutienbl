@@ -135,6 +135,45 @@ class FashionService {
 
     return msg;
   }
+
+  // === C3: Weekly Fashion Rotation ===
+
+  getWeeklyRotation(): { item: typeof OUTFITS[0]; discount: number }[] {
+    const now = new Date();
+    const weekStart = new Date(now);
+    const day = weekStart.getDay() || 7;
+    if (day !== 1) weekStart.setDate(weekStart.getDate() - (day - 1));
+    weekStart.setHours(0, 0, 0, 0);
+    const weekSeed = Math.floor(weekStart.getTime() / 1000);
+
+    // Deterministic rotation based on week
+    const shuffled = [...OUTFITS].sort((a, b) => {
+      const hashA = (a.id.charCodeAt(0) * 31 + weekSeed) % 100;
+      const hashB = (b.id.charCodeAt(0) * 31 + weekSeed) % 100;
+      return hashA - hashB;
+    });
+
+    const rotation = shuffled.slice(0, 4);
+    // 2 items get 30% discount
+    return rotation.map((item, i) => ({
+      item,
+      discount: i < 2 ? 30 : 0
+    }));
+  }
+
+  getRotationDescription(): string {
+    const rotation = this.getWeeklyRotation();
+    let msg = `👗 **Cửa Hàng Thời Trang Tuần**\n━━━━━━━━━━━━━━━━━━━━━━━\n`;
+
+    for (const { item, discount } of rotation) {
+      const price = discount > 0 ? Math.round(item.price * (1 - discount / 100)) : item.price;
+      const discountTag = discount > 0 ? ` ~~${item.price}~~ **${price}** (-${discount}%)` : ` **${item.price}**`;
+      msg += `• ${item.name} [${item.slot}]${discountTag} LT\n`;
+      msg += `  ${item.description}\n`;
+    }
+
+    return msg;
+  }
 }
 
 export const fashionService = new FashionService();

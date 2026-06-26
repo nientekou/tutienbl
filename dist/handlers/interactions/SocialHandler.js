@@ -177,8 +177,11 @@ class SocialHandler {
                     correct = true;
                 const playerBuff = correct;
                 const monsterBuff = !correct;
+                // A2: Query equipped skills for skill selection
+                const equippedSkills = database_1.default.prepare('SELECT skill_id FROM user_skills WHERE user_id = ? AND is_equipped = 1 ORDER BY equipped_slot ASC').all(targetUserId);
+                const selectedSkillIndex = equippedSkills.length > 1 ? 0 : undefined;
                 // Thực hiện khiêu chiến bí cảnh thực sự
-                const result = CombatService_1.combatService.challengeDungeon(targetUserId, dungeonId, difficulty, playerBuff, monsterBuff);
+                const result = CombatService_1.combatService.challengeDungeon(targetUserId, dungeonId, difficulty, playerBuff, monsterBuff, selectedSkillIndex);
                 if (!result.success) {
                     await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                     return;

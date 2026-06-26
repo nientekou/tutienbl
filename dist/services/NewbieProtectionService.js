@@ -85,7 +85,7 @@ class NewbieProtectionService {
         database_1.default.prepare('INSERT INTO mentors (mentor_id, student_id, started_at) VALUES (?, ?, ?)').run(mentorId, studentId, now);
         return {
             success: true,
-            message: `🤝 **Kết duyên sư đồ thành công!** <@${mentorId}> nhận <@${studentId}> làm đồ đệ.\n📈 Đồ đệ nhận **x2 EXP/LT** khi được bảo hộ.\n🎁 Sư phụ nhận **${MENTOR_EXP_SHARE * 100}% EXP** và **${MENTOR_COIN_SHARE * 100}% Linh Thạch** từ mọi hoạt động của đồ đệ.`
+            message: `🤝 **Kết duyên sư đồ thành công!** <@${mentorId}> nhận <@${studentId}> làm đồ đệ.\n📈 Đồ đệ nhận **x2 Tu Vi/LT** khi được bảo hộ.\n🎁 Sư phụ nhận **${MENTOR_EXP_SHARE * 100}% Tu Vi** và **${MENTOR_COIN_SHARE * 100}% Linh Thạch** từ mọi hoạt động của đồ đệ.`
         };
     }
     /**

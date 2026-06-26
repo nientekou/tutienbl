@@ -120,7 +120,7 @@ class MountService {
     })();
 
     const totalExpGained = consumedCount * expGain;
-    let msg = `🍖 **${mount.name}** hấp thụ x${consumedCount} **${item?.name || materialItemId}**, nhận **+${totalExpGained}** EXP!`;
+    let msg = `🍖 **${mount.name}** hấp thụ x${consumedCount} **${item?.name || materialItemId}**, nhận **+${totalExpGained}** Tu Vi!`;
     if (!mount.is_tamed && newTamed) {
       msg += `\n🎉 **THUẦN HÓA THÀNH CÔNG!** Đạo hữu đã có thể cưỡi tọa kỵ này.`;
     } else if (leveledUp) {
@@ -211,7 +211,7 @@ class MountService {
         { id: 'breath', name: 'Phun Lửa', description: 'AoE burn 5% HP 3 lượt khi combat', requiredLevel: 6 },
       ],
       kirin: [
-        { id: 'blessing', name: 'Phúc Lợi', description: 'Tăng 20% EXP nhận được', requiredLevel: 3 },
+        { id: 'blessing', name: 'Phúc Lợi', description: 'Tăng 20% Tu Vi nhận được', requiredLevel: 3 },
         { id: 'teleport', name: 'Tích Tồn', description: 'Dịch chuyển đến bất kỳ địa điểm nào', requiredLevel: 6 },
       ],
     };

@@ -79,7 +79,7 @@ class RandomEventService {
     switch (event.effect) {
       case 'bonus_coins':
         userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham + 500 });
-        return { success: true, message: `🎉 +500 Linh Thach!` };
+        return { success: true, message: `🎉 +500 Linh Thạch!` };
 
       case 'exp_boost':
         userRepository.update(userId, { tu_vi: Math.min(user.tu_vi + 1000, user.exp_needed) });
@@ -94,20 +94,30 @@ class RandomEventService {
 
       case 'treasure_chest':
         userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham + 1000 });
-        return { success: true, message: `🎉 Mở rương kho báu: +1000 Linh Thach!` };
+        return { success: true, message: `🎉 Mở rương kho báu: +1000 Linh Thạch!` };
 
       case 'mystery_chest':
         userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham + 2000, knb: user.knb + 5 });
-        return { success: true, message: `🎉 Mở rương thần bí: +2000 Linh Thach, +5 KNB!` };
+        return { success: true, message: `🎉 Mở rương thần bí: +2000 Linh Thạch, +5 KNB!` };
 
-      case 'double_drops':
+      case 'double_drops': {
+        // V12 D-03: Apply double drop rate buff for 30 minutes
+        const expiresAt = Math.floor(Date.now() / 1000) + 1800;
+        db.prepare('INSERT OR REPLACE INTO system_config (key, value) VALUES (?, ?)')
+          .run(`buff:${userId}:double_drops`, JSON.stringify({ value: 1, expiresAt }));
         return { success: true, message: `🎉 Tỷ lệ rơi đồ x2 trong 30 phút!` };
+      }
 
       case 'elite_fight':
-        return { success: true, message: `🎉 Yêu thú tinh anh xuất hiện! Chuẩn bị chiến đấu!` };
+        return { success: true, message: `🎉 Yêu thú tinh anh xuất hiện! Dùng /sanyeuthu để thách đấu!` };
 
-      case 'weather_debuff':
-        return { success: true, message: `⚠️ Bão tố! Chỉ số bị ảnh hưởng trong 15 phút.` };
+      case 'weather_debuff': {
+        // V12 D-03: Apply -10% ATK debuff for 15 minutes
+        const expiresAt = Math.floor(Date.now() / 1000) + 900;
+        db.prepare('INSERT OR REPLACE INTO system_config (key, value) VALUES (?, ?)')
+          .run(`buff:${userId}:weather_debuff`, JSON.stringify({ value: -0.10, expiresAt }));
+        return { success: true, message: `⚠️ Bão tố! -10% ATK trong 15 phút.` };
+      }
 
       default:
         return { success: true, message: `🎉 Sự kiện đặc biệt đã kích hoạt!` };

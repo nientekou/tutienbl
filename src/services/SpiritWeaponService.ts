@@ -202,7 +202,7 @@ class SpiritWeaponService {
 
     return {
       success: true,
-      message: `🍽️ **${spirit.spirit_name}** hấp thụ x${consumedCount} nguyên liệu **${item?.name || inv.item_id}**, nhận **+${totalExpGained}** EXP!${leveledUp ? `\n⬆️ **Thăng cấp: Cấp ${newLevel}**` : ''}${newSkillName ? `\n🔮 Kỹ năng mới: **${newSkillName}**` : ''}`,
+      message: `🍽️ **${spirit.spirit_name}** hấp thụ x${consumedCount} nguyên liệu **${item?.name || inv.item_id}**, nhận **+${totalExpGained}** Tu Vi!${leveledUp ? `\n⬆️ **Thăng cấp: Cấp ${newLevel}**` : ''}${newSkillName ? `\n🔮 Kỹ năng mới: **${newSkillName}**` : ''}`,
       spiritName: spirit.spirit_name,
       materialName: item?.name || inv.item_id,
       expGain: totalExpGained,

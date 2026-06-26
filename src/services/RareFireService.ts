@@ -149,11 +149,11 @@ class RareFireService {
 
       return {
         success: true,
-        message: `🔥 **Fire Trial** — THÀNH CÔNG!\n+${expReward} EXP cho **${fire.fire_name}**`
+        message: `🔥 **Thử Thách Hỏa Lửa** — THÀNH CÔNG!\n+${expReward} EXP cho **${fire.fire_name}**`
       };
     }
 
-    return { success: true, message: `🔥 **Fire Trial** — THẤT BẠI! Hỏa Lửa cần mạnh hơn!` };
+    return { success: true, message: `🔥 **Thử Thách Hỏa Lửa** — THẤT BẠI! Hỏa Lửa cần mạnh hơn!` };
   }
 
   /**
@@ -162,14 +162,14 @@ class RareFireService {
   awakenFire(userId: string, fireType: string): { success: boolean; message: string } {
     const fire = db.prepare('SELECT * FROM rare_fires WHERE user_id = ? AND fire_type = ?').get(userId, fireType) as any;
     if (!fire) return { success: false, message: '❌ Hỏa Lửa không tồn tại!' };
-    if (fire.level < 100) return { success: false, message: `❌ Cần level 100 (hiện ${fire.level}).` };
+    if (fire.level < 100) return { success: false, message: `❌ Cần cấp 100 (hiện ${fire.level}).` };
 
     db.prepare('UPDATE rare_fires SET level = 1, exp = 0 WHERE id = ?').run(fire.id);
     cacheService.invalidatePrefix(`rarefire:${userId}`);
 
     return {
       success: true,
-      message: `🌟 **Hỏa Lửa Thức Tỉnh!** ${fire.fire_name}\n🔄 Reset level 1 → +20% stat scaling vĩnh viễn!`
+      message: `🌟 **Hỏa Lửa Thức Tỉnh!** ${fire.fire_name}\n🔄 Reset cấp 1 → +20% stat scaling vĩnh viễn!`
     };
   }
 
@@ -225,11 +225,11 @@ class RareFireService {
     if (equipped) {
       const def = RARE_FIRES.find((f: any) => f.type === equipped.fire_type);
       const levelMult = 1 + (equipped.level - 1) * 0.02;
-      msg += `\n**Equipped:** ${equipped.fire_name} (Tier ${equipped.tier})\n`;
-      msg += `Level: **${equipped.level}**/100 | EXP: ${equipped.exp}/${equipped.level * 50}\n`;
-      msg += `Alchemy Bonus: **${Math.floor((def?.alchemyBonus || 0) * levelMult)}**\n`;
-      msg += `Enhance Bonus: **${Math.floor((def?.enhanceBonus || 0) * levelMult)}**\n`;
-      msg += `Combat: **${def?.combatPassive || 'none'}** (Value: ${Math.floor((def?.combatValue || 0) * levelMult)})\n`;
+      msg += `\n**Đang Trang Bị:** ${equipped.fire_name} (Tier ${equipped.tier})\n`;
+      msg += `Cấp: **${equipped.level}**/100 | EXP: ${equipped.exp}/${equipped.level * 50}\n`;
+      msg += `Thưởng Luyện Đan: **${Math.floor((def?.alchemyBonus || 0) * levelMult)}**\n`;
+      msg += `Thưởng Cường Hóa: **${Math.floor((def?.enhanceBonus || 0) * levelMult)}**\n`;
+      msg += `Chiến Đấu: **${def?.combatPassive || 'không'}** (Value: ${Math.floor((def?.combatValue || 0) * levelMult)})\n`;
     }
 
     return msg;

@@ -188,10 +188,10 @@ class NotificationService {
         if (diff < 60)
             return 'vua xong';
         if (diff < 3600)
-            return `${Math.floor(diff / 60)} phut truoc`;
+            return `${Math.floor(diff / 60)} phút trước`;
         if (diff < 86400)
-            return `${Math.floor(diff / 3600)}h truoc`;
-        return `${Math.floor(diff / 86400)} ngay truoc`;
+            return `${Math.floor(diff / 3600)}h trước`;
+        return `${Math.floor(diff / 86400)} ngày trước`;
     }
 }
 exports.notificationService = new NotificationService();

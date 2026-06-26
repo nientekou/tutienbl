@@ -124,9 +124,9 @@ class DailyLoginService {
         .run(userId, reward.title, 'daily_login', Math.floor(Date.now() / 1000));
     }
 
-    let msg = `📅 **ĐĂNG NHẬP THÀNH CÔNG!** Streak: **${newStreak}** ngày\n`;
-    if (shieldUsed) msg += `🛡️ **Streak Shield** đã giữ streak của đạo hữu!\n`;
-    if (multiplier > 1) msg += `🔥 **Streak Bonus x${multiplier}** (${newStreak} ngày liên tiếp!)\n`;
+    let msg = `📅 **ĐĂNG NHẬP THÀNH CÔNG!** Chuỗi: **${newStreak}** ngày\n`;
+    if (shieldUsed) msg += `🛡️ **Khiên Chuỗi** đã giữ streak của đạo hữu!\n`;
+    if (multiplier > 1) msg += `🔥 **Thưởng Chuỗi x${multiplier}** (${newStreak} ngày liên tiếp!)\n`;
     msg += `┌─── Phần thưởng:\n`;
     if (finalCoins > reward.coins) msg += `│ • **+${finalCoins}** Linh Thạch 🟤 (${reward.coins} × ${multiplier})\n`;
     else if (finalCoins > 0) msg += `│ • **+${finalCoins}** Linh Thạch 🟤\n`;
@@ -146,9 +146,9 @@ class DailyLoginService {
     this.initTable();
     const record = db.prepare('SELECT * FROM user_daily_logins WHERE user_id = ?').get(userId) as any;
     if (!record || record.streak_shields <= 0) {
-      return { success: false, message: 'Không có Streak Shield nào!' };
+      return { success: false, message: 'Không có Khiên Chuỗi nào!' };
     }
-    return { success: true, message: `🛡️ Đã kích hoạt Streak Shield! (${record.streak_shields - 1} shield còn lại)` };
+    return { success: true, message: `🛡️ Đã kích hoạt Khiên Chuỗi! (${record.streak_shields - 1} khiên còn lại)` };
   }
 
   /**

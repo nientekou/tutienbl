@@ -42,7 +42,7 @@ export class EnhanceService {
   /**
    * Thực hiện cường hóa trang bị
    */
-  public enhanceItem(userId: string, inventoryId: number): { success: boolean; message: string; newLevel?: number } {
+  public enhanceItem(userId: string, inventoryId: number, safeMode: boolean = false): { success: boolean; message: string; newLevel?: number } {
     const user = userRepository.get(userId);
     if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
 
@@ -73,9 +73,18 @@ export class EnhanceService {
     }
 
     if (user.coin_ha_pham < cfg.costLinhThach) {
-      return { 
-        success: false, 
-        message: `Đạo hữu không đủ Hạ Phẩm Linh Thạch! (Cần **${cfg.costLinhThach}** LT, hiện có **${user.coin_ha_pham}** LT).` 
+      return {
+        success: false,
+        message: `Đạo hữu không đủ Hạ Phẩm Linh Thạch! (Cần **${cfg.costLinhThach}** LT, hiện có **${user.coin_ha_pham}** LT).`
+      };
+    }
+
+    // V12 E-02: Safe enhance costs x3 Linh Thach
+    const finalCostLinhThach = safeMode ? cfg.costLinhThach * 3 : cfg.costLinhThach;
+    if (user.coin_ha_pham < finalCostLinhThach) {
+      return {
+        success: false,
+        message: `Đạo hữu không đủ Linh Thạch cho chế độ An Toàn! (Cần **${finalCostLinhThach}** LT, hiện có **${user.coin_ha_pham}** LT).`
       };
     }
 
@@ -83,7 +92,7 @@ export class EnhanceService {
 
     db.transaction(() => {
       // Khấu trừ Linh thạch của người chơi
-      userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - cfg.costLinhThach });
+      userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - finalCostLinhThach });
 
       // Khấu trừ Mảnh Tinh Thạch của người chơi
       if (shardItem) {
@@ -118,10 +127,11 @@ export class EnhanceService {
         let nextLevel = currentLevel;
         let failMsg = `☠️ **[CƯỜNG HÓA THẤT BẠI]**\\nĐại trận cường hóa thất bại, linh lực phân rã! **${item.name}** giữ nguyên cấp **+${currentLevel}**.\\n*(Tiêu hao: ${cfg.costLinhThach} LT, ${cfg.costShards} Mảnh Tinh Thạch)*`;
 
+        // V12 E-02: Safe enhance prevents destruction from +13
         // Rủi ro vỡ nát từ cấp +13 trở lên (giảm từ +11, giảm tỷ lệ từ 15% xuống 5%)
-        if (currentLevel >= 13 && Math.random() < 0.05) {
+        if (currentLevel >= 13 && !safeMode && Math.random() < 0.05) {
           db.prepare('DELETE FROM inventories WHERE id = ?').run(inventoryId);
-          failMsg = `💥 **[CƯỜNG HÓA THẤT BẠI - TRANG BỊ VỠ NÁT]**\\nLinh lực phản bộc cực mạnh làm chấn vỡ hoàn toàn **${item.name}** thành cát bụi! Mất đi trang bị vĩnh viễn!\\n*(Tiêu hao: ${cfg.costLinhThach} LT, ${cfg.costShards} Mảnh Tinh Thạch)*`;
+          failMsg = `💥 **[CƯỜNG HÓA THẤT BẠI - TRANG BỊ VỠ NÁT]**\\nLinh lực phản chấn cực mạnh làm chấn vỡ hoàn toàn **${item.name}** thành cát bụi! Mất đi trang bị vĩnh viễn!\\n*(Tiêu hao: ${cfg.costLinhThach} LT, ${cfg.costShards} Mảnh Tinh Thạch)*`;
           nextLevel = 0;
         } else {
           if (cfg.dropOnFail) {
@@ -218,13 +228,13 @@ export class EnhanceService {
    */
   getAllEquipmentSets(): { id: string; name: string; pieces: number; bonus2: string; bonus3: string; element?: string; class?: string }[] {
     return [
-      { id: 'flame_set', name: 'Hỏa Lôi Set', pieces: 3, bonus2: '+5% ATK', bonus3: '+10% Fire Damage + Tỷ Lệ Thiêu Đốt', element: 'Hoa' },
+      { id: 'flame_set', name: 'Hỏa Lôi Set', pieces: 3, bonus2: '+5% ATK', bonus3: '+10% Sát Thương Hỏa + Tỷ Lệ Thiêu Đốt', element: 'Hoa' },
       { id: 'frost_set', name: 'Băng Giá Set', pieces: 3, bonus2: '+5% DEF', bonus3: '+10% Freeze Chance + Slow', element: 'Thuy' },
       { id: 'storm_set', name: 'Sấm Sét Set', pieces: 3, bonus2: '+5% Speed', bonus3: '+10% Crit Rate + Stun Chance', element: 'Loi' },
-      { id: 'earth_set', name: 'Thổ Địa Set', pieces: 3, bonus2: '+5% HP', bonus3: '+10% HP + Damage Shield', element: 'Tho' },
+      { id: 'earth_set', name: 'Thổ Địa Set', pieces: 3, bonus2: '+5% HP', bonus3: '+10% HP + Khiên Sát Thương', element: 'Tho' },
       { id: 'wind_set', name: 'Gió Mùa Set', pieces: 3, bonus2: '+5% Dodge', bonus3: '+10% Dodge + Phản Đòn', element: 'Phong' },
-      { id: 'light_set', name: 'Quang Minh Set', pieces: 3, bonus2: '+5% Crit Damage', bonus3: '+10% Crit Damage + Lifesteal', element: 'Kim' },
-      { id: 'dark_set', name: 'Hắc Ám Set', pieces: 3, bonus2: '+5% All Stats', bonus3: '+8% All Stats + Damage Reflect', element: 'Vo' },
+      { id: 'light_set', name: 'Quang Minh Set', pieces: 3, bonus2: '+5% Sát Thương Chí Mạng', bonus3: '+10% Sát Thương Chí Mạng + Hút Máu', element: 'Kim' },
+      { id: 'dark_set', name: 'Hắc Ám Set', pieces: 3, bonus2: '+5% toàn bộ chỉ số', bonus3: '+8% toàn bộ chỉ số + Phản Sát Thương', element: 'Vo' },
       { id: 'tank_set', name: 'Bất Tử Set', pieces: 3, bonus2: '+10% DEF', bonus3: '+20% DEF + Giảm Sát Thương', class: 'tank' },
       { id: 'dps_set', name: 'Sát Thủ Set', pieces: 3, bonus2: '+10% ATK', bonus3: '+20% ATK + Crit Rate', class: 'dps' },
       { id: 'support_set', name: 'Hỗ Trợ Set', pieces: 3, bonus2: '+10% Heal Power', bonus3: '+20% Heal Power + Giảm Hồi Chiêu', class: 'support' },

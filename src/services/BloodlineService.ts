@@ -216,16 +216,16 @@ class BloodlineService {
 
       const trialNames: Record<string, string> = {
         'long_huyet': 'Thử Thách Long Huyết — Vampire lifesteal',
-        'phuong_hoang': 'Thử Thách Phượng Hoàng — Die & revive',
-        'con_luan': 'Thử Thách Côn Luân — Endurance 20 hiệp',
-        'bach_ho': 'Thử Thách Bạch Hổ — Kill in 5 hiệp',
-        'thanh_long': 'Thử Thách Thanh Long — Speed trial',
-        'huyen_vu': 'Thử Thách Huyền Vũ — Shield-only'
+        'phuong_hoang': 'Thử Thách Phượng Hoàng — Chết & Hồi Sinh',
+        'con_luan': 'Thử Thách Côn Luân — Chịu Đựng 20 hiệp',
+        'bach_ho': 'Thử Thách Bạch Hổ — Hạ Gục Trong 5 hiệp',
+        'thanh_long': 'Thử Thách Thanh Long — Thử Thách Tốc Độ',
+        'huyen_vu': 'Thử Thách Huyền Vũ — Chỉ Khiên'
       };
 
       return {
         success: true,
-        message: `⚔️ **${trialNames[ub.bloodline_id] || 'Thử Thách Huyết Mạch'}** — THÀNH CÔNG!\n+${expReward} EXP Huyết Mạch | +1 ${material}`,
+        message: `⚔️ **${trialNames[ub.bloodline_id] || 'Thử Thách Huyết Mạch'}** — THÀNH CÔNG!\n+${expReward} Tu Vi Huyết Mạch | +1 ${material}`,
         expReward,
         materialReward: material
       };
@@ -311,12 +311,12 @@ class BloodlineService {
     const trialInfo = this.getTrialInfo(userId);
 
     let msg = `⚔️ **Thử Thách Huyết Mạch** — ${ub.name}\n`;
-    msg += `📊 Level: **${ub.level}** | Lượt tuần: **${trialInfo.used}/${trialInfo.max}**\n\n`;
+    msg += `📊 Cấp: **${ub.level}** | Lượt tuần: **${trialInfo.used}/${trialInfo.max}**\n\n`;
 
     for (const ch of chapters) {
       const completed = ub.level >= ch.minLevel;
       msg += `${completed ? '✅' : '🔒'} **Chapter ${ch.chapter}:** ${ch.name}\n`;
-      msg += `   ${ch.description} | Reward: ${ch.rewards}\n`;
+      msg += `   ${ch.description} | Phần thưởng: ${ch.rewards}\n`;
     }
 
     return msg;

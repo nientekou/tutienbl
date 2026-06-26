@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from '
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
+import { prestigeService } from '../../services/PrestigeService';
 import db from '../../database/database';
 import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
@@ -45,12 +46,14 @@ export default class KyNangCommand extends Command {
             .addIntegerOption(opt =>
               opt
                 .setName('slot')
-                .setDescription('Ô trang bị (từ 1 đến 3).')
+                .setDescription('Ô trang bị (1-3 cơ bản, 4-5 cần Luân Hồi).')
                 .setRequired(true)
                 .addChoices(
                   { name: 'Slot 1', value: 1 },
                   { name: 'Slot 2', value: 2 },
-                  { name: 'Slot 3', value: 3 }
+                  { name: 'Slot 3', value: 3 },
+                  { name: 'Slot 4 (Luân Hồi 2+)', value: 4 },
+                  { name: 'Slot 5 (Luân Hồi 2+)', value: 5 }
                 )
             )
         )
@@ -93,24 +96,30 @@ export default class KyNangCommand extends Command {
         .setDescription('Kỹ năng tu chân thức tỉnh linh căn nguyên thủy giúp đạo hữu xoay chuyển càn khôn trong combat.')
         .setTimestamp();
 
-      const slots: Record<number, string> = { 1: 'Trống 🚫', 2: 'Trống 🚫', 3: 'Trống 🚫' };
+      // B1: Determine max skill slots based on prestige unlock
+      const maxSlots = prestigeService.hasPrestigeUnlock(userId, 'skill_slot_5') ? 5
+        : prestigeService.hasPrestigeUnlock(userId, 'skill_slot_4') ? 4 : 3;
+      const slots: Record<number, string> = {};
+      for (let i = 1; i <= maxSlots; i++) slots[i] = 'Trống 🚫';
       const learnedList: string[] = [];
 
       for (const skill of skills) {
         const details = SKILL_DETAILS[skill.skill_id];
         const skillName = details ? `${details.name} (Hệ ${details.element})` : skill.skill_id;
-        
-        if (skill.is_equipped === 1 && skill.equipped_slot >= 1 && skill.equipped_slot <= 3) {
+
+        if (skill.is_equipped === 1 && skill.equipped_slot >= 1 && skill.equipped_slot <= maxSlots) {
           slots[skill.equipped_slot] = `**${skillName}** (Cấp ${skill.level})`;
         }
 
         learnedList.push(`• **${skillName}** - Cấp ${skill.level}\n*└ ${details ? details.desc : 'Kỹ năng tu hành.'}*`);
       }
 
+      const slotLines = Object.entries(slots).map(([k, v]) => `• Ô số ${k}: ${v}`).join('\n');
+
       embed.addFields(
         {
-          name: '⚔️ Ô Chiêu Thức Trang Bị (Combat Skills)',
-          value: `• Ô số 1: ${slots[1]}\n• Ô số 2: ${slots[2]}\n• Ô số 3: ${slots[3]}`,
+          name: `⚔️ Ô Chiêu Thức Trang Bị (${maxSlots} slots)`,
+          value: slotLines,
           inline: false
         },
         {
@@ -127,6 +136,16 @@ export default class KyNangCommand extends Command {
     if (sub === 'trangbi') {
       const skillId = interaction.options.getString('skill_id', true);
       const slot = interaction.options.getInteger('slot', true);
+
+      // B1: Validate slot against max slots
+      const maxSlots = prestigeService.hasPrestigeUnlock(userId, 'skill_slot_5') ? 5
+        : prestigeService.hasPrestigeUnlock(userId, 'skill_slot_4') ? 4 : 3;
+      if (slot < 1 || slot > maxSlots) {
+        await interaction.editReply({
+          content: `❌ Slot không hợp lệ! Đạo hữu có **${maxSlots}** ô kỹ năng.`
+        });
+        return;
+      }
 
       // Kiểm tra xem đã học kỹ năng đó chưa
       const skill = db.prepare('SELECT * FROM user_skills WHERE user_id = ? AND skill_id = ?')

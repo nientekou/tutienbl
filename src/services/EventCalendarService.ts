@@ -106,9 +106,9 @@ class EventCalendarService {
       { tier: 20, freeReward: '2000 LT + 10 Tinh Thạch', premiumReward: '3000 LT + 20 KNB + 10 Tinh Thạch', expRequired: 5000 },
       { tier: 25, freeReward: '3000 LT + túi dược liệu hiếm', premiumReward: '4500 LT + 25 KNB + dược liệu hiếm', expRequired: 8000 },
       { tier: 30, freeReward: '5000 LT + tinh hoa linh hồn', premiumReward: '7500 LT + 50 KNB + tinh hoa linh hồn', expRequired: 12000 },
-      { tier: 35, freeReward: '500 Ngọc Tinh + mảnh tâm pháp', premiumReward: '750 Ngọc Tinh + mảnh tâm pháp', expRequired: 17000 },
+      { tier: 35, freeReward: '500 Ngộ Tính + mảnh tâm pháp', premiumReward: '750 Ngộ Tính + mảnh tâm pháp', expRequired: 17000 },
       { tier: 40, freeReward: '5000 LT + 15 Tinh Thạch', premiumReward: '7500 LT + 30 KNB + 15 Tinh Thạch', expRequired: 23000 },
-      { tier: 45, freeReward: '500 Ngọc Tinh + tinh hoa linh hồn', premiumReward: '750 Ngọc Tinh + tinh hoa linh hồn', expRequired: 30000 },
+      { tier: 45, freeReward: '500 Ngộ Tính + tinh hoa linh hồn', premiumReward: '750 Ngộ Tính + tinh hoa linh hồn', expRequired: 30000 },
       { tier: 50, freeReward: '100 KNB + Danh Hiệu Mùa + 20 Tinh Thạch', premiumReward: '150 KNB + Tọa Kỵ Mùa + Danh Hiệu Mùa Cao Cấp + 20 Tinh Thạch', expRequired: 40000 },
     ];
   }

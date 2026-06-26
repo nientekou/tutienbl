@@ -98,12 +98,12 @@ class ElementalService {
      */
     getElementalDescription(userId) {
         const masteries = this.getAllMasteries(userId);
-        let msg = `🌀 **Elemental Mastery**\n`;
+        let msg = `🌀 **Tinh Thông Nguyên Tố**\n`;
         msg += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
         for (const m of masteries) {
             const emoji = ELEMENT_EMOJI[m.element];
             const bonus = Math.round(m.bonus * 100);
-            msg += `${emoji} **${m.element}**: Level ${m.level}/10 (+${bonus}% damage)\n`;
+            msg += `${emoji} **${m.element}**: Cấp ${m.level}/10 (+${bonus}% sát thương)\n`;
         }
         msg += `\n**Element Counters:**\n`;
         msg += `🔥 > ⚔️ > 🌿 > 🪨 > 💧 > 🔥\n`;

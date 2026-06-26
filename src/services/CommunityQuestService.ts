@@ -200,6 +200,38 @@ class CommunityQuestService {
 
     return quests;
   }
+
+  // V12 C-02: Auto-scheduler for community quests (every 48h)
+  startScheduler(): void {
+    if (this.schedulerInterval) return;
+    console.log('[CommunityQuestService] ⏳ Scheduler started');
+
+    this.checkAndStartQuest();
+
+    this.schedulerInterval = setInterval(() => {
+      try {
+        this.checkAndStartQuest();
+      } catch (err) {
+        console.error('[CommunityQuestService] Scheduler error:', err);
+      }
+    }, 60 * 60 * 1000); // Check every hour
+  }
+
+  private schedulerInterval: NodeJS.Timeout | null = null;
+
+  private checkAndStartQuest(): void {
+    // Check if there's an active quest
+    const active = db.prepare("SELECT id FROM community_quests WHERE status = 'active' LIMIT 1").get();
+    if (active) return;
+
+    // Check last quest end time — wait 48h between quests
+    const lastQuest = db.prepare("SELECT ends_at FROM community_quests ORDER BY ends_at DESC LIMIT 1").get() as any;
+    const now = Math.floor(Date.now() / 1000);
+    if (lastQuest && now - lastQuest.ends_at < 48 * 3600) return;
+
+    // Start a new random quest
+    this.startRandomQuest();
+  }
 }
 
 export const communityQuestService = new CommunityQuestService();

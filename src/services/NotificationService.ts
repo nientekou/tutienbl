@@ -238,9 +238,9 @@ class NotificationService {
     const now = Math.floor(Date.now() / 1000);
     const diff = now - timestamp;
     if (diff < 60) return 'vua xong';
-    if (diff < 3600) return `${Math.floor(diff / 60)} phut truoc`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h truoc`;
-    return `${Math.floor(diff / 86400)} ngay truoc`;
+    if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h trước`;
+    return `${Math.floor(diff / 86400)} ngày trước`;
   }
 }
 

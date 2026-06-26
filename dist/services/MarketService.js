@@ -906,5 +906,18 @@ class MarketService {
         }
         return msg;
     }
+    // === C1: Market Tax Drain (weekly) ===
+    drainTaxPool() {
+        const marketUser = UserRepository_1.userRepository.get('market');
+        if (!marketUser)
+            return { burnt: 0, remaining: 0 };
+        const totalTax = marketUser.coin_ha_pham;
+        if (totalTax <= 0)
+            return { burnt: 0, remaining: 0 };
+        const drainAmount = Math.floor(totalTax * 0.5); // Burn 50%
+        UserRepository_1.userRepository.update('market', { coin_ha_pham: totalTax - drainAmount });
+        console.log(`[MarketService] Tax drain: burnt ${drainAmount.toLocaleString()} LT, remaining ${(totalTax - drainAmount).toLocaleString()} LT`);
+        return { burnt: drainAmount, remaining: totalTax - drainAmount };
+    }
 }
 exports.marketService = new MarketService();

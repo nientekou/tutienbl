@@ -97,7 +97,67 @@ exports.EXPLORATION_LOCATIONS = {
             { type: 'coin', amount: 200, weight: 25 },
             { type: 'nothing', weight: 5 },
         ]
-    }
+    },
+    // V12 B-02: High-Level Exploration Locations
+    thien_cung: {
+        id: 'thien_cung',
+        name: 'Thiên Cung Phá Lãng',
+        emoji: '🏯',
+        description: 'Cung điện trên mây nơi các vị tiên cổ ngự trị, ẩn chứa bảo vật thiên đình nhưng cực kỳ nguy hiểm.',
+        travelTime: 10800, // 180 phút
+        staminaCost: 60,
+        minLevel: 50,
+        dangerRate: 0.70,
+        rewardPool: [
+            { type: 'item', itemId: itemConstants_1.ITEMS.PHOI_WEAPON_A, amount: 1, weight: 15 },
+            { type: 'item', itemId: itemConstants_1.ITEMS.PHOI_ARMOR_A, amount: 1, weight: 15 },
+            { type: 'item', itemId: itemConstants_1.ITEMS.TINH_THACH_SHARD, amount: 2, weight: 20 },
+            { type: 'coin', amount: 500, weight: 20 },
+            { type: 'ngotinh', amount: 15, weight: 15 },
+            { type: 'tuvi', amount: 2000, weight: 10 },
+            { type: 'nothing', weight: 5 },
+        ]
+    },
+    uu_minh: {
+        id: 'uu_minh',
+        name: 'U Minh Địa Ngục',
+        emoji: '💀',
+        description: 'Địa ngục dưới lòng đất nơi âm khí dày đặc, yêu ma ngự trị nhưng ẩn chứa bí mật của người xưa.',
+        travelTime: 14400, // 240 phút
+        staminaCost: 80,
+        minLevel: 80,
+        dangerRate: 0.80,
+        rewardPool: [
+            { type: 'item', itemId: itemConstants_1.ITEMS.PHOI_WEAPON_S, amount: 1, weight: 10 },
+            { type: 'item', itemId: itemConstants_1.ITEMS.PHOI_ARMOR_S, amount: 1, weight: 10 },
+            { type: 'item', itemId: itemConstants_1.ITEMS.TINH_THACH_SHARD, amount: 3, weight: 20 },
+            { type: 'item', itemId: itemConstants_1.ITEMS.INFINITE_SHARD, amount: 1, weight: 10 },
+            { type: 'coin', amount: 800, weight: 20 },
+            { type: 'ngotinh', amount: 20, weight: 15 },
+            { type: 'tuvi', amount: 5000, weight: 10 },
+            { type: 'nothing', weight: 5 },
+        ]
+    },
+    vo_cuc: {
+        id: 'vo_cuc',
+        name: 'Vô Cực Hư Không',
+        emoji: '🌌',
+        description: 'Khe nứt giữa các chiều không gian, nơi thực tại bị bóp méo — chỉ đạo hữu cực mạnh mới tồn tại được.',
+        travelTime: 18000, // 300 phút
+        staminaCost: 100,
+        minLevel: 120,
+        dangerRate: 0.90,
+        rewardPool: [
+            { type: 'item', itemId: itemConstants_1.ITEMS.PHOI_WEAPON_SS, amount: 1, weight: 8 },
+            { type: 'item', itemId: itemConstants_1.ITEMS.PHOI_ARMOR_SS, amount: 1, weight: 8 },
+            { type: 'item', itemId: itemConstants_1.ITEMS.INFINITE_SHARD, amount: 2, weight: 15 },
+            { type: 'item', itemId: itemConstants_1.ITEMS.INFINITE_CORE, amount: 1, weight: 5 },
+            { type: 'coin', amount: 1200, weight: 20 },
+            { type: 'ngotinh', amount: 30, weight: 15 },
+            { type: 'tuvi', amount: 10000, weight: 10 },
+            { type: 'nothing', weight: 5 },
+        ]
+    },
 };
 // ==================== BIẾN CỐ KỲ NGỘ ====================
 const EXPLORATION_EVENTS = [
@@ -503,7 +563,7 @@ class ExplorationService {
                         const nowSec = Math.floor(Date.now() / 1000);
                         updates.coin_ha_pham = Math.max(0, freshUser.coin_ha_pham - 200);
                         updates.injury_end_time = nowSec + 1800; // 30 phút trọng thương
-                        rewardText = `\\n⚠️ **CẠN KIỆT THỂ LỰC:** Đạo hữu kiệt sức ngã quỵ giữa hoang dã, bị thất lạc **200 Linh Thạch** và bị **Trọng Thương trong 30 phút** mới gượng dậy bò về được!`;
+                        rewardText = `\\n⚠️ **CẠN KIỆT THỂ LỰC:** Đạo hữu kiệt sức ngã quỵ giữa hoang dã, mất **200 Linh Thạch** và bị **Trọng Thương trong 30 phút** mới gượng dậy bò về được!`;
                     }
                 }
                 if (penalty.coin && !updates.coin_ha_pham)
@@ -640,7 +700,7 @@ class ExplorationService {
             { zone: 1, name: 'Rừng Sương Mù', minLevel: 1, description: 'Khu rừng đầy sương mù, phù hợp người mới', rewards: 'Nguyên liệu cơ bản, thảo dược' },
             { zone: 2, name: 'Núi Đá Tuyết', minLevel: 30, description: 'Núi tuyết phủ trắng, nguyên liệu quý hiếm', rewards: 'Nguyên liệu uncommon, khoáng thạch' },
             { zone: 3, name: 'Thung Lũng Rồng', minLevel: 60, description: 'Thung lũng nơi rồng cư ngụ', rewards: 'Nguyên liệu rare, trứng rồng' },
-            { zone: 4, name: 'Hố Tunnels', minLevel: 100, description: 'Hang động sâu thẳm đầy bí ẩn', rewards: 'Nguyên liệu epic, kho báu cổ đại' },
+            { zone: 4, name: 'Hang Động Sâu', minLevel: 100, description: 'Hang động sâu thẳm đầy bí ẩn', rewards: 'Nguyên liệu epic, kho báu cổ đại' },
             { zone: 5, name: 'Vực Sâu Vô Đáy', minLevel: 200, description: 'Vực sâu nơi thiên địa giao hòa', rewards: 'Nguyên liệu legendary, đá quý' },
         ];
     }

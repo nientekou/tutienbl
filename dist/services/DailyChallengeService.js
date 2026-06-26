@@ -16,6 +16,13 @@ const CHALLENGE_POOL = [
     { id: 'dc_social_1', name: 'Giao Dịch', description: 'Giao dịch 2 lần', category: 'social', difficulty: 'easy', target: 2, rewardCoin: 60, rewardExp: 30 },
     { id: 'dc_social_2', name: 'Đạo Hữu', description: 'Giúp đỡ 3 người chơi', category: 'social', difficulty: 'medium', target: 3, rewardCoin: 120, rewardExp: 60 },
     { id: 'dc_social_3', name: 'Minh Chủ', description: 'Thắng 5 trận PvP', category: 'social', difficulty: 'hard', target: 5, rewardCoin: 350, rewardExp: 200 },
+    // A4: Level-gated challenges
+    { id: 'dc_nightmare', name: 'Ác Mộng Bí Cảnh', description: 'Vượt Bí Cảnh độ khó Ác Mộng', category: 'combat', difficulty: 'hard', target: 1, rewardCoin: 600, rewardExp: 400, minLevel: 30 },
+    { id: 'dc_nineheavens', name: 'Phá Cửa Cửu Thiên', description: 'Leo 5 tầng Cửu Thiên', category: 'combat', difficulty: 'hard', target: 5, rewardCoin: 800, rewardExp: 500, minLevel: 50 },
+    { id: 'dc_worldboss2', name: 'Sát Thần', description: 'Đánh bại World Boss 2 lần', category: 'combat', difficulty: 'hard', target: 2, rewardCoin: 900, rewardExp: 600, minLevel: 80 },
+    { id: 'dc_arena3', name: 'Quán Quân', description: 'Thắng 3 trận Arena', category: 'social', difficulty: 'hard', target: 3, rewardCoin: 700, rewardExp: 450, minLevel: 100 },
+    { id: 'dc_dreamscape10', name: 'Du Hành Giấc Mơ', description: 'Vượt 10 tầng Vọng Tưởng', category: 'combat', difficulty: 'hard', target: 10, rewardCoin: 1000, rewardExp: 700, minLevel: 150 },
+    { id: 'dc_infinite20', name: 'Thử Thách Vô Hạn', description: 'Vượt 20 tầng Infinite Dungeon', category: 'combat', difficulty: 'hard', target: 20, rewardCoin: 1200, rewardExp: 800, minLevel: 200 },
 ];
 class DailyChallengeService {
     initTable() {
@@ -41,8 +48,12 @@ class DailyChallengeService {
         let record = database_1.default.prepare('SELECT * FROM daily_challenges WHERE user_id = ? AND date = ?')
             .get(userId, today);
         if (!record) {
+            // A4: Filter by player level
+            const user = UserRepository_1.userRepository.get(userId);
+            const playerLevel = user?.level || 1;
+            const available = CHALLENGE_POOL.filter(c => !c.minLevel || playerLevel >= c.minLevel);
             // Assign 3 random challenges
-            const shuffled = [...CHALLENGE_POOL].sort(() => Math.random() - 0.5);
+            const shuffled = [...available].sort(() => Math.random() - 0.5);
             const selected = shuffled.slice(0, 3);
             const challengeIds = selected.map(c => c.id);
             database_1.default.prepare('INSERT INTO daily_challenges (user_id, date, challenge_ids, progress, completed, claimed) VALUES (?, ?, ?, ?, ?, ?)')
@@ -110,12 +121,12 @@ class DailyChallengeService {
         // Apply streak multiplier
         const streak = this.getStreak(userId);
         let streakMult = 1.0;
-        if (streak >= 7)
-            streakMult = 1.5;
+        if (streak >= 30)
+            streakMult = 3.0;
         else if (streak >= 14)
             streakMult = 2.0;
-        else if (streak >= 30)
-            streakMult = 3.0;
+        else if (streak >= 7)
+            streakMult = 1.5;
         const finalCoin = Math.round(challenge.rewardCoin * streakMult);
         const finalExp = Math.round(challenge.rewardExp * streakMult);
         UserRepository_1.userRepository.update(userId, {
@@ -130,7 +141,7 @@ class DailyChallengeService {
             .run(JSON.stringify(claimed), userId, today);
         let msg = `✅ **${challenge.name}** — +${finalCoin} LT, +${finalExp} EXP`;
         if (streakMult > 1)
-            msg += ` (Streak x${streakMult})`;
+            msg += ` (Chuỗi x${streakMult})`;
         return { success: true, message: msg };
     }
     /**
@@ -174,17 +185,17 @@ class DailyChallengeService {
      */
     getChallengeDescription(userId) {
         const { challenges, progress, streak } = this.getOrAssignChallenges(userId);
-        let msg = `📋 **Thử Thách Hàng Ngày** (Streak: **${streak}** ngày)\n━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        let msg = `📋 **Thử Thách Hàng Ngày** (Chuỗi: **${streak}** ngày)\n━━━━━━━━━━━━━━━━━━━━━━━\n`;
         for (const c of challenges) {
             const prog = progress[c.id] || 0;
             const done = prog >= c.target;
             const status = done ? '✅' : '⬜';
             const diffEmoji = c.difficulty === 'hard' ? '🔴' : c.difficulty === 'medium' ? '🟡' : '🟢';
             msg += `${status} ${diffEmoji} **${c.name}**: ${c.description}\n`;
-            msg += `   Progress: ${prog}/${c.target} | Reward: ${c.rewardCoin} LT + ${c.rewardExp} EXP\n`;
+            msg += `   Tiến Độ: ${prog}/${c.target} | Phần thưởng: ${c.rewardCoin} LT + ${c.rewardExp} EXP\n`;
         }
         if (streak >= 7)
-            msg += `\n🔥 **Streak Bonus x${streak >= 30 ? 3 : streak >= 14 ? 2 : 1.5}**`;
+            msg += `\n🔥 **Thưởng Chuỗi x${streak >= 30 ? 3 : streak >= 14 ? 2 : 1.5}**`;
         return msg;
     }
     getTodayString() {

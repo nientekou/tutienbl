@@ -692,10 +692,10 @@ class SectWarService {
    */
   getSiegeStrategies(): { id: string; name: string; description: string; bonus: string }[] {
     return [
-      { id: 'rush', name: 'Tấn Công Thần Tốc', description: 'Tập trung tấn công nhanh', bonus: '+20% damage trong 5 phút đầu' },
+      { id: 'rush', name: 'Tấn Công Thần Tốc', description: 'Tập trung tấn công nhanh', bonus: '+20% sát thương trong 5 phút đầu' },
       { id: 'defend', name: 'Phòng Thủ Kiên Cố', description: 'Tập trung phòng thủ điểm chính', bonus: '+20% defense cho tất cả thành viên' },
-      { id: 'split', name: 'Phân Tán Lực Lượng', description: 'Chia đều lực lượng', bonus: '+10% all stats cho tất cả' },
-      { id: 'guerrilla', name: 'Du Kích', description: 'Tấn công điểm yếu của địch', bonus: '+30% damage cho 1 target' },
+      { id: 'split', name: 'Phân Tán Lực Lượng', description: 'Chia đều lực lượng', bonus: '+10% toàn bộ chỉ số cho tất cả' },
+      { id: 'guerrilla', name: 'Du Kích', description: 'Tấn công điểm yếu của địch', bonus: '+30% sát thương cho 1 mục tiêu' },
     ];
   }
 

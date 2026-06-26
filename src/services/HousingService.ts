@@ -28,7 +28,7 @@ const HOUSE_TYPES: HouseType[] = [
 const FURNITURE_LIST: FurnitureDef[] = [
   { id: 'furn_bed', name: 'Giường Ngủ', description: '+5% hồi HP', bonus: { stat: 'hp_regen', value: 0.05 }, price: 1000 },
   { id: 'furn_table', name: 'Bàn Làm Việc', description: '+5% tốc độ chế tạo', bonus: { stat: 'craft_speed', value: 0.05 }, price: 1500 },
-  { id: 'furn_chair', name: 'Ghế Thư Giãn', description: '+5% EXP từ thiền định', bonus: { stat: 'med_exp', value: 0.05 }, price: 800 },
+  { id: 'furn_chair', name: 'Ghế Thư Giãn', description: '+5% Tu Vi từ thiền định', bonus: { stat: 'med_exp', value: 0.05 }, price: 800 },
   { id: 'furn_bookshelf', name: 'Kệ Sách', description: '+3% tất cả chỉ số', bonus: { stat: 'all_stats', value: 0.03 }, price: 3000 },
   { id: 'furn_painting', name: 'Tranh Vẽ', description: '+5% may mắn', bonus: { stat: 'luck', value: 0.05 }, price: 2000 },
   { id: 'furn_fireplace', name: 'Lò Hơi', description: '+5% sát thương hoả', bonus: { stat: 'fire_dmg', value: 0.05 }, price: 2500 },

@@ -14,7 +14,7 @@ const PRESTIGE_UNLOCKS = [
     { id: 'nightmare_diff', name: 'Độ Khó Ác Mộng', description: 'Mở khóa độ khó Ác Mộng cho Bí Cảnh', requiredLevel: 1, emoji: '💀' },
     { id: 'skill_slot_5', name: 'Slot Kỹ Năng Thứ 5', description: 'Mở thêm 1 slot kỹ năng trang bị', requiredLevel: 2, emoji: '🎯' },
     { id: 'pet_merge_slot', name: 'Slot Dung Hợp Linh Thú', description: 'Mở slot dung hợp linh thú', requiredLevel: 3, emoji: '🐾' },
-    { id: 'prestige_dungeon', name: 'Phó Bản Hư Không', description: 'Mở Phó Bản Hư Không Prestige (3 tầng, reset hàng tuần)', requiredLevel: 5, emoji: '🌀' },
+    { id: 'prestige_dungeon', name: 'Phó Bản Hư Không', description: 'Mở Phó Bản Hư Không Luân Hồi (3 tầng, reset hàng tuần)', requiredLevel: 5, emoji: '🌀' },
     { id: 'transmutation', name: 'Dung Hợp Vật Phẩm', description: 'Gộp 3 vật phẩm cùng phẩm thành 1 phẩm cao hơn', requiredLevel: 7, emoji: '⚗️' },
     { id: 'prestige_title', name: 'Danh Hiệu Thiên Đạo', description: 'Nhận danh hiệu "Thiên Đạo Đại Vương" + hào quang độc quyền', requiredLevel: 10, emoji: '👑' },
 ];
@@ -69,13 +69,13 @@ class PrestigeService {
         if (!user)
             return { can: false, reason: 'Chưa tạo nhân vật!' };
         if (user.level < 380) {
-            return { can: false, reason: `Cần level 380 (hiện ${user.level})` };
+            return { can: false, reason: `Cần cấp 380 (hiện ${user.level})` };
         }
         const prestige = this.getPrestigeData(userId);
         if (prestige.prestige_level >= MAX_PRESTIGE_LEVEL) {
-            return { can: false, reason: `Đã đạt Prestige tối đa (${MAX_PRESTIGE_LEVEL})` };
+            return { can: false, reason: `Đã đạt Luân Hồi tối đa (${MAX_PRESTIGE_LEVEL})` };
         }
-        return { can: true, reason: 'Đủ điều kiện Prestige!' };
+        return { can: true, reason: 'Đủ điều kiện Luân Hồi!' };
     }
     /**
      * D-01: Perform prestige — reset level, gain prestige level + tokens
@@ -120,11 +120,11 @@ class PrestigeService {
         }
         return {
             success: true,
-            message: `🌟 **PRESTIGE THÀNH CÔNG!**\n` +
-                `🔄 Prestige Level: **${newPrestigeLevel}**/${MAX_PRESTIGE_LEVEL}\n` +
-                `📈 **+${bonusPercent}%** all stats (capped +50%)\n` +
-                `🎫 +${tokensEarned} Prestige Tokens\n` +
-                `🔄 Đã reset về Level 1`
+            message: `🌟 **LUÂN HỒI THÀNH CÔNG!**\n` +
+                `🔄 Cấp Luân Hồi: **${newPrestigeLevel}**/${MAX_PRESTIGE_LEVEL}\n` +
+                `📈 **+${bonusPercent}%** toàn bộ chỉ số (tối đa +50%)\n` +
+                `🎫 +${tokensEarned} Phiếu Luân Hồi\n` +
+                `🔄 Đã reset về Cấp 1`
         };
     }
     /**
@@ -155,7 +155,7 @@ class PrestigeService {
             return { success: false, message: '❌ Item không tồn tại!' };
         const prestige = this.getPrestigeData(userId);
         if (prestige.prestige_tokens < item.cost) {
-            return { success: false, message: `❌ Không đủ Prestige Tokens! (Cần ${item.cost}, có ${prestige.prestige_tokens})` };
+            return { success: false, message: `❌ Không đủ Phiếu Luân Hồi! (Cần ${item.cost}, có ${prestige.prestige_tokens})` };
         }
         database_1.default.prepare('UPDATE prestige_data SET prestige_tokens = prestige_tokens - ? WHERE user_id = ?')
             .run(item.cost, userId);
@@ -166,7 +166,7 @@ class PrestigeService {
         }
         return {
             success: true,
-            message: `✅ Đã mua **${item.name}**! (-${item.cost} Prestige Tokens)`
+            message: `✅ Đã mua **${item.name}**! (-${item.cost} Phiếu Luân Hồi)`
         };
     }
     /**
@@ -176,19 +176,19 @@ class PrestigeService {
         const prestige = this.getPrestigeData(userId);
         const bonus = Math.min(prestige.prestige_level * 5, 50);
         const { can } = this.canPrestige(userId);
-        let msg = `🌟 **Prestige System**\n`;
-        msg += `📊 Level: **${prestige.prestige_level}**/${MAX_PRESTIGE_LEVEL}\n`;
-        msg += `📈 Bonus: **+${bonus}%** all stats\n`;
-        msg += `🎫 Tokens: **${prestige.prestige_tokens}**\n`;
+        let msg = `🌟 **Hệ Thống Luân Hồi**\n`;
+        msg += `📊 Cấp: **${prestige.prestige_level}**/${MAX_PRESTIGE_LEVEL}\n`;
+        msg += `📈 Thưởng: **+${bonus}%** toàn bộ chỉ số\n`;
+        msg += `🎫 Phiếu: **${prestige.prestige_tokens}**\n`;
         msg += `🔄 Total prestiges: **${prestige.total_prestige_time}**\n\n`;
         if (can) {
-            msg += `✅ **Sẵn sàng Prestige!** Dùng \`/prestige\` để thực hiện.`;
+            msg += `✅ **Sẵn sàng Luân Hồi!** Dùng \`/prestige\` để thực hiện.`;
         }
         else if (prestige.prestige_level >= MAX_PRESTIGE_LEVEL) {
-            msg += `🏆 **Đã đạt Prestige tối đa!**`;
+            msg += `🏆 **Đã đạt Luân Hồi tối đa!**`;
         }
         else {
-            msg += `❌ Cần level 380 để Prestige.`;
+            msg += `❌ Cần cấp 380 để Luân Hồi.`;
         }
         return msg;
     }
@@ -207,7 +207,7 @@ class PrestigeService {
     }
     getUnlocksDescription(userId) {
         const { unlocked, locked } = this.getPrestigeUnlocks(userId);
-        let msg = `🌟 **Prestige Unlocks**\n`;
+        let msg = `🌟 **Mở Khóa Luân Hồi**\n`;
         if (unlocked.length > 0) {
             msg += `\n✅ **Đã mở khóa:**\n`;
             for (const u of unlocked) {
@@ -217,7 +217,7 @@ class PrestigeService {
         if (locked.length > 0) {
             msg += `\n🔒 **Chưa mở khóa:**\n`;
             for (const u of locked) {
-                msg += `${u.emoji} **${u.name}** — Prestige ${u.requiredLevel}\n`;
+                msg += `${u.emoji} **${u.name}** — Luân Hồi ${u.requiredLevel}\n`;
             }
         }
         return msg;

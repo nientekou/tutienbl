@@ -207,7 +207,7 @@ class LifeQuestHandler {
                     .setTitle('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch')
                     .setColor(uiSystem_2.EMBED_COLORS.NEUTRAL)
                     .setDescription(`Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.\n\n` +
-                    `⏰ **Cooldown:** 60 giây (mỗi lần làm việc)\n` +
+                    `⏰ **Hồi chiêu:** 60 giây (mỗi lần làm việc)\n` +
                     `🧘 **Yêu cầu:** Cần ít nhất **10** Thể Lực (Hiện có: **${user.stamina}/500**)\n\n` +
                     `*Chọn một công việc bên dưới để bắt đầu lao động ngay!*`)
                     .setTimestamp();
@@ -250,7 +250,7 @@ class LifeQuestHandler {
                     .setTitle('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch')
                     .setColor(uiSystem_2.EMBED_COLORS.NEUTRAL)
                     .setDescription(`Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.\n\n` +
-                    `⏰ **Cooldown:** 60 giây (mỗi lần làm việc)\n` +
+                    `⏰ **Hồi chiêu:** 60 giây (mỗi lần làm việc)\n` +
                     `🧘 **Yêu cầu:** Cần ít nhất **10** Thể Lực (Hiện có: **${refreshedUser.stamina}/500**)\n\n` +
                     `*Chọn một công việc bên dưới để tiếp tục lao động!*`)
                     .setTimestamp();

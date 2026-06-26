@@ -10,7 +10,7 @@ const constants_1 = require("../utils/constants");
 exports.WEEKLY_QUEST_POOL = [
     { id: 'wq_bicanh', name: 'Bí Cảnh Marathon', emoji: '🔮', description: 'Hoàn thành 10 lần Bí Cảnh.', required: 10, rewardCoin: 300, rewardTuVi: 3000, rewardNgotinh: 10 },
     { id: 'wq_thap', name: 'Tháp Thử Thách', emoji: '🏯', description: 'Đạt tầng 20+ trong Tháp Vô Hạn.', required: 20, rewardCoin: 400, rewardTuVi: 4000, rewardNgotinh: 12 },
-    { id: 'wq_pvp', name: 'PvP Master', emoji: '⚔️', description: 'Thắng 15 trận quyết đấu.', required: 15, rewardCoin: 600, rewardTuVi: 4000, rewardNgotinh: 15 },
+    { id: 'wq_pvp', name: 'Bậc Thầy PvP', emoji: '⚔️', description: 'Thắng 15 trận quyết đấu.', required: 15, rewardCoin: 600, rewardTuVi: 4000, rewardNgotinh: 15 },
     { id: 'wq_daosu', name: 'Đạo Sư', emoji: '🧑‍🏫', description: 'Thực hiện công việc sư phạm 5 lần.', required: 5, rewardCoin: 200, rewardTuVi: 2000, rewardNgotinh: 8 },
     { id: 'wq_luyendan', name: 'Luyện Đan Sư', emoji: '🌿', description: 'Luyện chế 8 viên đan dược.', required: 8, rewardCoin: 200, rewardTuVi: 2000, rewardNgotinh: 8 },
     { id: 'wq_tho', name: 'Thợ Rèn', emoji: '🔨', description: 'Rèn 3 trang bị.', required: 3, rewardCoin: 200, rewardTuVi: 2000, rewardNgotinh: 8 },
@@ -18,9 +18,9 @@ exports.WEEKLY_QUEST_POOL = [
     { id: 'wq_nongdan', name: 'Nông Dân', emoji: '🌾', description: 'Thu hoạch 15 ô farm.', required: 15, rewardCoin: 150, rewardTuVi: 1500, rewardNgotinh: 6 },
     { id: 'wq_thuongnhan', name: 'Thương Nhân', emoji: '💰', description: 'Bán 30 vật phẩm lên chợ.', required: 30, rewardCoin: 300, rewardTuVi: 2500, rewardNgotinh: 8 },
     { id: 'wq_boss', name: 'Diệt Boss', emoji: '👹', description: 'Tấn công Boss Thế Giới 3 lần.', required: 3, rewardCoin: 400, rewardTuVi: 4000, rewardNgotinh: 12 },
-    { id: 'wq_noima', name: 'Nội Ma Hunter', emoji: '😈', description: 'Hoàn thành 3 trận Nội Ma.', required: 3, rewardCoin: 300, rewardTuVi: 3000, rewardNgotinh: 10 },
+    { id: 'wq_noima', name: 'Thợ Săn Nội Ma', emoji: '😈', description: 'Hoàn thành 3 trận Nội Ma.', required: 3, rewardCoin: 300, rewardTuVi: 3000, rewardNgotinh: 10 },
     { id: 'wq_mongcanh', name: 'Mộng Cảnh', emoji: '🌙', description: 'Đạt tầng 15+ Mộng Cảnh.', required: 15, rewardCoin: 300, rewardTuVi: 3000, rewardNgotinh: 10 },
-    { id: 'wq_linhthu', name: 'Linh Thú Training', emoji: '🐾', description: 'Huấn luyện 2 linh thú.', required: 2, rewardCoin: 200, rewardTuVi: 2000, rewardNgotinh: 8 },
+    { id: 'wq_linhthu', name: 'Huấn Luyện Linh Thú', emoji: '🐾', description: 'Huấn luyện 2 linh thú.', required: 2, rewardCoin: 200, rewardTuVi: 2000, rewardNgotinh: 8 },
     { id: 'wq_sanlinhthu', name: 'Săn Linh Thú', emoji: '🐉', description: 'Thu phục 2 linh thú.', required: 2, rewardCoin: 250, rewardTuVi: 2500, rewardNgotinh: 8 },
     { id: 'wq_tongmon', name: 'Tông Môn Vụ', emoji: '☯️', description: 'Quyên góp 1500 LT cho Tông Môn.', required: 1500, rewardCoin: 200, rewardTuVi: 2000, rewardNgotinh: 8 },
 ];
@@ -159,12 +159,12 @@ class WeeklyQuestService {
         // Check if all 5 completed → streak update
         if (completedCount >= 5) {
             const streakInfo = this.updateStreak(userId);
-            msg += `\n🔥 **Streak x${streakInfo.current_streak}** tuần liên tiếp!`;
+            msg += `\n🔥 **Chuỗi x${streakInfo.current_streak}** tuần liên tiếp!`;
             if (streakInfo.current_streak >= 4) {
                 // Streak bonus: 4+ weeks → 200 KNB
                 const knbBonus = 200;
                 UserRepository_1.userRepository.update(userId, { knb: user.knb + knbBonus });
-                msg += `\n💎 **Streak Bonus!** +${knbBonus} KNB + danh hiệu "Tinh Nghĩa"!`;
+                msg += `\n💎 **Thưởng Chuỗi!** +${knbBonus} KNB + danh hiệu "Tinh Nghĩa"!`;
             }
         }
         return { success: true, message: msg };
@@ -225,7 +225,7 @@ class WeeklyQuestService {
         msg += `🎁 Đã nhận: **${totalClaimed}**\n`;
         msg += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
         msg += `🟤 +${totalCoin} LT | 🌿 +${totalExp} Tu Vi | 🧘 +${totalNgotinh} Ngộ Tính\n`;
-        msg += `🔥 Streak: **${streak.current_streak}** tuần | Tối đa: **${streak.longest_streak}** tuần`;
+        msg += `🔥 Chuỗi: **${streak.current_streak}** tuần | Tối đa: **${streak.longest_streak}** tuần`;
         return msg;
     }
     /**

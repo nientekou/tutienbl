@@ -6,7 +6,7 @@ import { userRepository } from '../database/repositories/UserRepository';
 type PetPersonality = 'friendly' | 'lazy' | 'aggressive';
 
 const PERSONALITY_BONUSES: Record<PetPersonality, { stat: string; value: number; description: string }> = {
-  friendly: { stat: 'exp_bonus', value: 0.05, description: '+5% EXP từ tu luyện' },
+  friendly: { stat: 'exp_bonus', value: 0.05, description: '+5% Tu Vi từ tu luyện' },
   lazy: { stat: 'hp_bonus', value: 0.08, description: '+8% HP' },
   aggressive: { stat: 'atk_bonus', value: 0.06, description: '+6% ATK' },
 };
@@ -189,7 +189,7 @@ class PetExpansionService {
 
       return {
         success: true,
-        message: `🏋️ **${pet.name}** training thành công!\n+${expGained} EXP → Level **${newLevel}**!`
+        message: `🏋️ **${pet.name}** huấn luyện thành công!\n+${expGained} Tu Vi → Cấp **${newLevel}**!`
       };
     }
 
@@ -199,7 +199,7 @@ class PetExpansionService {
 
     return {
       success: true,
-      message: `🏋️ **${pet.name}** training +${expGained} EXP (${newExp}/${needed})`
+      message: `🏋️ **${pet.name}** huấn luyện +${expGained} EXP (${newExp}/${needed})`
     };
   }
 

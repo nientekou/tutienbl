@@ -319,11 +319,11 @@ function getChienTichTabEmbed(user) {
             // Dream Dust
             stats.push(`✨ **Dust Mộng:** **${(0, constants_1.formatNumber)(user.dream_dust || 0)}**`);
             // Bounty tokens
-            stats.push(`🎫 **Token Săn Thưởng:** **${(0, constants_1.formatNumber)(user.bounty_tokens || 0)}**`);
+            stats.push(`🎫 **Phiếu Săn Thưởng:** **${(0, constants_1.formatNumber)(user.bounty_tokens || 0)}**`);
             // Destiny shards
             stats.push(`🔮 **Mảnh Mệnh Cách:** **${(0, constants_1.formatNumber)(user.destiny_shards || 0)}**`);
             // Reincarnation tokens
-            stats.push(`🔄 **Token Luân Hồi:** **${(0, constants_1.formatNumber)(user.reincarnation_tokens || 0)}**`);
+            stats.push(`🔄 **Phiếu Luân Hồi:** **${(0, constants_1.formatNumber)(user.reincarnation_tokens || 0)}**`);
             return stats.join('\n') || 'Chưa có thống kê';
         })(),
         inline: false,

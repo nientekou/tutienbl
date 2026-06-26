@@ -55,9 +55,9 @@ const SKILL_VARIANTS = {
         { id: 'water_shield', name: 'Thủy Giáp', description: 'Tạo shield 15% HP', type: 'defense' },
     ],
     skill_wood: [
-        { id: 'wood_lifesteal', name: 'Mộc Hấp Huyết', description: 'Hút 20% damage', type: 'damage' },
+        { id: 'wood_lifesteal', name: 'Mộc Hấp Huyết', description: 'Hút 20% sát thương', type: 'damage' },
         { id: 'wood_heal', name: 'Mộc Hồi Phục', description: 'Hồi 15% HP mỗi turn', type: 'utility' },
-        { id: 'wood_thorn', name: 'Mộc Gai', description: 'Phản 10% damage', type: 'defense' },
+        { id: 'wood_thorn', name: 'Mộc Gai', description: 'Phản 10% sát thương', type: 'defense' },
     ],
     skill_earth: [
         { id: 'earth_shield', name: 'Thổ Giáp', description: 'Tạo shield 20% HP', type: 'defense' },
@@ -71,8 +71,8 @@ const SKILL_VARIANTS = {
     ],
     skill_lightning: [
         { id: 'lightning_stun', name: 'Lôi Phạt Choáng', description: 'Choáng enemy 1 turn', type: 'utility' },
-        { id: 'lightning_damage', name: 'Lôi Phạt Sát Thương', description: '+50% damage 1 turn', type: 'damage' },
-        { id: 'lightning_chain', name: 'Lôi Phạt Liên Hoàn', description: 'Gây damage 3 lần', type: 'damage' },
+        { id: 'lightning_damage', name: 'Lôi Phạt Sát Thương', description: '+50% sát thương 1 lượt', type: 'damage' },
+        { id: 'lightning_chain', name: 'Lôi Phạt Liên Hoàn', description: 'Gây sát thương 3 lần', type: 'damage' },
     ],
 };
 class SkillMasteryService {
@@ -174,9 +174,9 @@ class SkillMasteryService {
         const mastery = this.getMastery(userId, skillId);
         const needed = MASTERY_EXP_PER_LEVEL * mastery.mastery_level;
         const progress = Math.round((mastery.mastery_exp / needed) * 100);
-        let msg = `📊 **Mastery** — Level **${mastery.mastery_level}**/${MAX_MASTERY_LEVEL}\n`;
-        msg += `EXP: ${mastery.mastery_exp}/${needed} (${progress}%)\n`;
-        msg += `Bonus: +${(mastery.mastery_level - 1) * 2}% damage, -${(mastery.mastery_level - 1)}% cooldown\n`;
+        let msg = `📊 **Tinh Thông** — Cấp **${mastery.mastery_level}**/${MAX_MASTERY_LEVEL}\n`;
+        msg += `Tu Vi: ${mastery.mastery_exp}/${needed} (${progress}%)\n`;
+        msg += `Thưởng: +${(mastery.mastery_level - 1) * 2}% sát thương, -${(mastery.mastery_level - 1)}% hồi chiêu\n`;
         if (mastery.chosen_path) {
             const pathInfo = SKILL_PATHS[skillId]?.[mastery.chosen_path];
             msg += `Path: **${pathInfo?.name || mastery.chosen_path}** — ${pathInfo?.description || ''}\n`;

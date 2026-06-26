@@ -127,6 +127,22 @@ class EventService {
             const nextWeekend = this.getNextWeekendStart();
             this.createEvent(template, nextWeekend, nextWeekend + template.durationHours * 3600);
         }
+        // V12 D-02: Monthly Pet Race — auto-create at start of each month
+        const currentMonth = new Date().getMonth();
+        const monthlyRaceExists = database_1.default.prepare("SELECT id FROM events WHERE type = 'mini_game' AND name LIKE '%Linh Thu%' AND started_at >= ?").get(this.getMonthStart(now));
+        if (!monthlyRaceExists) {
+            const template = exports.EVENT_TEMPLATES.find(e => e.id === 'mini_game_race');
+            if (template) {
+                const monthStart = this.getMonthStart(now);
+                this.createEvent(template, monthStart, monthStart + template.durationHours * 3600);
+            }
+        }
+    }
+    getMonthStart(now) {
+        const d = new Date(now * 1000);
+        d.setDate(1);
+        d.setHours(0, 0, 0, 0);
+        return Math.floor(d.getTime() / 1000);
     }
     /**
      * Tạo sự kiện mới

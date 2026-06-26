@@ -182,7 +182,7 @@ export class CombatService {
       if (prestigeData.prestige_level < dungeon.minPrestige) {
         return {
           success: false,
-          message: `❌ Cần đạt **Prestige ${dungeon.minPrestige}** để vào phó bản này! (Hiện: Prestige ${prestigeData.prestige_level})`
+          message: `❌ Cần đạt **Luân Hồi ${dungeon.minPrestige}** để vào phó bản này! (Hiện: Luân Hồi ${prestigeData.prestige_level})`
         };
       }
     }
@@ -372,6 +372,12 @@ export class CombatService {
     achievementService.setProgress(userId, 'cd_1', newAttempts);
     achievementService.setProgress(userId, 'cd_2', newAttempts);
     achievementService.setProgress(userId, 'cd_3', newAttempts);
+
+    // V12 D-01: Season Pass EXP for dungeon completion
+    try {
+      const { eventCalendarService } = require('./EventCalendarService');
+      eventCalendarService.addSeasonPassExp(userId, 10);
+    } catch (_) {}
     if (difficulty === 'ác_mộng' && combatResult.winner === 'player') {
       const totalNM = db.prepare(
         "SELECT COUNT(*) as c FROM audit_logs WHERE user_id = ? AND action = 'dungeon_nightmare'"

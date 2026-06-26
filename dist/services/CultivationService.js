@@ -990,7 +990,7 @@ class CultivationService {
         // P5-01: Reincarnation Milestones
         let milestoneMsg = '';
         if (newLuanHoiCount === 1)
-            milestoneMsg = '\n🎯 Đời đầu: Nhận **+20% EXP** vĩnh viễn!';
+            milestoneMsg = '\n🎯 Đời đầu: Nhận **+20% Tu Vi** vĩnh viễn!';
         else if (newLuanHoiCount === 3)
             milestoneMsg = '\n🏆 Đời 3: Unlock danh hiệu **"Tái Sinh"**!';
         else if (newLuanHoiCount === 10)
@@ -1049,8 +1049,8 @@ class CultivationService {
             success: true,
             message: `🎉 **LUÂN HỒI THÀNH CÔNG!** Đạo hữu đã chuyển thế trùng sinh!\n` +
                 `• Danh hiệu: **${updatedUser.title}**\n` +
-                `• EXP Bonus: **+${expBonusPercent}%** vĩnh viễn (capped +150%)\n` +
-                `• Token: **${newTokens}** (dùng tại Cửa Hàng Luân Hồi)` +
+                `• Tu Vi Thưởng: **+${expBonusPercent}%** vĩnh viễn (capped +150%)\n` +
+                `• Phiếu: **${newTokens}** (dùng tại Cửa Hàng Luân Hồi)` +
                 daoTamMsg + milestoneMsg + achieveText,
             user: updatedUser
         };
@@ -1271,9 +1271,9 @@ class CultivationService {
         const bonus = Math.min(count * 20, 150);
         const tokens = user.reincarnation_tokens || 0;
         const daoTam = user.dao_tam ? JSON.parse(user.dao_tam) : null;
-        let msg = `🔄 **Reincarnation** — Doi ${count}\n`;
-        msg += `📈 EXP Bonus: +${bonus}% (tối đa +150%)\n`;
-        msg += `🎫 Tokens: ${tokens}\n`;
+        let msg = `🔄 **Luân Hồi** — Đời ${count}\n`;
+        msg += `📈 Tu Vi Thưởng: +${bonus}% (tối đa +150%)\n`;
+        msg += `🎫 Phiếu: ${tokens}\n`;
         if (daoTam) {
             msg += `🔮 Dao Tam: ${daoTam.element} cấp ${daoTam.level}\n`;
         }

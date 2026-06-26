@@ -144,8 +144,8 @@ export class VoiceRecoveryService {
             `🧘 **${user.name}** đã vào phòng voice **${vcName}**.\n` +
             `Bắt đầu hấp thu linh khí hồi phục thể lực!\n\n` +
             `📊 Thể lực hiện tại: **${user.stamina}/500**\n` +
-            `⏱️ Tốc độ hồi: **1 stamina / 20 giây** (gấp 6x)\n` +
-            `🎯 Bonus tối đa hôm nay: **${VOICE_RECOVERY_CONFIG.DAILY_BONUS_CAP} stamina**\n` +
+            `⏱️ Tốc độ hồi: **1 thể lực / 20 giây** (gấp 6x)\n` +
+            `🎯 Thưởng tối đa hôm nay: **${VOICE_RECOVERY_CONFIG.DAILY_BONUS_CAP} thể lực**\n` +
             `📈 Đã dùng hôm nay: **${vr.total_bonus_today}/${VOICE_RECOVERY_CONFIG.DAILY_BONUS_CAP}**\n\n` +
             `*Càng ở lâu càng hồi nhanh. Tối thiểu 5 phút để nhận bonus.*`
           )
@@ -201,7 +201,7 @@ export class VoiceRecoveryService {
           `⏱️ Thời gian tụ linh: **${minutes} phút ${seconds} giây**\n` +
           `⚡ Thể lực hồi phục: **+${vr.session_bonus_added}** (Tổng: **${vr.total_bonus_today}/${VOICE_RECOVERY_CONFIG.DAILY_BONUS_CAP}** hôm nay)\n` +
           `📊 Thể lực hiện tại: **${user.stamina}/500**\n` +
-          `⏳ Cooldown: **10 phút** trước lần tụ tiếp.\n\n` +
+          `⏳ Hồi chiêu: **10 phút** trước lần tụ tiếp.\n\n` +
           `*Hãy quay lại khi thể lực cạn nhé!*`
         )
         .setTimestamp();

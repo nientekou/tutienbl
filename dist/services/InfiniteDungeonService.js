@@ -222,10 +222,10 @@ class InfiniteDungeonService {
         msg += `💥 Tổng sát thương: **${progress.total_damage.toLocaleString()}**\n\n`;
         const modifier = this.getFloorModifier(progress.current_floor);
         if (modifier) {
-            msg += `⚙️ **Floor Modifier:** ${modifier.name}\n`;
+            msg += `⚙️ **Biến Thể Tầng:** ${modifier.name}\n`;
             msg += `${modifier.description}\n\n`;
         }
-        msg += `📊 **Enemy Stats (Floor ${progress.current_floor}):**\n`;
+        msg += `📊 **Chỉ Số Địch (Tầng ${progress.current_floor}):**\n`;
         const enemy = this.getEnemyStats(progress.current_floor);
         msg += `❤️ HP: **${enemy.hp.toLocaleString()}** | ⚔️ ATK: **${enemy.atk}** | 🛡️ DEF: **${enemy.def}**\n`;
         return msg;

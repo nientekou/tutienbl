@@ -68,6 +68,16 @@ export default class ReadyEvent extends Event<'ready'> {
       console.error(chalk.red('[System] Lỗi World Event Scheduler:'), error);
     }
 
+    // 4c. Community Quest Scheduler (auto-start every 48h)
+    try {
+      const { communityQuestService } = require('../services/CommunityQuestService');
+      communityQuestService.startScheduler();
+      table.push(['Community Quest Scheduler', chalk.green('✔ Running')]);
+    } catch (error) {
+      table.push(['Community Quest Scheduler', chalk.red('❌ LỖI')]);
+      console.error(chalk.red('[System] Lỗi Community Quest Scheduler:'), error);
+    }
+
     // 5. Khởi động scheduler Vạn Bảo Lâu (kết thúc đấu giá hết hạn & auto-bid)
     try {
       const { marketService } = require('../services/MarketService');

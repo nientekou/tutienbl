@@ -299,7 +299,7 @@ class HeartLawService {
         const sets = this.getSetBonuses(userId);
         if (sets.length === 0)
             return '';
-        let desc = '**Tâm Pháp Set Bonus:**\n';
+        let desc = '**Thưởng Bộ Tâm Pháp:**\n';
         for (const set of sets) {
             if (set.has3Set) {
                 desc += `• **${set.element}** (3-set): +10% hiệu quả + Kích hoạt **${set.ability?.name || '???'}**\n`;

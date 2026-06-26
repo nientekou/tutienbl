@@ -3,10 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.cookingService = void 0;
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const RECIPES = [
-    { id: 'recipe_herb_salad', name: 'Rau Sâm', description: '+5% EXP 30 phút', ingredients: [{ itemId: 'herb_1', quantity: 2 }], effect: { type: 'exp_bonus', value: 0.05, duration: 30 }, unlockLevel: 1 },
+    { id: 'recipe_herb_salad', name: 'Rau Sâm', description: '+5% Tu Vi 30 phút', ingredients: [{ itemId: 'herb_1', quantity: 2 }], effect: { type: 'exp_bonus', value: 0.05, duration: 30 }, unlockLevel: 1 },
     { id: 'recipe_meat_feast', name: 'Yến Tiệc', description: '+10% ATK 30 phút', ingredients: [{ itemId: 'meat_1', quantity: 3 }], effect: { type: 'atk_bonus', value: 0.10, duration: 30 }, unlockLevel: 5 },
     { id: 'recipe_fish_soup', name: 'Canh Cá', description: '+10% DEF 30 phút', ingredients: [{ itemId: 'fish_1', quantity: 2 }], effect: { type: 'def_bonus', value: 0.10, duration: 30 }, unlockLevel: 5 },
-    { id: 'recipe_elixir_soup', name: 'Canh Linh Lung', description: '+15% EXP 30 phút', ingredients: [{ itemId: 'herb_rare', quantity: 1 }, { itemId: 'fish_rare', quantity: 1 }], effect: { type: 'exp_bonus', value: 0.15, duration: 30 }, unlockLevel: 10 },
+    { id: 'recipe_elixir_soup', name: 'Canh Linh Lung', description: '+15% Tu Vi 30 phút', ingredients: [{ itemId: 'herb_rare', quantity: 1 }, { itemId: 'fish_rare', quantity: 1 }], effect: { type: 'exp_bonus', value: 0.15, duration: 30 }, unlockLevel: 10 },
     { id: 'recipe_dragon_fruit', name: 'Quả Rồng', description: '+20% ATK+DEF 30 phút', ingredients: [{ itemId: 'herb_legendary', quantity: 1 }, { itemId: 'fire_stone', quantity: 1 }], effect: { type: 'all_bonus', value: 0.20, duration: 30 }, unlockLevel: 15 },
     { id: 'recipe_immortal', name: 'Tiên Đan', description: 'Hồi sinh 1 lần trong chiến đấu', ingredients: [{ itemId: 'tinh_thach_shard', quantity: 2 }, { itemId: 'herb_legendary', quantity: 1 }], effect: { type: 'revive', value: 1, duration: 1 }, unlockLevel: 20 },
 ];

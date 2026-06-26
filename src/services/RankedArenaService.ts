@@ -190,7 +190,7 @@ class RankedArenaService {
         `).run(resetElo, p.user_id);
 
         if (rank <= 10) {
-          topPlayers.push({ userId: p.user_id, rank, tier, reward: `${tierDef.rewards.ngotinh} Ngt, ${tierDef.rewards.coins} coins` });
+          topPlayers.push({ userId: p.user_id, rank, tier, reward: `${tierDef.rewards.ngotinh} NT, ${tierDef.rewards.coins} coins` });
         }
       });
     })();
@@ -200,6 +200,68 @@ class RankedArenaService {
     cacheService.invalidateExact('arena_leaderboard');
 
     return { totalRewarded: players.length, topPlayers };
+  }
+
+  // === V12 C-03: PvP Season Visibility ===
+
+  getSeasonRewardsPreview(): string {
+    let msg = `🏆 **Phần Thưởng Mùa Giải**\n━━━━━━━━━━━━━━━━━━━━━━━\n`;
+
+    for (const [tier, def] of Object.entries(RANK_TIERS)) {
+      const rewards = def.rewards as any;
+      msg += `**${def.name}** (${def.minElo}+ ELO):\n`;
+      msg += `  🎁 ${rewards.ngotinh} Ngộ Tính, ${rewards.coins} LT`;
+      if (rewards.title) msg += `, Danh hiệu "${rewards.title}"`;
+      msg += `\n`;
+    }
+
+    msg += `\n⏰ Mùa giải kết thúc mỗi 2 tuần. Top 10 nhận thưởng bonus!`;
+    return msg;
+  }
+
+  getPlayerRankInfo(userId: string): string {
+    const profile = this.getProfile(userId);
+    if (!profile) return '❌ Chưa có thông tin Arena.';
+
+    const rank = this.getRankDisplay(profile.elo);
+    const tier = this.getRankTier(profile.elo);
+    const tierDef = RANK_TIERS[tier as keyof typeof RANK_TIERS];
+
+    // Find position in leaderboard
+    const allProfiles = db.prepare('SELECT user_id, elo FROM arena_profiles ORDER BY elo DESC').all() as any[];
+    const position = allProfiles.findIndex(p => p.user_id === userId) + 1;
+
+    let msg = `🏆 **Thông Tin Arena**\n`;
+    msg += `📊 Rank: **${rank.name}**\n`;
+    msg += `📈 ELO: **${profile.elo}**\n`;
+    msg += `🏅 Thứ hạng: **#${position}** / ${allProfiles.length}\n`;
+    msg += `⚔️ W/L: ${profile.season_wins || 0}/${profile.season_losses || 0}\n`;
+    msg += `🔥 Streak: ${profile.win_streak || 0}\n\n`;
+
+    if (tierDef) {
+      const rewards = (tierDef as any).rewards;
+      msg += `🎁 **Phần thưởng cuối mùa:** ${rewards.ngotinh} NT, ${rewards.coins} LT`;
+      if (rewards.title) msg += `, "${rewards.title}"`;
+      msg += `\n`;
+    }
+
+    // Next rank info
+    const nextTier = this.getNextTier(tier);
+    if (nextTier) {
+      const nextDef = RANK_TIERS[nextTier as keyof typeof RANK_TIERS];
+      const eloNeeded = nextDef.minElo - profile.elo;
+      if (eloNeeded > 0) {
+        msg += `\n📈 Cần **+${eloNeeded} ELO** để lên **${nextDef.name}**`;
+      }
+    }
+
+    return msg;
+  }
+
+  private getNextTier(currentTier: string): string | null {
+    const tiers = Object.keys(RANK_TIERS);
+    const idx = tiers.indexOf(currentTier);
+    return idx < tiers.length - 1 ? tiers[idx + 1] : null;
   }
 }
 

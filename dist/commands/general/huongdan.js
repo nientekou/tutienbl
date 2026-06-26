@@ -33,7 +33,7 @@ const GUIDES = {
             '🛡️ **Tuần Tra** — Nhận: phù lục, rương báu, KNB',
             '',
             '📌 Mỗi lần làm việc tốn **10 Thể Lực**, hồi phục **5 Thể Lực/phút**.',
-            '📌 Cooldown 60 giây giữa các lần làm việc.',
+            '📌 Hồi chiêu 60 giây giữa các lần làm việc.',
             '📌 15% gặp **Kỳ Ngộ** — sự kiện đặc biệt có thưởng lớn!',
             '📌 Có tọa kỵ sẽ giảm 5-50% cooldown và 3-30% thể lực.',
         ].join('\n'),

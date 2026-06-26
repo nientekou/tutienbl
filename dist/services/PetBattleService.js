@@ -121,7 +121,7 @@ class PetBattleService {
     getPetBattleDescription(userId) {
         const pets = this.getBattlePets(userId);
         let msg = `⚔️ **Pet Battle**\n`;
-        msg += `📊 Active Pets: **${pets.length}**/3\n\n`;
+        msg += `📊 Sủng Thú Kích Hoạt: **${pets.length}**/3\n\n`;
         if (pets.length > 0) {
             msg += `**Sủng thú của bạn:**\n`;
             for (const p of pets) {

@@ -91,7 +91,7 @@ class SoulWeaponService {
             currentExp = 0;
         }
         SoulWeaponRepository_1.soulWeaponRepository.updateLevelExp(sw.id, currentLevel, currentExp);
-        let msg = `✨ Đã hiến tế **${itemsDestroyed}** vật phẩm. Pháp bảo **${sw.name}** nhận được **${totalExpGained} EXP**!`;
+        let msg = `✨ Đã hiến tế **${itemsDestroyed}** vật phẩm. Pháp bảo **${sw.name}** nhận được **${totalExpGained} Tu Vi**!`;
         if (levelUps > 0)
             msg += `\n🎉 **Bạo phát!** Pháp bảo đột phá **${levelUps}** cấp, đạt **Lv${currentLevel}**!`;
         return { success: true, message: msg, expGained: totalExpGained, levelUp: levelUps };
@@ -201,7 +201,7 @@ class SoulWeaponService {
             success: true,
             message: `🌟 **Pháp Bảo Thức Tỉnh!** ${sw.name}\n` +
                 `🔄 Reset về level 1, stage 1\n` +
-                `📈 **+10% all stats** (Awakening ${currentAwakenings + 1}/2)\n` +
+                `📈 **+10% toàn bộ chỉ số** (Thức Tỉnh ${currentAwakenings + 1}/2)\n` +
                 `✨ Weapon name/visual thay đổi!`
         };
     }
@@ -217,8 +217,8 @@ class SoulWeaponService {
         const skills = this.getAvailableSkills(userId);
         const awakenings = sw.awakening_level || 0;
         let msg = `⚔️ **${sw.name}** (${sw.type})\n`;
-        msg += `📊 Level **${sw.level}**/${this.MAX_LEVEL} | Stage **${stage.stage}** (${stage.name})\n`;
-        msg += `🌟 Awakening: **${awakenings}/2**\n`;
+        msg += `📊 Cấp **${sw.level}**/${this.MAX_LEVEL} | Stage **${stage.stage}** (${stage.name})\n`;
+        msg += `🌟 Thức Tỉnh: **${awakenings}/2**\n`;
         msg += `📈 ATK: **${bonuses.atk}** | DEF: **${bonuses.def}** | HP: **${bonuses.hp}**\n`;
         msg += `🔓 Skill slots: **${stage.skillSlots}**\n`;
         if (skills.length > 0) {
@@ -260,18 +260,18 @@ class SoulWeaponService {
     getWeaponDeepDescription(userId) {
         const sw = SoulWeaponRepository_1.soulWeaponRepository.getByUserId(userId);
         if (!sw)
-            return 'Chua co Phap Bao!';
+            return 'Chưa có Pháp Bảo!';
         const stage = this.getEvolutionStage(sw.level);
         const bonuses = this.getCombatBonuses(userId);
         const awakenings = sw.awakening_level || 0;
         let msg = `⚔️ **${sw.name}** (${sw.type})\n`;
-        msg += `📊 Level **${sw.level}**/${this.MAX_LEVEL} | Stage **${stage.stage}** (${stage.name})\n`;
-        msg += `🌟 Awakening: **${awakenings}/2**\n`;
+        msg += `📊 Cấp **${sw.level}**/${this.MAX_LEVEL} | Stage **${stage.stage}** (${stage.name})\n`;
+        msg += `🌟 Thức Tỉnh: **${awakenings}/2**\n`;
         msg += `📈 ATK: **${bonuses.atk}** | DEF: **${bonuses.def}** | HP: **${bonuses.hp}**\n`;
         msg += `🔓 Skill slots: **${stage.skillSlots}**\n`;
         const skills = this.getAvailableSkills(userId);
         if (skills.length > 0) {
-            msg += `\n**Skills:**\n`;
+            msg += `\n**Kỹ năng:**\n`;
             for (const s of skills) {
                 const typeEmoji = s.type === 'passive' ? '🔮' : s.type === 'trigger' ? '⚡' : '🔥';
                 msg += `${typeEmoji} **${s.name}**: ${s.description}\n`;

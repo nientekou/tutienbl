@@ -529,7 +529,7 @@ export class AlchemyService {
       if (successCount < quantity) {
         responseMsg += `⚠️ Có **${quantity - successCount}** mẻ bị nổ lò thất bại do dược lực không ổn định.\n`;
       }
-      responseMsg += `📈 Nhận **+${totalExpGained}** EXP Luyện Đan (Hiện tại: **${currentExp}/${currentLevel * 100}**).`;
+      responseMsg += `📈 Nhận **+${totalExpGained}** Tu Vi Luyện Đan (Hiện tại: **${currentExp}/${currentLevel * 100}**).`;
       if (isLevelUp) {
         responseMsg += `\n🌟 **Chúc mừng!** Đạo hữu đột phá Luyện Đan Thuật thăng lên **Cấp ${currentLevel} Luyện Đan Sư**!`;
       }

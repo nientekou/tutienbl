@@ -104,13 +104,13 @@ class SecretSkillService {
     const now = Math.floor(Date.now() / 1000);
     if (row.lastUsed + skill.cooldown * 60 > now) {
       const remaining = Math.ceil((row.lastUsed + skill.cooldown * 60 - now) / 60);
-      return { success: false, message: `Cooldown: ${remaining} minutes`, effect: '' };
+      return { success: false, message: `Hồi chiêu: ${remaining} phút`, effect: '' };
     }
 
     // Check MP
     const user = userRepository.get(userId);
     if (!user || (user.mp || 0) < skill.mpCost) {
-      return { success: false, message: `Need ${skill.mpCost} MP (have ${user?.mp || 0})`, effect: '' };
+      return { success: false, message: `Cần ${skill.mpCost} MP (có ${user?.mp || 0})`, effect: '' };
     }
 
     // Use skill
@@ -118,7 +118,7 @@ class SecretSkillService {
     db.prepare('UPDATE user_secret_skills SET last_used = ? WHERE user_id = ? AND skill_id = ?')
       .run(now, userId, skillId);
 
-    return { success: true, message: `Used **${skill.name}**!`, effect: skill.effect };
+    return { success: true, message: `Đã dùng **${skill.name}**!`, effect: skill.effect };
   }
 
   /**
@@ -154,8 +154,8 @@ class SecretSkillService {
       const elementEmoji: Record<string, string> = { 'Hoa': '🔥', 'Thuy': '💧', 'Moc': '🌿', 'Kim': '⚔️', 'Tho': '🪨', 'Loi': '⚡', 'Phong': '🌀' };
       msg += `${status} ${elementEmoji[s.skill.element] || '❓'} **${s.skill.name}**\n`;
       msg += `   ${s.skill.description}\n`;
-      msg += `   Cooldown: ${s.skill.cooldown}min | MP: ${s.skill.mpCost}\n`;
-      if (!s.unlocked) msg += `   Unlock: Level ${s.skill.unlockValue}\n`;
+      msg += `   Hồi chiêu: ${s.skill.cooldown}ph | MP: ${s.skill.mpCost}\n`;
+      if (!s.unlocked) msg += `   Mở khóa: Cấp ${s.skill.unlockValue}\n`;
       msg += `\n`;
     }
 
