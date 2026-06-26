@@ -208,5 +208,27 @@ class WorldBossReworkService {
         }
         return msg;
     }
+    // === V16 B-02: World Boss V2 — 5 Phases ===
+    BOSS_PHASES_V2 = [
+        { phase: 1, name: 'Sơ Khởi', hpThreshold: 1.0, mechanic: 'Basic attacks', atkMult: 1.0, defMult: 1.0 },
+        { phase: 2, name: 'Phẫn Nộ', hpThreshold: 0.7, mechanic: 'AOE + debuff', atkMult: 1.3, defMult: 1.1 },
+        { phase: 3, name: 'Hồi Phục', hpThreshold: 0.4, mechanic: 'Heal 10% HP per round', atkMult: 1.5, defMult: 1.2 },
+        { phase: 4, name: 'Thôn Tính', hpThreshold: 0.2, mechanic: 'Absorbs element damage', atkMult: 1.8, defMult: 0.8 },
+        { phase: 5, name: 'Tuyệt Vong', hpThreshold: 0.0, mechanic: 'One-shot if not killed in 5 rounds', atkMult: 2.5, defMult: 0.5 },
+    ];
+    getPhaseV2(hpPercent) {
+        for (const phase of this.BOSS_PHASES_V2) {
+            if (hpPercent > phase.hpThreshold)
+                return phase;
+        }
+        return this.BOSS_PHASES_V2[this.BOSS_PHASES_V2.length - 1];
+    }
+    getPhaseV2Description() {
+        let msg = '**5-Phase World Boss:**\n';
+        for (const phase of this.BOSS_PHASES_V2) {
+            msg += `• Phase ${phase.phase} (${Math.round(phase.hpThreshold * 100)}%+): ${phase.name} — ${phase.mechanic}\n`;
+        }
+        return msg;
+    }
 }
 exports.worldBossReworkService = new WorldBossReworkService();

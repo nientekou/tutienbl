@@ -281,6 +281,27 @@ class InventoryService {
                 // Bỏ qua lỗi JSON
             }
         }
+        // --- V13 A-04: Equipment Set Bonuses ---
+        try {
+            const { EQUIPMENT_SETS, getEquippedSetCount } = require('../config/equipmentSetConstants');
+            const equippedItemIds = equippedItems.map(i => i.item_id);
+            for (const set of EQUIPMENT_SETS) {
+                const count = getEquippedSetCount(equippedItemIds, set);
+                if (count >= 2) {
+                    for (const bonus of set.bonus_2pc) {
+                        if (bonus.stat.endsWith('_percent')) {
+                            const key = bonus.stat.replace('_percent', '');
+                            if (key in multipliers)
+                                multipliers[key] += bonus.value;
+                        }
+                        else if (bonus.stat in stats) {
+                            stats[bonus.stat] += Math.round(stats[bonus.stat] * bonus.value);
+                        }
+                    }
+                }
+            }
+        }
+        catch (e) { }
         // --- Tính năng Ấn Ký Linh Hồn (Soul Imprint) ---
         try {
             const { soulImprintService } = require('./SoulImprintService');
@@ -454,6 +475,21 @@ class InventoryService {
                 stats.mp_regen = (stats.mp_regen || 0) + daoBonuses.mp_regen;
         }
         catch (e) { }
+        // --- Power Cap Enforcement (A-07) ---
+        // ponytail: clamp multiplier max 3x, warn if any system > 35%
+        const POWER_CAP = 3.0;
+        const PER_SYSTEM_CAP = 0.35;
+        for (const stat of ['hp', 'mp', 'atk', 'def', 'speed']) {
+            const total = multipliers[stat];
+            if (total > POWER_CAP) {
+                console.warn(`[PowerCap] ${userId} ${stat} multiplier ${total.toFixed(2)}x exceeds cap ${POWER_CAP}x — clamped`);
+                multipliers[stat] = POWER_CAP;
+            }
+            if (total > 1 + PER_SYSTEM_CAP) {
+                const excess = total - 1 - PER_SYSTEM_CAP;
+                console.warn(`[PowerCap] ${userId} ${stat} has ${(excess * 100).toFixed(1)}% excess beyond 35% per-system cap`);
+            }
+        }
         // Áp dụng % multipliers vào final stats
         stats.hp = Math.round(stats.hp * multipliers.hp);
         stats.mp = Math.round(stats.mp * multipliers.mp);
@@ -465,6 +501,25 @@ class InventoryService {
     }
     invalidateStatsCache(userId) {
         this.statsCache.delete(userId);
+    }
+    // --- Awakening Material Daily Cap (A-08) ---
+    canGetAwakeningMaterial(userId, materialId) {
+        const today = new Date().toISOString().slice(0, 10);
+        const row = database_1.default.prepare('SELECT count FROM awakening_daily_tracking WHERE user_id = ? AND material_id = ? AND day = ?').get(userId, materialId, today);
+        return !row || row.count < itemConstants_1.AWAKENING_DAILY_CAP;
+    }
+    recordAwakeningMaterial(userId, materialId) {
+        const today = new Date().toISOString().slice(0, 10);
+        database_1.default.prepare(`
+      INSERT INTO awakening_daily_tracking (user_id, material_id, count, day)
+      VALUES (?, ?, 1, ?)
+      ON CONFLICT(user_id, material_id, day) DO UPDATE SET count = count + 1
+    `).run(userId, materialId, today);
+    }
+    getAwakeningMaterialCount(userId, materialId) {
+        const today = new Date().toISOString().slice(0, 10);
+        const row = database_1.default.prepare('SELECT count FROM awakening_daily_tracking WHERE user_id = ? AND material_id = ? AND day = ?').get(userId, materialId, today);
+        return row?.count ?? 0;
     }
     /**
      * Đeo trang bị từ túi đồ
@@ -602,7 +657,7 @@ class InventoryService {
                     usageHelp = `vật phẩm hộ thân giúp chống đỡ lôi kiếp, giảm thiểu sát thương nhận vào khi vượt Thiên Kiếp!`;
                 }
                 else if (item.item_id === itemConstants_1.ITEMS.TALISMAN_SPEED_1) {
-                    usageHelp = `bùa gia tốc để rút ngắn thời gian thám hiểm trong lệnh \`/khambha\` hoặc thúc đẩy linh dược tăng trưởng trong lệnh \`/linhdien\`!`;
+                    usageHelp = `bùa gia tốc để rút ngắn thời gian thám hiểm trong lệnh \`/khampha\` hoặc thúc đẩy linh dược tăng trưởng trong lệnh \`/linhdien\`!`;
                 }
                 else if (item.item_id.startsWith('repair_stone_')) {
                     usageHelp = `nguyên liệu dưỡng thạch dùng để sửa chữa pháp bảo/đạo bảo bị hao mòn độ bền qua lệnh \`/suachua\`!`;
@@ -846,7 +901,7 @@ class InventoryService {
                 InventoryRepository_1.inventoryRepository.removeItemById(inventoryId, 1);
                 return {
                     success: true,
-                    message: `🗺️ Đạo hữu mở Tàng Bảo Đồ ra xem...\nMột luồng sáng hiện lên chỉ dẫn đến tọa độ **[X: ${map.x}, Y: ${map.y}]**.\n\n*Hãy dùng lệnh \`/khambha toado ${map.x} ${map.y}\` để tiến hành đào kho báu!*`
+                    message: `🗺️ Đạo hữu mở Tàng Bảo Đồ ra xem...\nMột luồng sáng hiện lên chỉ dẫn đến tọa độ **[X: ${map.x}, Y: ${map.y}]**.\n\n*Hãy dùng lệnh \`/khampha toado ${map.x} ${map.y}\` để tiến hành đào kho báu!*`
                 };
             }
             // 6. Nếu là Rương

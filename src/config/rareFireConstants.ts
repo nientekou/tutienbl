@@ -51,7 +51,7 @@ export const RARE_FIRES: RareFireDef[] = [
     type: 'nhan_ly_hoa',
     name: 'Nhân Ly Hỏa',
     tier: 5,
-    description: 'Lửa separation, tách linh khí khỏi tạp chất',
+    description: 'Lửa phân tách, tách linh khí khỏi tạp chất',
     alchemyBonus: 25, enhanceBonus: 15,
     combatPassive: 'burn_soul', combatValue: 20,
     evolveMaterials: [{ itemId: 'herb_rare_1', amount: 10 }, { itemId: 'tinh_thach_shard', amount: 5 }]

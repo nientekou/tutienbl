@@ -3,7 +3,7 @@
 // Centralized item ID registry - all item codes used across the codebase.
 // Import from here instead of hardcoding string literals.
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ITEMS_BEAST_FOOD = exports.ITEMS_FIRE_CORE = exports.ITEMS_PILL_BREAK_ANTI_LOI = exports.ITEMS_PILL_NGU_LON = exports.ITEMS_TALISMAN_KY_NGO = exports.ITEMS_BEAST_EGG = exports.ITEMS_RARE_FIRE_MATERIAL = exports.ITEMS = void 0;
+exports.FISH_ITEMS = exports.AWAKENING_DAILY_CAP = exports.AWAKENING_MATERIALS = exports.ITEMS_BEAST_FOOD = exports.ITEMS_FIRE_CORE = exports.ITEMS_PILL_BREAK_ANTI_LOI = exports.ITEMS_PILL_NGU_LON = exports.ITEMS_TALISMAN_KY_NGO = exports.ITEMS_BEAST_EGG = exports.ITEMS_RARE_FIRE_MATERIAL = exports.ITEMS = void 0;
 exports.getWeaponByGrade = getWeaponByGrade;
 exports.getArmorByGrade = getArmorByGrade;
 exports.getPhoiWeaponByGrade = getPhoiWeaponByGrade;
@@ -220,3 +220,24 @@ exports.ITEMS_PILL_NGU_LON = 'pill_ngu_lon';
 exports.ITEMS_PILL_BREAK_ANTI_LOI = 'pill_anti_loi_2';
 exports.ITEMS_FIRE_CORE = 'material_fire_core';
 exports.ITEMS_BEAST_FOOD = 'material_beast_food';
+// ═══════════════════════════════════════════════════════════════════
+// Awakening Materials (V13)
+// ═══════════════════════════════════════════════════════════════════
+exports.AWAKENING_MATERIALS = {
+    SKILL_AWAKEN: 'material_linh_tuy_giac_tinh', // A-01: Skill Mastery Awakening
+    BEAST_BLOODLINE: 'material_mau_thu_nguyen', // A-02: Beast Bloodline Fusion
+    DESTINY_AWAKEN: 'material_thien_menh_tinh_hoa', // A-03: Destiny Awaken
+    SOUL_WEAPON_AWAKEN: 'material_vu_khi_chi_hon', // A-06: Soul Weapon Awakening
+};
+exports.AWAKENING_DAILY_CAP = 5;
+// V14 D-02: Fish items
+exports.FISH_ITEMS = {
+    FISH_CARP: 'fish_carp',
+    FISH_CATFISH: 'fish_catfish',
+    FISH_SALMON: 'fish_salmon',
+    FISH_LOBSTER: 'fish_lobster',
+    FISH_TUNA: 'fish_tuna',
+    FISH_WHALE: 'fish_whale',
+    FISH_TURTLE: 'fish_turtle',
+    FISH_DRAGON: 'fish_dragon',
+};

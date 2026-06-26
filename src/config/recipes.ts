@@ -263,7 +263,7 @@ export const RECIPES: Record<string, RecipeConfig> = {
       itemId: ITEMS.WEAPON_SWORD_S,
       quantity: 1
     },
-    description: 'Thần thương chí tôn Phá Quân, một thương khai thiên tích địa, +550 Công Kích, +8% Bạo Kích.'
+    description: 'Thần thương chí tôn Phá Quân, một thương khai thiên lập địa, +550 Công Kích, +8% Bạo Kích.'
   },
   recipe_armor_robe_s: {
     id: 'recipe_armor_robe_s',

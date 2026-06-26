@@ -571,6 +571,40 @@ class MentorshipService {
     const vn = new Date(now.getTime() + 7 * 3600000);
     return vn.toISOString().slice(0, 10);
   }
+
+  // === V16 C-03: Mentor System V2 — Shared Quests ===
+  private readonly SHARED_QUESTS = [
+    { id: 'shared_dungeon', name: 'Phó Bản Đồng Hành', description: 'Cùng nhau hoàn thành 3 phó bản', mentorReward: 0.15, apprenticeReward: 2.0, target: 3 },
+    { id: 'shared_cultivate', name: 'Tu Tập Cùng Nhau', description: 'Cùng nhau tu luyện 10 lần', mentorReward: 0.10, apprenticeReward: 1.5, target: 10 },
+    { id: 'shared_explore', name: 'Thám Hiểm Đồng Hành', description: 'Cùng nhau thám hiểm 5 lần', mentorReward: 0.12, apprenticeReward: 1.8, target: 5 },
+  ];
+
+  public getSharedQuests(mentorId: string): { quest: { id: string; name: string; description: string; mentorReward: number; apprenticeReward: number; target: number }; progress: number }[] {
+    return this.SHARED_QUESTS.map(q => {
+      const row = db.prepare('SELECT progress FROM mentor_shared_quests WHERE mentor_id = ? AND quest_id = ?')
+        .get(mentorId, q.id) as { progress: number } | undefined;
+      return { quest: q, progress: row?.progress || 0 };
+    });
+  }
+
+  public updateSharedQuestProgress(mentorId: string, questId: string, amount: number): { completed: boolean; message: string } {
+    const quest = this.SHARED_QUESTS.find(q => q.id === questId);
+    if (!quest) return { completed: false, message: '❌ Quest không tồn tại.' };
+
+    db.prepare(`
+      INSERT INTO mentor_shared_quests (mentor_id, quest_id, progress)
+      VALUES (?, ?, ?)
+      ON CONFLICT(mentor_id, quest_id) DO UPDATE SET progress = progress + ?
+    `).run(mentorId, questId, amount, amount);
+
+    const current = db.prepare('SELECT progress FROM mentor_shared_quests WHERE mentor_id = ? AND quest_id = ?')
+      .get(mentorId, questId) as { progress: number };
+
+    if (current.progress >= quest.target) {
+      return { completed: true, message: `🎉 Hoàn thành **${quest.name}**! Mentor +${quest.mentorReward * 100}% EXP, Apprentice x${quest.apprenticeReward} EXP` };
+    }
+    return { completed: false, message: `${quest.name}: ${current.progress}/${quest.target}` };
+  }
 }
 
 export const mentorshipService = new MentorshipService();

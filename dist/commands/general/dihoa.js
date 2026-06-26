@@ -67,7 +67,7 @@ class DiHoaCommand extends Command_1.Command {
                 await interaction.editReply({ content: `🔥 **${equipped.fire_name}** đã lên **Level ${result.newLevel}**!` });
             }
             else {
-                await interaction.editReply({ content: `🔥 Đã cấp nhật kinh nghiệm cho **${equipped.fire_name}**. Level hiện tại: ${result.newLevel}` });
+                await interaction.editReply({ content: `🔥 Đã cập nhật kinh nghiệm cho **${equipped.fire_name}**. Level hiện tại: ${result.newLevel}` });
             }
         }
     }

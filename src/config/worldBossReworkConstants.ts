@@ -20,7 +20,7 @@ export const BOSS_PHASES: BossPhase[] = [
   {
     phase: 1,
     hpThreshold: 100,
-    name: 'Giai Đoạn 1 — Ủng hộ',
+    name: 'Giai Đoạn 1 — Triệu Tập',
     abilities: [
       { id: 'basic_strike', name: 'Đánh thường', type: 'single', power: 1.0, cooldown: 0, description: 'Đánh thường' }
     ],
@@ -33,7 +33,7 @@ export const BOSS_PHASES: BossPhase[] = [
     name: 'Giai Đoạn 2 — Phẫn nộ',
     abilities: [
       { id: 'fury_strike', name: 'Phẫn Nộ Quyền', type: 'aoe', power: 1.5, cooldown: 2, description: 'Sát thương diện rộng lớn' },
-      { id: 'weaken', name: 'Yếu Đuối', type: 'debuff', power: 0.3, cooldown: 3, description: '-30% Công Kích người chơi' }
+      { id: 'weaken', name: 'Suy Yếu', type: 'debuff', power: 0.3, cooldown: 3, description: '-30% Công Kích người chơi' }
     ],
     weakness: 'thuy',
     statMultiplier: { atk: 1.3, def: 1.1, spd: 1.2 }

@@ -30,7 +30,7 @@ interface PetEntity {
 
 // Định nghĩa kỹ năng linh thú
 export const PET_SKILLS: Record<string, { name: string; emoji: string; description: string; minLevel: number }> = {
-  crit_bite:   { name: 'Cắn Chí Mạng', emoji: '🖥️', description: 'Tăng 3% tỷ lệ bão kích khi trợ chiến.', minLevel: 5 },
+  crit_bite:   { name: 'Cắn Chí Mạng', emoji: '🖥️', description: 'Tăng 3% tỷ lệ bạo kích khi trợ chiến.', minLevel: 5 },
   speed_boost: { name: 'Phóng Xuất Bạo Phát', emoji: '⚡', description: 'Tăng 10% tốc độ chủ nhân khi xuất chiến.', minLevel: 8 },
   def_aura:    { name: 'Hộ Thể Linh Quang', emoji: '🛡️', description: 'Giảm 5% sát thương nhận vào khi linh thú đang xuất chiến.', minLevel: 10 },
   healing:     { name: 'Liều Lực Thánh Thư', emoji: '💦', description: 'Sau mỗi lượt chiến, hồi phục 2% HP tối đa cho chủ nhân.', minLevel: 12 },

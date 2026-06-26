@@ -1,4 +1,6 @@
 import { userRepository } from '../database/repositories/UserRepository';
+import { inventoryRepository } from '../database/repositories/InventoryRepository';
+import db from '../database/database';
 
 // A-04: Cooking System
 
@@ -49,11 +51,32 @@ class CookingService {
     }
 
     if (user.coin_ha_pham < 100) {
-      return { success: false, message: 'Không đủ nguyên liệu!' };
+      return { success: false, message: 'Không đủ 100 Hạ Phẩm Linh Thạch phí chế biến!' };
     }
 
-    // Consume materials
-    userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - 100 });
+    // V14 D-01: Validate and consume actual ingredients
+    for (const ingredient of recipe.ingredients) {
+      const item = db.prepare(
+        'SELECT id, quantity FROM inventories WHERE user_id = ? AND item_id = ?'
+      ).get(userId, ingredient.itemId) as { id: number; quantity: number } | undefined;
+      if (!item || item.quantity < ingredient.quantity) {
+        return {
+          success: false,
+          message: `Thiếu nguyên liệu: **${ingredient.itemId}** x${ingredient.quantity} (hiện có: ${item?.quantity || 0})`,
+        };
+      }
+    }
+
+    // Deduct ingredients + processing fee
+    const tx = db.transaction(() => {
+      for (const ingredient of recipe.ingredients) {
+        db.prepare(
+          'UPDATE inventories SET quantity = quantity - ? WHERE user_id = ? AND item_id = ?'
+        ).run(ingredient.quantity, userId, ingredient.itemId);
+      }
+      userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - 100 });
+    });
+    tx();
 
     return {
       success: true,

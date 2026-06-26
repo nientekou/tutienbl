@@ -1,0 +1,38 @@
+tối ưu hoá hiệu năng của terminal, hiện tại đang chạy quá loạn và không biết đâu là lỗi đâu là bình thường
+
+NỀN TRẮNG HOÀN TOÀN (#FFFFFF)
+
+
+
+
+
+
+
+tổng hợp tất cả những thứ đã làm trong session: đã update những gì mới, đã chỉnh sửa gì ghi lại vào trong update.md để tôi có thể thông báo lại cho thành viên sử dụng bot. văn phong con người nhất, dễ hiểu nhưng vẫn chi tiết
+
+
+
+Lên kế hoạch nâng câp và update giao diện lên components v2 discord chuyên nghiệp  và đề xuất cải tiến 
+đề xuất các cải tiến mới cho mã nguồn
+
+
+
+
+tạo thêm cho 1 tôi 1 file .md emoji, đề xuất tất chi tiết tất cả các emoji discord mà bot cần để trang trí lại, yêu cầu mô tả kĩ nó nhìn như nào để bắt đầu thiết kế từng emoji  
+  độc quyền. background trắng
+
+❯ tiếp tục tạo plan đề xuất cải tiến và nâng cấp các chức năng có sẵn của mã nguồn, tạo sự thú vị và giữ chân người chơi nhưng vẫn đảm bảo cân bằng và có thử thách khó nhằn và các thứ mới. làm 1 plan big update. tạo 1 file .md mới trong mã nguồn
+
+
+
+đề xuất cải tiến và nâng cấp /hoso, cần tích hợp nhiều button chức năng hơn, tiếp tục đưa ra ý tưởng cải tiến giao diện
+
+
+đọc PLAN_V2.md và bắt đầu thực hiện từng phần theo kế hoạch. nếu có đoạn chưa làm xong thì tiếp tục làm đoạn đó
+
+ tiếp tục rà soát và thực hiện PLAN_V9 nếu còn thiếu task  
+
+
+
+
+

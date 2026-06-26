@@ -319,7 +319,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
   },
   {
     id: 'recipe_co_duyen',
-    name: 'Cơ Duyên Đơn',
+    name: 'Cơ Duyên Đan',
     targetPillId: ITEMS.PILL_CO_DUYEN,
     requiredMaterials: [
       { itemId: ITEMS.MATERIAL_NGODONG, quantity: 5 },

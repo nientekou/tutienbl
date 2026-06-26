@@ -312,7 +312,7 @@ exports.ALCHEMY_RECIPES = [
     },
     {
         id: 'recipe_co_duyen',
-        name: 'Cơ Duyên Đơn',
+        name: 'Cơ Duyên Đan',
         targetPillId: itemConstants_1.ITEMS.PILL_CO_DUYEN,
         requiredMaterials: [
             { itemId: itemConstants_1.ITEMS.MATERIAL_NGODONG, quantity: 5 },

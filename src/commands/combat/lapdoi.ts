@@ -76,7 +76,7 @@ export function getPartyRoomEmbed(room: PartyRoom, host: any): EmbedBuilder {
   // Thêm slot trống
   const slotsLeft = 3 - members.length;
   for (let i = 0; i < slotsLeft; i++) {
-    memberList += `• 🟢 *Slot trống*\n`;
+    memberList += `• 🟢 *Chỗ trống*\n`;
   }
 
   const elementalCycle = checkPartyElementalCycle(members);

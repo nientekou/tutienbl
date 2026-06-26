@@ -419,6 +419,7 @@ export function initDatabase() {
   // P1-05: Soul Weapon columns — element, evolution, skills, awakening
   try { db.exec(`ALTER TABLE soul_weapons ADD COLUMN element TEXT DEFAULT 'Vo'`); } catch(e) {}
   try { db.exec(`ALTER TABLE soul_weapons ADD COLUMN evolution_stage INTEGER DEFAULT 1`); } catch(e) {}
+  try { db.exec(`ALTER TABLE user_bloodlines ADD COLUMN evolution_stage INTEGER DEFAULT 1`); } catch(e) {}
   try { db.exec(`ALTER TABLE soul_weapons ADD COLUMN skills_json TEXT DEFAULT '[]'`); } catch(e) {}
   try { db.exec(`ALTER TABLE soul_weapons ADD COLUMN awakening_level INTEGER DEFAULT 0`); } catch(e) {}
   try { db.exec(`ALTER TABLE soul_weapons ADD COLUMN skin_id TEXT DEFAULT NULL`); } catch(e) {}
@@ -1300,7 +1301,7 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_party_rooms_host ON party_rooms(host_id);
   `);
 
-  // Bảng Bảng Xếp Hạng PVP (PvP Seasons) - V5
+  // Bảng Xếp Hạng PVP (PvP Seasons) - V5
   db.exec(`
     CREATE TABLE IF NOT EXISTS pvp_seasons (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1974,7 +1975,7 @@ function seedAchievements() {
     { id: 'tl_17',     name: 'Huyền Quy Hộ Thể',        category: 'tu_luyen', description: 'Huyền Quy Ý đạt cấp 7',                icon: '🛡️', target_value: 7,    reward_title: 'Huyền Quy Hộ Thể',  reward_exp: 10000, reward_coins: 50000,  sort_order: 17 },
     { id: 'tl_18',     name: 'Toàn Năng Ý Cảnh',        category: 'tu_luyen', description: 'Cả 3 Ý Cảnh đều đạt cấp 7',           icon: '🌟', target_value: 21,   reward_title: 'Ý Cảnh Thông Thiên', reward_exp: 50000, reward_coins: 200000, sort_order: 18 },
 
-    // ===== CHIẾN ĐẤU (Chien Dau) - Bí cảnh, boss, thám hiểm =====
+    // ===== CHIẾN ĐẤU (Chiến Đấu) - Bí cảnh, boss, thám hiểm =====
     { id: 'cd_1',      name: 'Tân Binh Bí Cảnh',        category: 'chien_dau', description: 'Vượt bí cảnh 10 lần',                   icon: '🏛️', target_value: 10,   reward_title: null,               reward_exp: 500,   reward_coins: 2000,   sort_order: 19 },
     { id: 'cd_2',      name: 'Thám Hiểm Dũng Sĩ',       category: 'chien_dau', description: 'Vượt bí cảnh 30 lần',                   icon: '🏛️', target_value: 30,   reward_title: 'Phó Bản Dũng Sĩ',  reward_exp: 3000,  reward_coins: 10000,  sort_order: 20 },
     { id: 'cd_3',      name: 'Bí Cảnh Chi Vương',       category: 'chien_dau', description: 'Vượt bí cảnh 200 lần',                  icon: '🏛️', target_value: 200,  reward_title: null,               reward_exp: 15000, reward_coins: 50000,  sort_order: 21 },
@@ -2000,7 +2001,7 @@ function seedAchievements() {
     { id: 'pvp_8',     name: 'Điểm Phong Thần Huyền Thoại', category: 'pvp',  description: 'Đạt 4000 điểm Tỷ Thí',                   icon: '🏆', target_value: 4000, reward_title: 'Phong Thần Huyền Thoại', reward_exp: 100000, reward_coins: 200000, sort_order: 39 },
     { id: 'pvp_9',     name: 'Top 10 PvP',              category: 'pvp',       description: 'Lọt top 10 bảng xếp hạng Tỷ Thí',         icon: '🎖️', target_value: 1,    reward_title: 'Top 10 PvP',       reward_exp: 20000, reward_coins: 100000, sort_order: 40 },
 
-    // ===== SỦNG THÚ (Sung Thu) =====
+    // ===== SỦNG THÚ (Sủng Thú) =====
     { id: 'st_1',      name: 'Người Bạn Đầu Tiên',      category: 'sung_thu', description: 'Thu phục 1 linh thú',                  icon: '🐾', target_value: 1,    reward_title: null,               reward_exp: 200,   reward_coins: 500,    sort_order: 41 },
     { id: 'st_2',      name: 'Ươm Mầm Sủng Thú',        category: 'sung_thu', description: 'Sở hữu 3 linh thú',                    icon: '🐾', target_value: 3,    reward_title: 'Sủng Thú Sư',      reward_exp: 1000,  reward_coins: 3000,   sort_order: 42 },
     { id: 'st_3',      name: 'Bộ Sưu Tập Phong Phú',    category: 'sung_thu', description: 'Sở hữu 15 linh thú',                   icon: '🐾', target_value: 15,   reward_title: null,               reward_exp: 5000,  reward_coins: 15000,  sort_order: 43 },
@@ -2013,7 +2014,7 @@ function seedAchievements() {
     { id: 'st_10',     name: 'Kỹ Năng Thức Tỉnh',       category: 'sung_thu', description: 'Thức tỉnh kỹ năng cho linh thú 5 lần', icon: '✨', target_value: 5,    reward_title: null,               reward_exp: 2000,  reward_coins: 8000,   sort_order: 50 },
     { id: 'st_11',     name: 'Linh Thú Cao Cấp 10',     category: 'sung_thu', description: 'Đưa linh thú lên cấp 10',              icon: '📈', target_value: 1,    reward_title: null,               reward_exp: 2000,  reward_coins: 5000,   sort_order: 51 },
 
-    // ===== SINH HOẠT (Sinh Hoat) - Tông môn, chế tạo, luyện đan, linh điền, kinh tế =====
+    // ===== SINH HOẠT (Sinh Hoạt) - Tông môn, chế tạo, luyện đan, linh điền, kinh tế =====
     { id: 'sh_1',      name: 'Gia Nhập Tông Môn',       category: 'sinh_hoat', description: 'Gia nhập 1 tông môn',                  icon: '☯️', target_value: 1,    reward_title: 'Môn Đồ',           reward_exp: 500,   reward_coins: 1000,   sort_order: 52 },
     { id: 'sh_2',      name: 'Cống Hiến Cho Tông Môn',  category: 'sinh_hoat', description: 'Tích lũy 700 điểm cống hiến',          icon: '☯️', target_value: 700,  reward_title: 'Trụ Cột Tông Môn',  reward_exp: 5000,  reward_coins: 15000,  sort_order: 53 },
     { id: 'sh_3',      name: 'Luyện Đan Tân Thủ',       category: 'sinh_hoat', description: 'Luyện thành công 10 đan dược',         icon: '🔥', target_value: 10,   reward_title: null,               reward_exp: 500,   reward_coins: 2000,   sort_order: 54 },
@@ -2040,29 +2041,29 @@ function seedAchievements() {
     { id: 'sh_19',     name: 'Trưởng Lão Minh Triết',    category: 'sinh_hoat', description: 'Đào tạo thành công 5+ đệ tử tốt nghiệp',  icon: '📜', target_value: 5,    reward_title: 'Trưởng Lão',           reward_exp: 3000, reward_coins: 30000,  sort_order: 73 },
     { id: 'pvp_11',    name: 'Chiến Thần Vô Song',       category: 'pvp',       description: 'Thắng 50 trận Tỷ Thí liên tiếp',            icon: '⚔️', target_value: 50,   reward_title: 'Chiến Thần Vô Song',  reward_exp: 5000, reward_coins: 50000,  sort_order: 74 },
 
-    // ===== PHASE 2 NEW SYSTEMS - TAM MA (Inner Demons) =====
+    // ===== PHASE 2 NEW SYSTEMS - TÂM MA (Inner Demons) =====
     { id: 'dm_1',      name: 'Diệt Ma Sơ Cấp',           category: 'chien_dau', description: 'Chiến thắng 5 Tâm Ma',                  icon: '👹', target_value: 5,    reward_title: null,                    reward_exp: 1000,  reward_coins: 5000,   sort_order: 75 },
     { id: 'dm_2',      name: 'Diệt Ma Trung Cấp',         category: 'chien_dau', description: 'Chiến thắng 10 Tâm Ma',                 icon: '👹', target_value: 10,   reward_title: 'Kẻ Diệt Ma',            reward_exp: 3000,  reward_coins: 15000,  sort_order: 76 },
     { id: 'dm_3',      name: 'Diệt Ma Cao Cấp',           category: 'chien_dau', description: 'Chiến thắng 25 Tâm Ma',                 icon: '👹', target_value: 25,   reward_title: 'Thợ Săn Tâm Ma',        reward_exp: 8000,  reward_coins: 40000,  sort_order: 77 },
     { id: 'dm_4',      name: 'Diệt Ma Tông Sư',           category: 'chien_dau', description: 'Chiến thắng 50 Tâm Ma',                 icon: '👹', target_value: 50,   reward_title: 'Tông Sư Diệt Ma',       reward_exp: 15000, reward_coins: 80000,  sort_order: 78 },
 
-    // ===== NGO DAO (Dao Comprehension) =====
+    // ===== NGỘ ĐẠO (Dao Comprehension) =====
     { id: 'dao_1',     name: 'Sơ Mộ Đạo',                category: 'tu_luyen',  description: 'Đạt Level 3 bất kỳ đạo nào',           icon: '📖', target_value: 3,    reward_title: null,                    reward_exp: 1000,  reward_coins: 5000,   sort_order: 79 },
     { id: 'dao_2',     name: 'Chánh Đạo',                 category: 'tu_luyen',  description: 'Đạt Level 5 bất kỳ đạo nào',           icon: '📖', target_value: 5,    reward_title: 'Chánh Đạo',             reward_exp: 5000,  reward_coins: 25000,  sort_order: 80 },
     { id: 'dao_3',     name: 'Đại Đạo',                   category: 'tu_luyen',  description: 'Đạt Level 7 (Max) bất kỳ đạo nào',     icon: '📖', target_value: 7,    reward_title: 'Đại Đạo Tông Sư',       reward_exp: 20000, reward_coins: 100000, sort_order: 81 },
-    { id: 'dao_4',     name: 'Tong Hop Dao',                category: 'tu_luyen',  description: 'Tich luy 500 diem ngo dao tong cong',  icon: '📖', target_value: 500,  reward_title: 'Ngo Dao Chan Nhan',     reward_exp: 5000,  reward_coins: 30000,  sort_order: 82 },
+    { id: 'dao_4',     name: 'Tổng Hợp Đạo',                category: 'tu_luyen',  description: 'Tích lũy 500 điểm ngộ đạo tổng cộng',  icon: '📖', target_value: 500,  reward_title: 'Ngộ Đạo Chân Nhân',     reward_exp: 5000,  reward_coins: 30000,  sort_order: 82 },
 
-    // ===== DI HOA (Rare Fires) =====
+    // ===== DỊ HỎA (Rare Fires) =====
     { id: 'rf_1',      name: 'Sưu Tập Dị Hỏa',           category: 'sinh_hoat', description: 'Sở hữu 1 loại Dị Hỏa',                  icon: '🔥', target_value: 1,    reward_title: null,                    reward_exp: 500,   reward_coins: 3000,   sort_order: 83 },
     { id: 'rf_2',      name: 'Bách Hỏa Chi Thân',         category: 'sinh_hoat', description: 'Sở hữu 3 loại Dị Hỏa',                  icon: '🔥', target_value: 3,    reward_title: 'Bách Hỏa Chi Thân',     reward_exp: 5000,  reward_coins: 25000,  sort_order: 84 },
     { id: 'rf_3',      name: 'Thiên Hỏa Thu Phục',        category: 'sinh_hoat', description: 'Sở hữu 5 loại Dị Hỏa',                  icon: '🔥', target_value: 5,    reward_title: 'Thiên Hỏa Tông Sư',     reward_exp: 15000, reward_coins: 80000,  sort_order: 85 },
 
-    // ===== DI THU (Rare Beasts) =====
+    // ===== DỊ THÚ (Rare Beasts) =====
     { id: 'rb_1',      name: 'Thu Phục Dị Thú',           category: 'sinh_hoat', description: 'Thu phục 1 Dị Thú',                      icon: '🐾', target_value: 1,    reward_title: null,                    reward_exp: 500,   reward_coins: 3000,   sort_order: 86 },
     { id: 'rb_2',      name: 'Người Thuần Thú',           category: 'sinh_hoat', description: 'Thu phục 3 Dị Thú',                      icon: '🐾', target_value: 3,    reward_title: 'Người Thuần Thú',       reward_exp: 5000,  reward_coins: 25000,  sort_order: 87 },
     { id: 'rb_3',      name: 'Thú Vương',                  category: 'sinh_hoat', description: 'Thu phục 5 Dị Thú',                      icon: '🐾', target_value: 5,    reward_title: 'Thú Vương',              reward_exp: 15000, reward_coins: 80000,  sort_order: 88 },
 
-    // ===== KY NGO (Random Cultivation Events) =====
+    // ===== KỲ NGỘ (Random Cultivation Events) =====
     { id: 'kn_1',      name: 'Kỳ Ngộ Sơ Lâm',            category: 'tu_luyen',  description: 'Trải nghiệm 5 Kỳ Ngộ',                  icon: '✨', target_value: 5,    reward_title: null,                    reward_exp: 500,   reward_coins: 2000,   sort_order: 89 },
     { id: 'kn_2',      name: 'Kỳ Ngộ Thường Truyện',     category: 'tu_luyen',  description: 'Trải nghiệm 20 Kỳ Ngộ',                 icon: '✨', target_value: 20,   reward_title: 'Kỳ Ngộ Chi Tử',         reward_exp: 3000,  reward_coins: 15000,  sort_order: 90 },
     { id: 'kn_3',      name: 'Kỳ Ngộ Thiên Mệnh',        category: 'tu_luyen',  description: 'Trải nghiệm 50 Kỳ Ngộ',                 icon: '✨', target_value: 50,   reward_title: 'Thiên Mệnh Kỳ Ngộ',     reward_exp: 10000, reward_coins: 50000,  sort_order: 91 },
@@ -2202,7 +2203,7 @@ function seedItems() {
       name: 'Tàng Bảo Đồ',
       type: 'material',
       rarity: 'rare',
-      description: 'Một bản đồ da cừu cũ kỹ. Dùng nó để nhận lấy một tọa độ ẩn giấu kho báu bí mật. (Dùng lệnh /khambha toado để tìm)',
+      description: 'Một bản đồ da cừu cũ kỹ. Dùng nó để nhận lấy một tọa độ ẩn giấu kho báu bí mật. (Dùng lệnh /khampha toado để tìm)',
       stats: JSON.stringify({}),
       value_ha_pham: 500,
       usable: 1,
@@ -2339,7 +2340,7 @@ function seedItems() {
       name: 'Thần Hành Phù',
       type: 'talisman',
       rarity: 'uncommon',
-      description: 'Bùa vẽ bằng chu sa gia tốc tốc độ tăng trưởng linh điền hoặc rút ngắn thám hiểm 1 giờ.',
+      description: 'Bùa vẽ bằng chu sa gia tăng tốc độ tăng trưởng linh điền hoặc rút ngắn thám hiểm 1 giờ.',
       stats: JSON.stringify({ reduce_time: 3600 }),
       value_ha_pham: 15,
       usable: 1,
@@ -3298,7 +3299,7 @@ function seedItems() {
       name: 'Phong Linh Đan',
       type: 'pill',
       rarity: 'rare',
-      description: 'Kháng Lôi Lôi Kiếp, giảm 40% sát thương từ Lôi Lôi Kiếp.',
+      description: 'Kháng Lôi Kiếp, giảm 40% sát thương từ Lôi Kiếp.',
       stats: JSON.stringify({ block_element: 'Lôi', rate: 0.4 }),
       value_ha_pham: 1200,
       usable: 1,
@@ -3721,7 +3722,16 @@ function seedItems() {
       value_ha_pham: 10000,
       usable: 0,
       equipable: 1
-    }
+    },
+    // V14 D-02: Fish items
+    { id: 'fish_carp', name: 'Cá Chép', type: 'material', rarity: 'common', description: 'Cá chép tươi sống từ hồ nước.', stats: '{}', value_ha_pham: 50, usable: 1, equipable: 0 },
+    { id: 'fish_catfish', name: 'Cá Trê', type: 'material', rarity: 'common', description: 'Cá trê béo ngậy từ hồ nước.', stats: '{}', value_ha_pham: 80, usable: 1, equipable: 0 },
+    { id: 'fish_salmon', name: 'Cá Hồi', type: 'material', rarity: 'uncommon', description: 'Cá hồi đỏ tươi từ suối.', stats: '{}', value_ha_pham: 150, usable: 1, equipable: 0 },
+    { id: 'fish_lobster', name: 'Tôm Hùm', type: 'material', rarity: 'uncommon', description: 'Tôm hùm đỏ từ đại dương.', stats: '{}', value_ha_pham: 200, usable: 1, equipable: 0 },
+    { id: 'fish_tuna', name: 'Cá Ngừ', type: 'material', rarity: 'rare', description: 'Cá ngừ vằn từ đại dương.', stats: '{}', value_ha_pham: 500, usable: 1, equipable: 0 },
+    { id: 'fish_whale', name: 'Cá Ông', type: 'material', rarity: 'rare', description: 'Cá ông linh thiêng từ đại dương.', stats: '{}', value_ha_pham: 800, usable: 1, equipable: 0 },
+    { id: 'fish_turtle', name: 'Rùa Biển', type: 'material', rarity: 'epic', description: 'Rùa biển cổ đại từ đại dương.', stats: '{}', value_ha_pham: 1500, usable: 1, equipable: 0 },
+    { id: 'fish_dragon', name: 'Cá Rồng', type: 'material', rarity: 'legendary', description: 'Cá rồng thần thoại từ vực sâu.', stats: '{}', value_ha_pham: 5000, usable: 1, equipable: 0 },
   ];
 
   const stmt = db.prepare(`
@@ -4206,6 +4216,15 @@ try {
       UNIQUE(boss_id, sect_id)
     );
     CREATE INDEX IF NOT EXISTS idx_boss_guild ON boss_guild_contributions(boss_id);
+
+    -- V13: Awakening material daily tracking (A-08)
+    CREATE TABLE IF NOT EXISTS awakening_daily_tracking (
+      user_id TEXT NOT NULL,
+      material_id TEXT NOT NULL,
+      count INTEGER DEFAULT 1,
+      day TEXT NOT NULL,  -- YYYY-MM-DD
+      PRIMARY KEY (user_id, material_id, day)
+    );
   `);
   console.log('✅ Đã tạo bảng mới cho BIG UPDATE.');
 } catch (e) {
@@ -4236,6 +4255,8 @@ const alterStatements = [
   `ALTER TABLE users ADD COLUMN total_dao_points INTEGER DEFAULT 0`,
   `ALTER TABLE users ADD COLUMN cultivation_speed_bonus INTEGER DEFAULT 0`,
   `ALTER TABLE users ADD COLUMN breakthrough_bonus INTEGER DEFAULT 0`,
+  `ALTER TABLE user_destinies ADD COLUMN awakened INTEGER DEFAULT 0`,
+  `ALTER TABLE soul_weapons ADD COLUMN awakened_form TEXT DEFAULT NULL`,
 ];
 for (const stmt of alterStatements) {
   try { db.exec(stmt); } catch {}

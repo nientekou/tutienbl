@@ -14,6 +14,8 @@ export interface SoulWeapon {
   skills_json: string;
   awakening_level: number;
   skin_id: string | null;
+  // V13 A-06: Awakened form
+  awakened_form: string | null;
 }
 
 class SoulWeaponRepository {

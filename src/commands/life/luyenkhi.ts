@@ -37,7 +37,7 @@ export default class LuyenKhiCommand extends Command {
       .setDescription(
         `Đạo hiệu: **${user.name}**\n` +
         `Cảnh Giới Luyện Khí: **Cấp ${level} Luyện Khí Sư**\n` +
-        `Tiến Trình EXP: ${expBar} **(${exp}/${expNeeded})**\n\n` +
+        `Tiến Độ EXP: ${expBar} **(${exp}/${expNeeded})**\n\n` +
         `*Sử dụng khoáng thạch và linh thạch để rèn đúc trang bị, đạo bào, vũ khí siêu cấp. Hãy chọn một công thức rèn ở menu bên dưới!*`
       )
       .setThumbnail('https://i.imgur.com/vHqAOYZ.png')

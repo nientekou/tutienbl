@@ -39,6 +39,7 @@ export interface Combatant {
   effects?: CombatEffect[]; // E-02: Active combat effects
   selectedSkillIndex?: number; // A1: Player-selected opening skill index
   action?: 'attack' | 'guard' | 'rage'; // V12 A-01/A-04: Guard/Defend/Rage action
+  weatherElementBonus?: { element: string; value: number }; // V14 D-03: Weather elemental damage bonus
 }
 
 export interface PetCombatConfig {
@@ -88,6 +89,8 @@ export class CombatEngine {
 
     // V12 A-03: Elemental Combo tracking
     let lastUsedElement: string | null = null;
+    let consecutiveElement = 0; // V15 A-02: chain counter
+    let elementalStreak = 0; // V15 A-04: weakness exploitation streak
     const ELEMENT_COUNTERS: Record<string, string> = {
       'Hoa': 'Kim', 'Kim': 'Moc', 'Moc': 'Tho', 'Tho': 'Thuy', 'Thuy': 'Hoa', 'Loi': 'Thuy', 'Phong': 'Loi'
     };
@@ -201,6 +204,87 @@ export class CombatEngine {
         }
       } catch {}
     }
+
+    // === V14 B-01: DESTINY AWAKEN PASSIVES ===
+    let destinyPassiveEffects: string[] = [];
+    if (player.userId) {
+      try {
+        const { destinyService } = require('./DestinyService');
+        const passives = destinyService.getAwakenPassives(player.userId);
+        for (const p of passives) {
+          destinyPassiveEffects.push(p.passive);
+        }
+      } catch {}
+    }
+
+    // === V14 B-04: COMPANION PASSIVE PROCS ===
+    let companionPassive: { passive: string; value: number } | null = null;
+    if (player.userId) {
+      try {
+        const { companionService } = require('./CompanionService');
+        companionPassive = companionService.getCombatPassive(player.userId);
+        if (companionPassive) {
+          switch (companionPassive.passive) {
+            case 'speed_boost':
+              player.speed = Math.round((player.speed ?? 100) * (1 + companionPassive.value * 0.15));
+              break;
+          }
+        }
+      } catch {}
+    }
+
+    // === V14 B-05: EQUIPMENT SET PROC TRACKING ===
+    let equippedSetProcs: string[] = [];
+    if (player.userId) {
+      try {
+        const { inventoryService } = require('./InventoryService');
+        const equippedItems = inventoryService.getEquippedItemIds?.(player.userId) || [];
+        const { EQUIPMENT_SETS, getEquippedSetCount } = require('../config/equipmentSetConstants');
+        for (const set of EQUIPMENT_SETS) {
+          if (getEquippedSetCount(equippedItems, set) >= set.pieces) {
+            equippedSetProcs.push(set.full_set_proc.effect);
+          }
+        }
+      } catch {}
+    }
+
+    // === V14 B-03: SOUL WEAPON FORM PASSIVE ===
+    let soulWeaponPassive = '';
+    if (player.userId) {
+      try {
+        const { soulWeaponService } = require('./SoulWeaponService');
+        const form = soulWeaponService.getAwakenedForm(player.userId);
+        if (form) {
+          soulWeaponPassive = form.passive_desc;
+          // Apply stat bonus based on element
+          const sw = require('../database/repositories/SoulWeaponRepository').soulWeaponRepository.getByUserId(player.userId);
+          if (sw?.element === 'Hỏa' || sw?.element === 'Kim') player.atk = Math.round(player.atk * 1.15);
+          else if (sw?.element === 'Thủy' || sw?.element === 'Mộc') { player.maxHp = Math.round(player.maxHp * 1.15); player.hp = Math.round(player.hp * 1.15); }
+          else if (sw?.element === 'Thổ') player.def = Math.round(player.def * 1.15);
+          else if (sw?.element === 'Lôi') player.crit += 0.05;
+          else if (sw?.element === 'Phong') { player.speed = Math.round((player.speed ?? 100) * 1.15); player.dodge = (player.dodge ?? 0.05) + 0.08; }
+        }
+      } catch {}
+    }
+
+    // === V14 B-06: SKILL MASTERY AWAKENED TRACKING ===
+    let skillMasteryAwakenedEffects: Record<string, string> = {};
+    if (player.userId) {
+      try {
+        const { skillMasteryService } = require('./SkillMasteryService');
+        const skills = player.equippedSkills || [];
+        for (const sk of skills) {
+          const bonus = skillMasteryService.getMasteryBonus(player.userId, sk.id);
+          if (bonus.awakenedEffect) skillMasteryAwakenedEffects[sk.id] = bonus.awakenedEffect;
+        }
+      } catch {}
+    }
+
+    // === V14 D-03: WEATHER ELEMENTAL BONUS ===
+    let weatherElementBonus: { element: string; value: number } | null = null;
+
+    // === V14 D-04: DAILY ROTATION BONUS (simplified) ===
+    let dailyRotationBonus = 0;
 
     const log: string[] = [];
     if (firePassiveLog) log.push(firePassiveLog);
@@ -340,6 +424,16 @@ export class CombatEngine {
     while (playerHp > 0 && enemyHp > 0 && round <= maxRounds) {
       log.push(`\n=== ⏳ **Hiệp ${round}** ===`);
 
+      // V15 A-03: Boss Enrage Timer
+      if (round >= 25 && enemy.hp > 0) {
+        log.push(`💀 **BOSS NỔI GIẬN!** Sát thương lên đạo hữu = TỬ VONG!`);
+        playerHp = 0;
+        break;
+      } else if (round >= 20 && enemy.hp > 0) {
+        enemy.atk = Math.round(enemy.atk * 10);
+        log.push(`🔥 **BOSS NỔI GIẬN!** ATK x10! Dps race bắt đầu!`);
+      }
+
       // V12 A-01: Reset guard at start of each round
       playerGuarding = false;
 
@@ -348,6 +442,34 @@ export class CombatEngine {
         const petHeal = Math.round(playerMaxHp * 0.02);
         playerHp = Math.min(playerMaxHp, playerHp + petHeal);
         log.push(`💚 **[Sủng Thú - Liều Lực Thánh Thư]** **${pet.name}** hồi phục **+${petHeal}** HP cho đạo hữu! (Hiện tại: ${playerHp}/${playerMaxHp})`);
+      }
+
+      // === V14 B-04: Companion Passive Per-Round ===
+      if (companionPassive && playerHp > 0 && !isDreamscape) {
+        if (companionPassive.passive === 'hp_regen') {
+          const heal = Math.round(playerMaxHp * 0.02 * companionPassive.value);
+          playerHp = Math.min(playerMaxHp, playerHp + heal);
+          log.push(`🐉 **[Đồng Hành]** Hồi phục **+${heal}** HP!`);
+        } else if (companionPassive.passive === 'low_hp_atk_boost' && playerHp < playerMaxHp * 0.30) {
+          player.atk = Math.round(player.atk * 1.25);
+          log.push(`🐉 **[Đồng Hành - Hỏa Chi Phẫn Nộ]** HP thấp, ATK +25%!`);
+        } else if (companionPassive.passive === 'stun_chance' && Math.random() < 0.10 * companionPassive.value) {
+          enemyParalyzed = true;
+          log.push(`🐉 **[Đồng Hành - Lôi Chi Sấm Sét]** Stun enemy 1 hiệp!`);
+        } else if (companionPassive.passive === 'thorns_def') {
+          player.def = Math.round(player.def * 1.15);
+        } else if (companionPassive.passive === 'hp_regen_high' && playerHp > playerMaxHp * 0.50) {
+          const heal = Math.round(playerMaxHp * 0.03 * companionPassive.value);
+          playerHp = Math.min(playerMaxHp, playerHp + heal);
+          log.push(`🐉 **[Đồng Hành - Mộc Chi Sinh Mệnh]** Hồi phục **+${heal}** HP!`);
+        }
+      }
+
+      // === V14 B-01: Destiny Regen Passive (per-round) ===
+      if (destinyPassiveEffects.includes('regen_3pct_low') && playerHp > 0 && playerHp < playerMaxHp * 0.30 && !isDreamscape) {
+        const regen = Math.round(playerMaxHp * 0.03);
+        playerHp = Math.min(playerMaxHp, playerHp + regen);
+        log.push(`✨ **[Thiên Mệnh]** Hồi phục **+${regen}** HP (HP < 30%)!`);
       }
 
       // Hồi phục từ Trường Sinh Quyết (Heart Law)
@@ -690,6 +812,20 @@ export class CombatEngine {
             if (activeSkill) {
               const skillMult = 1 + (activeSkill.level * 0.1); // Mỗi cấp kỹ năng tăng 10% sát thương
               baseDamage = Math.round(baseDamage * skillMult);
+
+              // V14 B-06: Skill Mastery Awakened Branch Effects
+              const awakenedEffect = skillMasteryAwakenedEffects[activeSkill.id];
+              if (awakenedEffect) {
+                if (awakenedEffect === 'fire_burst') baseDamage = Math.round(baseDamage * 1.30);
+                else if (awakenedEffect === 'fire_aoe') baseDamage = Math.round(baseDamage * 1.50); // AOE simulated as +50% single target
+                else if (awakenedEffect === 'water_penetrate') { enemyDef = Math.round(enemyDef * 0.70); baseDamage = Math.max(1, Math.round(player.atk * (1 - Math.min(0.70, enemyDef / (player.atk * 0.7 + enemyDef))))); }
+                else if (awakenedEffect === 'wood_lifesteal_plus') playerLifesteal += 0.15;
+                else if (awakenedEffect === 'earth_stun_burst') enemyParalyzed = true;
+                else if (awakenedEffect === 'lightning_burst') baseDamage = Math.round(baseDamage * 1.50);
+                else if (awakenedEffect === 'lightning_chain') baseDamage = Math.round(baseDamage * 2.40); // 3 hits x 80%
+                else baseDamage = Math.round(baseDamage * 1.20); // generic +20%
+              }
+
               elementText = ` bằng **${activeSkill.name}**`;
 
               if (enemy.element) {
@@ -724,21 +860,57 @@ export class CombatEngine {
               }
             }
 
-            // V12 A-03: Elemental Combo System
+            // V14 D-03: Weather Elemental Bonus
+            if (player.weatherElementBonus && activeSkill && activeSkill.element === player.weatherElementBonus.element) {
+              const weatherBonus = 1 + player.weatherElementBonus.value;
+              baseDamage = Math.round(baseDamage * weatherBonus);
+              elementText += ` 🌤️ *(Thời tiết: +${Math.round(player.weatherElementBonus.value * 100)}%)*`;
+            }
+
+            // V12 A-03: Elemental Combo System + V15 A-02 Chain + A-04 Weakness
             if (activeSkill && lastUsedElement) {
               const currentElement = activeSkill.element;
               if (currentElement === lastUsedElement) {
-                // Same element combo: +20% damage
-                baseDamage = Math.round(baseDamage * 1.20);
-                elementText += ` 🔥 **LIÊN HOÀN ${currentElement.toUpperCase()}!** (+20%)`;
+                consecutiveElement++;
+                // V15 A-02: Chain bonus scales with count
+                let chainMult = 1.20; // base 2-hit combo
+                if (consecutiveElement >= 3) chainMult = 1.40; // 3-hit: +40%
+                if (consecutiveElement >= 4) chainMult = 1.60; // 4+: +60% "Đại Liên Hoàn"
+                baseDamage = Math.round(baseDamage * chainMult);
+                const chainLabel = consecutiveElement >= 4 ? '🔥🔥🔥 **ĐẠI LIÊN HOÀN!' : `🔥 **LIÊN HOÀN ${currentElement.toUpperCase()}!**`;
+                elementText += ` ${chainLabel} (+${Math.round((chainMult - 1) * 100)}%)`;
+                // V15 A-02: At 3+ chain, trigger element proc
+                if (consecutiveElement >= 3 && enemy.element) {
+                  if (currentElement === 'Hỏa') { enemyBurnTicks = Math.max(enemyBurnTicks, 2); enemyBurnDamage = Math.max(enemyBurnDamage, Math.round(player.atk * 0.05)); }
+                  else if (currentElement === 'Thủy') { const heal = Math.round(playerMaxHp * 0.05); playerHp = Math.min(playerMaxHp, playerHp + heal); }
+                  else if (currentElement === 'Lôi') { enemyParalyzed = true; }
+                }
               } else if (ELEMENT_COUNTERS[currentElement] === lastUsedElement) {
-                // Counter element: +30% damage
-                baseDamage = Math.round(baseDamage * 1.30);
-                elementText += ` ⚡ **KHẮC CHẾ!** (+30%)`;
+                // Counter element: +30% + V15 A-04 weakness streak
+                elementalStreak++;
+                const streakBonus = Math.min(0.50, elementalStreak * 0.10); // +10% per hit, cap 50%
+                baseDamage = Math.round(baseDamage * (1.30 + streakBonus));
+                elementText += ` ⚡ **KHẮC CHẾ!** (+${Math.round((0.30 + streakBonus) * 100)}%)`;
+                consecutiveElement = 0;
+              } else {
+                consecutiveElement = 0;
+                elementalStreak = 0; // V15 A-04: break weakness streak
               }
               lastUsedElement = currentElement;
             } else if (activeSkill) {
               lastUsedElement = activeSkill.element;
+            }
+
+            // V14 D-04: Daily Rotation PvP Element Bonus
+            if (dailyRotationBonus > 0 && activeSkill) {
+              try {
+                const { dailyRotationService } = require('./DailyRotationService');
+                const rotation = dailyRotationService.getTodayRotation();
+                if (rotation.pvpBonus === activeSkill.element) {
+                  baseDamage = Math.round(baseDamage * 1.20);
+                  elementText += ` 📅 *(Daily Bonus: +20%)*`;
+                }
+              } catch {}
             }
 
             if (activeSkill) {
@@ -804,6 +976,34 @@ export class CombatEngine {
             }
 
             log.push(`⚔️ **${player.name}** vung đòn công kích${elementText}, gây **-${baseDamage}** sát thương lên **${enemy.name}**${isCrit ? ' (Bạo Kích 💥)' : ''}${lifestealText}! (Còn lại: ${Math.max(0, enemyHp)} HP)${reflectText}`);
+
+            // === V14 B-01: Destiny Awaken Passive Triggers (on hit) ===
+            if (destinyPassiveEffects.includes('ignore_def_30') && Math.random() < 0.10) {
+              const bonusDmg = Math.round(baseDamage * 0.30);
+              enemyHp -= bonusDmg;
+              totalDamageDealt += bonusDmg;
+              log.push(`✨ **[Thiên Mệnh]** Phá vỡ phòng ngự! +${bonusDmg} sát thương thực!`);
+            }
+
+            // === V14 B-05: Equipment Set Proc Effects (on hit) ===
+            for (const proc of equippedSetProcs) {
+              if (proc === 'hoa_trung_kich' && Math.random() < 0.15) {
+                enemyBurnTicks = Math.max(enemyBurnTicks, 3);
+                enemyBurnDamage = Math.max(enemyBurnDamage, Math.round(player.atk * 0.08));
+                log.push(`🔥 **[Hỏa Thần Set]** Hỏa Trùng Kích! Thiêu đốt 3 hiệp!`);
+              } else if (proc === 'bang_phong' && Math.random() < 0.10) {
+                enemyParalyzed = true;
+                log.push(`❄️ **[Băng Sương Set]** Băng Phong Vạn Vật! Đóng băng 1 hiệp!`);
+              } else if (proc === 'loi_phat' && isCrit && Math.random() < 0.20) {
+                const chainDmg = Math.round(player.atk * 0.30);
+                enemyHp -= chainDmg;
+                totalDamageDealt += chainDmg;
+                log.push(`⚡ **[Lôi Đình Set]** Lôi Phạt Thiên Kinh! Sét lan +${chainDmg}!`);
+              } else if (proc === 'vo_hinh' && Math.random() < 0.20) {
+                playerDodge = true;
+                log.push(`💨 **[Phong Vân Set]** Vô Hình Vô Tích! Sẽ né đòn tiếp theo!`);
+              }
+            }
           }
         }
 
@@ -1131,5 +1331,27 @@ export class CombatEngine {
     }
 
     return msg;
+  }
+
+  // === V16 E-01: Auto-Battle Settings ===
+  static getAutoBattleSettings(userId: string): { autoGuard: boolean; autoSkillPriority: string } {
+    try {
+      const db = require('../database/database').default;
+      const row = db.prepare('SELECT auto_battle_settings FROM users WHERE discord_id = ?').get(userId) as any;
+      if (row?.auto_battle_settings) {
+        return JSON.parse(row.auto_battle_settings);
+      }
+    } catch {}
+    return { autoGuard: false, autoSkillPriority: 'highest_damage' };
+  }
+
+  static setAutoBattleSettings(userId: string, settings: { autoGuard?: boolean; autoSkillPriority?: string }): void {
+    try {
+      const db = require('../database/database').default;
+      const current = CombatEngine.getAutoBattleSettings(userId);
+      const updated = { ...current, ...settings };
+      db.prepare('UPDATE users SET auto_battle_settings = ? WHERE discord_id = ?')
+        .run(JSON.stringify(updated), userId);
+    } catch {}
   }
 }

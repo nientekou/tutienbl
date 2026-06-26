@@ -272,5 +272,71 @@ class BloodlineService {
         }
         return msg;
     }
+    // === V16 A-04: Bloodline Evolution (3 stages) ===
+    EVOLUTION_STAGES = [
+        { stage: 1, name: 'Sơ Khởi', requirement: 'default', cost: 0, bonus: 'Base bloodline stats' },
+        { stage: 2, name: 'Thức Tỉnh', requirement: 'level_50', cost: 5000, bonus: '+10% bloodline stats, unlock stage 2 passive' },
+        { stage: 3, name: 'Vô Cực', requirement: 'prestige_1', cost: 10000, bonus: '+20% bloodline stats, unlock stage 3 passive, unique title' },
+    ];
+    getEvolutionStage(userId) {
+        const bl = this.getUserBloodline(userId);
+        if (!bl)
+            return 0;
+        return bl.evolution_stage || 1;
+    }
+    canEvolve(userId) {
+        const bl = this.getUserBloodline(userId);
+        if (!bl)
+            return { eligible: false, reason: 'Chưa có huyết mạch.', stage: 0, cost: 0 };
+        const currentStage = bl.evolution_stage || 1;
+        if (currentStage >= 3)
+            return { eligible: false, reason: 'Đã đạt giai đoạn tối đa.', stage: currentStage, cost: 0 };
+        const nextStage = this.EVOLUTION_STAGES[currentStage]; // next stage info
+        if (!nextStage)
+            return { eligible: false, reason: 'Không có giai đoạn tiếp theo.', stage: currentStage, cost: 0 };
+        // Check requirements
+        if (nextStage.requirement === 'level_50') {
+            const user = database_1.default.prepare('SELECT level FROM users WHERE discord_id = ?').get(userId);
+            if (!user || user.level < 50)
+                return { eligible: false, reason: 'Cần level 50+.', stage: currentStage, cost: nextStage.cost };
+        }
+        if (nextStage.requirement === 'prestige_1') {
+            const user = database_1.default.prepare('SELECT luan_hoi_count FROM users WHERE discord_id = ?').get(userId);
+            if (!user || user.luan_hoi_count < 1)
+                return { eligible: false, reason: 'Cần Luân Hồi lần 1.', stage: currentStage, cost: nextStage.cost };
+        }
+        return { eligible: true, reason: '', stage: currentStage, cost: nextStage.cost };
+    }
+    evolve(userId) {
+        const check = this.canEvolve(userId);
+        if (!check.eligible)
+            return { success: false, message: `❌ ${check.reason}` };
+        const user = database_1.default.prepare('SELECT coin_ha_pham FROM users WHERE discord_id = ?').get(userId);
+        if (user.coin_ha_pham < check.cost)
+            return { success: false, message: `❌ Cần ${check.cost} LT (hiện có: ${user.coin_ha_pham}).` };
+        const newStage = check.stage + 1;
+        const stageInfo = this.EVOLUTION_STAGES[newStage - 1];
+        database_1.default.prepare('UPDATE users SET coin_ha_pham = coin_ha_pham - ? WHERE discord_id = ?').run(check.cost, userId);
+        database_1.default.prepare('UPDATE user_bloodlines SET evolution_stage = ? WHERE user_id = ?').run(newStage, userId);
+        return {
+            success: true,
+            message: `✨ **Huyết Mạch Tiến Hóa!**\nGiai đoạn ${newStage}: **${stageInfo.name}**\n${stageInfo.bonus}`,
+        };
+    }
+    getEvolutionDescription(userId) {
+        const currentStage = this.getEvolutionStage(userId);
+        let msg = `🩸 **Tiến Hóa Huyết Mạch** — Giai đoạn: **${currentStage}/3**\n\n`;
+        for (const stage of this.EVOLUTION_STAGES) {
+            const isCurrent = stage.stage === currentStage;
+            const isUnlocked = stage.stage <= currentStage;
+            const status = isCurrent ? '⚡' : isUnlocked ? '✅' : '🔒';
+            msg += `${status} **Giai đoạn ${stage.stage}: ${stage.name}**\n`;
+            msg += `   ${stage.bonus}\n`;
+            if (!isUnlocked && stage.cost > 0)
+                msg += `   💰 Chi phí: ${stage.cost} LT\n`;
+            msg += '\n';
+        }
+        return msg;
+    }
 }
 exports.bloodlineService = new BloodlineService();

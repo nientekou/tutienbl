@@ -3,12 +3,20 @@ import { RARE_BEASTS } from '../config/rareBeastConstants';
 import { cacheService } from './CacheService';
 
 class RareBeastService {
-  attemptTame(userId: string, beastType: string, luckBonus: number): { success: boolean; beast?: any } {
+  attemptTame(userId: string, beastType: string, luckBonus: number): { success: boolean; beast?: any; bloodlineMaterial?: number } {
     const def = RARE_BEASTS.find(b => b.type === beastType);
     if (!def) return { success: false };
     const existing = db.prepare('SELECT id FROM rare_beasts WHERE user_id = ? AND beast_type = ?')
-      .get(userId, beastType);
-    if (existing) return { success: false };
+      .get(userId, beastType) as { id: number } | undefined;
+
+    // V13 A-02: Duplicate beast → give Máu Thú Nguyên instead
+    if (existing) {
+      const rate = Math.min(0.5, def.tamingRate + luckBonus * 0.001);
+      if (Math.random() > rate) return { success: false };
+      // ponytail: duplicate taming always gives 1 bloodline material
+      return { success: true, bloodlineMaterial: 1 };
+    }
+
     const rate = Math.min(0.5, def.tamingRate + luckBonus * 0.001);
     if (Math.random() > rate) return { success: false };
     const info = db.prepare(`
@@ -351,6 +359,214 @@ class RareBeastService {
     }
 
     return msg;
+  }
+
+  // V13 A-02: Beast Bloodline Fusion
+  private readonly BLOODLINE_BRANCHES = {
+    attack: {
+      name: 'Sát Thương',
+      nodes: [
+        { name: 'ATK +%5', effect: 'atk_percent', value: 0.05, cost: 1 },
+        { name: 'Crit +%3', effect: 'crit', value: 0.03, cost: 1 },
+        { name: 'Crit Damage +%10%', effect: 'crit_damage', value: 0.10, cost: 2 },
+        { name: 'Lifesteal +%5%', effect: 'lifesteal', value: 0.05, cost: 3 },
+        { name: 'Berserk: HP<30% → +20% ATK', effect: 'berserk', value: 0.20, cost: 5 },
+      ],
+    },
+    defense: {
+      name: 'Sinh Tồn',
+      nodes: [
+        { name: 'HP +%5', effect: 'hp_percent', value: 0.05, cost: 1 },
+        { name: 'DEF +%5', effect: 'def_percent', value: 0.05, cost: 1 },
+        { name: 'HP Regen +2%', effect: 'hp_regen', value: 0.02, cost: 2 },
+        { name: 'Thorns 5%', effect: 'thorns', value: 0.05, cost: 3 },
+        { name: 'Revive 10%', effect: 'revive', value: 0.10, cost: 5 },
+      ],
+    },
+    support: {
+      name: 'Hỗ Trợ',
+      nodes: [
+        { name: 'Speed +10', effect: 'speed', value: 10, cost: 1 },
+        { name: 'Aura: +2% crit team', effect: 'aura_crit', value: 0.02, cost: 1 },
+        { name: 'Debuff Resist +15%', effect: 'debuff_resist', value: 0.15, cost: 2 },
+        { name: 'Party Heal 3%', effect: 'party_heal', value: 0.03, cost: 3 },
+        { name: 'Counter Element +10%', effect: 'counter_element', value: 0.10, cost: 5 },
+      ],
+    },
+  };
+
+  private initBloodlineTable(): void {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS beast_bloodline (
+        user_id TEXT NOT NULL,
+        beast_type TEXT NOT NULL,
+        branch TEXT NOT NULL,
+        node_index INTEGER NOT NULL,
+        unlocked INTEGER DEFAULT 0,
+        PRIMARY KEY (user_id, beast_type, branch, node_index)
+      );
+    `);
+  }
+
+  public getBloodlineMaterials(userId: string): number {
+    const row = db.prepare(
+      "SELECT SUM(count) as total FROM user_inventory WHERE user_id = ? AND item_id = 'material_mau_thu_nguyen'"
+    ).get(userId) as { total: number } | undefined;
+    return row?.total ?? 0;
+  }
+
+  public addBloodlineMaterial(userId: string, amount: number): void {
+    const existing = db.prepare(
+      "SELECT id, quantity FROM user_inventory WHERE user_id = ? AND item_id = 'material_mau_thu_nguyen'"
+    ).get(userId) as { id: number; quantity: number } | undefined;
+    if (existing) {
+      db.prepare('UPDATE user_inventory SET quantity = quantity + ? WHERE id = ?').run(amount, existing.id);
+    } else {
+      db.prepare(
+        "INSERT INTO user_inventory (user_id, item_id, quantity) VALUES (?, 'material_mau_thu_nguyen', ?)"
+      ).run(userId, amount);
+    }
+  }
+
+  public getBloodlineNodes(userId: string, beastType: string): { branch: string; nodeIndex: number; unlocked: boolean }[] {
+    this.initBloodlineTable();
+    return db.prepare(
+      'SELECT branch, node_index as nodeIndex, unlocked FROM beast_bloodline WHERE user_id = ? AND beast_type = ?'
+    ).all(userId, beastType) as { branch: string; nodeIndex: number; unlocked: boolean }[];
+  }
+
+  public canUnlockBloodlineNode(userId: string, beastType: string, branch: string, nodeIndex: number): { eligible: boolean; reason: string; cost: number } {
+    this.initBloodlineTable();
+    const branchDef = (this.BLOODLINE_BRANCHES as any)[branch];
+    if (!branchDef) return { eligible: false, reason: 'Nhánh không hợp lệ.', cost: 0 };
+    const nodeDef = branchDef.nodes[nodeIndex];
+    if (!nodeDef) return { eligible: false, reason: 'Node không hợp lệ.', cost: 0 };
+
+    // Check prerequisite: previous node must be unlocked
+    if (nodeIndex > 0) {
+      const prev = db.prepare(
+        'SELECT unlocked FROM beast_bloodline WHERE user_id = ? AND beast_type = ? AND branch = ? AND node_index = ?'
+      ).get(userId, beastType, branch, nodeIndex - 1) as { unlocked: number } | undefined;
+      if (!prev || !prev.unlocked) return { eligible: false, reason: `Cần mở node ${nodeIndex} trước.`, cost: 0 };
+    }
+
+    // Check already unlocked
+    const existing = db.prepare(
+      'SELECT unlocked FROM beast_bloodline WHERE user_id = ? AND beast_type = ? AND branch = ? AND node_index = ?'
+    ).get(userId, beastType, branch, nodeIndex) as { unlocked: number } | undefined;
+    if (existing?.unlocked) return { eligible: false, reason: 'Đã mở node này.', cost: 0 };
+
+    // Check materials
+    const materials = this.getBloodlineMaterials(userId);
+    if (materials < nodeDef.cost) return { eligible: false, reason: `Cần ${nodeDef.cost} Máu Thú Nguyên (hiện ${materials}).`, cost: 0 };
+
+    return { eligible: true, reason: '', cost: nodeDef.cost };
+  }
+
+  public unlockBloodlineNode(userId: string, beastType: string, branch: string, nodeIndex: number): { success: boolean; message: string } {
+    this.initBloodlineTable();
+    const check = this.canUnlockBloodlineNode(userId, beastType, branch, nodeIndex);
+    if (!check.eligible) return { success: false, message: `❌ ${check.reason}` };
+
+    const branchDef = (this.BLOODLINE_BRANCHES as any)[branch];
+    const nodeDef = branchDef.nodes[nodeIndex];
+
+    // Deduct materials
+    db.prepare(
+      "UPDATE user_inventory SET quantity = quantity - ? WHERE user_id = ? AND item_id = 'material_mau_thu_nguyen'"
+    ).run(check.cost, userId);
+
+    // Upsert node
+    db.prepare(`
+      INSERT INTO beast_bloodline (user_id, beast_type, branch, node_index, unlocked)
+      VALUES (?, ?, ?, ?, 1)
+      ON CONFLICT(user_id, beast_type, branch, node_index) DO UPDATE SET unlocked = 1
+    `).run(userId, beastType, branch, nodeIndex);
+
+    cacheService.invalidatePrefix(`stats:${userId}`);
+    return { success: true, message: `✅ Đã mở node **${nodeDef.name}**!` };
+  }
+
+  public getBloodlineBonuses(userId: string): { atk_percent: number; def_percent: number; hp_percent: number; crit: number; speed: number } {
+    this.initBloodlineTable();
+    const nodes = db.prepare(
+      'SELECT branch, node_index FROM beast_bloodline WHERE user_id = ? AND unlocked = 1'
+    ).all(userId) as { branch: string; node_index: number }[];
+
+    const bonuses = { atk_percent: 0, def_percent: 0, hp_percent: 0, crit: 0, speed: 0 };
+    for (const n of nodes) {
+      const branchDef = (this.BLOODLINE_BRANCHES as any)[n.branch];
+      if (!branchDef) continue;
+      const nodeDef = branchDef.nodes[n.node_index];
+      if (!nodeDef) continue;
+      if (nodeDef.effect in bonuses) {
+        (bonuses as any)[nodeDef.effect] += nodeDef.value;
+      }
+    }
+    return bonuses;
+  }
+
+  // === V16 D-02: Pet Breeding ===
+  private readonly BREED_COST = 1000; // LT
+  private readonly MAX_BREEDS = 3;
+
+  public canBreed(userId: string, beast1Id: number, beast2Id: number): { eligible: boolean; reason: string } {
+    const beast1 = db.prepare('SELECT * FROM rare_beasts WHERE id = ? AND user_id = ?').get(beast1Id, userId) as any;
+    const beast2 = db.prepare('SELECT * FROM rare_beasts WHERE id = ? AND user_id = ?').get(beast2Id, userId) as any;
+    if (!beast1 || !beast2) return { eligible: false, reason: '❌ Linh thú không tồn tại.' };
+    if (beast1Id === beast2Id) return { eligible: false, reason: '❌ Không thể phối giống chính mình.' };
+
+    const breed1 = beast1.breed_count || 0;
+    const breed2 = beast2.breed_count || 0;
+    if (breed1 >= this.MAX_BREEDS) return { eligible: false, reason: `❌ ${beast1.beast_name} đã phối giống tối đa (${this.MAX_BREEDS} lần).` };
+    if (breed2 >= this.MAX_BREEDS) return { eligible: false, reason: `❌ ${beast2.beast_name} đã phối giống tối đa (${this.MAX_BREEDS} lần).` };
+
+    const user = db.prepare('SELECT coin_ha_pham FROM users WHERE discord_id = ?').get(userId) as { coin_ha_pham: number };
+    if (user.coin_ha_pham < this.BREED_COST) return { eligible: false, reason: `❌ Cần ${this.BREED_COST} LT.` };
+
+    return { eligible: true, reason: '' };
+  }
+
+  public breed(userId: string, beast1Id: number, beast2Id: number): { success: boolean; message: string } {
+    const check = this.canBreed(userId, beast1Id, beast2Id);
+    if (!check.eligible) return { success: false, message: check.reason };
+
+    const beast1 = db.prepare('SELECT * FROM rare_beasts WHERE id = ?').get(beast1Id) as any;
+    const beast2 = db.prepare('SELECT * FROM rare_beasts WHERE id = ?').get(beast2Id) as any;
+
+    // Deduct cost
+    db.prepare('UPDATE users SET coin_ha_pham = coin_ha_pham - ? WHERE discord_id = ?').run(this.BREED_COST, userId);
+
+    // Increment breed count
+    db.prepare('UPDATE rare_beasts SET breed_count = COALESCE(breed_count, 0) + 1 WHERE id = ?').run(beast1Id);
+    db.prepare('UPDATE rare_beasts SET breed_count = COALESCE(breed_count, 0) + 1 WHERE id = ?').run(beast2Id);
+
+    // Generate offspring: random stats from parents
+    const parent1 = RARE_BEASTS.find(b => b.type === beast1.beast_type);
+    const parent2 = RARE_BEASTS.find(b => b.type === beast2.beast_type);
+    if (!parent1 || !parent2) return { success: false, message: '❌ Lỗi dữ liệu linh thú.' };
+
+    // Offspring inherits random element from one parent
+    const offspringElement = Math.random() < 0.5 ? parent1 : parent2;
+    const offspringType = offspringElement.type;
+    const offspringDef = RARE_BEASTS.find(b => b.type === offspringType);
+    if (!offspringDef) return { success: false, message: '❌ Lỗi tạo linh thú con.' };
+
+    // Chance for mutation (rare)
+    const isMutation = Math.random() < 0.15; // 15% mutation chance
+    const offspringRarity = isMutation ? 'epic' : offspringDef.rarity;
+
+    // Create offspring
+    const info = db.prepare(`
+      INSERT INTO rare_beasts (user_id, beast_type, beast_name, rarity, level, skills)
+      VALUES (?, ?, ?, ?, 1, ?)
+    `).run(userId, offspringType, `${offspringDef.name} Con`, offspringRarity, JSON.stringify([offspringDef.passiveSkill]));
+
+    const mutationText = isMutation ? ' 🎉 **Đột Biến!**' : '';
+    return {
+      success: true,
+      message: `🥚 **Phối Giống Thành Công!**\nĐã tạo **${offspringDef.name} Con** [${offspringRarity}]${mutationText}\nTừ: ${beast1.beast_name} × ${beast2.beast_name}`,
+    };
   }
 }
 

@@ -242,6 +242,32 @@ class NotificationService {
     if (diff < 86400) return `${Math.floor(diff / 3600)}h trước`;
     return `${Math.floor(diff / 86400)} ngày trước`;
   }
+
+  // === V16 E-04: Smart Notifications ===
+  public sendSmartNotification(userId: string, title: string, message: string, priority: 'urgent' | 'important' | 'info'): void {
+    // Check user notification settings
+    const settings = this.getNotificationSettings(userId);
+    if (priority === 'urgent' || (priority === 'important' && settings.important) || (priority === 'info' && settings.info)) {
+      this.addNotification(userId, title, message, priority);
+    }
+  }
+
+  private getNotificationSettings(userId: string): { urgent: boolean; important: boolean; info: boolean } {
+    try {
+      const row = db.prepare('SELECT * FROM user_notification_settings WHERE user_id = ?')
+        .get(userId) as any;
+      if (row) return { urgent: true, important: row.important_enabled !== 0, info: row.info_enabled !== 0 };
+    } catch {}
+    return { urgent: true, important: true, info: false };
+  }
+
+  public getSmartNotificationDescription(userId: string): string {
+    const settings = this.getNotificationSettings(userId);
+    return `**Cài Đặt Thông Báo:**\n` +
+      `🔴 Khẩn cấp: Luôn bật\n` +
+      `🟡 Quan trọng: ${settings.important ? '✅ Bật' : '❌ Tắt'}\n` +
+      `🔵 Thông tin: ${settings.info ? '✅ Bật' : '❌ Tắt'}`;
+  }
 }
 
 export const notificationService = new NotificationService();

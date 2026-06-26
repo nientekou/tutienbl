@@ -58,7 +58,7 @@ function buildWorldBossContainer(userId) {
     container.setAccentColor(0x8b0000);
     // ── Header ──
     container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`# 👹 ${boss.name} (Cấp ${boss.level})`));
-    container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`*TAN BIẾN ĐI! THẾ GIỚI NÀY RỒI SẼ SỤP ĐỔ!*`));
+    container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`*HÃY BIẾN MẤT ĐI! THẾ GIỚI NÀY SẼ SỤP ĐỔ!*`));
     // ── HP Section ──
     container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
     if (boss.status === 'active') {
@@ -78,7 +78,7 @@ function buildWorldBossContainer(userId) {
         }
         // ── Stats Row ──
         container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
-        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`⚔️ **Sát Lực:** ${boss.atk.toLocaleString()} │ 🛡️ **Phòng Thủ:** ${boss.def.toLocaleString()} │ 🌀 **Trạng Thái:** Giai đoạn ${stageName}`));
+        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`⚔️ **Sát lực:** ${boss.atk.toLocaleString()} │ 🛡️ **Phòng Thủ:** ${boss.def.toLocaleString()} │ 🌀 **Trạng thái:** Giai đoạn ${stageName}`));
         // ── Player Status ──
         container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
         const activeStats = InventoryService_1.inventoryService.getActiveStats(userId);
@@ -222,7 +222,7 @@ function getBossShopEmbed(userId, message) {
     const bp = user?.boss_points || 0;
     const lines = BOSS_SHOP_ITEMS.map(item => `• **${item.name}** — **${item.cost}** BP\n  ${item.desc}`);
     const embed = new discord_js_1.EmbedBuilder()
-        .setTitle('🏪 Boss Point Shop')
+        .setTitle('🏪 Cửa hàng Điểm Boss')
         .setColor(uiSystem_1.EMBED_COLORS.GOLD)
         .setDescription(`⭐ **BP hiện có:** **${bp}**\n\n${lines.join('\n\n')}`)
         .setFooter({ text: 'Chọn vật phẩm bên dưới để đổi.' });

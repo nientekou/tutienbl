@@ -126,6 +126,35 @@ class TreasureMapService {
         return { coins: 500, items: [{ id: 'material_linh_thao_1', qty: 2 }] };
     }
   }
+
+  // === V16 B-03: Treasure Map V2 — New map types ===
+  private readonly MAP_TYPES_V2 = [
+    { id: 'coordinates', name: 'Địa Đồ Tọa Độ', description: 'Dig at X,Y coordinates to find treasure or trap', icon: '📍' },
+    { id: 'riddle', name: 'Bản Đồ Câu Đố', description: 'Solve a riddle to unlock the chest', icon: '🧩' },
+    { id: 'hunt', name: 'Bản Đồ Săn Lùng', description: 'Find and defeat the hidden enemy for loot', icon: '🎯' },
+  ];
+
+  private readonly RIDDLES = [
+    { question: 'Sông gì chảy ngược lên trời?', answer: 'sôngirling', reward: 'legendary' },
+    { question: 'Con gì không chân nhưng đi được?', answer: 'con đường', reward: 'rare' },
+    { question: 'Cái gì càng lớn càng nhỏ?', answer: 'cái đồng hồ', reward: 'epic' },
+  ];
+
+  public getMapTypesV2(): typeof this.MAP_TYPES_V2 {
+    return this.MAP_TYPES_V2;
+  }
+
+  public getRiddle(): { question: string; reward: string } {
+    return this.RIDDLES[Math.floor(Math.random() * this.RIDDLES.length)];
+  }
+
+  public getMapTypeDescription(): string {
+    let msg = '🗺️ **Loại Bản Đồ Kho Báu:**\n\n';
+    for (const map of this.MAP_TYPES_V2) {
+      msg += `${map.icon} **${map.name}**: ${map.description}\n`;
+    }
+    return msg;
+  }
 }
 
 export const treasureMapService = new TreasureMapService();

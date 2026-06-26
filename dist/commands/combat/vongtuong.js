@@ -63,7 +63,7 @@ class VongTuongCommand extends Command_1.Command {
             .addSubcommand(sub => sub.setName('khieuchien')
             .setDescription('Khiêu chiến Bóng Tối ở tầng hiện tại'))
             .addSubcommand(sub => sub.setName('dauhang')
-            .setDescription('Đầu hàng vòng lặp hiện tại, reset máu và quay về tầng 1'))
+            .setDescription('Đầu hàng vòng lặp hiện tại, khôi phục máu và quay về tầng 1'))
             .addSubcommand(sub => sub.setName('bangxephang')
             .setDescription('Xem bảng xếp hạng Vọng Tưởng tuần này')));
     }
@@ -116,13 +116,13 @@ class VongTuongCommand extends Command_1.Command {
                     medal = '🥈';
                 if (index === 2)
                     medal = '🥉';
-                desc += `${medal} **Top ${index + 1}:** ${entry.name} - **${entry.score} Điểm** (Max Tầng: ${entry.max_floor})\n`;
+                desc += `${medal} **Hạng ${index + 1}:** ${entry.name} - **${entry.score} Điểm** (Max Tầng: ${entry.max_floor})\n`;
             });
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle('🏆 Bảng Xếp Hạng Vọng Tưởng (Tuần)')
                 .setDescription(desc)
                 .setColor(uiSystem_1.EMBED_COLORS.GOLD)
-                .setFooter({ text: 'Sẽ tự động trao phần thưởng và reset vào sáng Thứ 2 hàng tuần.' });
+                .setFooter({ text: 'Sẽ tự động trao phần thưởng và khôi phục vào sáng Thứ Hai hàng tuần.' });
             return interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
     }

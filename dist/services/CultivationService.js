@@ -953,10 +953,10 @@ class CultivationService {
         // P5-01: Reincarnation V2 — Đạo Tâm choices with tradeoffs
         let daoTamData = null;
         let daoTamMsg = '';
-        if (daoTamElement && ['Hoa', 'Thuy', 'Phong'].includes(daoTamElement)) {
+        if (daoTamElement && ['Hỏa', 'Thủy', 'Phong'].includes(daoTamElement)) {
             const daoTamDefs = {
-                'Hoa': { buffs: { atk_percent: 0.08, crit_rate: 0.03 }, nerfs: { hp_percent: -0.10, def_percent: -0.05 } },
-                'Thuy': { buffs: { hp_percent: 0.12, def_percent: 0.08 }, nerfs: { atk_percent: -0.08, speed_percent: -0.03 } },
+                'Hỏa': { buffs: { atk_percent: 0.08, crit_rate: 0.03 }, nerfs: { hp_percent: -0.10, def_percent: -0.05 } },
+                'Thủy': { buffs: { hp_percent: 0.12, def_percent: 0.08 }, nerfs: { atk_percent: -0.08, speed_percent: -0.03 } },
                 'Phong': { buffs: { speed_percent: 0.08, dodge_rate: 0.05 }, nerfs: { hp_percent: -0.10, def_percent: -0.05 } }
             };
             // Check existing Dao Tam level (max 5)
@@ -1184,11 +1184,11 @@ class CultivationService {
             { name: 'Luyện Khí → Trúc Cơ', description: 'Vượt qua 3 yêu quái liên tiếp', restriction: 'Không có restriction' },
             { name: 'Trúc Cơ → Kim Đan', description: 'Vượt qua trial trong 10 hiệp', restriction: 'Không dùng vật phẩm' },
             { name: 'Kim Đan → Nguyên Anh', description: 'Giải đố linh lực', restriction: 'Không dùng kỹ năng active' },
-            { name: 'Nguyên Anh → Hóa Thần', description: 'Đánh bại bản sao của chính mình', restriction: 'HP chỉ恢复1 lần' },
+            { name: 'Nguyên Anh → Hóa Thần', description: 'Đánh bại bản sao của chính mình', restriction: 'HP chỉ hồi phục 1 lần' },
             { name: 'Hóa Thần → Luyện Hư', description: 'Vượt qua 5 tầng trial', restriction: 'Mỗi tầng có restriction riêng' },
             { name: 'Luyện Hư → Hợp Thể', description: 'Đánh bại Boss Thần', restriction: 'Không dùng pet' },
-            { name: 'Hợp Thể → Đại乗', description: 'Vượt qua trial cực khó', restriction: 'Tất cả restriction' },
-            { name: 'Đại乗 → Tam Thiên', description: 'Cuối cùng — Trial của Thiên Đạo', restriction: 'Không dùng bất kỳ buff nào' },
+            { name: 'Hợp Thể → Đại Thừa', description: 'Vượt qua trial cực khó', restriction: 'Tất cả restriction' },
+            { name: 'Đại Thừa → Tam Thiên', description: 'Cuối cùng — Trial của Thiên Đạo', restriction: 'Không dùng bất kỳ buff nào' },
         ];
         return challenges[majorIndex] || challenges[0];
     }
@@ -1217,19 +1217,19 @@ class CultivationService {
     getDaoTamChoices() {
         return [
             {
-                element: 'Hoa', name: 'Hoa Dao Tam',
+                element: 'Hỏa', name: 'Hỏa Đạo Tâm',
                 buffs: { atk_percent: 0.08, crit_rate: 0.03 },
                 nerfs: { hp_percent: -0.10, def_percent: -0.05 },
                 description: '+8% Công Kích, +3% Bạo Kích nhưng -10% Sinh Lực, -5% Phòng Thủ'
             },
             {
-                element: 'Thuy', name: 'Thuy Dao Tam',
+                element: 'Thủy', name: 'Thủy Đạo Tâm',
                 buffs: { hp_percent: 0.12, def_percent: 0.08 },
                 nerfs: { atk_percent: -0.08, speed_percent: -0.03 },
                 description: '+12% Sinh Lực, +8% Phòng Thủ nhưng -8% Công Kích, -3% Tốc Độ'
             },
             {
-                element: 'Phong', name: 'Phong Dao Tam',
+                element: 'Phong', name: 'Phong Đạo Tâm',
                 buffs: { speed_percent: 0.08, dodge_rate: 0.05 },
                 nerfs: { hp_percent: -0.10, def_percent: -0.05 },
                 description: '+8% Tốc Độ, +5% Né Tránh nhưng -10% Sinh Lực, -5% Phòng Thủ'
@@ -1257,7 +1257,7 @@ class CultivationService {
             { count: 3, reward: 'Danh Hiệu Trùng Sinh', title: 'Trùng Sinh' },
             { count: 5, reward: 'Cửa Hàng Luân Hồi Cấp 2' },
             { count: 10, reward: 'Ngoại Hình Phượng Hoàng', title: 'Phượng Hoàng' },
-            { count: 15, reward: 'Danh hiệu Vô Cực huyền thoại', title: 'Vo Cuc' },
+            { count: 15, reward: 'Danh hiệu Vô Cực huyền thoại', title: 'Vô Cực' },
         ];
     }
     /**
@@ -1266,7 +1266,7 @@ class CultivationService {
     getReincarnationDescription(userId) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user)
-            return 'Chua tao nhan vat!';
+            return 'Chưa tạo nhân vật!';
         const count = user.luan_hoi_count || 0;
         const bonus = Math.min(count * 20, 150);
         const tokens = user.reincarnation_tokens || 0;
@@ -1280,7 +1280,7 @@ class CultivationService {
         msg += `\n**Milestones:**\n`;
         for (const m of this.getReincarnationMilestones()) {
             const achieved = count >= m.count;
-            msg += `${achieved ? '✅' : '🔒'} Doi ${m.count}: ${m.reward}\n`;
+            msg += `${achieved ? '✅' : '🔒'} Đời ${m.count}: ${m.reward}\n`;
         }
         return msg;
     }

@@ -15,7 +15,7 @@ const EncounterService_1 = require("../../services/EncounterService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const linhdien_1 = require("../../commands/life/linhdien");
 const chetao_1 = require("../../commands/life/chetao");
-const khambha_1 = require("../../commands/general/khambha");
+const khampha_1 = require("../../commands/general/khampha");
 const nhiemvu_1 = require("../../commands/general/nhiemvu");
 const lamviec_1 = require("../../commands/general/lamviec");
 const uiSystem_1 = require("../../utils/uiSystem");
@@ -329,26 +329,26 @@ class LifeQuestHandler {
                 await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
             }
             // --- Nút: KHÁM PHÁ DÃ NGOẠI (nav) ---
-            else if (action === 'khambhanav') {
-                const embed = (0, khambha_1.getKhamBhaEmbed)(targetUserId);
-                const rows = (0, khambha_1.getKhamBhaComponents)(targetUserId);
+            else if (action === 'khamphanav') {
+                const embed = (0, khampha_1.getKhamPhaEmbed)(targetUserId);
+                const rows = (0, khampha_1.getKhamPhaComponents)(targetUserId);
                 await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
             }
             // --- Nút: BẮT ĐẦU THÁM HIỂM (chọn địa điểm) ---
-            else if (action === 'khambhastart') {
+            else if (action === 'khamphastart') {
                 const locationId = parts.slice(1, -1).join('_'); // Ghép lại vì loc.id có underscore
                 const result = ExplorationService_1.explorationService.startExploration(targetUserId, locationId);
                 if (!result.success) {
                     await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
                     return;
                 }
-                const embed = (0, khambha_1.getKhamBhaEmbed)(targetUserId);
-                const rows = (0, khambha_1.getKhamBhaComponents)(targetUserId);
+                const embed = (0, khampha_1.getKhamPhaEmbed)(targetUserId);
+                const rows = (0, khampha_1.getKhamPhaComponents)(targetUserId);
                 await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                 await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
             }
             // --- Nút: VỀ LẤY THƯỞNG THÁM HIỂM ---
-            else if (action === 'khambhaclaim') {
+            else if (action === 'khamphaclaim') {
                 const result = ExplorationService_1.explorationService.claimExploration(targetUserId);
                 if (!result.success) {
                     await interaction.reply({ content: `❌ ${result.message}`, flags: discord_js_1.MessageFlags.Ephemeral });
@@ -365,7 +365,7 @@ class LifeQuestHandler {
                     const choiceRow = new discord_js_1.ActionRowBuilder();
                     for (const choice of event.choices) {
                         choiceRow.addComponents(new discord_js_1.ButtonBuilder()
-                            .setCustomId(`khambhaevent_${result.explorationId}_${choice.id}_${targetUserId}`)
+                            .setCustomId(`khamphaevent_${result.explorationId}_${choice.id}_${targetUserId}`)
                             .setLabel(choice.label)
                             .setStyle(discord_js_1.ButtonStyle.Primary));
                     }
@@ -373,23 +373,23 @@ class LifeQuestHandler {
                 }
                 else {
                     // Thu hoạch bình thường
-                    DailyQuestService_1.dailyQuestService.updateProgress(targetUserId, 'daily_khambha', 1);
+                    DailyQuestService_1.dailyQuestService.updateProgress(targetUserId, 'daily_khampha', 1);
                     QuestChainService_1.questChainService.updateProgress(targetUserId, 'explore', 1);
-                    const embed = (0, khambha_1.getKhamBhaEmbed)(targetUserId);
-                    const rows = (0, khambha_1.getKhamBhaComponents)(targetUserId);
+                    const embed = (0, khampha_1.getKhamPhaEmbed)(targetUserId);
+                    const rows = (0, khampha_1.getKhamPhaComponents)(targetUserId);
                     await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                     await interaction.followUp({ content: result.message });
                 }
             }
             // --- Nút: XỬ LÝ LỰA CHỌN KỲ NGỘ THÁM HIỂM ---
-            else if (action === 'khambhaevent') {
+            else if (action === 'khamphaevent') {
                 const explorationId = parseInt(parts[1], 10);
                 const choiceId = parts[2];
                 const result = ExplorationService_1.explorationService.resolveEvent(targetUserId, explorationId, choiceId);
-                DailyQuestService_1.dailyQuestService.updateProgress(targetUserId, 'daily_khambha', 1);
+                DailyQuestService_1.dailyQuestService.updateProgress(targetUserId, 'daily_khampha', 1);
                 QuestChainService_1.questChainService.updateProgress(targetUserId, 'explore', 1);
-                const embed = (0, khambha_1.getKhamBhaEmbed)(targetUserId);
-                const rows = (0, khambha_1.getKhamBhaComponents)(targetUserId);
+                const embed = (0, khampha_1.getKhamPhaEmbed)(targetUserId);
+                const rows = (0, khampha_1.getKhamPhaComponents)(targetUserId);
                 await (0, uiSystem_1.safeV2Update)(interaction, [embed], rows);
                 await interaction.followUp({ content: result.message });
             }
@@ -534,6 +534,34 @@ class LifeQuestHandler {
                 const linhComps = (0, linhdien_1.getLinhDienComponents)(targetUserId);
                 const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
                 await (0, uiSystem_1.safeV2Update)(interaction, [embed], [...linhComps, backRow]);
+                return;
+            }
+            // V15: Bisinghanh enter button
+            else if (action === 'bicanhsonghanh_enter') {
+                const { secretRealmService } = require('../../services/SecretRealmService');
+                const canEnter = secretRealmService.canEnter(targetUserId);
+                if (!canEnter.eligible) {
+                    await interaction.reply({ content: `❌ ${canEnter.reason}`, flags: discord_js_1.MessageFlags.Ephemeral });
+                    return;
+                }
+                const config = secretRealmService.getConfig();
+                await interaction.reply({ content: `🌀 Đang vào **${config.name}**... Partner cần online để bắt đầu!`, flags: discord_js_1.MessageFlags.Ephemeral });
+                return;
+            }
+            // V15: Sect Council vote buttons
+            else if (action === 'sectcouncil_vote_yes' || action === 'sectcouncil_vote_no') {
+                const { sectCouncilService } = require('../../services/SectCouncilService');
+                const sectId = parseInt(parts[2]);
+                const vote = action === 'sectcouncil_vote_yes' ? 'yes' : 'abstain';
+                const result = sectCouncilService.vote(sectId, targetUserId, parts[1] || '', vote);
+                await interaction.reply({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
+                return;
+            }
+            // V15: Bounty Board claim
+            else if (action === 'bangnghiavu_claim') {
+                const { bountyBoardService } = require('../../services/BountyBoardService');
+                const result = bountyBoardService.completeToday(targetUserId);
+                await interaction.reply({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
                 return;
             }
         }

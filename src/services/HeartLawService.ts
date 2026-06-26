@@ -93,6 +93,25 @@ const HEART_LAW_SET_ABILITIES: Record<string, HeartLawSetAbility> = {
   }
 };
 
+// V13 A-05: Heart Law Ultimate — "Hằng Cổ Đại Pháp"
+interface HeartLawUltimate {
+  element: string;
+  name: string;
+  description: string;
+  effect: string; // identifier for CombatEngine
+  damage_mult?: number;
+}
+const HEART_LAW_ULTIMATES: Record<string, HeartLawUltimate> = {
+  [KIM]:  { element: KIM,  name: 'Vạn Kiếm Quy Tông',   description: '250% ATK, ignore DEF 50%',           effect: 'ult_kim',  damage_mult: 2.5 },
+  [MOC]:  { element: MOC,  name: 'Thiên Địa Hồi Xuân',  description: 'Heal 40% max HP + cleanse debuffs',  effect: 'ult_moc' },
+  [THUY]: { element: THUY, name: 'Hà Hải Quy Nguyên',   description: '200% ATK + freeze 2 lượt',           effect: 'ult_thuy', damage_mult: 2.0 },
+  [HOA]:  { element: HOA,  name: 'Liệt Diễm Phá Thiên', description: '300% ATK + burn 3 lượt',             effect: 'ult_hoa',  damage_mult: 3.0 },
+  [THO]:  { element: THO,  name: 'Đại Địa Hộ Thể',      description: 'Shield 30% max HP + reflect 20%',    effect: 'ult_tho' },
+  [LOI]:  { element: LOI,  name: 'Lôi Đình Vạn Cấp',    description: '280% ATK + stun 1 lượt',             effect: 'ult_loi',  damage_mult: 2.8 },
+  [PHONG]:{ element: PHONG,name: 'Vô Tung Vô Tích',     description: '3 đòn x 100% ATK',                   effect: 'ult_phong', damage_mult: 3.0 },
+  [VO]:   { element: VO,   name: 'Hư Không Niết',        description: '220% ATK, ignores ALL defense',      effect: 'ult_vo',   damage_mult: 2.2 },
+};
+
 class HeartLawService {
   /**
    * Lấy thông tin một Tâm Pháp từ database
@@ -366,6 +385,25 @@ class HeartLawService {
       }
     }
     return desc;
+  }
+
+  // V13 A-05: Check if Heart Law Ultimate is available
+  public getUltimate(userId: string): HeartLawUltimate | null {
+    const equipped = this.getEquippedHeartLaws(userId);
+    if (equipped.length < 3) return null;
+
+    // All 3 must share same element
+    const elements = equipped.map(l => l.element).filter(e => e !== VO);
+    if (elements.length < 3 || new Set(elements).size !== 1) return null;
+
+    // All 3 must be level >= 5
+    if (!equipped.every(l => l.level >= 5)) return null;
+
+    return HEART_LAW_ULTIMATES[elements[0]] || null;
+  }
+
+  public hasUltimate(userId: string): boolean {
+    return this.getUltimate(userId) !== null;
   }
 }
 

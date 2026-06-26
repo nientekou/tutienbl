@@ -11,7 +11,7 @@ class HuyetMachCommand extends Command_1.Command {
             .setDescription('Quản lý Huyết Mạch Giác Tỉnh của bản thân (cần cấp 10).')
             .addSubcommand(sub => sub.setName('thongtin').setDescription('Xem thông tin Huyết Mạch của bản thân.'))
             .addSubcommand(sub => sub.setName('danhsach').setDescription('Xem danh sách tất cả Huyết Mạch Thượng Cổ.'))
-            .addSubcommand(sub => sub.setName('chon').setDescription('Giác tỉnh một Huyết Mạch (Cần Cấp 10 và 500 Linh thạch).')
+            .addSubcommand(sub => sub.setName('chon').setDescription('Giác tỉnh một Huyết Mạch (Cần Cấp 10 và 500 Linh Thạch).')
             .addStringOption(opt => opt.setName('id').setDescription('ID của Huyết Mạch (dùng /huyetmach danhsach để xem)').setRequired(true)))
             .addSubcommand(sub => sub.setName('chuyenhoa').setDescription('Đổi sang Huyết Mạch khác (Cần 1 Huyết Mạch Chuyển Hóa Đan).')
             .addStringOption(opt => opt.setName('id').setDescription('ID của Huyết Mạch mới').setRequired(true))));

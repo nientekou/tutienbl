@@ -100,7 +100,7 @@ class TaoNhanVatCommand extends Command_1.Command {
             type = 'Thiên';
             color = 0xf1c40f;
             icon = '✨';
-            npcReac = '"Trời ơi! Linh căm thuần khiết! Ngươi là hy vọng của nhân loại!"';
+            npcReac = '"Trời ơi! Linh căn thuần khiết! Ngươi là hy vọng của nhân loại!"';
             npcStory = 'Xưa nay chỉ có 3 người có Thiên linh căn... tất cả đều phi thăng.';
         }
         else if (maxVal >= 70) {

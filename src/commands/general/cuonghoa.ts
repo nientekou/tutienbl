@@ -17,7 +17,7 @@ import { ITEMS } from '../../config/itemConstants';
 import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 import { safeV2EditReply } from '../../utils/uiSystem';
 
-export default class CuongHuaCommand extends Command {
+export default class CuongHoaCommand extends Command {
   constructor() {
     super(
       new SlashCommandBuilder()

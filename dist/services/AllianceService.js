@@ -129,7 +129,7 @@ class AllianceService {
     getAllianceDescription(userId) {
         const alliance = this.getUserAlliance(userId);
         if (!alliance)
-            return '❌ Chưa có Alliance!';
+            return '❌ Chưa có Liên Minh!';
         let msg = `🤝 **Alliance: ${alliance.allianceName}**\n`;
         msg += `📜 Sect: ${alliance.sectName}\n`;
         const info = this.getAllianceInfo(alliance.allianceId);

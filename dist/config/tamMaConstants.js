@@ -24,7 +24,7 @@ exports.INNER_DEMON_TYPES = [
     },
     {
         type: 'obsession',
-        name: 'Tham Vọng Vô Đâu',
+        name: 'Tham Vọng Vô Độ',
         description: 'Một phiên bản khác của ngươi xuất hiện, mạnh hơn, tàn nhẫn hơn.',
         element: 'hoa',
         basePower: 80,

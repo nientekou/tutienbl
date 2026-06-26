@@ -48,7 +48,7 @@ function getPartyRoomEmbed(room, host) {
     // Thêm slot trống
     const slotsLeft = 3 - members.length;
     for (let i = 0; i < slotsLeft; i++) {
-        memberList += `• 🟢 *Slot trống*\n`;
+        memberList += `• 🟢 *Chỗ trống*\n`;
     }
     const elementalCycle = (0, PartyService_1.checkPartyElementalCycle)(members);
     const embed = new discord_js_1.EmbedBuilder()

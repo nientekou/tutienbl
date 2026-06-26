@@ -146,7 +146,7 @@ class AchievementService {
           VALUES (?, ?, 'achievement', ?)
         `).run(userId, achievement.reward_title, timestamp);
                 // Tự động equip title nếu chưa có title đặc biệt
-                if (user.title === 'Tán Tu' || !user.title) {
+                if (user.title === 'Tản Tu' || !user.title) {
                     UserRepository_1.userRepository.update(userId, { title: achievement.reward_title });
                 }
             }

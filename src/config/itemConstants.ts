@@ -236,3 +236,28 @@ export const ITEMS_PILL_NGU_LON = 'pill_ngu_lon';
 export const ITEMS_PILL_BREAK_ANTI_LOI = 'pill_anti_loi_2';
 export const ITEMS_FIRE_CORE = 'material_fire_core';
 export const ITEMS_BEAST_FOOD = 'material_beast_food';
+
+// ═══════════════════════════════════════════════════════════════════
+// Awakening Materials (V13)
+// ═══════════════════════════════════════════════════════════════════
+export const AWAKENING_MATERIALS = {
+  SKILL_AWAKEN: 'material_linh_tuy_giac_tinh',   // A-01: Skill Mastery Awakening
+  BEAST_BLOODLINE: 'material_mau_thu_nguyen',     // A-02: Beast Bloodline Fusion
+  DESTINY_AWAKEN: 'material_thien_menh_tinh_hoa', // A-03: Destiny Awaken
+  SOUL_WEAPON_AWAKEN: 'material_vu_khi_chi_hon',  // A-06: Soul Weapon Awakening
+} as const;
+
+export const AWAKENING_DAILY_CAP = 5;
+export type AwakeningMaterialId = typeof AWAKENING_MATERIALS[keyof typeof AWAKENING_MATERIALS];
+
+// V14 D-02: Fish items
+export const FISH_ITEMS = {
+  FISH_CARP: 'fish_carp',
+  FISH_CATFISH: 'fish_catfish',
+  FISH_SALMON: 'fish_salmon',
+  FISH_LOBSTER: 'fish_lobster',
+  FISH_TUNA: 'fish_tuna',
+  FISH_WHALE: 'fish_whale',
+  FISH_TURTLE: 'fish_turtle',
+  FISH_DRAGON: 'fish_dragon',
+} as const;

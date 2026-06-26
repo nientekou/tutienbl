@@ -123,7 +123,7 @@ const GUIDES = {
             '☯️ **Tông Môn** (`/tongmon`) — Gia nhập hoặc sáng lập môn phái',
             '  • Cống hiến, nâng cấp, chiến đấu tông môn',
             '',
-            '🗺️ **Khám Phá** (`/khambha`) — Dã ngoại tìm bảo vật',
+            '🗺️ **Khám Phá** (`/khampha`) — Dã ngoại tìm bảo vật',
             '  • Kỳ ngộ, chiến đấu, nhặt đồ hiếm',
             '',
             '🐎 **Tọa Kỵ** (`/toaky`) — Thuần hóa và cưỡi linh thú',

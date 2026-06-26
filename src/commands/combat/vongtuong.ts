@@ -76,7 +76,7 @@ export default class VongTuongCommand extends Command {
         )
         .addSubcommand(sub =>
           sub.setName('dauhang')
-            .setDescription('Đầu hàng vòng lặp hiện tại, reset máu và quay về tầng 1')
+            .setDescription('Đầu hàng vòng lặp hiện tại, khôi phục máu và quay về tầng 1')
         )
         .addSubcommand(sub =>
           sub.setName('bangxephang')
@@ -144,14 +144,14 @@ export default class VongTuongCommand extends Command {
       if (index === 0) medal = '🥇';
       if (index === 1) medal = '🥈';
       if (index === 2) medal = '🥉';
-      desc += `${medal} **Top ${index + 1}:** ${entry.name} - **${entry.score} Điểm** (Max Tầng: ${entry.max_floor})\n`;
+      desc += `${medal} **Hạng ${index + 1}:** ${entry.name} - **${entry.score} Điểm** (Max Tầng: ${entry.max_floor})\n`;
     });
 
     const embed = new EmbedBuilder()
       .setTitle('🏆 Bảng Xếp Hạng Vọng Tưởng (Tuần)')
       .setDescription(desc)
       .setColor(EMBED_COLORS.GOLD)
-      .setFooter({ text: 'Sẽ tự động trao phần thưởng và reset vào sáng Thứ 2 hàng tuần.' });
+      .setFooter({ text: 'Sẽ tự động trao phần thưởng và khôi phục vào sáng Thứ Hai hàng tuần.' });
 
     return interaction.editReply(toV2Payload([embed]));
   }

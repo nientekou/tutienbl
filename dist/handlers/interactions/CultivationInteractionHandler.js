@@ -391,7 +391,7 @@ class CultivationInteractionHandler {
                 kyNgoService.applyEffects(targetUserId, result.effects);
                 const { container, header, body, V2_COLORS } = require('../../utils/v2Components');
                 const comp = container(result.success ? V2_COLORS.success : V2_COLORS.danger, [
-                    header(result.success ? '✅ Kỳ Ngộ Thành Công!' : '❌ Kỳ Ngộ Thất Bít!'),
+                    header(result.success ? '✅ Kỳ Ngộ Thành Công!' : '❌ Kỳ Ngộ Thất Bại!'),
                     body(result.message)
                 ]);
                 await (0, uiSystem_1.safeV2Update)(interaction, [comp]);

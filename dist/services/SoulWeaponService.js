@@ -279,5 +279,55 @@ class SoulWeaponService {
         }
         return msg;
     }
+    // V13 A-06: Soul Weapon Form Awakening
+    WEAPON_FORMS = {
+        'Hỏa': { name: 'Hỏa Phượng Hoàng Kiếm', passive_desc: 'Fire passive: 10% chance burn 2 lượt', stat_bonus: 'atk', value: 0.15 },
+        'Thủy': { name: 'Biển Sâu Bá Vương Đao', passive_desc: 'Water passive: heal 3% HP mỗi hiệp', stat_bonus: 'hp', value: 0.15 },
+        'Mộc': { name: 'Sinh Mệnh Tộc Cung', passive_desc: 'Wood passive: +5% HP regen', stat_bonus: 'hp', value: 0.15 },
+        'Thổ': { name: 'Đại Địa Chi Nhãn Chùy', passive_desc: 'Earth passive: reflect 8% damage', stat_bonus: 'def', value: 0.15 },
+        'Kim': { name: 'Vô Cương Bất Hoại Kích', passive_desc: 'Metal passive: ignore 10% DEF', stat_bonus: 'atk', value: 0.15 },
+        'Lôi': { name: 'Thiên Hà Lôi Trụ Thương', passive_desc: 'Lightning passive: +5% crit rate', stat_bonus: 'crit', value: 0.05 },
+        'Phong': { name: 'Vô Định Chi Phong Kiếm', passive_desc: 'Wind passive: +8% dodge rate', stat_bonus: 'dodge', value: 0.08 },
+    };
+    canAwakenForm(userId) {
+        const sw = SoulWeaponRepository_1.soulWeaponRepository.getByUserId(userId);
+        if (!sw)
+            return { eligible: false, reason: 'Chưa có Pháp Bảo.' };
+        if (sw.evolution_stage < 5)
+            return { eligible: false, reason: `Cần stage 5 (hiện stage ${sw.evolution_stage})` };
+        if (sw.awakened_form)
+            return { eligible: false, reason: 'Đã biến hình rồi!' };
+        return { eligible: true, reason: '' };
+    }
+    awakenForm(userId) {
+        const check = this.canAwakenForm(userId);
+        if (!check.eligible)
+            return { success: false, message: `❌ ${check.reason}` };
+        const sw = SoulWeaponRepository_1.soulWeaponRepository.getByUserId(userId);
+        const form = this.WEAPON_FORMS[sw.element];
+        if (!form)
+            return { success: false, message: '❌ Element không hợp lệ.' };
+        // Spend material
+        try {
+            const { inventoryService } = require('./InventoryService');
+            if (!inventoryService.canGetAwakeningMaterial(userId, 'material_vu_khi_chi_hon')) {
+                return { success: false, message: '❌ Đã đạt giới hạn vật phẩm giác tĩnh hôm nay.' };
+            }
+            inventoryService.recordAwakeningMaterial(userId, 'material_vu_khi_chi_hon');
+        }
+        catch { }
+        database_1.default.prepare('UPDATE soul_weapons SET awakened_form = ? WHERE id = ?').run(form.name, sw.id);
+        return {
+            success: true,
+            message: `✨ **PHÁP BẢO BIẾN HÌNH!**\n${sw.name} → **${form.name}**\n${form.passive_desc}`,
+        };
+    }
+    getAwakenedForm(userId) {
+        const sw = SoulWeaponRepository_1.soulWeaponRepository.getByUserId(userId);
+        if (!sw || !sw.awakened_form)
+            return null;
+        const form = this.WEAPON_FORMS[sw.element];
+        return form ? { name: form.name, passive_desc: form.passive_desc } : null;
+    }
 }
 exports.soulWeaponService = new SoulWeaponService();

@@ -34,7 +34,7 @@ class LuyenKhiCommand extends Command_1.Command {
             .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
             .setDescription(`Đạo hiệu: **${user.name}**\n` +
             `Cảnh Giới Luyện Khí: **Cấp ${level} Luyện Khí Sư**\n` +
-            `Tiến Trình EXP: ${expBar} **(${exp}/${expNeeded})**\n\n` +
+            `Tiến Độ EXP: ${expBar} **(${exp}/${expNeeded})**\n\n` +
             `*Sử dụng khoáng thạch và linh thạch để rèn đúc trang bị, đạo bào, vũ khí siêu cấp. Hãy chọn một công thức rèn ở menu bên dưới!*`)
             .setThumbnail('https://i.imgur.com/vHqAOYZ.png')
             .setFooter({ text: `Thể lực hiện tại: ${user.stamina}/500 | Linh Thạch: ${user.coin_ha_pham}` });

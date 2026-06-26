@@ -29,6 +29,7 @@ const TAB_LABELS = {
     linhthu: { name: 'Linh Thú', emoji: '🐉' },
     somenh: { name: 'Số Mệnh', emoji: '📜' },
     bangxephang: { name: 'Bảng Phong Thần', emoji: '👑' },
+    thongke: { name: 'Thống Kê', emoji: '📈' },
 };
 const SLOT_EMOJI = {
     weapon: '⚔️', armor: '🛡️', ring: '💍', necklace: '📿', amulet: '🔮', mount: '🐎', treasure: '🏺',
@@ -546,7 +547,7 @@ function getSoMenhTabEmbed(user) {
     return embed;
 }
 function getTabNavigationRows(userId, activeTab) {
-    const tabs = ['chiso', 'taisan', 'chientich', 'trangbi', 'linhthu', 'somenh', 'bangxephang'];
+    const tabs = ['chiso', 'taisan', 'chientich', 'trangbi', 'linhthu', 'somenh', 'bangxephang', 'thongke'];
     const rows = [];
     for (let i = 0; i < tabs.length; i += 4) {
         const rowTabs = tabs.slice(i, i + 4);
@@ -787,6 +788,65 @@ class HoSoCommand extends Command_1.Command {
     }
 }
 exports.default = HoSoCommand;
+function getThongKeTabEmbed(user) {
+    const joinDate = new Date((user.created_at || 0) * 1000);
+    const now = new Date();
+    const daysPlayed = Math.max(1, Math.floor((now.getTime() - joinDate.getTime()) / 86400000));
+    let arenaProfile = null;
+    try {
+        arenaProfile = database_1.default.prepare('SELECT * FROM arena_profiles WHERE user_id = ?').get(user.discord_id);
+    }
+    catch { }
+    const wins = arenaProfile?.wins || 0;
+    const losses = arenaProfile?.losses || 0;
+    const totalFights = wins + losses;
+    const winRate = totalFights > 0 ? Math.round((wins / totalFights) * 100) : 0;
+    let companionInfo = 'Chưa có';
+    try {
+        const comp = database_1.default.prepare('SELECT companion_type, level FROM companion WHERE user_id = ? AND equipped = 1').get(user.discord_id);
+        if (comp)
+            companionInfo = `${comp.companion_type} (Lv.${comp.level})`;
+    }
+    catch { }
+    let awakenedDest = 0;
+    try {
+        const row = database_1.default.prepare('SELECT COUNT(*) as c FROM user_destinies WHERE user_id = ? AND awakened = 1').get(user.discord_id);
+        awakenedDest = row?.c || 0;
+    }
+    catch { }
+    let bestFloor = 0;
+    try {
+        const row = database_1.default.prepare('SELECT MAX(floor) as best FROM nine_heavens_progress WHERE user_id = ?').get(user.discord_id);
+        bestFloor = row?.best || 0;
+    }
+    catch { }
+    let bestiaryCount = 0;
+    try {
+        const row = database_1.default.prepare('SELECT COUNT(*) as c FROM bestiary WHERE user_id = ? AND times_defeated > 0').get(user.discord_id);
+        bestiaryCount = row?.c || 0;
+    }
+    catch { }
+    let tribBest = 'N/A';
+    try {
+        const row = database_1.default.prepare('SELECT best_tier, best_floor FROM infinite_tribulation_progress WHERE user_id = ?').get(user.discord_id);
+        if (row && row.best_tier > 0)
+            tribBest = `Tier ${row.best_tier} / Floor ${row.best_floor}`;
+    }
+    catch { }
+    return new discord_js_1.EmbedBuilder()
+        .setTitle(`📈 Thống Kê — ${user.name || user.discord_id}`)
+        .setColor(uiSystem_1.EMBED_COLORS.INFO)
+        .setDescription(`📅 **Ngày tạo:** <t:${Math.floor(joinDate.getTime() / 1000)}:D> (${daysPlayed} ngày)\n` +
+        `⚔️ **Chiến đấu:** ${wins} thắng / ${losses} thua (${winRate}% win rate)\n` +
+        `🌀 **Tháp sâu nhất:** ${bestFloor > 0 ? `Tầng ${bestFloor}` : 'Chưa rõ'}\n` +
+        `⚡ **Thiên Kiếp:** ${tribBest}\n` +
+        `🐉 **Companion:** ${companionInfo}\n` +
+        `✨ **Destiny giác tĩnh:** ${awakenedDest}/3\n` +
+        `📖 **Bestiary:** ${bestiaryCount} enemy đã hạ\n` +
+        `🏆 **Danh hiệu:** ${user.title || 'Tán Tu'}`)
+        .setFooter({ text: `Đại cảnh giới: ${(0, constants_1.getRealmDetails)(user.level).realmName}` })
+        .setTimestamp();
+}
 function getHoSoTabEmbed(userId, tab) {
     const user = UserRepository_1.userRepository.get(userId);
     const activeStats = InventoryService_1.inventoryService.getActiveStats(userId);
@@ -812,5 +872,7 @@ function getHoSoTabEmbed(userId, tab) {
                 .setTimestamp();
             return embed;
         }
+        case 'thongke':
+            return getThongKeTabEmbed(user);
     }
 }

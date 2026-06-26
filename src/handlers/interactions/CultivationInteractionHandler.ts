@@ -489,7 +489,7 @@ export class CultivationInteractionHandler {
 
         const { container, header, body, V2_COLORS } = require('../../utils/v2Components');
         const comp = container(result.success ? V2_COLORS.success : V2_COLORS.danger, [
-          header(result.success ? '✅ Kỳ Ngộ Thành Công!' : '❌ Kỳ Ngộ Thất Bít!'),
+          header(result.success ? '✅ Kỳ Ngộ Thành Công!' : '❌ Kỳ Ngộ Thất Bại!'),
           body(result.message)
         ]);
         await safeV2Update(interaction, [comp]);

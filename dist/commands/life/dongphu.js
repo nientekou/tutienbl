@@ -157,7 +157,7 @@ function buildCaveEmbed(userId) {
         embed.addFields({ name: `⬆️ Yêu Cầu Nâng Cấp Động Phủ (Lên Cấp ${nextLevel})`, value: upgradeReqText, inline: false });
     }
     else {
-        embed.addFields({ name: `⬆️ Yêu Cầu Nâng Cấp`, value: `🎉 **Động Phủ đã đạt cấp tối đa (Cấp 5)!** Linh khí sung túc, tịnh thất chí cao.`, inline: false });
+        embed.addFields({ name: `⬆️ Yêu Cầu Nâng Cấp`, value: `🎉 **Động Phủ đã đạt cấp tối đa (Cấp 5)!** Linh khí sung túc, tịnh thất tối cao.`, inline: false });
     }
     return embed;
 }

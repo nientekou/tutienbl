@@ -38,6 +38,13 @@ class WeatherCombatService {
       modified.crit = Math.min(1, modified.crit + effects['crit']);
     }
 
+    // V14 D-03: Weather elemental damage bonuses
+    if (effects['loi_damage_bonus']) {
+      (modified as any).weatherElementBonus = { element: 'Loi', value: effects['loi_damage_bonus'] };
+    } else if (effects['thuy_damage_bonus']) {
+      (modified as any).weatherElementBonus = { element: 'Thuy', value: effects['thuy_damage_bonus'] };
+    }
+
     return modified;
   }
 

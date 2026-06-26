@@ -23,6 +23,11 @@ const WEEKLY_CHALLENGES = [
     { id: 'wchallenge_no_damage', name: 'Vô Thương', description: 'Vượt ải mà không bị thương', reward: 'Khiên Giới' },
     { id: 'wchallenge_solo', name: 'Đơn Độc Hành', description: 'Vượt ải một mình', reward: 'Danh Hiệu Độc Hành' },
     { id: 'wchallenge_element', name: 'Ngũ Hành Thông', description: 'Vượt ải chỉ dùng một nguyên tố', reward: 'Ngũ Hành Tinh Thạch' },
+    // V15 B-03: Enhanced weekly challenges with modifiers
+    { id: 'wchallenge_no_heal', name: 'Cấm Chữa', description: 'Vượt ải không thể heal (trừ passive)', reward: 'Thiên Mệnh Tinh Hỏa x2' },
+    { id: 'wchallenge_glass', name: 'Súng Sành', description: '+100% ATK, -50% DEF — one-shot or be one-shot', reward: 'Linh Túy Giác Tỉnh x2' },
+    { id: 'wchallenge_pacifist', name: 'Vô Sát', description: 'Vượt ải chỉ dùng Guard — không tấn công', reward: 'Vũ Khí Chi Hồn x2' },
+    { id: 'wchallenge_speedrun', name: 'Tốc Hành Cực Hạn', description: 'Clear boss trong 3 hiệp', reward: 'Máu Thú Nguyên x5' },
 ];
 const MARKET_SPECIALS = [
     { category: 'equipment', discount: 0.20, name: 'Khuyến Mãi Trang Bị' },

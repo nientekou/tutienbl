@@ -10,6 +10,7 @@ export interface UserDestinyEntity {
   exp: number;
   is_equipped: number;
   slot: number;
+  awakened: number;  // V13 A-03: 0 = not awakened, 1 = awakened
   created_at: number;
 }
 

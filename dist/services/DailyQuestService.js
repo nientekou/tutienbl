@@ -53,7 +53,7 @@ exports.QUEST_POOL = [
         category: 'life'
     },
     {
-        id: 'daily_khambha',
+        id: 'daily_khampha',
         name: 'Lữ Hành Thiên Địa',
         emoji: '🗺️',
         description: 'Hoàn thành 1 chuyến thám hiểm dã ngoại.',

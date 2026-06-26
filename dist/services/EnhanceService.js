@@ -274,6 +274,51 @@ class EnhanceService {
         }
         return msg;
     }
+    // === V16 A-02: Equipment Reforge ===
+    reforge(userId, inventoryId) {
+        const item = InventoryRepository_1.inventoryRepository.get(inventoryId);
+        if (!item || item.user_id !== userId)
+            return { success: false, message: '❌ Vật phẩm không tồn tại.' };
+        if (item.is_equipped !== 1)
+            return { success: false, message: '❌ Chỉ có thể rèn lại trang bị đang đeo.' };
+        // Check reforge count
+        const customStats = item.custom_stats ? JSON.parse(item.custom_stats) : {};
+        const reforgeCount = customStats._reforge_count || 0;
+        if (reforgeCount >= 3)
+            return { success: false, message: '❌ Đã rèn lại tối đa 3 lần.' };
+        const user = UserRepository_1.userRepository.get(userId);
+        if (!user)
+            return { success: false, message: '❌ Chưa tạo nhân vật.' };
+        if (user.coin_ha_pham < 1000)
+            return { success: false, message: '❌ Cần 1000 LT để rèn lại.' };
+        // Check material
+        const matInv = database_1.default.prepare('SELECT id, quantity FROM inventories WHERE user_id = ? AND item_id = ?')
+            .get(userId, 'material_mid_stone');
+        if (!matInv || matInv.quantity < 50)
+            return { success: false, message: '❌ Cần 50 Nguyên Liệu Trung Phẩm.' };
+        // Reroll a random stat
+        const stats = ['atk', 'def', 'hp', 'crit', 'speed', 'dodge'];
+        const rerollStat = stats[Math.floor(Math.random() * stats.length)];
+        const baseStats = JSON.parse(item.base_stats || '{}');
+        const baseValue = baseStats[rerollStat] || 0;
+        if (baseValue === 0)
+            return { success: false, message: '❌ Vật phẩm không có chỉ số này.' };
+        // ±20% variance
+        const variance = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
+        const newValue = Math.round(baseValue * variance);
+        baseStats[rerollStat] = newValue;
+        customStats._reforge_count = reforgeCount + 1;
+        customStats._reforge_stat = rerollStat;
+        // Deduct resources
+        UserRepository_1.userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - 1000 });
+        database_1.default.prepare('UPDATE inventories SET quantity = quantity - 50 WHERE id = ?').run(matInv.id);
+        database_1.default.prepare('UPDATE inventories SET base_stats = ?, custom_stats = ? WHERE id = ?')
+            .run(JSON.stringify(baseStats), JSON.stringify(customStats), inventoryId);
+        return {
+            success: true,
+            message: `🔧 Đã rèn lại **${rerollStat}**: ${baseValue} → ${newValue} (+${Math.round((variance - 1) * 100)}%)\n📊 Lần rèn: ${reforgeCount + 1}/3`,
+        };
+    }
 }
 exports.EnhanceService = EnhanceService;
 exports.enhanceService = new EnhanceService();

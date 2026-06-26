@@ -17,7 +17,7 @@ export default class HuyetMachCommand extends Command {
           sub.setName('danhsach').setDescription('Xem danh sách tất cả Huyết Mạch Thượng Cổ.')
         )
         .addSubcommand(sub => 
-          sub.setName('chon').setDescription('Giác tỉnh một Huyết Mạch (Cần Cấp 10 và 500 Linh thạch).')
+          sub.setName('chon').setDescription('Giác tỉnh một Huyết Mạch (Cần Cấp 10 và 500 Linh Thạch).')
           .addStringOption(opt => opt.setName('id').setDescription('ID của Huyết Mạch (dùng /huyetmach danhsach để xem)').setRequired(true))
         )
         .addSubcommand(sub => 

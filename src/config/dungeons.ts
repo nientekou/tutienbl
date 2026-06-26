@@ -65,7 +65,7 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
   dungeon_truc_co_1: {
     id: 'dungeon_truc_co_1',
     name: 'Huyết Ma Động (Trúc Cơ)',
-    description: 'Hang động cổ xưa nhuốm đầy máu của yêu ma, sinh vật bên trong cực kỳ hung tợn.',
+    description: 'Hang động cổ xưa nhuốm đầy máu của yêu ma, sinh vật bên trong cực kỳ hung dữ.',
     minLevel: 39,
     maxDailyEntries: 5, // ponytail: tăng từ 3→5
     monster: {

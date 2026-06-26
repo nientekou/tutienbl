@@ -8,6 +8,19 @@ import {
   DESTINY_SCRAP_SHARDS, DESTINY_BUY_COST_SHARDS,
   DESTINY_RARITY_MULTIPLIER
 } from '../config/destinies';
+import { AWAKENING_MATERIALS } from '../config/itemConstants';
+import db from '../database/database';
+
+// V13 A-03: Destiny Awaken passive effects
+const DESTINY_AWAKEN_PASSIVES: Record<string, { stat_bonus: number; passive: string; passive_desc: string }> = {
+  atk_percent:    { stat_bonus: 0.15, passive: 'ignore_def_30',    passive_desc: '10% chance ignore 30% DEF' },
+  hp_percent:     { stat_bonus: 0.15, passive: 'regen_3pct_low',   passive_desc: 'Regen 3% max HP khi dưới 30% HP' },
+  def_percent:    { stat_bonus: 0.15, passive: 'reflect_8pct',     passive_desc: 'Reflect 8% damage nhận vào' },
+  crit_rate:      { stat_bonus: 0.15, passive: 'crit_silence',     passive_desc: 'Crit 15% chance Silence 1 lượt' },
+  crit_damage:    { stat_bonus: 0.15, passive: 'crit_next_boost',  passive_desc: 'Khi crit, +20% damage hit tiếp theo' },
+  dodge_rate:     { stat_bonus: 0.15, passive: 'dodge_atk_boost',  passive_desc: 'Dodge thành công → +10% ATK 1 lượt' },
+  speed_bonus:    { stat_bonus: 0.15, passive: 'first_strike_70',  passive_desc: 'Attack trước 70% trường hợp' },
+};
 
 export class DestinyService {
   /**
@@ -229,18 +242,62 @@ export class DestinyService {
     for (const dest of destinies) {
       const config = DESTINY_TYPES[dest.destiny_id];
       if (config) {
-        // P1-08: Apply rarity multiplier to bonus calculation
         const rarityMult = DESTINY_RARITY_MULTIPLIER[dest.rarity] || 1.0;
-        const totalBonus = (config.baseValue + (dest.level - 1) * config.scalePerLevel) * rarityMult;
+        let totalBonus = (config.baseValue + (dest.level - 1) * config.scalePerLevel) * rarityMult;
+        // V13 A-03: Awakened destiny gets +15% bonus
+        if (dest.awakened) {
+          totalBonus += DESTINY_AWAKEN_PASSIVES[dest.destiny_id]?.stat_bonus || 0.15;
+        }
         bonuses[dest.destiny_id] += totalBonus;
       }
     }
 
     return bonuses;
   }
-}
 
-// Need db import for transaction
-import db from '../database/database';
+  // V13 A-03: Destiny Awaken
+  public getAwakenPassives(userId: string): { destiny_id: string; passive: string; passive_desc: string }[] {
+    const destinies = destinyRepository.getUserDestinies(userId).filter(d => d.is_equipped === 1 && d.awakened);
+    return destinies.map(d => ({
+      destiny_id: d.destiny_id,
+      passive: DESTINY_AWAKEN_PASSIVES[d.destiny_id]?.passive || '',
+      passive_desc: DESTINY_AWAKEN_PASSIVES[d.destiny_id]?.passive_desc || '',
+    }));
+  }
+
+  public canAwakenDestinyPassive(userId: string, destinyId: number): { eligible: boolean; reason: string } {
+    const destiny = destinyRepository.get(destinyId);
+    if (!destiny || destiny.user_id !== userId) return { eligible: false, reason: 'Mệnh Cách không tồn tại.' };
+    if (destiny.level < DESTINY_MAX_LEVEL) return { eligible: false, reason: `Cần level ${DESTINY_MAX_LEVEL} (hiện ${destiny.level})` };
+    if (destiny.awakened) return { eligible: false, reason: 'Đã giác tĩnh rồi!' };
+    // Max 3 awakened destinies
+    const awakenedCount = destinyRepository.getUserDestinies(userId).filter(d => d.awakened).length;
+    if (awakenedCount >= 3) return { eligible: false, reason: 'Đã đạt giới hạn 3 mệnh cách giác tĩnh.' };
+    return { eligible: true, reason: '' };
+  }
+
+  public awakenDestinyPassive(userId: string, destinyId: number): { success: boolean; message: string } {
+    const check = this.canAwakenDestinyPassive(userId, destinyId);
+    if (!check.eligible) return { success: false, message: `❌ ${check.reason}` };
+
+    // Spend material
+    try {
+      const { inventoryService } = require('./InventoryService');
+      if (!inventoryService.canGetAwakeningMaterial(userId, AWAKENING_MATERIALS.DESTINY_AWAKEN)) {
+        return { success: false, message: '❌ Đã đạt giới hạn vật phẩm giác tĩnh hôm nay.' };
+      }
+      inventoryService.recordAwakeningMaterial(userId, AWAKENING_MATERIALS.DESTINY_AWAKEN);
+    } catch {}
+
+    db.prepare('UPDATE user_destinies SET awakened = 1 WHERE id = ?').run(destinyId);
+
+    const destiny = destinyRepository.get(destinyId);
+    const passive = DESTINY_AWAKEN_PASSIVES[destiny?.destiny_id || ''];
+    return {
+      success: true,
+      message: `✨ **THIÊN MỆNH GIÁC TỈNH!**\n+15% stat bonus\nPassive: ${passive?.passive_desc || 'Unknown'}`,
+    };
+  }
+}
 
 export const destinyService = new DestinyService();

@@ -788,7 +788,7 @@ class CombatService {
                 currentSeasonId = season.id;
         }
         catch (e) { }
-        // Soft cap function: giảm hiệu quả damage贡献 sau ngưỡng nhất định
+        // Soft cap function: giảm hiệu quả đóng góp damage sau ngưỡng nhất định
         const softCapFactor = (dmgPercent) => {
             if (dmgPercent <= 0.10)
                 return 1.0;

@@ -481,6 +481,65 @@ class EquipmentService {
             count: totalQty
         };
     }
+    // === V16 E-03: Quick Equip (Auto-Equip Best Gear) ===
+    autoEquip(userId) {
+        const inventory = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
+        const equipped = inventory.filter(i => i.is_equipped === 1);
+        // Group inventory by slot
+        const slots = ['weapon', 'armor', 'ring', 'necklace', 'pendant', 'mount', 'treasure'];
+        const equippedItems = [];
+        for (const slot of slots) {
+            // Find best item for this slot (by grade + enhance)
+            const candidates = inventory.filter(i => i.is_equipped !== 1 &&
+                i.equipable === 1 &&
+                this.getItemSlot(i.item_id) === slot);
+            if (candidates.length === 0)
+                continue;
+            // Sort by grade (higher = better) then enhance level
+            const gradeOrder = { f: 0, d: 1, c: 2, b: 3, a: 4, s: 5, ss: 6, sss: 7, ex: 8 };
+            candidates.sort((a, b) => {
+                const gradeA = gradeOrder[a.item_id.split('_').pop() || 'f'] || 0;
+                const gradeB = gradeOrder[b.item_id.split('_').pop() || 'f'] || 0;
+                if (gradeB !== gradeA)
+                    return gradeB - gradeA;
+                return (b.enhance_level || 0) - (a.enhance_level || 0);
+            });
+            const best = candidates[0];
+            // Unequip current item in this slot
+            const currentInSlot = equipped.find(e => this.getItemSlot(e.item_id) === slot);
+            if (currentInSlot) {
+                InventoryRepository_1.inventoryRepository.updateEquipmentStatus(currentInSlot.id, 0, null);
+            }
+            // Equip best item
+            InventoryRepository_1.inventoryRepository.updateEquipmentStatus(best.id, 1, slot);
+            equippedItems.push(best.name || best.item_id);
+        }
+        if (equippedItems.length === 0) {
+            return { success: false, message: '❌ Không tìm thấy trang bị nào để auto-equip.', equipped: [] };
+        }
+        return {
+            success: true,
+            message: `✅ Đã auto-equip ${equippedItems.length} trang bị:\n${equippedItems.map(e => `• ${e}`).join('\n')}`,
+            equipped: equippedItems,
+        };
+    }
+    getItemSlot(itemId) {
+        if (itemId.startsWith('weapon_') || itemId.startsWith('sword_') || itemId.startsWith('blade_') || itemId.startsWith('spear_') || itemId.startsWith('staff_'))
+            return 'weapon';
+        if (itemId.startsWith('armor_') || itemId.startsWith('robe_'))
+            return 'armor';
+        if (itemId.startsWith('ring_'))
+            return 'ring';
+        if (itemId.startsWith('necklace_') || itemId.startsWith('amulet_'))
+            return 'necklace';
+        if (itemId.startsWith('pendant_') || itemId.startsWith('boi_pham_'))
+            return 'pendant';
+        if (itemId.startsWith('mount_'))
+            return 'mount';
+        if (itemId.startsWith('treasure_'))
+            return 'treasure';
+        return 'unknown';
+    }
 }
 exports.EquipmentService = EquipmentService;
 exports.equipmentService = new EquipmentService();

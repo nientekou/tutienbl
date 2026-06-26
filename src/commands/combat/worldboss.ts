@@ -49,7 +49,7 @@ export function buildWorldBossContainer(userId: string): { components: any[]; fl
     new TextDisplayBuilder().setContent(`# 👹 ${boss.name} (Cấp ${boss.level})`)
   );
   container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`*TAN BIẾN ĐI! THẾ GIỚI NÀY RỒI SẼ SỤP ĐỔ!*`)
+      new TextDisplayBuilder().setContent(`*HÃY BIẾN MẤT ĐI! THẾ GIỚI NÀY SẼ SỤP ĐỔ!*`)
   );
 
   // ── HP Section ──
@@ -80,7 +80,7 @@ export function buildWorldBossContainer(userId: string): { components: any[]; fl
     // ── Stats Row ──
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(1));
     container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`⚔️ **Sát Lực:** ${boss.atk.toLocaleString()} │ 🛡️ **Phòng Thủ:** ${boss.def.toLocaleString()} │ 🌀 **Trạng Thái:** Giai đoạn ${stageName}`)
+      new TextDisplayBuilder().setContent(`⚔️ **Sát lực:** ${boss.atk.toLocaleString()} │ 🛡️ **Phòng Thủ:** ${boss.def.toLocaleString()} │ 🌀 **Trạng thái:** Giai đoạn ${stageName}`)
     );
 
     // ── Player Status ──
@@ -275,7 +275,7 @@ export function getBossShopEmbed(userId: string, message?: string): EmbedBuilder
   const bp = user?.boss_points || 0;
   const lines = BOSS_SHOP_ITEMS.map(item => `• **${item.name}** — **${item.cost}** BP\n  ${item.desc}`);
   const embed = new EmbedBuilder()
-    .setTitle('🏪 Boss Point Shop')
+    .setTitle('🏪 Cửa hàng Điểm Boss')
     .setColor(EMBED_COLORS.GOLD)
     .setDescription(`⭐ **BP hiện có:** **${bp}**\n\n${lines.join('\n\n')}`)
     .setFooter({ text: 'Chọn vật phẩm bên dưới để đổi.' });

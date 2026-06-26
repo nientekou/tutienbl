@@ -1108,6 +1108,78 @@ export class SectService {
 
     return msg;
   }
+
+  // === V16 D-04: Guild Treasury (Kho Tàng Tông Môn) ===
+  private initTreasuryTable(): void {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sect_treasury (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sect_id INTEGER NOT NULL,
+        contributor_id TEXT NOT NULL,
+        item_id TEXT NOT NULL,
+        item_name TEXT NOT NULL,
+        quantity INTEGER DEFAULT 1,
+        deposited_at INTEGER NOT NULL
+      );
+    `);
+  }
+
+  public depositToTreasury(userId: string, sectId: number, itemId: string, itemName: string, quantity: number = 1): { success: boolean; message: string } {
+    this.initTreasuryTable();
+    const now = Math.floor(Date.now() / 1000);
+
+    db.prepare(
+      'INSERT INTO sect_treasury (sect_id, contributor_id, item_id, item_name, quantity, deposited_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(sectId, userId, itemId, itemName, quantity, now);
+
+    // Check milestones
+    const totalItems = db.prepare('SELECT SUM(quantity) as total FROM sect_treasury WHERE sect_id = ?')
+      .get(sectId) as { total: number };
+
+    let milestoneMsg = '';
+    if (totalItems.total >= 1000) milestoneMsg = '\n🏆 **Kho Tàng Đã Đạt 1000 vật phẩm!** +5% stats cho cả tông môn.';
+    else if (totalItems.total >= 500) milestoneMsg = '\n🥈 **Kho Tàng Đã Đạt 500 vật phẩm!** Mở cửa hàng tông môn.';
+
+    return { success: true, message: `✅ Đã nộp **${quantity}x ${itemName}** vào kho tàng.${milestoneMsg}` };
+  }
+
+  public getTreasuryInfo(sectId: number): { totalItems: number; recentDeposits: { name: string; quantity: number; time: string }[] } {
+    this.initTreasuryTable();
+    const total = db.prepare('SELECT SUM(quantity) as total FROM sect_treasury WHERE sect_id = ?')
+      .get(sectId) as { total: number };
+
+    const recent = db.prepare(
+      'SELECT item_name as name, quantity, deposited_at as time FROM sect_treasury WHERE sect_id = ? ORDER BY deposited_at DESC LIMIT 10'
+    ).all(sectId) as { name: string; quantity: number; time: number }[];
+
+    const now = Math.floor(Date.now() / 1000);
+    return {
+      totalItems: total.total || 0,
+      recentDeposits: recent.map(r => ({
+        name: r.name,
+        quantity: r.quantity,
+        time: `${Math.floor((now - r.time) / 3600)}h trước`,
+      })),
+    };
+  }
+
+  public getTreasuryDescription(sectId: number): string {
+    const info = this.getTreasuryInfo(sectId);
+    let msg = `🏛️ **Kho Tàng Tông Môn**\n`;
+    msg += `📦 Tổng: **${info.totalItems}** vật phẩm\n\n`;
+
+    if (info.totalItems >= 1000) msg += '🏆 Milestone: +5% stats cho cả tông môn\n';
+    else if (info.totalItems >= 500) msg += '🥈 Milestone: Mở cửa hàng tông môn\n';
+    else msg += `📦 Còn ${500 - info.totalItems} nữa để mở cửa hàng tông môn\n`;
+
+    if (info.recentDeposits.length > 0) {
+      msg += '\n**Gần đây:**\n';
+      for (const d of info.recentDeposits) {
+        msg += `• ${d.name} x${d.quantity} (${d.time})\n`;
+      }
+    }
+    return msg;
+  }
 }
 
 export const sectService = new SectService();

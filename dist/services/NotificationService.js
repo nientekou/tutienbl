@@ -193,5 +193,30 @@ class NotificationService {
             return `${Math.floor(diff / 3600)}h trước`;
         return `${Math.floor(diff / 86400)} ngày trước`;
     }
+    // === V16 E-04: Smart Notifications ===
+    sendSmartNotification(userId, title, message, priority) {
+        // Check user notification settings
+        const settings = this.getNotificationSettings(userId);
+        if (priority === 'urgent' || (priority === 'important' && settings.important) || (priority === 'info' && settings.info)) {
+            this.addNotification(userId, title, message, priority);
+        }
+    }
+    getNotificationSettings(userId) {
+        try {
+            const row = database_1.default.prepare('SELECT * FROM user_notification_settings WHERE user_id = ?')
+                .get(userId);
+            if (row)
+                return { urgent: true, important: row.important_enabled !== 0, info: row.info_enabled !== 0 };
+        }
+        catch { }
+        return { urgent: true, important: true, info: false };
+    }
+    getSmartNotificationDescription(userId) {
+        const settings = this.getNotificationSettings(userId);
+        return `**Cài Đặt Thông Báo:**\n` +
+            `🔴 Khẩn cấp: Luôn bật\n` +
+            `🟡 Quan trọng: ${settings.important ? '✅ Bật' : '❌ Tắt'}\n` +
+            `🔵 Thông tin: ${settings.info ? '✅ Bật' : '❌ Tắt'}`;
+    }
 }
 exports.notificationService = new NotificationService();

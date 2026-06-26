@@ -22,7 +22,7 @@ class SectWarCommand extends Command_1.Command {
             .addSubcommand(sub => sub.setName('bangxephang').setDescription('Bảng xếp hạng Tông Môn trong mùa giải'))
             .addSubcommand(sub => sub.setName('lichsu').setDescription('Xem lịch sử các trận Bang hội chiến gần đây'))
             .addSubcommandGroup(group => group.setName('mo')
-            .setDescription('Quản lý và chiếm đoạt Mỏ Linh Thạch')
+            .setDescription('Quản lý và chiếm hữu Mỏ Linh Thạch')
             .addSubcommand(sub => sub.setName('xem').setDescription('Xem danh sách Mỏ Linh Thạch'))
             .addSubcommand(sub => sub.setName('chiem')
             .setDescription('Tấn công chiếm Mỏ Linh Thạch')

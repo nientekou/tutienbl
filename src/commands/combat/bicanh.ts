@@ -58,7 +58,7 @@ export function getDungeonEmbed(userId: string): EmbedBuilder {
 
   const embed = new EmbedBuilder()
     .setTitle('🔮 Bí Cảnh Phó Bản - Giới Luật Tu Hành')
-    .setDescription('Nơi tu sĩ thử thách võ học bản thân, diệt quái thú linh dị đoạt lấy Tu Vi và bảo vật trời đất.')
+    .setDescription('Nơi tu sĩ thử thách võ học của bản thân, diệt quái thú linh dị, đoạt lấy Tu Vi và bảo vật trời đất.')
     .setColor(EMBED_COLORS.MYSTIC)
     .setTimestamp();
 

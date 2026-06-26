@@ -62,7 +62,7 @@ function getDungeonEmbed(userId) {
     }
     const embed = new discord_js_1.EmbedBuilder()
         .setTitle('🔮 Bí Cảnh Phó Bản - Giới Luật Tu Hành')
-        .setDescription('Nơi tu sĩ thử thách võ học bản thân, diệt quái thú linh dị đoạt lấy Tu Vi và bảo vật trời đất.')
+        .setDescription('Nơi tu sĩ thử thách võ học của bản thân, diệt quái thú linh dị, đoạt lấy Tu Vi và bảo vật trời đất.')
         .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
         .setTimestamp();
     // Lấy danh sách CD của người chơi hôm nay

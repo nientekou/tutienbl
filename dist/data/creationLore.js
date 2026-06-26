@@ -54,7 +54,7 @@ Ngươi không biết ân nhân là ai, nhưng trong cơ thể, một dòng linh
         id: 'de_tu_tan_tu',
         name: 'Đệ Tử Tán Tu',
         emoji: '🍃',
-        description: 'Theo một tán tu già học đạo, biết nhiều mẹo vặt tu hành.',
+        description: 'Theo một tán tu già học đạo, biết nhiều mẹo vặt trong tu hành.',
         intro: `Sư phụ ngươi là một tán tu kỳ lạ. Ông sống trong túp lều ven rừng, xung quanh là hàng trăm cuốn bí tịch viết tay — cuốn dạy luyện đan, cuốn dạy bắt yêu thú, cuốn dạy cách phân biệt linh thảo.
 
 "Tu tiên không phải là ngồi thiền cả ngày. Tu tiên là sống." — Sư phụ thường nói thế, khi đang lúi húi nấu một nồi thuốc kỳ lạ.

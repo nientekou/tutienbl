@@ -163,5 +163,34 @@ class EventCalendarService {
         msg += `\n*Cùng tích lũy EXP qua các hoạt động để mở khóa!*`;
         return msg;
     }
+    // === V16 B-04: Seasonal Events ===
+    SEASONAL_EVENTS = [
+        { id: 'spring_phoenix', name: 'Hội Phượng Hoàng', season: 'spring', month: 3, duration: 14, description: 'Special dungeon + mount skin', rewards: 'Phượng Hoàng Tọa Kỵ Skin + 50 KNB' },
+        { id: 'summer_thunder', name: 'Lôi Đạo Đại Hội', season: 'summer', month: 6, duration: 14, description: 'PvP tournament + exclusive title', rewards: '"Lôi Đạo Vương" Title + 100 KNB' },
+        { id: 'autumn_harvest', name: 'Thuộc Nguyên Festival', season: 'autumn', month: 9, duration: 14, description: 'Crafting bonus + rare materials', rewards: '3x Awakening Materials + 50 KNB' },
+        { id: 'winter_trial', name: 'Băng Phong Trials', season: 'winter', month: 12, duration: 14, description: 'Survival challenge + cosmetic rewards', rewards: 'Băng Phong Avatar Frame + 100 KNB' },
+    ];
+    getCurrentSeasonalEvent() {
+        const now = new Date();
+        const month = now.getMonth() + 1;
+        return this.SEASONAL_EVENTS.find(e => e.month === month) || null;
+    }
+    getSeasonalEventDescription() {
+        const current = this.getCurrentSeasonalEvent();
+        const now = new Date();
+        const month = now.getMonth() + 1;
+        let msg = '🌸 **Sự Kiện Theo Mùa**\n\n';
+        for (const event of this.SEASONAL_EVENTS) {
+            const isActive = event.month === month;
+            const status = isActive ? '🟢 ĐANG DIỄN RA' : '⚪ Chờ đến lượt';
+            msg += `${isActive ? '🟢' : '⚪'} **${event.name}** — Tháng ${event.month}\n`;
+            msg += `  ${event.description}\n`;
+            msg += `  Phần thưởng: ${event.rewards}\n`;
+            if (isActive)
+                msg += `  ⏰ Còn lại: ${Math.max(0, 14 - now.getDate())} ngày\n`;
+            msg += '\n';
+        }
+        return msg;
+    }
 }
 exports.eventCalendarService = new EventCalendarService();

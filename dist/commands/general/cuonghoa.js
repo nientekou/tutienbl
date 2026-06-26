@@ -8,7 +8,7 @@ const EnhanceService_1 = require("../../services/EnhanceService");
 const itemConstants_1 = require("../../config/itemConstants");
 const v2Components_1 = require("../../utils/v2Components");
 const uiSystem_1 = require("../../utils/uiSystem");
-class CuongHuaCommand extends Command_1.Command {
+class CuongHoaCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
             .setName('cuonghoa')
@@ -148,4 +148,4 @@ class CuongHuaCommand extends Command_1.Command {
         return { embed: comp, rows: [row] };
     }
 }
-exports.default = CuongHuaCommand;
+exports.default = CuongHoaCommand;

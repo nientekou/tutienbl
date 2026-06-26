@@ -127,7 +127,7 @@ export async function notifyExpFull(userId: string): Promise<void> {
 
     const user = client.users.cache.get(userId) || await client.users.fetch(userId);
     if (user) {
-      await user.send(`🌿 **THÔNG BÁO TU HÀNH:** Tu vi của đạo hữu đã đạt **Cực Hạn Đại Viên Mãn** (Đầy thanh EXP)! Vui lòng thực hiện lệnh \`/dotpha\` để đột phá cảnh giới tiếp theo, tránh thất thoát linh khí tích lũy!`).catch(() => null);
+      await user.send(`🌿 **THÔNG BÁO TU HÀNH:** Tu vi của đạo hữu đã đạt **Cực Hạn Đại Viên Mãn** (Đầy thanh kinh nghiệm)! Vui lòng thực hiện lệnh \`/dotpha\` để đột phá cảnh giới tiếp theo, tránh thất thoát linh khí tích lũy!`).catch(() => null);
     }
   } catch (e) {
     console.error('Lỗi khi gửi thông báo đầy EXP:', e);

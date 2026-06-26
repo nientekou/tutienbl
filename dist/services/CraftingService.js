@@ -53,7 +53,7 @@ class CraftingService {
     `).run(userId, recipeId, recipe.type, now, endTime);
         return {
             success: true,
-            message: `🧪 Lò luyện đan/Lửa rèn khí khí phát khởi! Rèn chế **${recipe.name}** thành công. Dự kiến hoàn thành sau **${recipe.duration} giây**.`
+            message: `🧪 Lò luyện đan/Lửa rèn khí phát khởi! Rèn chế **${recipe.name}** thành công. Dự kiến hoàn thành sau **${recipe.duration} giây**.`
         };
     }
     /**

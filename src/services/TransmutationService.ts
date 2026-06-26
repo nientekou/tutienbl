@@ -119,6 +119,70 @@ class TransmutationService {
     if (idx < 0 || idx >= GRADE_ORDER.length - 1) return null;
     return GRADE_ORDER[idx + 1];
   }
+
+  // === V16 D-03: Material Transmutation ===
+  private readonly MATERIAL_TIERS = [
+    { id: 'herb_1', name: 'Thảo Dược Thường', tier: 1 },
+    { id: 'herb_rare', name: 'Thảo Dược Quý', tier: 2 },
+    { id: 'herb_legendary', name: 'Thảo Dược Huyền Thoại', tier: 3 },
+    { id: 'material_common', name: 'Nguyên Liệu Thường', tier: 1 },
+    { id: 'material_rare', name: 'Nguyên Liệu Quý', tier: 2 },
+    { id: 'material_legendary', name: 'Nguyên Liệu Huyền Thoại', tier: 3 },
+  ];
+
+  private readonly TRANSMUTE_RATIOS: Record<number, { inputQty: number; outputTier: number; cost: number }> = {
+    1: { inputQty: 10, outputTier: 2, cost: 100 },
+    2: { inputQty: 5, outputTier: 3, cost: 500 },
+  };
+
+  public transmuteMaterial(userId: string, materialId: string): { success: boolean; message: string } {
+    const material = this.MATERIAL_TIERS.find(m => m.id === materialId);
+    if (!material) return { success: false, message: '❌ Nguyên liệu không tồn tại.' };
+
+    const ratio = this.TRANSMUTE_RATIOS[material.tier];
+    if (!ratio) return { success: false, message: '❌ Không thể chuyển hóa nguyên liệu cấp này.' };
+
+    const user = userRepository.get(userId);
+    if (!user) return { success: false, message: '❌ Chưa tạo nhân vật.' };
+    if (user.coin_ha_pham < ratio.cost) return { success: false, message: `❌ Không đủ ${ratio.cost} LT.` };
+
+    // Check material quantity
+    const invItem = db.prepare('SELECT id, quantity FROM inventories WHERE user_id = ? AND item_id = ?')
+      .get(userId, materialId) as { id: number; quantity: number } | undefined;
+    if (!invItem || invItem.quantity < ratio.inputQty) {
+      return { success: false, message: `❌ Cần ${ratio.inputQty} ${material.name} (hiện có: ${invItem?.quantity || 0}).` };
+    }
+
+    // Find output material
+    const outputMaterial = this.MATERIAL_TIERS.find(m => m.tier === ratio.outputTier && m.id.startsWith(material.id.split('_')[0]));
+    if (!outputMaterial) return { success: false, message: '❌ Không tìm thấy nguyên liệu đích.' };
+
+    // Transmute
+    db.prepare('UPDATE inventories SET quantity = quantity - ? WHERE id = ?').run(ratio.inputQty, invItem.id);
+    userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - ratio.cost });
+
+    // Add output
+    const existing = db.prepare('SELECT id, quantity FROM inventories WHERE user_id = ? AND item_id = ?')
+      .get(userId, outputMaterial.id) as { id: number; quantity: number } | undefined;
+    if (existing) {
+      db.prepare('UPDATE inventories SET quantity = quantity + 1 WHERE id = ?').run(existing.id);
+    } else {
+      db.prepare('INSERT INTO inventories (user_id, item_id, quantity, is_equipped) VALUES (?, ?, 1, 0)')
+        .run(userId, outputMaterial.id);
+    }
+
+    return { success: true, message: `✅ Chuyển hóa ${ratio.inputQty}x ${material.name} → 1x ${outputMaterial.name} (${ratio.cost} LT)` };
+  }
+
+  public getTransmuteInfo(): string {
+    let msg = '🔄 **Chuyển Hóa Nguyên Liệu**\n\n';
+    msg += '10x Thảo Dược Thường → 1x Thảo Dược Quý (100 LT)\n';
+    msg += '5x Thảo Dược Quý → 1x Thảo Dược Huyền Thoại (500 LT)\n';
+    msg += '10x Nguyên Liệu Thường → 1x Nguyên Liệu Quý (100 LT)\n';
+    msg += '5x Nguyên Liệu Quý → 1x Nguyên Liệu Huyền Thoại (500 LT)\n';
+    msg += '\nDùng `/chuyenhoa <material_id>` để chuyển hóa.';
+    return msg;
+  }
 }
 
 export const transmutationService = new TransmutationService();

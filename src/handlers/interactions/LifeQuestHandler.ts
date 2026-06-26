@@ -9,7 +9,7 @@ import { encounterService } from '../../services/EncounterService';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { getLinhDienEmbed, getLinhDienComponents } from '../../commands/life/linhdien';
 import { getCraftingEmbed, getCraftingComponents } from '../../commands/life/chetao';
-import { getKhamBhaEmbed, getKhamBhaComponents } from '../../commands/general/khambha';
+import { getKhamPhaEmbed, getKhamPhaComponents } from '../../commands/general/khampha';
 import { getNhiemVuEmbed, getNhiemVuComponents, getQuestChainEmbed, getQuestChainComponents } from '../../commands/general/nhiemvu';
 import { performWork } from '../../commands/general/lamviec';
 import { safeV2Update, safeV2TextUpdate, toV2Payload } from '../../utils/uiSystem';
@@ -396,14 +396,14 @@ export class LifeQuestHandler {
       }
 
       // --- Nút: KHÁM PHÁ DÃ NGOẠI (nav) ---
-      else if (action === 'khambhanav') {
-        const embed = getKhamBhaEmbed(targetUserId);
-        const rows = getKhamBhaComponents(targetUserId);
+      else if (action === 'khamphanav') {
+        const embed = getKhamPhaEmbed(targetUserId);
+        const rows = getKhamPhaComponents(targetUserId);
         await safeV2Update(interaction, [embed], rows);
       }
 
       // --- Nút: BẮT ĐẦU THÁM HIỂM (chọn địa điểm) ---
-      else if (action === 'khambhastart') {
+      else if (action === 'khamphastart') {
         const locationId = parts.slice(1, -1).join('_'); // Ghép lại vì loc.id có underscore
         const result = explorationService.startExploration(targetUserId, locationId);
 
@@ -412,14 +412,14 @@ export class LifeQuestHandler {
           return;
         }
 
-        const embed = getKhamBhaEmbed(targetUserId);
-        const rows = getKhamBhaComponents(targetUserId);
+        const embed = getKhamPhaEmbed(targetUserId);
+        const rows = getKhamPhaComponents(targetUserId);
         await safeV2Update(interaction, [embed], rows);
         await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
       }
 
       // --- Nút: VỀ LẤY THƯỞNG THÁM HIỂM ---
-      else if (action === 'khambhaclaim') {
+      else if (action === 'khamphaclaim') {
         const result = explorationService.claimExploration(targetUserId);
 
         if (!result.success) {
@@ -440,7 +440,7 @@ export class LifeQuestHandler {
           for (const choice of event.choices) {
             choiceRow.addComponents(
               new ButtonBuilder()
-                .setCustomId(`khambhaevent_${result.explorationId}_${choice.id}_${targetUserId}`)
+                .setCustomId(`khamphaevent_${result.explorationId}_${choice.id}_${targetUserId}`)
                 .setLabel(choice.label)
                 .setStyle(ButtonStyle.Primary)
             );
@@ -448,26 +448,26 @@ export class LifeQuestHandler {
           await safeV2Update(interaction, [embed], [choiceRow]);
         } else {
           // Thu hoạch bình thường
-          dailyQuestService.updateProgress(targetUserId, 'daily_khambha', 1);
+          dailyQuestService.updateProgress(targetUserId, 'daily_khampha', 1);
           questChainService.updateProgress(targetUserId, 'explore', 1);
-          const embed = getKhamBhaEmbed(targetUserId);
-          const rows = getKhamBhaComponents(targetUserId);
+          const embed = getKhamPhaEmbed(targetUserId);
+          const rows = getKhamPhaComponents(targetUserId);
           await safeV2Update(interaction, [embed], rows);
           await interaction.followUp({ content: result.message });
         }
       }
 
       // --- Nút: XỬ LÝ LỰA CHỌN KỲ NGỘ THÁM HIỂM ---
-      else if (action === 'khambhaevent') {
+      else if (action === 'khamphaevent') {
         const explorationId = parseInt(parts[1], 10);
         const choiceId = parts[2];
 
         const result = explorationService.resolveEvent(targetUserId, explorationId, choiceId);
-        dailyQuestService.updateProgress(targetUserId, 'daily_khambha', 1);
+        dailyQuestService.updateProgress(targetUserId, 'daily_khampha', 1);
         questChainService.updateProgress(targetUserId, 'explore', 1);
 
-        const embed = getKhamBhaEmbed(targetUserId);
-        const rows = getKhamBhaComponents(targetUserId);
+        const embed = getKhamPhaEmbed(targetUserId);
+        const rows = getKhamPhaComponents(targetUserId);
         await safeV2Update(interaction, [embed], rows);
         await interaction.followUp({ content: result.message });
       }
@@ -633,6 +633,37 @@ export class LifeQuestHandler {
           new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
         );
         await safeV2Update(interaction, [embed], [...linhComps, backRow]);
+        return;
+      }
+
+      // V15: Bisinghanh enter button
+      else if (action === 'bicanhsonghanh_enter') {
+        const { secretRealmService } = require('../../services/SecretRealmService');
+        const canEnter = secretRealmService.canEnter(targetUserId);
+        if (!canEnter.eligible) {
+          await interaction.reply({ content: `❌ ${canEnter.reason}`, flags: MessageFlags.Ephemeral });
+          return;
+        }
+        const config = secretRealmService.getConfig();
+        await interaction.reply({ content: `🌀 Đang vào **${config.name}**... Partner cần online để bắt đầu!`, flags: MessageFlags.Ephemeral });
+        return;
+      }
+
+      // V15: Sect Council vote buttons
+      else if (action === 'sectcouncil_vote_yes' || action === 'sectcouncil_vote_no') {
+        const { sectCouncilService } = require('../../services/SectCouncilService');
+        const sectId = parseInt(parts[2]);
+        const vote = action === 'sectcouncil_vote_yes' ? 'yes' : 'abstain';
+        const result = sectCouncilService.vote(sectId, targetUserId, parts[1] || '', vote);
+        await interaction.reply({ content: result.message, flags: MessageFlags.Ephemeral });
+        return;
+      }
+
+      // V15: Bounty Board claim
+      else if (action === 'bangnghiavu_claim') {
+        const { bountyBoardService } = require('../../services/BountyBoardService');
+        const result = bountyBoardService.completeToday(targetUserId);
+        await interaction.reply({ content: result.message, flags: MessageFlags.Ephemeral });
         return;
       }
 

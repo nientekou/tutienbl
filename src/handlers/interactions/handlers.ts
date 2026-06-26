@@ -121,7 +121,10 @@ registry.on([
   'chainstart', 'chainclaim',
   'khambhanav', 'khambhastart', 'khambhaclaim', 'khambhaevent', 'encounter',
   'linhdiengieoselect', 'linhdienspeedupselect', 'linhdiencareselect',
-  'craftselect', 'luyenkhiselect'
+  'craftselect', 'luyenkhiselect',
+  // V15: New command button handlers
+  'bicanhsonghanh_enter', 'hoidong', 'bangnghiavu_claim',
+  'sectcouncil_vote_yes', 'sectcouncil_vote_no'
 ], wrap(LifeQuestHandler));
 
 // Need to declare these handler functions after registry setup

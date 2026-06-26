@@ -452,6 +452,41 @@ class DreamscapeService {
         database_1.default.prepare('UPDATE user_dreamscapes SET current_floor = 1, hp_remaining = -1 WHERE user_id = ?').run(userId);
         return { success: true, message: 'Đã đầu hàng Bóng Tối. Vòng lặp hiện tại đã kết thúc, máu và tầng đã được đặt lại.' };
     }
+    // === V15 D-02: Dreamscape Shop ===
+    DREAM_SHOP_ITEMS = [
+        { id: 'dream_atk_pill', name: 'Đan Tăng Công', description: '+10% ATK temporary', cost: 50, type: 'buff', value: 'atk_10' },
+        { id: 'dream_def_pill', name: 'Đan Tăng Thủ', description: '+10% DEF temporary', cost: 50, type: 'buff', value: 'def_10' },
+        { id: 'dream_destiny_shard', name: 'Mảnh Thiên Mệnh', description: '10 Destiny Shards', cost: 100, type: 'material', value: 'destiny_shard_10' },
+        { id: 'dream_rare_mat', name: 'Nguyên Liệu Quý', description: '1 Rare Material (awakening)', cost: 150, type: 'material', value: 'rare_material_1' },
+        { id: 'dream_exp_scroll', name: 'Scroll Tu Vi', description: '+5000 EXP', cost: 200, type: 'exp', value: 'exp_5000' },
+        { id: 'dream_legendary_key', name: 'Chìa Kho Báu', description: 'Mở Legendary Chest', cost: 300, type: 'key', value: 'legendary_chest' },
+    ];
+    getDreamShopItems() {
+        return this.DREAM_SHOP_ITEMS;
+    }
+    getDreamDust(userId) {
+        const row = database_1.default.prepare('SELECT dream_dust FROM user_dreamscapes WHERE user_id = ?')
+            .get(userId);
+        return row?.dream_dust || 0;
+    }
+    buyDreamShopItem(userId, itemId) {
+        const item = this.DREAM_SHOP_ITEMS.find(i => i.id === itemId);
+        if (!item)
+            return { success: false, message: 'Vật phẩm không tồn tại.' };
+        const dust = this.getDreamDust(userId);
+        if (dust < item.cost)
+            return { success: false, message: `Không đủ Dream Dust (${dust}/${item.cost})` };
+        database_1.default.prepare('UPDATE user_dreamscapes SET dream_dust = dream_dust - ? WHERE user_id = ?')
+            .run(item.cost, userId);
+        // Apply reward
+        if (item.type === 'exp') {
+            const { userRepository } = require('../database/repositories/UserRepository');
+            const user = userRepository.get(userId);
+            if (user)
+                userRepository.update(userId, { tu_vi: user.tu_vi + 5000 });
+        }
+        return { success: true, message: `Đã mua **${item.name}**! ${item.description}` };
+    }
 }
 exports.DreamscapeService = DreamscapeService;
 exports.dreamscapeService = new DreamscapeService();

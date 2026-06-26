@@ -8,6 +8,7 @@ interface SkillMastery {
   mastery_level: number;
   mastery_exp: number;
   chosen_path: 'offense' | 'defense' | null;
+  awakened_branch: string | null;
 }
 
 const MASTERY_EXP_PER_LEVEL = 100;
@@ -53,6 +54,37 @@ const SKILL_COMBOS: Record<string, { skill1: string; skill2: string; name: strin
   lightning_shield: { skill1: 'skill_lightning', skill2: 'skill_earth', name: 'Lôi Thổ Giáp', description: 'Khiên + phản đòn', damage: 1.0 },
 };
 
+// A-01: Skill Mastery Awakening — 2 branches per skill at mastery 10
+const SKILL_AWAKENING_BRANCHES: Record<string, {
+  branch_a: { name: string; description: string; effect: string };
+  branch_b: { name: string; description: string; effect: string };
+}> = {
+  skill_fire: {
+    branch_a: { name: 'Liệt Hỏa Bùng Nổ', description: '+30% damage, burn 2 lượt', effect: 'fire_burst' },
+    branch_b: { name: 'Hỏa Dung Lôi Động', description: 'AOE 50% damage cho tất cả kẻ địch', effect: 'fire_aoe' },
+  },
+  skill_water: {
+    branch_a: { name: 'Băng Phong Vạn Vật', description: 'Freeze enemy 1 lượt', effect: 'water_freeze' },
+    branch_b: { name: 'Thủy Linh Thẩm Thấu', description: 'Ignore 30% DEF', effect: 'water_penetrate' },
+  },
+  skill_wood: {
+    branch_a: { name: 'Mộc Hấp Huyết Sâu', description: 'Hút 35% sát thương (thay vì 20%)', effect: 'wood_lifesteal_plus' },
+    branch_b: { name: 'Thiên Địa Hồi Xuân', description: 'Heal bản thân 25% max HP', effect: 'wood_heal_burst' },
+  },
+  skill_earth: {
+    branch_a: { name: 'Đại Địa Hộ Thể', description: 'Shield 25% max HP + reflect 15%', effect: 'earth_shield_plus' },
+    branch_b: { name: 'Thổ Nộ Chấn Thiên', description: 'Stun enemy 2 lượt + 100% ATK damage', effect: 'earth_stun_burst' },
+  },
+  skill_wind: {
+    branch_a: { name: 'Vô Tung Vô Tích', description: 'Guaranteed dodge + buff dodge 30% 2 lượt', effect: 'wind_dodge_plus' },
+    branch_b: { name: 'Phong Hành Vạn Lý', description: '+40% speed 3 lượt, attack trước mọi enemy', effect: 'wind_speed_plus' },
+  },
+  skill_lightning: {
+    branch_a: { name: 'Lôi Phạt Thiên Kinh', description: '+50% damage, stun 1 lượt', effect: 'lightning_burst' },
+    branch_b: { name: 'Lôi Đình Liên Hoàn', description: '3 đòn liên tiếp, mỗi đòn 80% ATK', effect: 'lightning_chain' },
+  },
+};
+
 // A-04: Skill Variants — each skill has 2-3 variants
 const SKILL_VARIANTS: Record<string, { id: string; name: string; description: string; type: 'damage' | 'utility' | 'defense' }[]> = {
   skill_fire: [
@@ -96,9 +128,12 @@ class SkillMasteryService {
         mastery_level INTEGER DEFAULT 1,
         mastery_exp INTEGER DEFAULT 0,
         chosen_path TEXT DEFAULT NULL,
+        awakened_branch TEXT DEFAULT NULL,
         PRIMARY KEY(user_id, skill_id)
       );
     `);
+    // ponytail: add column if missing (migrated from V12)
+    try { db.exec(`ALTER TABLE skill_mastery ADD COLUMN awakened_branch TEXT DEFAULT NULL`); } catch {}
   }
 
   /**
@@ -166,7 +201,7 @@ class SkillMasteryService {
   /**
    * A-03: Get mastery bonus for combat
    */
-  getMasteryBonus(userId: string, skillId: string): { damageMult: number; cooldownReduction: number; extraEffect: string } {
+  getMasteryBonus(userId: string, skillId: string): { damageMult: number; cooldownReduction: number; extraEffect: string; awakenedEffect: string } {
     const mastery = this.getMastery(userId, skillId);
 
     // Each mastery level: +2% damage, -1% cooldown
@@ -179,7 +214,71 @@ class SkillMasteryService {
       extraEffect = pathInfo?.bonus || '';
     }
 
-    return { damageMult, cooldownReduction, extraEffect };
+    // A-01: Awakening effect
+    let awakenedEffect = '';
+    if (mastery.awakened_branch && SKILL_AWAKENING_BRANCHES[skillId]) {
+      const branch = mastery.awakened_branch === 'a'
+        ? SKILL_AWAKENING_BRANCHES[skillId].branch_a
+        : SKILL_AWAKENING_BRANCHES[skillId].branch_b;
+      awakenedEffect = branch?.effect || '';
+    }
+
+    return { damageMult, cooldownReduction, extraEffect, awakenedEffect };
+  }
+
+  /**
+   * A-01: Get available awakening branches for a skill
+   */
+  getAwakeningBranches(skillId: string): { branch_a: { name: string; description: string }; branch_b: { name: string; description: string } } | null {
+    return SKILL_AWAKENING_BRANCHES[skillId] || null;
+  }
+
+  /**
+   * A-01: Check if skill is eligible for awakening
+   */
+  canAwaken(userId: string, skillId: string): { eligible: boolean; reason: string } {
+    const mastery = this.getMastery(userId, skillId);
+    if (mastery.mastery_level < MAX_MASTERY_LEVEL) {
+      return { eligible: false, reason: `Cần mastery level ${MAX_MASTERY_LEVEL} (hiện ${mastery.mastery_level})` };
+    }
+    if (mastery.awakened_branch) {
+      return { eligible: false, reason: 'Đã giác tĩnh rồi!' };
+    }
+    // Check material
+    try {
+      const { inventoryService } = require('./InventoryService');
+      if (!inventoryService.canGetAwakeningMaterial(userId, 'material_linh_tuy_giac_tinh')) {
+        return { eligible: false, reason: 'Đã đạt giới hạn vật phẩm giác tĩnh hôm nay (5/ngày)' };
+      }
+    } catch {}
+    return { eligible: true, reason: '' };
+  }
+
+  /**
+   * A-01: Awaken a skill — choose branch_a or branch_b
+   */
+  awakenSkill(userId: string, skillId: string, branch: 'a' | 'b'): { success: boolean; message: string } {
+    const check = this.canAwaken(userId, skillId);
+    if (!check.eligible) return { success: false, message: `❌ ${check.reason}` };
+
+    const branches = SKILL_AWAKENING_BRANCHES[skillId];
+    if (!branches) return { success: false, message: '❌ Skill này không có nhánh giác tĩnh.' };
+
+    const chosen = branch === 'a' ? branches.branch_a : branches.branch_b;
+
+    // Spend material
+    try {
+      const { inventoryService } = require('./InventoryService');
+      inventoryService.recordAwakeningMaterial(userId, 'material_linh_tuy_giac_tinh');
+    } catch {}
+
+    db.prepare('UPDATE skill_mastery SET awakened_branch = ? WHERE user_id = ? AND skill_id = ?')
+      .run(branch, userId, skillId);
+
+    return {
+      success: true,
+      message: `✨ **GIÁC TỈNH THÀNH CÔNG!**\nSkill đã chọn nhánh: **${chosen.name}**\n${chosen.description}`,
+    };
   }
 
   /**
@@ -217,6 +316,17 @@ class SkillMasteryService {
       msg += `Path: **${pathInfo?.name || mastery.chosen_path}** — ${pathInfo?.description || ''}\n`;
     } else if (mastery.mastery_level >= 5) {
       msg += `🔓 Đã mở path selection (dùng \`/kynang path ${skillId}\`)\n`;
+    }
+
+    // A-01: Awakening status
+    if (mastery.awakened_branch) {
+      const branches = SKILL_AWAKENING_BRANCHES[skillId];
+      if (branches) {
+        const branch = mastery.awakened_branch === 'a' ? branches.branch_a : branches.branch_b;
+        msg += `✨ **GIÁC TỈNH:** ${branch.name} — ${branch.description}\n`;
+      }
+    } else if (mastery.mastery_level >= MAX_MASTERY_LEVEL) {
+      msg += `🔓 Đã mở giác tĩnh (dùng \`/kynang giactinh ${skillId}\`)\n`;
     }
 
     return msg;

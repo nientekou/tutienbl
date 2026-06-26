@@ -3,7 +3,7 @@ const WORDS = [
   'mặt trời', 'mặt trăng', 'ngôi sao', 'bầu trời', 'gió mát',
   'mưa rơi', 'tuyết rơi', 'sấm chớp', 'cầu vồng', 'mây trắng',
   'biển cả', 'sông dài', 'núi cao', 'đồng bằng', 'thung lũng',
-  'hồ nước', 'suối nhỏ', 'hanging đá', 'động vật', 'thực vật',
+  'hồ nước', 'suối nhỏ', 'vách đá', 'động vật', 'thực vật',
   'hoa lá', 'cây cối', 'rừng xanh', 'cỏ dại', 'lá rơi',
   'hoa nở', 'hoa hồng', 'hoa cúc', 'hoa mai', 'hoa đào',
   'hoa sen', 'hoa lan', 'hoa violet', 'bông tuyết', 'giọt sương',
@@ -45,8 +45,8 @@ const WORDS = [
   'miệng cười', 'răng trắng', 'lưỡi liếm', 'cổ họng', 'vai rộng',
   'tay chân', 'ngón tay', 'bàn tay', 'cánh tay', 'khuỷu tay',
   'bụng no', 'lưng thẳng', 'đầu gối', 'bắp chân', 'gót chân',
-  'xương sống', 'máu nóng', 'tim đập', 'phổi thở', 'gan detox',
-  'thận khỏe', 'dạ dày', 'ruột già', 'ruột non', 'tụy pancreas',
+  'xương sống',   'máu nóng', 'tim đập', 'phổi thở', 'gan thải độc',
+  'thận khỏe', 'dạ dày', 'ruột già', 'ruột non', 'tuyến tụy',
   'não bộ', 'dây thần', 'tủy sống', 'mạch máu', 'khí quản',
   // ── Cảm xúc ──
   'vui vẻ', 'hạnh phúc', 'tươi cười', 'phấn khởi', 'hào hứng',
@@ -69,7 +69,7 @@ const WORDS = [
   'con tôm', 'con cua', 'con mực', 'con cá', 'con sò',
   'con ong', 'con bướm', 'con kiến', 'con mối', 'con gián',
   'con ruồi', 'con muỗi', 'con ve', 'con dế', 'con sâu',
-  'con trùn', 'con leech', 'con sam', 'con ngao', 'con hàu',
+  'con trùn', 'con đỉa', 'con sam', 'con ngao', 'con hàu',
   'con sá sùng', 'con vẹm', 'con trai', 'con sò điệp', 'con ốc',
   // ── Xianxia / Tu tiên ──
   'linh khí', 'linh mạch', 'linh căn', 'linh dược', 'linh thạch',
@@ -96,7 +96,7 @@ const WORDS = [
   'trận pháp', 'phong ấn', 'pháp lý', 'đạo lý', 'đạo pháp',
   'linh mục', 'linh điền', 'linh tuyền', 'linh sơn', 'linh động',
   'kiếm trận', 'đao pháp', 'quyền pháp', 'chưởng pháp', 'cước pháp',
-  'thân pháp', 'nhãn pháp', 'thiên nhãn', 'thuật coi', 'bốc phệ',
+  'thân pháp', 'nhãn pháp', 'thiên nhãn', 'thuật bói', 'bốc phệ',
   'thiên cơ', 'địa lý', 'nhân tướng', 'phong thủy', 'bát tự',
   'đại la', 'kim tiên', 'chân tiên', 'thiên tiên', 'địa tiên',
   'tiên thiên', 'hậu thiên', 'căn cơ', 'phúc duyên', 'nghiệp lực',
@@ -112,10 +112,10 @@ const WORDS = [
   'nắng chói', 'mưa to', 'gió lớn', 'sấm rền', 'chớp giật',
   'sương rơi', 'tuyết tan', 'hơi nước', 'khói xám', 'tro đỏ',
   'đá xanh', 'cát vàng', 'bùn đen', 'sét ngang', 'sấm dồn',
-  'mây hồng', 'trăng sáng', 'sao hôm nay', 'mặt trời', 'bầu trong',
-  'núi phủ', 'sông chảy', 'hồ phản', 'biển động', 'thác đổ',
+  'mây hồng', 'trăng sáng', 'sao hôm', 'mặt trời', 'bầu trong',
+  'núi phủ tuyết', 'sông chảy', 'hồ phản chiếu', 'biển động', 'thác đổ',
   'hang tối', 'động sáng', 'suối reo', 'giếng sâu', 'ao tĩnh',
-  'đầm rộng', 'vịnh nhỏ', 'cửa biển', 'song ngòi', 'mương dẫn',
+  'đầm rộng', 'vịnh nhỏ', 'cửa biển', 'sông ngòi', 'mương dẫn',
   'ruộng đồng', 'nông điền', 'cánh đồng', 'vườn cây', 'rừng rậm',
   'chùm cây', 'cây cổ', 'thân cây', 'gốc cây', 'ngọn cây',
   'lá xanh', 'hoa đỏ', 'quả chín', 'hạt giống', 'mầm non',
@@ -124,11 +124,11 @@ const WORDS = [
   'nấm mọc', 'nấm độc', 'nấm linh', 'nấm lim', 'nấm lim',
   'đá ong', 'đá vôi', 'đá hoa', 'đá granit', 'đá cẩm thạch',
   // ── Đời sống nâng cao ──
-  'áo dài', 'áo sơ', 'quần jean', 'váy đầm', 'áo len',
+  'áo dài', 'áo sơ mi', 'quần jean', 'váy đầm', 'áo len',
   'giày tây', 'dép lê', 'mũ len', 'khăn quàng', 'găng tay',
   'túi xách', 'ví tiền', 'đồng hồ', 'mắt kính', 'nón lá',
   'nón bảo', 'áo mưa', 'áo khoác', 'áo vest', 'áo choàng',
-  'mì vằn', 'bánh canh', 'bánh bèo', 'bánh bột', 'bánh khoai',
+  'mì vằn thắn', 'bánh canh', 'bánh bèo', 'bánh bột', 'bánh khoai',
   'bánh rán', 'bánh mì', 'bánh crepe', 'bánh flan', 'bánh pudding',
   'trứng gà', 'trứng vịt', 'trứng cút', 'trứng lộn', 'trứng chiên',
   'rau muống', 'rau cải', 'rau dền', 'rau thơm', 'rau lang',
@@ -149,7 +149,7 @@ const WORDS = [
   'vợ chồng', 'bạn đời', 'người yêu', 'đối tác', 'đồng nghiệp',
   // ── Giáo dục ──
   'sách vở', 'vở viết', 'bút chì', 'bút mực', 'cây thước',
-  'cặp sách', 'balo học', 'bảng đen', ' phấn trắng', 'bút đỏ',
+  'cặp sách', 'balo học', 'bảng đen', 'phấn trắng', 'bút đỏ',
   'điểm số', 'điểm mười', 'điểm cao', 'thi cử', 'kỳ thi',
   'đề thi', 'bài thi', 'câu hỏi', 'đáp án', 'bài giải',
   'giáo trình', 'bài giảng', 'thuyết trình', 'bài tập', 'đồ án',
@@ -164,7 +164,7 @@ const WORDS = [
   // ── Số đếm ──
   'một hai', 'ba bốn', 'năm sáu', 'bảy tám', 'chín mười',
   'một nửa', 'một phần', 'hai phần', 'ba phần', 'một phần tư',
-  // ──颜色 ──
+  // ── Màu sắc ──
   'màu đỏ', 'màu xanh', 'màu vàng', 'màu trắng', 'màu đen',
   'màu hồng', 'màu tím', 'màu cam', 'màu nâu', 'màu xám',
   'màu be', 'màu kem', 'màu đồng', 'màu bạc', 'màu vàng',
@@ -253,7 +253,7 @@ const WORDS = [
   // ── Công nghệ ──
   'phần mềm', 'phần cứng', 'máy chủ', 'mạng máy', 'công nghệ',
   'trí tuệ', 'nhân tạo', 'robot', 'AI', 'blockchain',
-  'điện toán', 'mâycomputing', 'an ninh', 'mạng lưới', 'dữ liệu',
+  'điện toán', 'đám mây', 'an ninh', 'mạng lưới', 'dữ liệu',
   'thuật toán', 'ngôn ngữ', 'lập trình', 'ứng dụng', 'website',
   // ── Xianxia bổ sung ──
   'kiếm khí', 'đao khí', 'quyền cước', 'thân pháp', 'nhãn thuật',

@@ -13,7 +13,7 @@ import { bloodlineService } from '../../services/BloodlineService';
 import { leaderboardService } from '../../services/LeaderboardService';
 import db from '../../database/database';
 
-export type HoSoTab = 'chiso' | 'taisan' | 'chientich' | 'trangbi' | 'linhthu' | 'somenh' | 'bangxephang';
+export type HoSoTab = 'chiso' | 'taisan' | 'chientich' | 'trangbi' | 'linhthu' | 'somenh' | 'bangxephang' | 'thongke';
 
 const TAB_LABELS: Record<HoSoTab, { name: string; emoji: string }> = {
   chiso: { name: 'Chỉ Số', emoji: '📊' },
@@ -23,6 +23,7 @@ const TAB_LABELS: Record<HoSoTab, { name: string; emoji: string }> = {
   linhthu: { name: 'Linh Thú', emoji: '🐉' },
   somenh: { name: 'Số Mệnh', emoji: '📜' },
   bangxephang: { name: 'Bảng Phong Thần', emoji: '👑' },
+  thongke: { name: 'Thống Kê', emoji: '📈' },
 };
 
 const SLOT_EMOJI: Record<string, string> = {
@@ -587,7 +588,7 @@ function getSoMenhTabEmbed(user: UserEntity): EmbedBuilder {
 }
 
 export function getTabNavigationRows(userId: string, activeTab: HoSoTab): ActionRowBuilder<ButtonBuilder>[] {
-  const tabs: HoSoTab[] = ['chiso', 'taisan', 'chientich', 'trangbi', 'linhthu', 'somenh', 'bangxephang'];
+  const tabs: HoSoTab[] = ['chiso', 'taisan', 'chientich', 'trangbi', 'linhthu', 'somenh', 'bangxephang', 'thongke'];
   const rows: ActionRowBuilder<ButtonBuilder>[] = [];
   
   for (let i = 0; i < tabs.length; i += 4) {
@@ -903,6 +904,56 @@ export default class HoSoCommand extends Command {
   }
 }
 
+function getThongKeTabEmbed(user: UserEntity): EmbedBuilder {
+  const joinDate = new Date((user.created_at || 0) * 1000);
+  const now = new Date();
+  const daysPlayed = Math.max(1, Math.floor((now.getTime() - joinDate.getTime()) / 86400000));
+
+  let arenaProfile: any = null;
+  try { arenaProfile = db.prepare('SELECT * FROM arena_profiles WHERE user_id = ?').get(user.discord_id); } catch {}
+  const wins = arenaProfile?.wins || 0;
+  const losses = arenaProfile?.losses || 0;
+  const totalFights = wins + losses;
+  const winRate = totalFights > 0 ? Math.round((wins / totalFights) * 100) : 0;
+
+  let companionInfo = 'Chưa có';
+  try {
+    const comp = db.prepare('SELECT companion_type, level FROM companion WHERE user_id = ? AND equipped = 1').get(user.discord_id) as any;
+    if (comp) companionInfo = `${comp.companion_type} (Lv.${comp.level})`;
+  } catch {}
+
+  let awakenedDest = 0;
+  try { const row = db.prepare('SELECT COUNT(*) as c FROM user_destinies WHERE user_id = ? AND awakened = 1').get(user.discord_id) as { c: number }; awakenedDest = row?.c || 0; } catch {}
+
+  let bestFloor = 0;
+  try { const row = db.prepare('SELECT MAX(floor) as best FROM nine_heavens_progress WHERE user_id = ?').get(user.discord_id) as { best: number }; bestFloor = row?.best || 0; } catch {}
+
+  let bestiaryCount = 0;
+  try { const row = db.prepare('SELECT COUNT(*) as c FROM bestiary WHERE user_id = ? AND times_defeated > 0').get(user.discord_id) as { c: number }; bestiaryCount = row?.c || 0; } catch {}
+
+  let tribBest = 'N/A';
+  try {
+    const row = db.prepare('SELECT best_tier, best_floor FROM infinite_tribulation_progress WHERE user_id = ?').get(user.discord_id) as any;
+    if (row && row.best_tier > 0) tribBest = `Tier ${row.best_tier} / Floor ${row.best_floor}`;
+  } catch {}
+
+  return new EmbedBuilder()
+    .setTitle(`📈 Thống Kê — ${user.name || user.discord_id}`)
+    .setColor(EMBED_COLORS.INFO)
+    .setDescription(
+      `📅 **Ngày tạo:** <t:${Math.floor(joinDate.getTime() / 1000)}:D> (${daysPlayed} ngày)\n` +
+      `⚔️ **Chiến đấu:** ${wins} thắng / ${losses} thua (${winRate}% win rate)\n` +
+      `🌀 **Tháp sâu nhất:** ${bestFloor > 0 ? `Tầng ${bestFloor}` : 'Chưa rõ'}\n` +
+      `⚡ **Thiên Kiếp:** ${tribBest}\n` +
+      `🐉 **Companion:** ${companionInfo}\n` +
+      `✨ **Destiny giác tĩnh:** ${awakenedDest}/3\n` +
+      `📖 **Bestiary:** ${bestiaryCount} enemy đã hạ\n` +
+      `🏆 **Danh hiệu:** ${user.title || 'Tán Tu'}`
+    )
+    .setFooter({ text: `Đại cảnh giới: ${getRealmDetails(user.level).realmName}` })
+    .setTimestamp();
+}
+
 export function getHoSoTabEmbed(userId: string, tab: HoSoTab): EmbedBuilder {
   const user = userRepository.get(userId)!;
   const activeStats = inventoryService.getActiveStats(userId);
@@ -929,5 +980,7 @@ export function getHoSoTabEmbed(userId: string, tab: HoSoTab): EmbedBuilder {
         .setTimestamp();
       return embed;
     }
+    case 'thongke':
+      return getThongKeTabEmbed(user);
   }
 }

@@ -16,7 +16,7 @@ import { getRealmDetails } from '../../utils/constants';
 /**
  * Tạo Embed hiển thị bản đồ dã ngoại
  */
-export function getKhamBhaEmbed(userId: string): EmbedBuilder {
+export function getKhamPhaEmbed(userId: string): EmbedBuilder {
   const user = userRepository.get(userId);
   const active = explorationService.getActiveExploration(userId);
 
@@ -74,7 +74,7 @@ export function getKhamBhaEmbed(userId: string): EmbedBuilder {
 /**
  * Tạo các Components nút bấm cho Bản Đồ
  */
-export function getKhamBhaComponents(userId: string): ActionRowBuilder<ButtonBuilder>[] {
+export function getKhamPhaComponents(userId: string): ActionRowBuilder<ButtonBuilder>[] {
   const user = userRepository.get(userId);
   const active = explorationService.getActiveExploration(userId);
   const stamina = user?.stamina || 0;
@@ -86,7 +86,7 @@ export function getKhamBhaComponents(userId: string): ActionRowBuilder<ButtonBui
     const isReady = now >= active.end_time || active.status === 'event_pending';
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
-        .setCustomId(`khambhaclaim_${userId}`)
+        .setCustomId(`khamphaclaim_${userId}`)
         .setLabel(active.status === 'event_pending' ? '⚡ Xử Lý Kỳ Ngộ' : '✅ Về Lấy Thưởng')
         .setStyle(isReady ? ButtonStyle.Success : ButtonStyle.Secondary)
         .setDisabled(!isReady),
@@ -107,7 +107,7 @@ export function getKhamBhaComponents(userId: string): ActionRowBuilder<ButtonBui
   locs.forEach((loc, i) => {
     const canExplore = level >= loc.minLevel && stamina >= loc.staminaCost;
     const btn = new ButtonBuilder()
-      .setCustomId(`khambhastart_${loc.id}_${userId}`)
+      .setCustomId(`khamphastart_${loc.id}_${userId}`)
       .setLabel(`${loc.emoji} ${loc.name}`)
       .setStyle(canExplore ? ButtonStyle.Primary : ButtonStyle.Secondary)
       .setDisabled(!canExplore);
@@ -116,32 +116,24 @@ export function getKhamBhaComponents(userId: string): ActionRowBuilder<ButtonBui
   });
 
   if (row1.components.length > 0) rows.push(row1);
-  if (row2.components.length > 0) {
-    row2.addComponents(
-      new ButtonBuilder()
-        .setCustomId(`hosoback_${userId}`)
-        .setLabel('🔙 Hồ Sơ')
-        .setStyle(ButtonStyle.Secondary)
-    );
-    rows.push(row2);
-  } else {
-    const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`hosoback_${userId}`)
-        .setLabel('🔙 Quay Lại Hồ Sơ')
-        .setStyle(ButtonStyle.Secondary)
-    );
-    rows.push(backRow);
-  }
+  if (row2.components.length > 0) rows.push(row2);
+  // Back button in its own row (always, to avoid >5 buttons per row)
+  const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`hosoback_${userId}`)
+      .setLabel('🔙 Hồ Sơ')
+      .setStyle(ButtonStyle.Secondary)
+  );
+  rows.push(backRow);
 
   return rows;
 }
 
-export default class KhamBhaCommand extends Command {
+export default class KhamPhaCommand extends Command {
   constructor() {
     super(
       new SlashCommandBuilder()
-        .setName('khambha')
+        .setName('khampha')
         .setDescription('Khám phá bản đồ dã ngoại, tìm kiếm cơ duyên và kỳ trân dị bảo.')
         .addSubcommand(sub => 
           sub
@@ -175,8 +167,8 @@ export default class KhamBhaCommand extends Command {
     const subcmd = interaction.options.getSubcommand(false) || 'bando';
 
     if (subcmd === 'bando') {
-      const embed = getKhamBhaEmbed(userId);
-      const rows = getKhamBhaComponents(userId);
+      const embed = getKhamPhaEmbed(userId);
+      const rows = getKhamPhaComponents(userId);
       await interaction.editReply(toV2Payload([embed], rows ));
     } 
     else if (subcmd === 'tangbaodo') {
@@ -194,7 +186,7 @@ export default class KhamBhaCommand extends Command {
         .setDescription('Danh sách các tọa độ kho báu đạo hữu đang nắm giữ:\n\n' + 
           maps.map((m: any, i: number) => `**${i+1}.** Tọa độ: **[X: ${m.coord_x}, Y: ${m.coord_y}]** (Độ hiếm: ${m.rarity.toUpperCase()})`).join('\n')
         )
-        .setFooter({ text: 'Dùng lệnh /khambha toado [x] [y] để tiến hành đào!' });
+        .setFooter({ text: 'Dùng lệnh /khampha toado [x] [y] để tiến hành đào!' });
       
       await interaction.editReply(toV2Payload([embed]));
     }

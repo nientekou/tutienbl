@@ -50,6 +50,18 @@ class FarmingService {
                         // ponytail: tăng decay từ 1→2/giờ, tăng pest từ 15%→25%/giờ để giảm farming profit
                         newMoisture = Math.max(0, plot.moisture - hours * 2);
                         newNutrition = Math.max(0, plot.nutrition - hours * 2);
+                        // V14 E-02: Weather auto-water — rain restores moisture
+                        try {
+                            const { weatherService } = require('./WeatherService');
+                            const weather = weatherService.getCurrentWeather?.('default');
+                            if (weather?.id === 'rainy') {
+                                newMoisture = 10; // Full moisture from rain
+                            }
+                            else if (weather?.id === 'stormy') {
+                                newMoisture = Math.min(10, newMoisture + 3);
+                            }
+                        }
+                        catch { }
                         // Mỗi giờ trôi qua có 25% cơ hội xuất hiện sâu bệnh (nếu chưa có)
                         for (let h = 0; h < hours; h++) {
                             if (newPests === 0 && Math.random() < 0.25) {
@@ -294,12 +306,23 @@ class FarmingService {
             amount = 2;
             leylineMsg = ' *(Linh Mạch Buff x2!)*';
         }
+        // V14 E-03: Quality Tiers based on plot care
+        let qualityTier = 'common';
+        const finalMoisture = plot.moisture ?? 0;
+        const finalNutrition = plot.nutrition ?? 0;
+        const finalPests = plot.pests ?? 0;
+        if (finalMoisture >= 8 && finalNutrition >= 8 && finalPests === 0) {
+            qualityTier = 'rare';
+        }
+        else if (finalMoisture >= 5 && finalNutrition >= 5 && finalPests === 0) {
+            qualityTier = 'uncommon';
+        }
         // Thêm vật phẩm thu hoạch vào hành trang
         InventoryRepository_1.inventoryRepository.addItem(userId, productItemId, amount);
         // Thành tựu thu hoạch
         const totalHarvest = database_1.default.prepare("SELECT COUNT(*) as c FROM audit_logs WHERE user_id = ? AND action = 'harvest'").get(userId);
         database_1.default.prepare("INSERT INTO audit_logs (user_id, action, details, created_at) VALUES (?, 'harvest', ?, ?)")
-            .run(userId, JSON.stringify({ productItemId, amount }), Math.floor(Date.now() / 1000));
+            .run(userId, JSON.stringify({ productItemId, amount, qualityTier }), Math.floor(Date.now() / 1000));
         AchievementService_1.achievementService.setProgress(userId, 'sh_18', totalHarvest.c + 1);
         // Reset ô đất về rỗng
         database_1.default.prepare(`
@@ -307,9 +330,10 @@ class FarmingService {
       SET seed_item_id = NULL, planted_at = NULL, growth_time = 0, speedup_applied = 0, status = 'empty', moisture = 5, nutrition = 6, pests = 0
       WHERE id = ?
     `).run(plot.id);
+        const qualityEmoji = qualityTier === 'rare' ? '🔵' : qualityTier === 'uncommon' ? '🟢' : '⚪';
         return {
             success: true,
-            message: `✨ Thu hoạch thành công **${amount}x ${productName}**!${leylineMsg}`,
+            message: `✨ Thu hoạch thành công **${amount}x ${productName}**! ${qualityEmoji} [${qualityTier}]${leylineMsg}`,
             productName
         };
     }

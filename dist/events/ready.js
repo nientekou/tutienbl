@@ -78,6 +78,35 @@ class ReadyEvent extends Event_1.Event {
             table.push(['Community Quest Scheduler', chalk_1.default.red('❌ LỖI')]);
             console.error(chalk_1.default.red('[System] Lỗi Community Quest Scheduler:'), error);
         }
+        // 4d. Elite Hunt Scheduler (Wed 20:00 + Sat 14:00 UTC+7)
+        try {
+            const { eliteHuntService } = require('../services/EliteHuntService');
+            // Start first event immediately if none active
+            if (!eliteHuntService.isEventActive()) {
+                eliteHuntService.startEvent();
+            }
+            // Check every 30 minutes
+            setInterval(() => {
+                try {
+                    const now = new Date();
+                    const vnHour = (now.getUTCHours() + 7) % 24;
+                    const day = now.getUTCDay();
+                    // Wed=3 at 20:00, Sat=6 at 14:00
+                    if ((day === 3 && vnHour === 20) || (day === 6 && vnHour === 14)) {
+                        if (!eliteHuntService.isEventActive()) {
+                            eliteHuntService.startEvent();
+                            console.log('[Elite Hunt] Event started!');
+                        }
+                    }
+                }
+                catch { }
+            }, 30 * 60 * 1000);
+            table.push(['Elite Hunt Scheduler', chalk_1.default.green('✔ Running')]);
+        }
+        catch (error) {
+            table.push(['Elite Hunt Scheduler', chalk_1.default.red('❌ LỖI')]);
+            console.error(chalk_1.default.red('[System] Lỗi Elite Hunt Scheduler:'), error);
+        }
         // 5. Khởi động scheduler Vạn Bảo Lâu (kết thúc đấu giá hết hạn & auto-bid)
         try {
             const { marketService } = require('../services/MarketService');
