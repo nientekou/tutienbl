@@ -790,5 +790,121 @@ class MarketService {
       ORDER BY b.created_at DESC
     `).all(userId);
     }
+    // === B-02: Market Rework — Dynamic Tax, Price History, Rare Finds ===
+    priceHistoryInit = false;
+    initPriceHistoryTable() {
+        if (this.priceHistoryInit)
+            return;
+        database_1.default.exec(`
+      CREATE TABLE IF NOT EXISTS market_price_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id TEXT NOT NULL,
+        price INTEGER NOT NULL,
+        quantity INTEGER NOT NULL,
+        recorded_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_price_history_item ON market_price_history(item_id, recorded_at);
+    `);
+        this.priceHistoryInit = true;
+    }
+    /**
+     * B-02: Dynamic tax based on price
+     */
+    getDynamicTax(price) {
+        if (price < 500)
+            return gameConstants_1.GAME_CONSTANTS.MARKET_TAX_LOW;
+        if (price <= 5000)
+            return gameConstants_1.GAME_CONSTANTS.MARKET_TAX_MID;
+        return gameConstants_1.GAME_CONSTANTS.MARKET_TAX_HIGH;
+    }
+    /**
+     * B-02: Record price to history
+     */
+    recordPrice(item_id, price, quantity) {
+        this.initPriceHistoryTable();
+        const now = Math.floor(Date.now() / 1000);
+        database_1.default.prepare('INSERT INTO market_price_history (item_id, price, quantity, recorded_at) VALUES (?, ?, ?, ?)')
+            .run(item_id, price, quantity, now);
+    }
+    /**
+     * B-02: Get price history for an item (last 7 days)
+     */
+    getPriceHistory(item_id) {
+        this.initPriceHistoryTable();
+        const sevenDaysAgo = Math.floor(Date.now() / 1000) - 7 * 86400;
+        const rows = database_1.default.prepare(`
+      SELECT
+        date(recorded_at, 'unixepoch') as date,
+        ROUND(AVG(price)) as avg_price,
+        COUNT(*) as count
+      FROM market_price_history
+      WHERE item_id = ? AND recorded_at > ?
+      GROUP BY date(recorded_at, 'unixepoch')
+      ORDER BY date ASC
+    `).all(item_id, sevenDaysAgo);
+        return rows.map(r => ({ date: r.date, avgPrice: r.avg_price, count: r.count }));
+    }
+    /**
+     * B-02: Check for rare find when selling (5% chance)
+     */
+    checkRareFind() {
+        return Math.random() < gameConstants_1.GAME_CONSTANTS.MARKET_RARE_FIND_CHANCE;
+    }
+    /**
+     * B-02: Get market tax info for display
+     */
+    getTaxInfo() {
+        return `**Thuế Chợ Trời:**\n` +
+            `• < 500 LT: **2%**\n` +
+            `• 500-5000 LT: **3%**\n` +
+            `• > 5000 LT: **5%**\n` +
+            `• Leyline Kinh Tế active: **-10%** thuế`;
+    }
+    // === B-03: Trading System Deep ===
+    /**
+     * B-03: Get market analytics
+     */
+    getMarketAnalytics() {
+        const totalListings = database_1.default.prepare('SELECT COUNT(*) as c FROM market_listings WHERE status = ?').get('active');
+        const avgPrice = database_1.default.prepare('SELECT AVG(price) as avg FROM market_listings WHERE status = ?').get('active');
+        const totalVolume = database_1.default.prepare('SELECT SUM(quantity) as total FROM market_listings WHERE status = ?').get('active');
+        const topItems = database_1.default.prepare(`
+      SELECT item_id as itemId, COUNT(*) as count FROM market_listings
+      WHERE status = 'active' GROUP BY item_id ORDER BY count DESC LIMIT 5
+    `).all();
+        return {
+            totalListings: totalListings.c,
+            avgPrice: Math.round(avgPrice?.avg || 0),
+            totalVolume: totalVolume?.total || 0,
+            topItems
+        };
+    }
+    /**
+     * B-03: Get market events
+     */
+    getMarketEvents() {
+        return [
+            { id: 'me_sale', name: 'Siêu Khuyến Mãi', description: 'Giảm 20% tất cả vật phẩm trong 1 giờ', discount: 0.20 },
+            { id: 'me_premium', name: 'Ngày Cao Cấp', description: 'Miễn thuế 24 giờ', discount: 0 },
+            { id: 'me_bonus', name: 'Ngày Thưởng', description: '+50% giá bán', discount: 0 },
+        ];
+    }
+    /**
+     * B-03: Get trading description
+     */
+    getTradingDescription() {
+        const analytics = this.getMarketAnalytics();
+        let msg = `🏪 **Phân Tích Thị Trường**\n`;
+        msg += `📊 Đang Bán: **${analytics.totalListings}**\n`;
+        msg += `💰 Giá Trung Bình: **${analytics.avgPrice}** LT\n`;
+        msg += `📦 Tổng Số Lượng: **${analytics.totalVolume}** vật phẩm\n`;
+        if (analytics.topItems.length > 0) {
+            msg += `\n**Vật Phẩm Nổi Bật:**\n`;
+            for (const item of analytics.topItems) {
+                msg += `• ${item.itemId}: ${item.count} tin đang bán\n`;
+            }
+        }
+        return msg;
+    }
 }
 exports.marketService = new MarketService();

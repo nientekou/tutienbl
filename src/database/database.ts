@@ -1,13 +1,42 @@
 import Database from 'better-sqlite3';
 import { config } from '../config';
 
-// Khởi tạo Database với better-sqlite3
-const db = new Database(config.dbPath, { verbose: process.env.NODE_ENV === 'development' ? console.log : undefined });
+// ponytail: WAL mode creates .db-shm; on Docker with small /dev/shm or full disk,
+// that allocation fails with SQLITE_IOERR_SHMSIZE / ENOSPC and corrupts the
+// connection so every subsequent pragma also dies.  Recovery: close + reopen
+// in DELETE mode (no SHM file needed).
+function createDB(): Database.Database {
+  const db = new Database(config.dbPath, { verbose: process.env.NODE_ENV === 'development' ? console.log : undefined });
 
-// Cấu hình tối ưu hiệu năng cho SQLite
-db.pragma('journal_mode = WAL');
-db.pragma('synchronous = NORMAL');
-db.pragma('foreign_keys = ON');
+  // Safe pragmas first (no SHM, no memory pressure)
+  db.pragma('foreign_keys = ON');
+  db.pragma('busy_timeout = 5000');
+  db.pragma('page_size = 4096');
+
+  // Try WAL + performance pragmas
+  try {
+    db.pragma('journal_mode = WAL');
+    db.pragma('synchronous = NORMAL');
+    db.pragma('temp_store = MEMORY');
+    db.pragma('mmap_size = 268435456');
+    db.pragma('cache_size = -64000');
+  } catch (e: any) {
+    console.error(`[Database] WAL optimisation failed (${e?.code ?? e?.message ?? e}), reopening in DELETE mode`);
+    db.close();
+    const db2 = new Database(config.dbPath);
+    db2.pragma('foreign_keys = ON');
+    db2.pragma('busy_timeout = 5000');
+    db2.pragma('page_size = 4096');
+    db2.pragma('journal_mode = DELETE');
+    db2.pragma('synchronous = FULL');
+    db2.pragma('cache_size = -16000');
+    return db2;
+  }
+
+  return db;
+}
+
+const db = createDB();
 
 /**
  * Tạo các bảng dữ liệu nếu chưa tồn tại
@@ -57,6 +86,8 @@ export function initDatabase() {
       coin_trung_pham INTEGER DEFAULT 0,
       coin_thuong_pham INTEGER DEFAULT 0,
       knb INTEGER DEFAULT 0,
+      destiny_shards INTEGER DEFAULT 0,
+      dream_dust INTEGER DEFAULT 0,
       
       -- Quan hệ Tông môn
       sect_id INTEGER REFERENCES sects(id) ON DELETE SET NULL,
@@ -208,11 +239,11 @@ export function initDatabase() {
       base_atk INTEGER NOT NULL,
       base_def INTEGER NOT NULL,
       is_deployed INTEGER DEFAULT 0,
-      
+
       -- Hệ thống sinh sản & Đột biến
       gender INTEGER DEFAULT 0, -- 0: Đực, 1: Cái
       mutations TEXT, -- JSON chỉ số đột biến
-      
+
       -- Trạng thái đi thám hiểm tự động (Idle Adventure)
       adventure_status TEXT DEFAULT 'idle',
       adventure_end_time INTEGER,
@@ -220,6 +251,11 @@ export function initDatabase() {
     );
     CREATE INDEX IF NOT EXISTS idx_pets_user ON pets(user_id);
   `);
+
+  // B-03: Pet Expansion columns — mood, personality
+  try { db.exec(`ALTER TABLE pets ADD COLUMN mood INTEGER DEFAULT 50`); } catch(e) {} // 0-100 happiness
+  try { db.exec(`ALTER TABLE pets ADD COLUMN personality TEXT DEFAULT 'friendly'`); } catch(e) {} // friendly/lazy/aggressive
+  try { db.exec(`ALTER TABLE pets ADD COLUMN element TEXT DEFAULT 'none'`); } catch(e) {}
 
   // Bảng Linh Điền (Farming Plots)
   db.exec(`
@@ -250,6 +286,29 @@ export function initDatabase() {
     );
   `);
 
+  // P2-06: Bảng Season Tháp Vô Hạn
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tower_seasons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      season_name TEXT NOT NULL,
+      modifier TEXT NOT NULL,
+      start_time INTEGER NOT NULL,
+      end_time INTEGER NOT NULL,
+      status TEXT DEFAULT 'active' CHECK(status IN ('active', 'ended'))
+    );
+
+    CREATE TABLE IF NOT EXISTS tower_season_scores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES users(discord_id) ON DELETE CASCADE,
+      season_id INTEGER NOT NULL,
+      best_floor INTEGER DEFAULT 0,
+      best_time INTEGER DEFAULT 0,
+      total_floors_cleared INTEGER DEFAULT 0,
+      UNIQUE(user_id, season_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_tower_season_user ON tower_season_scores(user_id, season_id);
+  `);
+
   // Bảng Giới Hạn và Cooldown Bí Cảnh (Dungeon Cooldowns)
   db.exec(`
     CREATE TABLE IF NOT EXISTS dungeon_cooldowns (
@@ -275,6 +334,15 @@ export function initDatabase() {
       created_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_user_destinies_user ON user_destinies(user_id);
+  `);
+
+  // P1-08: Bảng pity counter cho Destiny gacha
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS destiny_pity (
+      user_id TEXT PRIMARY KEY REFERENCES users(discord_id) ON DELETE CASCADE,
+      pull_count INTEGER DEFAULT 0,
+      last_pull_at INTEGER DEFAULT 0
+    );
   `);
 
   // Bảng Phường Thị / Chợ Đấu Giá (Market Listings)
@@ -321,6 +389,20 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_couples_user2 ON couples(user2_id);
   `);
 
+  // P2-05: Bảng Đôi Bí Cảnh (Couple Dungeon)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS couple_dungeons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      couple_id INTEGER NOT NULL REFERENCES couples(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(discord_id) ON DELETE CASCADE,
+      current_floor INTEGER DEFAULT 1,
+      daily_runs INTEGER DEFAULT 0,
+      last_run_date TEXT DEFAULT NULL,
+      best_floor INTEGER DEFAULT 0,
+      UNIQUE(couple_id, user_id)
+    );
+  `);
+
   // Bảng Pháp Bảo Bản Mệnh (Soul Weapons)
   db.exec(`
     CREATE TABLE IF NOT EXISTS soul_weapons (
@@ -333,6 +415,13 @@ export function initDatabase() {
       created_at INTEGER NOT NULL
     );
   `);
+
+  // P1-05: Soul Weapon columns — element, evolution, skills, awakening
+  try { db.exec(`ALTER TABLE soul_weapons ADD COLUMN element TEXT DEFAULT 'Vo'`); } catch(e) {}
+  try { db.exec(`ALTER TABLE soul_weapons ADD COLUMN evolution_stage INTEGER DEFAULT 1`); } catch(e) {}
+  try { db.exec(`ALTER TABLE soul_weapons ADD COLUMN skills_json TEXT DEFAULT '[]'`); } catch(e) {}
+  try { db.exec(`ALTER TABLE soul_weapons ADD COLUMN awakening_level INTEGER DEFAULT 0`); } catch(e) {}
+  try { db.exec(`ALTER TABLE soul_weapons ADD COLUMN skin_id TEXT DEFAULT NULL`); } catch(e) {}
 
   // Bảng World Boss (Boss Thế Giới)
   db.exec(`
@@ -947,11 +1036,101 @@ export function initDatabase() {
       reward_exp INTEGER DEFAULT 0,
       reward_ngotinh INTEGER DEFAULT 0,
       is_claimed INTEGER DEFAULT 0,
+      is_elite INTEGER DEFAULT 0,
       assigned_at INTEGER NOT NULL,
       expires_at INTEGER NOT NULL,
       UNIQUE(user_id, quest_id, assigned_at)
     );
     CREATE INDEX IF NOT EXISTS idx_daily_quests_user ON daily_quests(user_id);
+  `);
+
+  // P2-04: Add is_elite column if missing
+  try { db.exec(`ALTER TABLE daily_quests ADD COLUMN is_elite INTEGER DEFAULT 0`); } catch(e) { /* column exists */ }
+
+  // P2-04: Bảng streak nhiệm vụ hàng ngày
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS daily_quest_streaks (
+      user_id TEXT PRIMARY KEY REFERENCES users(discord_id) ON DELETE CASCADE,
+      current_streak INTEGER DEFAULT 0,
+      longest_streak INTEGER DEFAULT 0,
+      last_completed_date TEXT DEFAULT NULL
+    );
+  `);
+
+  // P2-01: Bảng Nhiệm Vụ Hàng Tuần (Weekly Quests)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS weekly_quests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES users(discord_id) ON DELETE CASCADE,
+      quest_id TEXT NOT NULL,
+      progress INTEGER DEFAULT 0,
+      required INTEGER NOT NULL,
+      reward_coin INTEGER DEFAULT 0,
+      reward_exp INTEGER DEFAULT 0,
+      reward_ngotinh INTEGER DEFAULT 0,
+      is_claimed INTEGER DEFAULT 0,
+      week_start INTEGER NOT NULL,
+      UNIQUE(user_id, quest_id, week_start)
+    );
+    CREATE INDEX IF NOT EXISTS idx_weekly_quests_user ON weekly_quests(user_id, week_start);
+  `);
+
+  // P2-01: Bảng streak nhiệm vụ hàng tuần
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS weekly_quest_streaks (
+      user_id TEXT PRIMARY KEY REFERENCES users(discord_id) ON DELETE CASCADE,
+      current_streak INTEGER DEFAULT 0,
+      longest_streak INTEGER DEFAULT 0,
+      last_completed_week TEXT DEFAULT NULL
+    );
+  `);
+
+  // P2-02: Bảng Săn Thưởng Boss (Boss Bounty Board)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS boss_bounties (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      bounty_type TEXT NOT NULL,
+      difficulty TEXT NOT NULL,
+      target_desc TEXT NOT NULL,
+      required INTEGER NOT NULL,
+      reward_exp INTEGER NOT NULL,
+      reward_coin INTEGER NOT NULL,
+      reward_tokens INTEGER NOT NULL,
+      reward_materials TEXT DEFAULT NULL,
+      restriction TEXT DEFAULT NULL,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS user_bounty_completions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES users(discord_id) ON DELETE CASCADE,
+      bounty_id INTEGER NOT NULL,
+      progress INTEGER DEFAULT 0,
+      is_completed INTEGER DEFAULT 0,
+      is_claimed INTEGER DEFAULT 0,
+      completed_at INTEGER DEFAULT NULL,
+      UNIQUE(user_id, bounty_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_bounty_user ON user_bounty_completions(user_id);
+  `);
+
+  // P2-02: Thêm bounty_tokens vào users (ALTER TABLE an toàn)
+  try { db.exec(`ALTER TABLE users ADD COLUMN bounty_tokens INTEGER DEFAULT 0`); } catch(e) { /* column exists */ }
+
+  // P5-01: Reincarnation V2 — Dao Tam + Tokens
+  try { db.exec(`ALTER TABLE users ADD COLUMN reincarnation_tokens INTEGER DEFAULT 0`); } catch(e) {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN dao_tam TEXT DEFAULT NULL`); } catch(e) {} // JSON: { element: 'Hoa', level: 1, buffs: {...}, nerfs: {...} }
+
+  // P2-03: Bảng lịch sử mua hàng Sect Shop
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sect_shop_purchases (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES users(discord_id) ON DELETE CASCADE,
+      item_id TEXT NOT NULL,
+      purchased_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_sect_shop_user ON sect_shop_purchases(user_id, item_id);
   `);
 
   // Bảng Sự Kiện Định Kỳ (Events) - V6
@@ -1210,6 +1389,19 @@ export function initDatabase() {
       exp INTEGER DEFAULT 0,
       activated_at INTEGER NOT NULL,
       rage_cooldown INTEGER DEFAULT 0
+    );
+  `);
+
+  // P5-02: Bảng Bloodline Trials
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS bloodline_trials (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES users(discord_id) ON DELETE CASCADE,
+      bloodline_id TEXT NOT NULL,
+      week_key TEXT NOT NULL,
+      trials_used INTEGER DEFAULT 0,
+      max_trials INTEGER DEFAULT 3,
+      UNIQUE(user_id, week_key)
     );
   `);
 
@@ -1582,7 +1774,7 @@ export function initDatabase() {
     
     -- Tối ưu truy vấn Chợ Đấu Giá
     CREATE INDEX IF NOT EXISTS idx_market_seller ON market_listings(seller_id);
-    CREATE INDEX IF NOT EXISTS idx_market_item ON market_listings(item_id);
+    CREATE INDEX IF NOT EXISTS idx_market_item_id ON market_listings(item_id);
   `);
 
   // Bảng theo dõi hồi stamina trong voice channel
@@ -1787,35 +1979,35 @@ function seedAchievements() {
     { id: 'cd_2',      name: 'Thám Hiểm Dũng Sĩ',       category: 'chien_dau', description: 'Vượt bí cảnh 30 lần',                   icon: '🏛️', target_value: 30,   reward_title: 'Phó Bản Dũng Sĩ',  reward_exp: 3000,  reward_coins: 10000,  sort_order: 20 },
     { id: 'cd_3',      name: 'Bí Cảnh Chi Vương',       category: 'chien_dau', description: 'Vượt bí cảnh 200 lần',                  icon: '🏛️', target_value: 200,  reward_title: null,               reward_exp: 15000, reward_coins: 50000,  sort_order: 21 },
     { id: 'cd_4',      name: 'Ác Mộng Khiêu Chiến',     category: 'chien_dau', description: 'Vượt bí cảnh độ khó Ác Mộng 5 lần',    icon: '💀', target_value: 5,    reward_title: 'Ác Mộng Đồ',       reward_exp: 10000, reward_coins: 20000,  sort_order: 22 },
-    { id: 'cd_5',      name: 'World Boss Tập Kích',     category: 'chien_dau', description: 'Tấn công World Boss 10 lần',           icon: '👹', target_value: 10,   reward_title: null,               reward_exp: 1000,  reward_coins: 5000,   sort_order: 23 },
-    { id: 'cd_6',      name: 'Thợ Săn Boss',            category: 'chien_dau', description: 'Tấn công World Boss 30 lần',           icon: '👹', target_value: 30,   reward_title: 'Thợ Săn Boss',     reward_exp: 5000,  reward_coins: 20000,  sort_order: 24 },
-    { id: 'cd_7',      name: 'Boss Hunter',             category: 'chien_dau', description: 'Tấn công World Boss 200 lần',          icon: '👹', target_value: 200,  reward_title: null,               reward_exp: 25000, reward_coins: 100000, sort_order: 25 },
-    { id: 'cd_8',      name: 'Trảm Sát Giả',            category: 'chien_dau', description: 'Kết liễu World Boss 1 lần',            icon: '⚔️', target_value: 1,    reward_title: 'Trảm Sát Giả',     reward_exp: 2000,  reward_coins: 10000,  sort_order: 26 },
-    { id: 'cd_9',      name: 'Boss Thợ Săn Đại Tài',    category: 'chien_dau', description: 'Kết liễu World Boss 10 lần',           icon: '⚔️', target_value: 10,   reward_title: null,               reward_exp: 20000, reward_coins: 100000, sort_order: 27 },
+    { id: 'cd_5',      name: 'Thế Giới Boss Tập Kích',     category: 'chien_dau', description: 'Tấn công Thế Giới Boss 10 lần',           icon: '👹', target_value: 10,   reward_title: null,               reward_exp: 1000,  reward_coins: 5000,   sort_order: 23 },
+    { id: 'cd_6',      name: 'Thợ Săn Boss',            category: 'chien_dau', description: 'Tấn công Thế Giới Boss 30 lần',           icon: '👹', target_value: 30,   reward_title: 'Thợ Săn Boss',     reward_exp: 5000,  reward_coins: 20000,  sort_order: 24 },
+    { id: 'cd_7',      name: 'Thợ Săn Boss',             category: 'chien_dau', description: 'Tấn công Thế Giới Boss 200 lần',          icon: '👹', target_value: 200,  reward_title: null,               reward_exp: 25000, reward_coins: 100000, sort_order: 25 },
+    { id: 'cd_8',      name: 'Trảm Sát Giả',            category: 'chien_dau', description: 'Kết liễu Thế Giới Boss 1 lần',            icon: '⚔️', target_value: 1,    reward_title: 'Trảm Sát Giả',     reward_exp: 2000,  reward_coins: 10000,  sort_order: 26 },
+    { id: 'cd_9',      name: 'Boss Thợ Săn Đại Tài',    category: 'chien_dau', description: 'Kết liễu Thế Giới Boss 10 lần',           icon: '⚔️', target_value: 10,   reward_title: null,               reward_exp: 20000, reward_coins: 100000, sort_order: 27 },
     { id: 'cd_10',     name: 'Thám Hiểm Địa Đồ',        category: 'chien_dau', description: 'Thám hiểm dã ngoại 10 lần',            icon: '🗺️', target_value: 10,   reward_title: 'Thám Hiểm Gia',    reward_exp: 1000,  reward_coins: 3000,   sort_order: 28 },
     { id: 'cd_11',     name: 'Phát Hiện Vĩ Đại',        category: 'chien_dau', description: 'Thám hiểm dã ngoại 100 lần',           icon: '🗺️', target_value: 100,  reward_title: null,               reward_exp: 10000, reward_coins: 30000,  sort_order: 29 },
     { id: 'cd_12',     name: 'Săn Yêu Thú Dũng Cảm',    category: 'chien_dau', description: 'Săn yêu thú 10 lần',                  icon: '🐺', target_value: 10,   reward_title: null,               reward_exp: 500,   reward_coins: 2000,   sort_order: 30 },
     { id: 'cd_13',     name: 'Yêu Thú Đồ Tể',           category: 'chien_dau', description: 'Săn yêu thú 60 lần',                  icon: '🐺', target_value: 60,   reward_title: 'Yêu Thú Đồ Tể',    reward_exp: 5000,  reward_coins: 20000,  sort_order: 31 },
 
     // ===== PVP =====
-    { id: 'pvp_1',     name: 'PvP Tân Thủ',             category: 'pvp',       description: 'Thắng 1 trận PvP',                    icon: '⚔️', target_value: 1,    reward_title: null,               reward_exp: 200,   reward_coins: 500,    sort_order: 32 },
-    { id: 'pvp_2',     name: 'PvP Chiến Binh',          category: 'pvp',       description: 'Thắng 5 trận PvP',                    icon: '⚔️', target_value: 5,    reward_title: 'PvP Chiến Binh',   reward_exp: 2000,  reward_coins: 5000,   sort_order: 33 },
-    { id: 'pvp_3',     name: 'PvP Tinh Anh',            category: 'pvp',       description: 'Thắng 50 trận PvP',                   icon: '⚔️', target_value: 50,   reward_title: null,               reward_exp: 8000,  reward_coins: 20000,  sort_order: 34 },
-    { id: 'pvp_4',     name: 'PvP Bất Bại',             category: 'pvp',       description: 'Thắng 100 trận PvP',                  icon: '⚔️', target_value: 100,  reward_title: 'PvP Bất Bại',      reward_exp: 30000, reward_coins: 80000,  sort_order: 35 },
-    { id: 'pvp_5',     name: 'PvP Huyền Thoại',         category: 'pvp',       description: 'Thắng 300 trận PvP',                  icon: '⚔️', target_value: 300,  reward_title: 'PvP Huyền Thoại',  reward_exp: 100000, reward_coins: 250000, sort_order: 36 },
-    { id: 'pvp_6',     name: 'Điểm Phong Thần Sơ Cấp',  category: 'pvp',       description: 'Đạt 1500 điểm PvP',                   icon: '🏆', target_value: 1500, reward_title: null,               reward_exp: 3000,  reward_coins: 10000,  sort_order: 37 },
-    { id: 'pvp_7',     name: 'Điểm Phong Thần Cao Cấp', category: 'pvp',       description: 'Đạt 2500 điểm PvP',                   icon: '🏆', target_value: 2500, reward_title: 'Phong Thần Giả',    reward_exp: 20000, reward_coins: 50000,  sort_order: 38 },
-    { id: 'pvp_8',     name: 'Điểm Phong Thần Huyền Thoại', category: 'pvp',  description: 'Đạt 4000 điểm PvP',                   icon: '🏆', target_value: 4000, reward_title: 'Phong Thần Huyền Thoại', reward_exp: 100000, reward_coins: 200000, sort_order: 39 },
-    { id: 'pvp_9',     name: 'Top 10 PvP',              category: 'pvp',       description: 'Lọt top 10 bảng xếp hạng PvP',         icon: '🎖️', target_value: 1,    reward_title: 'Top 10 PvP',       reward_exp: 20000, reward_coins: 100000, sort_order: 40 },
+    { id: 'pvp_1',     name: 'PvP Tân Thủ',             category: 'pvp',       description: 'Thắng 1 trận Tỷ Thí',                    icon: '⚔️', target_value: 1,    reward_title: null,               reward_exp: 200,   reward_coins: 500,    sort_order: 32 },
+    { id: 'pvp_2',     name: 'PvP Chiến Binh',          category: 'pvp',       description: 'Thắng 5 trận Tỷ Thí',                    icon: '⚔️', target_value: 5,    reward_title: 'PvP Chiến Binh',   reward_exp: 2000,  reward_coins: 5000,   sort_order: 33 },
+    { id: 'pvp_3',     name: 'PvP Tinh Anh',            category: 'pvp',       description: 'Thắng 50 trận Tỷ Thí',                   icon: '⚔️', target_value: 50,   reward_title: null,               reward_exp: 8000,  reward_coins: 20000,  sort_order: 34 },
+    { id: 'pvp_4',     name: 'PvP Bất Bại',             category: 'pvp',       description: 'Thắng 100 trận Tỷ Thí',                  icon: '⚔️', target_value: 100,  reward_title: 'PvP Bất Bại',      reward_exp: 30000, reward_coins: 80000,  sort_order: 35 },
+    { id: 'pvp_5',     name: 'PvP Huyền Thoại',         category: 'pvp',       description: 'Thắng 300 trận Tỷ Thí',                  icon: '⚔️', target_value: 300,  reward_title: 'PvP Huyền Thoại',  reward_exp: 100000, reward_coins: 250000, sort_order: 36 },
+    { id: 'pvp_6',     name: 'Điểm Phong Thần Sơ Cấp',  category: 'pvp',       description: 'Đạt 1500 điểm Tỷ Thí',                   icon: '🏆', target_value: 1500, reward_title: null,               reward_exp: 3000,  reward_coins: 10000,  sort_order: 37 },
+    { id: 'pvp_7',     name: 'Điểm Phong Thần Cao Cấp', category: 'pvp',       description: 'Đạt 2500 điểm Tỷ Thí',                   icon: '🏆', target_value: 2500, reward_title: 'Phong Thần Giả',    reward_exp: 20000, reward_coins: 50000,  sort_order: 38 },
+    { id: 'pvp_8',     name: 'Điểm Phong Thần Huyền Thoại', category: 'pvp',  description: 'Đạt 4000 điểm Tỷ Thí',                   icon: '🏆', target_value: 4000, reward_title: 'Phong Thần Huyền Thoại', reward_exp: 100000, reward_coins: 200000, sort_order: 39 },
+    { id: 'pvp_9',     name: 'Top 10 PvP',              category: 'pvp',       description: 'Lọt top 10 bảng xếp hạng Tỷ Thí',         icon: '🎖️', target_value: 1,    reward_title: 'Top 10 PvP',       reward_exp: 20000, reward_coins: 100000, sort_order: 40 },
 
     // ===== SỦNG THÚ (Sung Thu) =====
     { id: 'st_1',      name: 'Người Bạn Đầu Tiên',      category: 'sung_thu', description: 'Thu phục 1 linh thú',                  icon: '🐾', target_value: 1,    reward_title: null,               reward_exp: 200,   reward_coins: 500,    sort_order: 41 },
     { id: 'st_2',      name: 'Ươm Mầm Sủng Thú',        category: 'sung_thu', description: 'Sở hữu 3 linh thú',                    icon: '🐾', target_value: 3,    reward_title: 'Sủng Thú Sư',      reward_exp: 1000,  reward_coins: 3000,   sort_order: 42 },
     { id: 'st_3',      name: 'Bộ Sưu Tập Phong Phú',    category: 'sung_thu', description: 'Sở hữu 15 linh thú',                   icon: '🐾', target_value: 15,   reward_title: null,               reward_exp: 5000,  reward_coins: 15000,  sort_order: 43 },
     { id: 'st_4',      name: 'Sủng Thú Đại Gia',        category: 'sung_thu', description: 'Sở hữu 20 linh thú',                   icon: '🐾', target_value: 20,   reward_title: 'Ngự Thú Đại Gia', reward_exp: 20000, reward_coins: 50000,  sort_order: 44 },
-    { id: 'st_5',      name: 'Linh Thú Cao Cấp',        category: 'sung_thu', description: 'Sở hữu linh thú hiếm (Rare)',           icon: '🔵', target_value: 1,    reward_title: null,               reward_exp: 1000,  reward_coins: 3000,   sort_order: 45 },
-    { id: 'st_6',      name: 'Linh Thú Cực Phẩm',       category: 'sung_thu', description: 'Sở hữu linh thú Epic',                 icon: '🟣', target_value: 1,    reward_title: 'Cực Phẩm Sủng',   reward_exp: 5000,  reward_coins: 15000,  sort_order: 46 },
-    { id: 'st_7',      name: 'Linh Thú Huyền Thoại',    category: 'sung_thu', description: 'Sở hữu linh thú Legendary',             icon: '🟡', target_value: 1,    reward_title: 'Huyền Thoại Sủng', reward_exp: 20000, reward_coins: 50000,  sort_order: 47 },
+    { id: 'st_5',      name: 'Linh Thú Cao Cấp',        category: 'sung_thu', description: 'Sở hữu linh thú hiếm (Hiếm)',           icon: '🔵', target_value: 1,    reward_title: null,               reward_exp: 1000,  reward_coins: 3000,   sort_order: 45 },
+    { id: 'st_6',      name: 'Linh Thú Cực Phẩm',       category: 'sung_thu', description: 'Sở hữu linh thú Sử Thi',                 icon: '🟣', target_value: 1,    reward_title: 'Cực Phẩm Sủng',   reward_exp: 5000,  reward_coins: 15000,  sort_order: 46 },
+    { id: 'st_7',      name: 'Linh Thú Huyền Thoại',    category: 'sung_thu', description: 'Sở hữu linh thú Huyền Thoại',             icon: '🟡', target_value: 1,    reward_title: 'Huyền Thoại Sủng', reward_exp: 20000, reward_coins: 50000,  sort_order: 47 },
     { id: 'st_8',      name: 'Lai Tạo Thành Công',      category: 'sung_thu', description: 'Lai tạo thành công 1 lần',              icon: '🧬', target_value: 1,    reward_title: null,               reward_exp: 1000,  reward_coins: 5000,   sort_order: 48 },
     { id: 'st_9',      name: 'Dị Biến Sư',              category: 'sung_thu', description: 'Lai tạo ra linh thú dị biến (nâng phẩm)', icon: '🌟', target_value: 1,    reward_title: 'Dị Biến Tông Sư',  reward_exp: 10000, reward_coins: 30000,  sort_order: 49 },
     { id: 'st_10',     name: 'Kỹ Năng Thức Tỉnh',       category: 'sung_thu', description: 'Thức tỉnh kỹ năng cho linh thú 5 lần', icon: '✨', target_value: 5,    reward_title: null,               reward_exp: 2000,  reward_coins: 8000,   sort_order: 50 },
@@ -1846,7 +2038,7 @@ function seedAchievements() {
     { id: 'tl_19',     name: 'Thiên Mệnh Chi Tử',       category: 'tu_luyen',  description: 'Sở hữu Huyết Mạch huyền thoại',          icon: '🩸', target_value: 1,    reward_title: 'Thiên Mệnh Chi Tử',    reward_exp: 3000, reward_coins: 20000,  sort_order: 71 },
     { id: 'pvp_10',    name: 'Bá Chủ Vạn Thế',          category: 'pvp',       description: 'Giữ vị trí #1 Arena trong 3 mùa liên tiếp', icon: '🏆', target_value: 3,    reward_title: 'Bá Chủ Vạn Thế',      reward_exp: 10000, reward_coins: 100000, sort_order: 72 },
     { id: 'sh_19',     name: 'Trưởng Lão Minh Triết',    category: 'sinh_hoat', description: 'Đào tạo thành công 5+ đệ tử tốt nghiệp',  icon: '📜', target_value: 5,    reward_title: 'Trưởng Lão',           reward_exp: 3000, reward_coins: 30000,  sort_order: 73 },
-    { id: 'pvp_11',    name: 'Chiến Thần Vô Song',       category: 'pvp',       description: 'Thắng 50 trận PvP liên tiếp',            icon: '⚔️', target_value: 50,   reward_title: 'Chiến Thần Vô Song',  reward_exp: 5000, reward_coins: 50000,  sort_order: 74 },
+    { id: 'pvp_11',    name: 'Chiến Thần Vô Song',       category: 'pvp',       description: 'Thắng 50 trận Tỷ Thí liên tiếp',            icon: '⚔️', target_value: 50,   reward_title: 'Chiến Thần Vô Song',  reward_exp: 5000, reward_coins: 50000,  sort_order: 74 },
 
     // ===== PHASE 2 NEW SYSTEMS - TAM MA (Inner Demons) =====
     { id: 'dm_1',      name: 'Diệt Ma Sơ Cấp',           category: 'chien_dau', description: 'Chiến thắng 5 Tâm Ma',                  icon: '👹', target_value: 5,    reward_title: null,                    reward_exp: 1000,  reward_coins: 5000,   sort_order: 75 },
@@ -3790,8 +3982,18 @@ function seedNoituWords() {
   }
 
   // Thử tải từ điển mở rộng đồng bộ từ nhiều nguồn
+  // B07: Quick offline check — skip downloads if no internet
   const { execSync } = require('child_process');
+  let isOnline = true;
+  try {
+    execSync('curl -sL --connect-timeout 3 --max-time 5 -o /dev/null https://1.1.1.1', { timeout: 8000, windowsHide: true });
+  } catch {
+    isOnline = false;
+    console.log('ℹ️ Không có mạng — skip tải từ điển mở rộng, dùng fallback.');
+  }
+
   const fetchText = (url: string, timeout = 70000): string | null => {
+    if (!isOnline) return null;
     try {
       return execSync(`curl -sL --connect-timeout 10 --max-time 60 "${url}"`, { timeout, encoding: 'utf-8', maxBuffer: 20 * 1024 * 1024, windowsHide: true });
     } catch {
@@ -4037,26 +4239,6 @@ const alterStatements = [
 ];
 for (const stmt of alterStatements) {
   try { db.exec(stmt); } catch {}
-}
-
-// Performance indexes for BIG UPDATE
-try {
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_inv_user_item ON inventories(user_id, item_id);
-    CREATE INDEX IF NOT EXISTS idx_inv_equipped ON inventories(user_id, is_equipped);
-    CREATE INDEX IF NOT EXISTS idx_dungeon_cd ON dungeon_cooldowns(user_id, dungeon_id);
-    CREATE INDEX IF NOT EXISTS idx_arena_elo ON arena_profiles(elo DESC);
-    CREATE INDEX IF NOT EXISTS idx_boss_contrib ON world_boss_contributions(boss_id);
-    CREATE INDEX IF NOT EXISTS idx_daily_quest_user ON daily_quests(user_id, assigned_at);
-    CREATE INDEX IF NOT EXISTS idx_market_item ON market_listings(item_id, status);
-    CREATE INDEX IF NOT EXISTS idx_achieve_user ON user_achievements(user_id, is_completed);
-    CREATE INDEX IF NOT EXISTS idx_pet_user ON pets(user_id, is_deployed);
-    CREATE INDEX IF NOT EXISTS idx_skill_user ON user_skills(user_id);
-    CREATE INDEX IF NOT EXISTS idx_quest_chain_user ON quest_chain_progress(user_id);
-  `);
-  console.log('✅ Đã thêm performance indexes.');
-} catch (e) {
-  console.log('ℹ️ Performance indexes đã tồn tại.');
 }
 
 export default db;

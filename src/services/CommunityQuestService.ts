@@ -7,12 +7,13 @@ export interface CommunityQuestDefinition {
   id: string;
   name: string;
   description: string;
-  objectiveType: 'boss_kill' | 'total_exp' | 'total_pvp';
+  objectiveType: 'boss_kill' | 'total_exp' | 'total_pvp' | 'total_mining' | 'total_beast_tame' | 'total_donate';
   totalRequired: number;
   rewardPerPlayer: { exp: number; coins: number; items?: { id: string; qty: number }[] };
   durationHours: number;
 }
 
+// P4-04: Expanded quest pool with more types
 const COMMUNITY_QUEST_POOL: CommunityQuestDefinition[] = [
   {
     id: 'cq_boss',
@@ -40,6 +41,33 @@ const COMMUNITY_QUEST_POOL: CommunityQuestDefinition[] = [
     totalRequired: 100,
     rewardPerPlayer: { exp: 8000, coins: 3000, items: [{ id: ITEMS.PILL_TU_VI_LOW, qty: 3 }] },
     durationHours: 36,
+  },
+  {
+    id: 'cq_mining',
+    name: 'Linh Thạch Động',
+    description: 'Toàn server khai thác 50,000 Linh Thạch qua làm việc',
+    objectiveType: 'total_mining',
+    totalRequired: 50000,
+    rewardPerPlayer: { exp: 3000, coins: 1000 },
+    durationHours: 48,
+  },
+  {
+    id: 'cq_beast',
+    name: 'Thú Kiếm Hiệp',
+    description: 'Toàn server thu phục 20 Linh Thú',
+    objectiveType: 'total_beast_tame',
+    totalRequired: 20,
+    rewardPerPlayer: { exp: 4000, coins: 1500 },
+    durationHours: 36,
+  },
+  {
+    id: 'cq_donate',
+    name: 'Quyên Góp Vạn Dân',
+    description: 'Toàn server quyên góp 5,000 Linh Thạch cho Tông Môn',
+    objectiveType: 'total_donate',
+    totalRequired: 5000,
+    rewardPerPlayer: { exp: 3000, coins: 800 },
+    durationHours: 24,
   },
 ];
 
@@ -114,21 +142,33 @@ class CommunityQuestService {
 
     db.prepare('UPDATE community_quests SET status = ? WHERE id = ?').run('completed', quest.id);
 
-    const participants = db.prepare('SELECT * FROM community_quest_participants WHERE quest_id = ?').all(quest.id) as ParticipantRow[];
+    const participants = db.prepare('SELECT * FROM community_quest_participants WHERE quest_id = ? ORDER BY contribution DESC').all(quest.id) as ParticipantRow[];
 
     const rewardItems: { id: string; qty: number }[] = JSON.parse(quest.reward_items || '[]');
+
+    // P4-04: Find top contributor for bonus
+    const topContributor = participants.length > 0 ? participants[0] : null;
 
     for (const p of participants) {
       const user = userRepository.get(p.user_id);
       if (!user) continue;
 
+      // P4-04: Top contributor gets 1.5x bonus
+      const isTopContributor = topContributor && p.user_id === topContributor.user_id;
+      const bonusMult = isTopContributor ? 1.5 : 1.0;
+
       userRepository.update(p.user_id, {
-        tu_vi: Math.min(user.tu_vi + quest.reward_exp, user.exp_needed),
-        coin_ha_pham: user.coin_ha_pham + quest.reward_coins,
+        tu_vi: Math.min(user.tu_vi + Math.round(quest.reward_exp * bonusMult), user.exp_needed),
+        coin_ha_pham: user.coin_ha_pham + Math.round(quest.reward_coins * bonusMult),
       });
 
       for (const item of rewardItems) {
         inventoryRepository.addItem(p.user_id, item.id, item.qty);
+      }
+
+      // P4-04: Top contributor gets extra KNB
+      if (isTopContributor) {
+        userRepository.update(p.user_id, { knb: user.knb + 5 });
       }
 
       db.prepare('UPDATE community_quest_participants SET claimed = 1 WHERE quest_id = ? AND user_id = ?').run(quest.id, p.user_id);
@@ -154,7 +194,7 @@ class CommunityQuestService {
       SELECT cq.* FROM community_quests cq
       INNER JOIN community_quest_participants cqp ON cqp.quest_id = cq.id
       WHERE cqp.user_id = ? AND cq.status = 'completed'
-      ORDER BY cq.ended_at DESC
+      ORDER BY cq.ends_at DESC
       LIMIT ?
     `).all(userId, limit) as CommunityQuestRow[];
 

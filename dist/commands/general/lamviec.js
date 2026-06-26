@@ -189,6 +189,8 @@ function performWork(discordId, workType) {
         if (user.alignment === 'orthodox') {
             earnedCoins = Math.round(earnedCoins * 1.05);
         }
+        // P7-02: Work Scaling — coins scale with level: base * (1 + level/150)
+        earnedCoins = Math.round(earnedCoins * (1 + user.level / 150));
     }
     // Nhận Tu Vi offline trước để tránh bị reset mất khi thực hiện các update khác
     const { cultivationService } = require('../../services/CultivationService');

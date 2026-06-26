@@ -101,7 +101,16 @@ function getLinhDienComponents(userId) {
     const inv = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
     const rows = [];
     // 1. Dropdown gieo hạt giống (Chỉ hiển thị hạt giống có sẵn)
-    const seeds = inv.filter(i => i.item_id.startsWith('seed_') && i.quantity > 0);
+    // ponytail: deduplicate by item_id — ENOSPC corruption can create duplicate inventory rows
+    const seedMap = new Map();
+    for (const s of inv.filter(i => i.item_id.startsWith('seed_') && i.quantity > 0)) {
+        const existing = seedMap.get(s.item_id);
+        if (existing)
+            existing.quantity += s.quantity;
+        else
+            seedMap.set(s.item_id, { ...s });
+    }
+    const seeds = [...seedMap.values()];
     const seedSelect = new discord_js_1.StringSelectMenuBuilder()
         .setCustomId(`linhdiengieoselect_${userId}`)
         .setPlaceholder('🌱 Chọn hạt giống trong túi để gieo trồng...');

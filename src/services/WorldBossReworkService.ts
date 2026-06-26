@@ -134,6 +134,92 @@ class WorldBossReworkService {
       WHERE s.match_id = ?
     `).all(bossId);
   }
+
+  // === C-03: World Boss — Rotation, Phases, Contribution Milestones ===
+
+  /**
+   * C-03: Get boss rotation (different bosses at different times)
+   */
+  getBossRotation(): { bossId: string; name: string; element: string; active: boolean; timeLeft: number }[] {
+    const bosses = [
+      { id: 'boss_fire', name: 'Hỏa Long', element: 'Hỏa', hours: [0, 6, 12, 18] },
+      { id: 'boss_water', name: 'Thủy Rồng', element: 'Thủy', hours: [2, 8, 14, 20] },
+      { id: 'boss_earth', name: 'Thổ Tướng', element: 'Thổ', hours: [4, 10, 16, 22] },
+    ];
+
+    const now = new Date();
+    const vn = new Date(now.getTime() + 7 * 3600000);
+    const currentHour = vn.getUTCHours();
+
+    return bosses.map(b => {
+      const isActive = b.hours.includes(currentHour);
+      const nextHour = b.hours.find(h => h > currentHour) || b.hours[0] + 24;
+      const timeLeft = isActive ? 60 : (nextHour - currentHour) * 60;
+
+      return {
+        bossId: b.id,
+        name: b.name,
+        element: b.element,
+        active: isActive,
+        timeLeft
+      };
+    });
+  }
+
+  /**
+   * C-03: Get contribution milestones for rewards
+   */
+  getContributionMilestones(): { damage: number; reward: string; label: string }[] {
+    return [
+      { damage: 1000, reward: '100 LT', label: '25% Boss HP' },
+      { damage: 5000, reward: '500 LT + 1 KNB', label: '50% Boss HP' },
+      { damage: 15000, reward: '2000 LT + 5 KNB', label: '75% Boss HP' },
+      { damage: 30000, reward: '5000 LT + 10 KNB + Vật liệu hiếm', label: '100% Boss HP' },
+    ];
+  }
+
+  /**
+   * C-03: Check and award contribution milestones
+   */
+  checkMilestones(userId: string, bossId: string): string[] {
+    const contrib = db.prepare('SELECT * FROM world_boss_contributions WHERE user_id = ? AND boss_id = ?')
+      .get(userId, bossId) as any;
+    if (!contrib) return [];
+
+    const totalDamage = contrib.damage_dealt || 0;
+    const milestones = this.getContributionMilestones();
+    const awarded: string[] = [];
+
+    for (const m of milestones) {
+      if (totalDamage >= m.damage) {
+        awarded.push(`${m.label}: ${m.reward}`);
+      }
+    }
+
+    return awarded;
+  }
+
+  /**
+   * C-03: Get boss description for UI
+   */
+  getBossDescription(bossId: string): string {
+    const info = this.getBossInfo(bossId);
+    if (!info) return '❌ Không có boss active!';
+
+    let msg = `👹 **${info.name}** (Phase ${info.phase || 1})\n`;
+    msg += `❤️ HP: **${info.hpPercent}%** (${info.hp}/${info.max_hp})\n`;
+    msg += `⚔️ ATK: **${info.atk}** | 🛡️ DEF: **${info.def}**\n`;
+    msg += `🔥 Weakness: **${info.currentWeakness}**\n`;
+
+    if (info.abilities) {
+      msg += `\n**Abilities:**\n`;
+      for (const a of info.abilities) {
+        msg += `• ${a}\n`;
+      }
+    }
+
+    return msg;
+  }
 }
 
 export const worldBossReworkService = new WorldBossReworkService();

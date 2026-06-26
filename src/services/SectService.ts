@@ -40,12 +40,12 @@ export class SectService {
     }
 
     if (user.sect_id) {
-      return { success: false, message: 'Dao huu da co Tong Mon! Vui long roi Tong Mon cu truoc khi sang lap mon phai moi.' };
+      return { success: false, message: 'Đạo hữu đã có Tông Môn! Vui lòng rời Tông Môn cũ trước khi sáng lập môn phái mới.' };
     }
 
     const cost = GAME_CONSTANTS.SECT_CREATE_COST_LT;
     if (user.coin_ha_pham < cost) {
-      return { success: false, message: `Dao huu khong du Linh Thach de lap Tong Mon! (Yeu cau **${cost}** Linh Thach, hien co **${user.coin_ha_pham}**)` };
+      return { success: false, message: `Đạo hữu không đủ Linh Thạch để lập Tông Môn! (Yêu cầu **${cost}** Linh Thạch, hiện có **${user.coin_ha_pham}**)` };
     }
 
     const nameRegex = /^[a-zA-Z0-9À-ỹ\s]{2,20}$/;
@@ -721,6 +721,392 @@ export class SectService {
     userRepository.update(targetId, { sect_role: 'master' });
 
     return { success: true, message: `👑 Đã truyền ngôi Tông Chủ cho **${target.name}**! Đạo hữu giờ là Trưởng Lão của tông môn.` };
+  }
+
+  // === P2-03: Sect Shop ===
+
+  /**
+   * Sect Shop items — level-gated, daily/weekly limits, purchasable with sect_contribution
+   */
+  private readonly SECT_SHOP_ITEMS = [
+    { id: 'tu_khi_dan', name: 'Tụ Khí Đan', emoji: '💊', description: 'Đan dược đột phá', cost: 150, minSectLevel: 3, limitType: 'daily' as const, limit: 3 },
+    { id: 'boi_nguyen_dan', name: 'Bồi Nguyên Đan', emoji: '💎', description: 'Đan dược bổ sung nguyên khí', cost: 400, minSectLevel: 3, limitType: 'daily' as const, limit: 2 },
+    { id: 'tinh_thach_shard', name: 'Mảnh Tinh Thạch', emoji: '💠', description: 'Mảnh ghép Tinh Thạch', cost: 600, minSectLevel: 5, limitType: 'daily' as const, limit: 1 },
+    { id: 'rare_herb_pack', name: 'Bộ Thảo Dược Quý', emoji: '🌿', description: '3 thảo dược hiếm ngẫu nhiên', cost: 200, minSectLevel: 3, limitType: 'daily' as const, limit: 5 },
+    { id: 'beast_egg', name: 'Trứng Linh Thú', emoji: '🥚', description: 'Linh Thú ngẫu nhiên', cost: 1200, minSectLevel: 5, limitType: 'weekly' as const, limit: 1 },
+    { id: 'tim_phap_fragment', name: 'Hộp Mảnh Tâm Pháp', emoji: '📜', description: '2 mảnh Tâm Pháp ngẫu nhiên', cost: 1000, minSectLevel: 8, limitType: 'weekly' as const, limit: 2 },
+    { id: 'soul_essence', name: 'Tinh Hồn', emoji: '✨', description: 'Vật liệu tiến hóa Soul Weapon', cost: 2000, minSectLevel: 8, limitType: 'weekly' as const, limit: 1 },
+    { id: 'sect_title', name: 'Danh Hiệu Tông Môn', emoji: '🏆', description: 'Danh hiệu độc quyền Tông Môn', cost: 5000, minSectLevel: 10, limitType: 'permanent' as const, limit: 1 },
+    { id: 'sect_mount', name: 'Tộc Tông Môn', emoji: '🐉', description: 'Skin cưỡi độc quyền Tông Môn', cost: 15000, minSectLevel: 10, limitType: 'permanent' as const, limit: 1 },
+  ];
+
+  /**
+   * Lấy danh sách Sect Shop items (đã filter theo level tông môn)
+   */
+  public getSectShopItems(userId: string): { item: any; purchased: number; canBuy: boolean }[] {
+    const user = userRepository.get(userId);
+    if (!user || !user.sect_id) return [];
+
+    const sect = db.prepare('SELECT level FROM sects WHERE id = ?').get(user.sect_id) as { level: number } | undefined;
+    if (!sect) return [];
+
+    const todayStart = this.getTodayStart();
+    const weekStart = this.getWeekStart();
+
+    return this.SECT_SHOP_ITEMS
+      .filter(item => sect.level >= item.minSectLevel)
+      .map(item => {
+        const purchased = this.getPurchasedCount(userId, item.id, item.limitType, todayStart, weekStart);
+        return {
+          item,
+          purchased,
+          canBuy: purchased < item.limit && user.sect_contribution >= item.cost
+        };
+      });
+  }
+
+  /**
+   * Mua item từ Sect Shop
+   */
+  public buyFromSectShop(userId: string, itemId: string): { success: boolean; message: string } {
+    const user = userRepository.get(userId);
+    if (!user || !user.sect_id) return { success: false, message: 'Đạo hữu chưa gia nhập Tông Môn nào!' };
+
+    const item = this.SECT_SHOP_ITEMS.find(i => i.id === itemId);
+    if (!item) return { success: false, message: 'Vật phẩm không tồn tại!' };
+
+    const sect = db.prepare('SELECT level FROM sects WHERE id = ?').get(user.sect_id) as { level: number } | undefined;
+    if (!sect || sect.level < item.minSectLevel) {
+      return { success: false, message: `Tông Môn cần đạt cấp ${item.minSectLevel} để mở khóa vật phẩm này!` };
+    }
+
+    if (user.sect_contribution < item.cost) {
+      return { success: false, message: `Không đủ Đóng Góp! Cần **${item.cost}** (Hiện có **${user.sect_contribution}**).` };
+    }
+
+    const todayStart = this.getTodayStart();
+    const weekStart = this.getWeekStart();
+    const purchased = this.getPurchasedCount(userId, item.id, item.limitType, todayStart, weekStart);
+
+    if (purchased >= item.limit) {
+      return { success: false, message: `Đã mua đủ **${item.limit}** lần hôm nay/tuần!` };
+    }
+
+    // Deduct contribution
+    userRepository.update(userId, { sect_contribution: user.sect_contribution - item.cost });
+
+    // Track purchase
+    db.prepare(`
+      INSERT INTO sect_shop_purchases (user_id, item_id, purchased_at)
+      VALUES (?, ?, ?)
+    `).run(userId, itemId, Math.floor(Date.now() / 1000));
+
+    return {
+      success: true,
+      message: `${item.emoji} **${item.name}** đã mua thành công! (-${item.cost} Đóng Góp)`
+    };
+  }
+
+  /**
+   * Lấy thông tin cửa hàng cho UI
+   */
+  public getSectShopDescription(userId: string): string {
+    const user = userRepository.get(userId);
+    if (!user || !user.sect_id) return '❌ Đạo hữu chưa gia nhập Tông Môn!';
+
+    const items = this.getSectShopItems(userId);
+    if (items.length === 0) return '🏪 Cửa Hàng Tông Môn chưa mở (Cần Tông Môn cấp 3+)';
+
+    let msg = `🏪 **Cửa Hàng Tông Môn** (Đóng Góp: **${user.sect_contribution}**)\n━━━━━━━━━━━━━━━━━━━━━━━\n`;
+
+    const levels = [3, 5, 8, 10];
+    for (const lvl of levels) {
+      const levelItems = items.filter(i => i.item.minSectLevel === lvl);
+      if (levelItems.length === 0) continue;
+
+      msg += `\n**Mở khóa cấp ${lvl}:**\n`;
+      for (const { item, purchased, canBuy } of levelItems) {
+        const status = canBuy ? '✅' : (purchased >= item.limit ? '🔒' : '❌');
+        const limitText = item.limitType === 'permanent' ? `${purchased}/${item.limit}` :
+          item.limitType === 'daily' ? `${purchased}/${item.limit}/ngày` :
+          `${purchased}/${item.limit}/tuần`;
+        msg += `${status} ${item.emoji} **${item.name}** — ${item.cost} đóng góp (${limitText})\n`;
+      }
+    }
+
+    return msg;
+  }
+
+  private getPurchasedCount(userId: string, itemId: string, limitType: string, todayStart: number, weekStart: number): number {
+    let query = 'SELECT COUNT(*) as c FROM sect_shop_purchases WHERE user_id = ? AND item_id = ?';
+    const params: any[] = [userId, itemId];
+
+    if (limitType === 'daily') {
+      query += ' AND purchased_at >= ?';
+      params.push(todayStart);
+    } else if (limitType === 'weekly') {
+      query += ' AND purchased_at >= ?';
+      params.push(weekStart);
+    }
+    // 'permanent' — no date filter, count all
+
+    const row = db.prepare(query).get(...params) as { c: number };
+    return row.c;
+  }
+
+  private getTodayStart(): number {
+    const now = new Date();
+    const vn = new Date(now.getTime() + 7 * 3600000);
+    vn.setUTCHours(0, 0, 0, 0);
+    return Math.floor((vn.getTime() - 7 * 3600000) / 1000);
+  }
+
+  private getWeekStart(): number {
+    const now = new Date();
+    const vn = new Date(now.getTime() + 7 * 3600000);
+    const day = vn.getUTCDay() || 7;
+    vn.setUTCDate(vn.getUTCDate() - (day - 1));
+    vn.setUTCHours(0, 0, 0, 0);
+    return Math.floor((vn.getTime() - 7 * 3600000) / 1000);
+  }
+
+  // === B-07: Sect Features Expansion ===
+
+  private sectFeatureInit = false;
+
+  private initSectFeatures(): void {
+    if (this.sectFeatureInit) return;
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sect_garden (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sect_id INTEGER NOT NULL REFERENCES sects(id) ON DELETE CASCADE,
+        plot_index INTEGER NOT NULL,
+        seed_type TEXT,
+        planted_at INTEGER,
+        harvest_at INTEGER,
+        status TEXT DEFAULT 'empty',
+        UNIQUE(sect_id, plot_index)
+      );
+
+      CREATE TABLE IF NOT EXISTS sect_library (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sect_id INTEGER NOT NULL REFERENCES sects(id) ON DELETE CASCADE,
+        book_type TEXT NOT NULL,
+        donated_by TEXT,
+        donated_at INTEGER NOT NULL
+      );
+    `);
+    this.sectFeatureInit = true;
+  }
+
+  /**
+   * B-07: Sect Garden — Plant seeds, harvest after 24h
+   */
+  public plantInGarden(userId: string, plotIndex: number, seedType: string): { success: boolean; message: string } {
+    this.initSectFeatures();
+    const user = userRepository.get(userId);
+    if (!user || !user.sect_id) return { success: false, message: '❌ Chưa gia nhập Tông Môn!' };
+
+    const plot = db.prepare('SELECT * FROM sect_garden WHERE sect_id = ? AND plot_index = ?')
+      .get(user.sect_id, plotIndex) as any;
+
+    if (plot && plot.status !== 'empty') {
+      return { success: false, message: 'Ô này đã có cây!' };
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const harvestAt = now + 24 * 3600;
+
+    db.prepare(`
+      INSERT INTO sect_garden (sect_id, plot_index, seed_type, planted_at, harvest_at, status)
+      VALUES (?, ?, ?, ?, ?, 'growing')
+      ON CONFLICT(sect_id, plot_index) DO UPDATE SET
+        seed_type = excluded.seed_type, planted_at = excluded.planted_at,
+        harvest_at = excluded.harvest_at, status = 'growing'
+    `).run(user.sect_id, plotIndex, seedType, now, harvestAt);
+
+    return { success: true, message: `🌱 Đã gieo **${seedType}** vào ô ${plotIndex}. Thu hoạch sau 24h!` };
+  }
+
+  /**
+   * B-07: Harvest garden plot
+   */
+  public harvestGarden(userId: string, plotIndex: number): { success: boolean; message: string } {
+    this.initSectFeatures();
+    const user = userRepository.get(userId);
+    if (!user || !user.sect_id) return { success: false, message: '❌ Chưa gia nhập Tông Môn!' };
+
+    const plot = db.prepare('SELECT * FROM sect_garden WHERE sect_id = ? AND plot_index = ?')
+      .get(user.sect_id, plotIndex) as any;
+
+    if (!plot || plot.status !== 'growing') return { success: false, message: 'Ô này chưa có gì để thu hoạch!' };
+
+    const now = Math.floor(Date.now() / 1000);
+    if (now < plot.harvest_at) {
+      const remainH = Math.ceil((plot.harvest_at - now) / 3600);
+      return { success: false, message: `Còn **${remainH}h** nữa mới thu hoạch được!` };
+    }
+
+    // Rewards based on seed type
+    const rewards: Record<string, { coins: number; exp: number }> = {
+      'herb': { coins: 200, exp: 100 },
+      'flower': { coins: 350, exp: 200 },
+      'tree': { coins: 500, exp: 350 },
+    };
+    const reward = rewards[plot.seed_type] || rewards['herb'];
+
+    userRepository.update(userId, {
+      coin_ha_pham: user.coin_ha_pham + reward.coins,
+      tu_vi: Math.min(user.tu_vi + reward.exp, user.exp_needed)
+    });
+
+    db.prepare("UPDATE sect_garden SET status = 'harvested', seed_type = NULL WHERE sect_id = ? AND plot_index = ?")
+      .run(user.sect_id, plotIndex);
+
+    return { success: true, message: `🌾 Thu hoạch thành công! +${reward.coins} LT, +${reward.exp} Tu Vi` };
+  }
+
+  /**
+   * B-07: Sect Library — Donate books for shared bonuses
+   */
+  public donateToLibrary(userId: string, bookType: string): { success: boolean; message: string } {
+    this.initSectFeatures();
+    const user = userRepository.get(userId);
+    if (!user || !user.sect_id) return { success: false, message: '❌ Chưa gia nhập Tông Môn!' };
+
+    const now = Math.floor(Date.now() / 1000);
+    db.prepare('INSERT INTO sect_library (sect_id, book_type, donated_by, donated_at) VALUES (?, ?, ?, ?)')
+      .run(user.sect_id, bookType, userId, now);
+
+    // Count books and calculate bonus
+    const bookCount = db.prepare('SELECT COUNT(*) as c FROM sect_library WHERE sect_id = ?')
+      .get(user.sect_id) as { c: number };
+
+    const bonus = Math.min(bookCount.c * 0.01, 0.10); // Max +10% from library
+
+    return {
+      success: true,
+      message: `📚 Đã hiến tặng **${bookType}** cho Thư Viện Tông Môn!\nHiện có **${bookCount.c}** sách → **+${Math.round(bonus * 100)}%** shared bonus cho tất cả thành viên.`
+    };
+  }
+
+  /**
+   * B-07: Get sect library bonus
+   */
+  public getLibraryBonus(sectId: number): number {
+    this.initSectFeatures();
+    const count = db.prepare('SELECT COUNT(*) as c FROM sect_library WHERE sect_id = ?')
+      .get(sectId) as { c: number };
+    return Math.min(count.c * 0.01, 0.10);
+  }
+
+  // === B-01: Guild System Deep ===
+
+  /**
+   * B-01: Get guild levels and benefits
+   */
+  getGuildLevels(): { level: number; memberLimit: number; benefits: string }[] {
+    return [
+      { level: 1, memberLimit: 10, benefits: 'Tính năng tông môn cơ bản' },
+      { level: 2, memberLimit: 15, benefits: '+5% EXP cho thành viên' },
+      { level: 3, memberLimit: 20, benefits: 'Mở khóa Cửa Hàng Tông Môn' },
+      { level: 4, memberLimit: 25, benefits: '+10% EXP cho thành viên' },
+      { level: 5, memberLimit: 30, benefits: 'Mở khóa cửa hàng nâng cao + Kỹ Năng Tông Môn' },
+      { level: 6, memberLimit: 35, benefits: '+15% EXP + Thành Tựu Tông Môn' },
+      { level: 7, memberLimit: 40, benefits: 'Mở khóa Sự Kiện Tông Môn' },
+      { level: 8, memberLimit: 45, benefits: '+20% EXP + Cửa Hàng Tinh Anh' },
+      { level: 9, memberLimit: 50, benefits: 'Mở khóa Boss Tông Môn' },
+      { level: 10, memberLimit: 60, benefits: '+25% EXP + Cửa Hàng Huyền Thoại + Tùy Biến Tông Môn' },
+    ];
+  }
+
+  /**
+   * B-01: Get guild skills
+   */
+  getGuildSkills(): { id: string; name: string; description: string; bonus: string; levelReq: number }[] {
+    return [
+      { id: 'gs_exp', name: 'EXP Gia Trì', description: '+5% EXP cho tất cả thành viên', bonus: 'exp_bonus', levelReq: 5 },
+      { id: 'gs_atk', name: 'ATK Gia Trì', description: '+3% ATK cho tất cả thành viên', bonus: 'atk_bonus', levelReq: 6 },
+      { id: 'gs_def', name: 'DEF Gia Trì', description: '+3% DEF cho tất cả thành viên', bonus: 'def_bonus', levelReq: 7 },
+      { id: 'gs_hp', name: 'HP Gia Trì', description: '+5% HP cho tất cả thành viên', bonus: 'hp_bonus', levelReq: 8 },
+      { id: 'gs_all', name: 'Toàn Năng Gia Trì', description: '+2% tất cả chỉ số cho thành viên', bonus: 'all_bonus', levelReq: 10 },
+    ];
+  }
+
+  /**
+   * B-01: Get active guild skills
+   */
+  getActiveGuildSkills(sectId: number): { id: string; name: string; bonus: string }[] {
+    try {
+      const sect = db.prepare('SELECT level FROM sects WHERE id = ?').get(sectId) as { level: number };
+      const allSkills = this.getGuildSkills();
+      return allSkills.filter(s => sect.level >= s.levelReq).map(s => ({
+        id: s.id,
+        name: s.name,
+        bonus: s.bonus
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * B-01: Get guild achievements
+   */
+  getGuildAchievements(): { id: string; name: string; description: string; target: number; reward: string }[] {
+    return [
+      { id: 'ga_member_10', name: 'Phát Triển', description: 'Đạt 10 thành viên', target: 10, reward: '5000 EXP tông môn' },
+      { id: 'ga_member_25', name: 'Tông Môn Hùng Mạnh', description: 'Đạt 25 thành viên', target: 25, reward: '10000 EXP tông môn + Danh hiệu' },
+      { id: 'ga_level_5', name: 'Có Chỗ Đứng', description: 'Đạt cấp tông môn 5', target: 5, reward: 'Mở khóa Kỹ Năng Tông Môn' },
+      { id: 'ga_level_10', name: 'Tông Môn Huyền Thoại', description: 'Đạt cấp tông môn 10', target: 10, reward: 'Danh hiệu Huyền Thoại + Tọa Kỵ' },
+      { id: 'ga_donate_100k', name: 'Hiến Tế Rộng Lượng', description: 'Hiến tế tổng cộng 100,000', target: 100000, reward: 'Trang Phục Độc Quyền' },
+    ];
+  }
+
+  /**
+   * B-01: Get guild events
+   */
+  getGuildEvents(): { id: string; name: string; description: string; reward: string }[] {
+    return [
+      { id: 'ge_war', name: 'Tông Chiến', description: 'Chiến trường tông môn hàng tuần', reward: 'Điểm Chiến + Phần Thưởng' },
+      { id: 'ge_raid', name: 'Boss Tông Môn', description: 'Boss tông môn hàng tháng', reward: 'Nguyên Liệu Hiếm + KNB' },
+      { id: 'ge_craft', name: 'Đua Chế Tạo', description: 'Thi chế tạo hàng tuần', reward: 'Nguyên Liệu Chế Tạo + Danh Hiệu' },
+      { id: 'ge_explore', name: 'Thám Hiểm Tốc Độ', description: 'Thử thách thám hiểm hàng tuần', reward: 'Phần Thưởng Thám Hiểm x2' },
+    ];
+  }
+
+  /**
+   * B-01: Get guild description for UI
+   */
+  getGuildDescription(userId: string): string {
+    const user = userRepository.get(userId);
+    if (!user || !user.sect_id) return '❌ Chưa gia nhập Tông Môn!';
+
+    const sect = db.prepare('SELECT * FROM sects WHERE id = ?').get(user.sect_id) as any;
+    if (!sect) return '❌ Không tìm thấy Tông Môn!';
+
+    const levels = this.getGuildLevels();
+    const currentLevel = levels.find(l => l.level === sect.level) || levels[0];
+    const nextLevel = levels.find(l => l.level === sect.level + 1);
+
+    let msg = `☯️ **${sect.name}** (Level ${sect.level})\n`;
+    msg += `👥 Members: ${this.getMemberCount(sect.id)}/${currentLevel.memberLimit}\n`;
+    msg += `📊 Benefits: ${currentLevel.benefits}\n`;
+
+    if (nextLevel) {
+      msg += `📈 Next Level: ${nextLevel.benefits}\n`;
+    }
+
+    // Show active skills
+    const skills = this.getActiveGuildSkills(sect.id);
+    if (skills.length > 0) {
+      msg += `\n**Guild Skills:**\n`;
+      for (const s of skills) {
+        msg += `• ${s.name}: ${s.bonus}\n`;
+      }
+    }
+
+    return msg;
   }
 }
 

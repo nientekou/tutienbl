@@ -54,7 +54,7 @@ export const RARE_BEASTS: RareBeastDef[] = [
     element: 'phong',
     baseAtk: 40, baseDef: 30, baseHp: 250,
     passiveSkill: 'speed_surge',
-    passiveDescription: '+15% speed, +5% dodge',
+    passiveDescription: '+15% Tốc Độ, +5% Né Tránh',
     evolveBonus: [
       { atk: 8, def: 5, hp: 50 },
       { atk: 15, def: 10, hp: 100 },
@@ -71,7 +71,7 @@ export const RARE_BEASTS: RareBeastDef[] = [
     element: 'hoa',
     baseAtk: 60, baseDef: 45, baseHp: 300,
     passiveSkill: 'phoenix_flame',
-    passiveDescription: '+20% fire damage, hồi sinh 1 lần/trận',
+    passiveDescription: '+20% Sát Thương Hỏa, hồi sinh 1 lần/trận',
     evolveBonus: [
       { atk: 12, def: 9, hp: 60 },
       { atk: 25, def: 18, hp: 120 },
@@ -88,7 +88,7 @@ export const RARE_BEASTS: RareBeastDef[] = [
     element: 'thuy',
     baseAtk: 25, baseDef: 45, baseHp: 220,
     passiveSkill: 'water_shield',
-    passiveDescription: '+8% shields khi HP thấp',
+    passiveDescription: '+8% Khiên khi Sinh Lực thấp',
     evolveBonus: [
       { atk: 4, def: 10, hp: 45 },
       { atk: 8, def: 18, hp: 90 },
@@ -105,13 +105,47 @@ export const RARE_BEASTS: RareBeastDef[] = [
     element: 'tho',
     baseAtk: 45, baseDef: 50, baseHp: 200,
     passiveSkill: 'earth_fortify',
-    passiveDescription: '+12% DEF, +5% HP regen',
+    passiveDescription: '+12% Phòng Thủ, +5% Hồi Phục Sinh Lực',
     evolveBonus: [
       { atk: 8, def: 12, hp: 40 },
       { atk: 16, def: 22, hp: 80 },
       { atk: 28, def: 35, hp: 150 },
       { atk: 45, def: 50, hp: 250 },
       { atk: 65, def: 75, hp: 400 }
+    ],
+    tamingRate: 0.06
+  },
+  {
+    type: 'thanh_long',
+    name: 'Thanh Long',
+    rarity: 'rare',
+    element: 'moc',
+    baseAtk: 28, baseDef: 38, baseHp: 240,
+    passiveSkill: 'hp_regen_aura',
+    passiveDescription: '+8% Hồi Phục Sinh Lực mỗi hiệp',
+    evolveBonus: [
+      { atk: 5, def: 8, hp: 48 },
+      { atk: 9, def: 15, hp: 95 },
+      { atk: 16, def: 25, hp: 170 },
+      { atk: 26, def: 40, hp: 280 },
+      { atk: 42, def: 60, hp: 450 }
+    ],
+    tamingRate: 0.12
+  },
+  {
+    type: 'lo_than',
+    name: 'Lôi Thần',
+    rarity: 'epic',
+    element: 'loi',
+    baseAtk: 55, baseDef: 30, baseHp: 190,
+    passiveSkill: 'chain_lightning',
+    passiveDescription: '15% gây choáng địch 1 hiệp',
+    evolveBonus: [
+      { atk: 11, def: 5, hp: 38 },
+      { atk: 22, def: 10, hp: 75 },
+      { atk: 38, def: 18, hp: 140 },
+      { atk: 58, def: 30, hp: 230 },
+      { atk: 85, def: 48, hp: 370 }
     ],
     tamingRate: 0.06
   }

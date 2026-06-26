@@ -13,9 +13,10 @@ export default class MessageCreateEvent extends Event<'messageCreate'> {
     if (message.author.bot) return;
     if (!message.guild) return;
 
-    const config = db.prepare('SELECT noitu_channel_id FROM guild_configs WHERE guild_id = ?')
+    // Existing Noi Tu logic
+    const gameConfig = db.prepare('SELECT noitu_channel_id FROM guild_configs WHERE guild_id = ?')
       .get(message.guild.id) as any;
-    if (!config?.noitu_channel_id || message.channel.id !== config.noitu_channel_id) return;
+    if (!gameConfig?.noitu_channel_id || message.channel.id !== gameConfig.noitu_channel_id) return;
 
     const gameKey = `${message.guild.id}:${message.channel.id}`;
     const game = noituService.getGame(gameKey);

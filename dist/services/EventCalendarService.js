@@ -1,0 +1,167 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.eventCalendarService = void 0;
+const database_1 = __importDefault(require("../database/database"));
+const SEASONS = [
+    { name: 'Mùa Lửa', element: 'Hoa', emoji: '🔥', description: 'Lửa thiêu rực, Hỏa hệ mạnh', buff: { stat: 'atk_bonus', value: 0.05 }, nerf: { stat: 'def_bonus', value: -0.03 } },
+    { name: 'Mùa Nước', element: 'Thuy', emoji: '💧', description: 'Nước dâng trào, Thủy hệ mạnh', buff: { stat: 'hp_bonus', value: 0.05 }, nerf: { stat: 'atk_bonus', value: -0.03 } },
+    { name: 'Mùa Cây', element: 'Moc', emoji: '🌿', description: 'Thảm thực vật xanh tươi', buff: { stat: 'regen_bonus', value: 0.05 }, nerf: { stat: 'crit_bonus', value: -0.02 } },
+    { name: 'Mùa Kim', element: 'Kim', emoji: '⚔️', description: 'Kim loại sáng ngời, Kim hệ mạnh', buff: { stat: 'crit_bonus', value: 0.03 }, nerf: { stat: 'speed_bonus', value: -0.03 } },
+    { name: 'Mùa Đất', element: 'Tho', emoji: '🪨', description: 'Đất trời vững chãi', buff: { stat: 'def_bonus', value: 0.05 }, nerf: { stat: 'dodge_bonus', value: -0.03 } },
+    { name: 'Mùa Sấm', element: 'Loi', emoji: '⚡', description: 'Sấm sét vang trời, Lôi hệ mạnh', buff: { stat: 'speed_bonus', value: 0.05 }, nerf: { stat: 'hp_bonus', value: -0.03 } },
+    { name: 'Mùa Gió', element: 'Phong', emoji: '🌀', description: 'Gió thổi mạnh, Phong hệ mạnh', buff: { stat: 'dodge_bonus', value: 0.05 }, nerf: { stat: 'def_bonus', value: -0.03 } },
+];
+const SEASONAL_SHOP_ITEMS = [
+    { id: 'seasonal_title', name: 'Danh Hiệu Mùa', cost: 500, type: 'title' },
+    { id: 'seasonal_mount', name: 'Skin Cưỡi Mùa', cost: 1000, type: 'cosmetic' },
+    { id: 'seasonal_frame', name: 'Khung Avatar Mùa', cost: 300, type: 'cosmetic' },
+    { id: 'seasonal_emote', name: 'Emote Mùa', cost: 200, type: 'cosmetic' },
+];
+class EventCalendarService {
+    /**
+     * B-10: Get current season based on month
+     */
+    getCurrentSeason() {
+        const now = new Date();
+        const vn = new Date(now.getTime() + 7 * 3600000);
+        const month = vn.getUTCMonth(); // 0-11
+        // Map month to season (cycle through 7 seasons, repeat)
+        const seasonIndex = month % SEASONS.length;
+        const season = SEASONS[seasonIndex];
+        // Calculate days left in month
+        const lastDay = new Date(Date.UTC(vn.getUTCFullYear(), vn.getUTCMonth() + 1, 0));
+        const daysLeft = Math.ceil((lastDay.getTime() - vn.getTime()) / 86400000);
+        return { ...season, month, daysLeft };
+    }
+    /**
+     * B-10: Get season buff/nerf effects
+     */
+    getSeasonEffects() {
+        const season = this.getCurrentSeason();
+        return {
+            [season.buff.stat]: season.buff.value,
+            [season.nerf.stat]: season.nerf.value,
+        };
+    }
+    /**
+     * B-10: Get seasonal shop items
+     */
+    getSeasonalShop() {
+        return SEASONAL_SHOP_ITEMS;
+    }
+    /**
+     * B-10: Get countdown to next season
+     */
+    getCountdown() {
+        const season = this.getCurrentSeason();
+        return `📅 **${season.emoji} ${season.name}** — Còn **${season.daysLeft}** ngày`;
+    }
+    /**
+     * B-10: Get seasonal description for UI
+     */
+    getSeasonDescription() {
+        const season = this.getCurrentSeason();
+        let msg = `${season.emoji} **${season.name}** (${season.element})\n`;
+        msg += `${season.description}\n\n`;
+        msg += `**Hiệu ứng mùa:**\n`;
+        msg += `• ${season.buff.stat}: **+${Math.round(season.buff.value * 100)}%**\n`;
+        msg += `• ${season.nerf.stat}: **${Math.round(season.nerf.value * 100)}%**\n\n`;
+        msg += `⏰ Còn **${season.daysLeft}** ngày\n\n`;
+        msg += `**Cửa Hàng Mùa:** Dùng \`/sukien\` để xem`;
+        return msg;
+    }
+    // === D-03: Season V2 — Season Pass, Seasonal Content ===
+    /**
+     * D-03: Season Pass tiers and rewards
+     */
+    getSeasonPassTiers() {
+        return [
+            { tier: 1, freeReward: '100 LT', premiumReward: '150 LT + 5 KNB', expRequired: 0 },
+            { tier: 5, freeReward: '500 LT + 3 đan dược', premiumReward: '750 LT + 5 KNB + 5 đan dược', expRequired: 500 },
+            { tier: 10, freeReward: '1000 LT + 5 Tinh Thạch', premiumReward: '1500 LT + 10 KNB + 5 Tinh Thạch', expRequired: 1500 },
+            { tier: 15, freeReward: '1500 LT + thức ăn linh thú', premiumReward: '2250 LT + 15 KNB + thức ăn linh thú', expRequired: 3000 },
+            { tier: 20, freeReward: '2000 LT + 10 Tinh Thạch', premiumReward: '3000 LT + 20 KNB + 10 Tinh Thạch', expRequired: 5000 },
+            { tier: 25, freeReward: '3000 LT + túi dược liệu hiếm', premiumReward: '4500 LT + 25 KNB + dược liệu hiếm', expRequired: 8000 },
+            { tier: 30, freeReward: '5000 LT + tinh hoa linh hồn', premiumReward: '7500 LT + 50 KNB + tinh hoa linh hồn', expRequired: 12000 },
+            { tier: 35, freeReward: '500 Ngọc Tinh + mảnh tâm pháp', premiumReward: '750 Ngọc Tinh + mảnh tâm pháp', expRequired: 17000 },
+            { tier: 40, freeReward: '5000 LT + 15 Tinh Thạch', premiumReward: '7500 LT + 30 KNB + 15 Tinh Thạch', expRequired: 23000 },
+            { tier: 45, freeReward: '500 Ngọc Tinh + tinh hoa linh hồn', premiumReward: '750 Ngọc Tinh + tinh hoa linh hồn', expRequired: 30000 },
+            { tier: 50, freeReward: '100 KNB + Danh Hiệu Mùa + 20 Tinh Thạch', premiumReward: '150 KNB + Tọa Kỵ Mùa + Danh Hiệu Mùa Cao Cấp + 20 Tinh Thạch', expRequired: 40000 },
+        ];
+    }
+    /**
+     * D-03: Get season pass progress
+     */
+    getSeasonPassProgress(userId) {
+        const row = database_1.default.prepare('SELECT * FROM user_season_pass WHERE user_id = ?').get(userId);
+        if (!row)
+            return { tier: 0, exp: 0, nextTierExp: 500, freeClaimed: false, premiumClaimed: false };
+        const tiers = this.getSeasonPassTiers();
+        const currentTier = tiers.find(t => row.exp < t.expRequired) || tiers[tiers.length - 1];
+        const prevTier = tiers[tiers.indexOf(currentTier) - 1];
+        return {
+            tier: prevTier ? prevTier.tier : 0,
+            exp: row.exp,
+            nextTierExp: currentTier.expRequired,
+            freeClaimed: row.free_claimed === 1,
+            premiumClaimed: row.premium_claimed === 1
+        };
+    }
+    /**
+     * D-03: Add season pass EXP
+     */
+    addSeasonPassExp(userId, exp) {
+        database_1.default.exec(`
+      CREATE TABLE IF NOT EXISTS user_season_pass (
+        user_id TEXT PRIMARY KEY,
+        exp INTEGER DEFAULT 0,
+        free_claimed INTEGER DEFAULT 0,
+        premium_claimed INTEGER DEFAULT 0
+      );
+    `);
+        const existing = database_1.default.prepare('SELECT * FROM user_season_pass WHERE user_id = ?').get(userId);
+        if (existing) {
+            database_1.default.prepare('UPDATE user_season_pass SET exp = exp + ? WHERE user_id = ?').run(exp, userId);
+        }
+        else {
+            database_1.default.prepare('INSERT INTO user_season_pass (user_id, exp) VALUES (?, ?)').run(userId, exp);
+        }
+    }
+    /**
+     * D-03: Get seasonal quests (5 per season)
+     */
+    getSeasonalQuests() {
+        const season = this.getCurrentSeason();
+        return [
+            { id: `sq_${season.element}_1`, name: `Thử Thách ${season.name}`, description: `Hoàn thành 10 trận chiến trong mùa ${season.name}`, target: 10, reward: '500 LT + Season Token' },
+            { id: `sq_${season.element}_2`, name: `Săn Mùa`, description: `Thu thập 20 vật liệu mùa`, target: 20, reward: '1000 LT + Season Token' },
+            { id: `sq_${season.element}_3`, name: `Chiến Thần Mùa`, description: `Thắng 5 PvP trong mùa`, target: 5, reward: '1500 LT + 5 KNB' },
+            { id: `sq_${season.element}_4`, name: `Thợ Rèn Mùa`, description: `Luyện chế 5 vật phẩm mùa`, target: 5, reward: '800 LT + Season Token' },
+            { id: `sq_${season.element}_5`, name: `Hoàn Thành Mùa`, description: `Hoàn thành tất cả quest mùa`, target: 4, reward: '5000 LT + 20 KNB + Season Title' },
+        ];
+    }
+    /**
+     * D-03: Get season pass description
+     */
+    getSeasonPassDescription(userId) {
+        const progress = this.getSeasonPassProgress(userId);
+        const tiers = this.getSeasonPassTiers();
+        const currentTierIdx = tiers.findIndex(t => progress.exp < t.expRequired);
+        const currentTier = currentTierIdx >= 0 ? tiers[currentTierIdx] : tiers[tiers.length - 1];
+        let msg = `🎫 **Season Pass**\n`;
+        msg += `📊 EXP: **${progress.exp}**/${progress.nextTierExp}\n`;
+        msg += `🏆 Tier: **${progress.tier}**/50\n\n`;
+        // Show next 3 tiers
+        const nextTiers = tiers.slice(currentTierIdx, currentTierIdx + 3);
+        for (const t of nextTiers) {
+            const isUnlocked = progress.exp >= t.expRequired;
+            msg += `${isUnlocked ? '✅' : '🔒'} Tier ${t.tier}: ${t.freeReward}\n`;
+        }
+        msg += `\n*Cùng tích lũy EXP qua các hoạt động để mở khóa!*`;
+        return msg;
+    }
+}
+exports.eventCalendarService = new EventCalendarService();

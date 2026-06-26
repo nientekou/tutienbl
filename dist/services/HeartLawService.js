@@ -6,6 +6,65 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.heartLawService = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
+const HOA = 'Hỏa';
+const THUY = 'Thủy';
+const MOC = 'Mộc';
+const THO = 'Thổ';
+const KIM = 'Kim';
+const LOI = 'Lôi';
+const PHONG = 'Phong';
+const VO = 'Vô';
+const HEART_LAW_SET_ABILITIES = {
+    [HOA]: {
+        element: HOA,
+        name: 'Hỏa Phương Phẫn Nộ',
+        description: '+25% ATK 1 round NHƯNG -10% DEF round đó',
+        buff: { type: 'atk_percent', value: 0.25, rounds: 1 },
+        nerf: { type: 'def_percent', value: -0.10, rounds: 1 }
+    },
+    [THUY]: {
+        element: THUY,
+        name: 'Thủy Long Hồi Thiên',
+        description: '+20% HP heal NHƯNG costs 20% MP',
+        buff: { type: 'heal_percent', value: 0.20, rounds: 1 },
+        nerf: { type: 'mp_cost_percent', value: 0.20, rounds: 1 }
+    },
+    [MOC]: {
+        element: MOC,
+        name: 'Mừc Linh Hấp Thụ',
+        description: '+15% lifesteal 2 rounds NHƯNG -10% ATK',
+        buff: { type: 'lifesteal', value: 0.15, rounds: 2 },
+        nerf: { type: 'atk_percent', value: -0.10, rounds: 2 }
+    },
+    [THO]: {
+        element: THO,
+        name: 'Thổ Thân Hộ Thể',
+        description: '+25% DEF 2 rounds NHƯNG -8% Speed',
+        buff: { type: 'def_percent', value: 0.25, rounds: 2 },
+        nerf: { type: 'speed_percent', value: -0.08, rounds: 2 }
+    },
+    [KIM]: {
+        element: KIM,
+        name: 'Kim Tình Sát Lục',
+        description: '+20% Crit Rate 1 round NHƯNG -15% CritRes',
+        buff: { type: 'crit_rate', value: 0.20, rounds: 1 },
+        nerf: { type: 'crit_res', value: -0.15, rounds: 1 }
+    },
+    [LOI]: {
+        element: LOI,
+        name: 'Lơi Đình Vạn Quân',
+        description: 'Choáng kẻ địch 1 lượt NHƯNG tốn 30% MP',
+        buff: { type: 'stun', value: 1, rounds: 1 },
+        nerf: { type: 'mp_cost_percent', value: 0.30, rounds: 1 }
+    },
+    [PHONG]: {
+        element: PHONG,
+        name: 'Phong Hành Vô Tích',
+        description: '+20% dodge 2 rounds NHƯNG -10% DEF',
+        buff: { type: 'dodge_rate', value: 0.20, rounds: 2 },
+        nerf: { type: 'def_percent', value: -0.10, rounds: 2 }
+    }
+};
 class HeartLawService {
     /**
      * Lấy thông tin một Tâm Pháp từ database
@@ -75,7 +134,7 @@ class HeartLawService {
             database_1.default.prepare('UPDATE user_heart_laws SET level = 1, fragments = fragments - 5 WHERE user_id = ? AND heart_law_id = ?').run(userId, lawId);
         })();
         const law = this.getHeartLaw(lawId);
-        return { success: true, message: `🎉 Lĩnh ngộ thành công Tâm Pháp **[${law.name}]** cấp 1!` };
+        return { success: true, message: `Lĩnh ngộ thành công Tâm Pháp **[${law.name}]** cấp 1!` };
     }
     /**
      * Trang bị Tâm Pháp vào 1 ô (1, 2, 3)
@@ -97,10 +156,10 @@ class HeartLawService {
             // 3. Trang bị vào ô mong muốn
             database_1.default.prepare('UPDATE user_heart_laws SET is_equipped = ? WHERE user_id = ? AND heart_law_id = ?').run(slot, userId, lawId);
         })();
-        return { success: true, message: `✅ Đã trang bị Tâm Pháp **[${target.name}]** vào ô số **${slot}**!` };
+        return { success: true, message: `Đã trang bị Tâm Pháp **[${target.name}]** vào ô số **${slot}**!` };
     }
     /**
-     * Tháo trang bị Tâm Pháp ở ô cụ thể
+     * Tháo trang bị Tâm Pháp ở cụ thể
      */
     unequipHeartLaw(userId, slot) {
         if (![1, 2, 3].includes(slot)) {
@@ -111,7 +170,7 @@ class HeartLawService {
             return { success: false, message: `Ô số **${slot}** hiện đang trống!` };
         }
         database_1.default.prepare('UPDATE user_heart_laws SET is_equipped = 0 WHERE user_id = ? AND is_equipped = ?').run(userId, slot);
-        return { success: true, message: `✅ Đã tháo Tâm Pháp **[${equipped.name}]** khỏi ô số **${slot}**!` };
+        return { success: true, message: `Đã tháo Tâm Pháp **[${equipped.name}]** khỏi ô số **${slot}**!` };
     }
     /**
      * Nâng cấp Tâm Pháp hiện tại (Cấp 1 - 10)
@@ -129,12 +188,11 @@ class HeartLawService {
             return { success: false, message: 'Tâm Pháp đã đạt cấp độ tối đa (cấp 10)!' };
         }
         const nextLevel = target.level + 1;
-        // Chi phí nâng cấp
-        const fragCost = target.level * 5; // VD: 1->2 cần 5 mảnh, 2->3 cần 10 mảnh...
+        const fragCost = target.level * 5;
         const coinCost = target.level * 1000;
-        const ngoTinhCost = Math.floor(target.level / 2) + 1; // 1->2 cần 1 ngộ tính, 2->3 cần 2 ngộ tính...
+        const ngoTinhCost = Math.floor(target.level / 2) + 1;
         if (target.fragments < fragCost) {
-            return { success: false, message: `Không đủ mảnh ghép! Yêu cầu **${fragCost}** mảnh Tâm Pháp (Hiện có **${target.fragments}**).` };
+            return { success: false, message: `Không đủ mạnh ghép! Yêu cầu **${fragCost}** mạnh Tâm Pháp (Hiện có **${target.fragments}**).` };
         }
         if (user.coin_ha_pham < coinCost) {
             return { success: false, message: `Không đủ Linh Thạch! Yêu cầu **${coinCost.toLocaleString()}** Hạ Phẩm Linh Thạch (Hiện có **${user.coin_ha_pham.toLocaleString()}**).` };
@@ -143,25 +201,47 @@ class HeartLawService {
             return { success: false, message: `Không đủ Ngộ Tính! Yêu cầu **${ngoTinhCost}** điểm Ngộ Tính (Hiện có **${user.ngotinh}**).` };
         }
         database_1.default.transaction(() => {
-            // Trừ tài nguyên
             UserRepository_1.userRepository.update(userId, {
                 coin_ha_pham: user.coin_ha_pham - coinCost,
                 ngotinh: user.ngotinh - ngoTinhCost
             });
-            // Trừ mảnh & Cập nhật cấp độ
             database_1.default.prepare('UPDATE user_heart_laws SET level = ?, fragments = fragments - ? WHERE user_id = ? AND heart_law_id = ?')
                 .run(nextLevel, fragCost, userId, lawId);
         })();
-        return { success: true, message: `📈 Đột phá thành công Tâm Pháp **[${target.name}]** thăng lên **Cấp ${nextLevel}**!` };
+        return { success: true, message: `Đột phá thành công Tâm Pháp **[${target.name}]** thăng lên **Cấp ${nextLevel}**!` };
     }
     /**
-     * Tính toán các chỉ số buff Tâm Pháp đang mang (đã tính cộng hưởng huyết mạch)
+     * P1-07: Tính set bonus — đếm số lượng equipped laws theo element
+     */
+    getSetBonuses(userId) {
+        const equipped = this.getEquippedHeartLaws(userId);
+        const elementCounts = {};
+        for (const law of equipped) {
+            if (law.element && law.element !== VO) {
+                elementCounts[law.element] = (elementCounts[law.element] || 0) + 1;
+            }
+        }
+        return Object.entries(elementCounts).map(([element, count]) => ({
+            element,
+            count,
+            has2Set: count >= 2,
+            has3Set: count >= 3,
+            ability: count >= 3 ? HEART_LAW_SET_ABILITIES[element] || null : null
+        })).filter(s => s.count >= 2);
+    }
+    /**
+     * P1-07: Lấy thông tin set ability cho element cụ thể
+     */
+    getSetAbility(element) {
+        return HEART_LAW_SET_ABILITIES[element] || null;
+    }
+    /**
+     * Tính toán chỉ số buff Tâm Pháp đang mang (đã tính cộng hưởng huyết mạch + set bonus)
      */
     getActivePassives(userId) {
         const equipped = this.getEquippedHeartLaws(userId);
         if (equipped.length === 0)
             return [];
-        // Lấy huyết mạch của người dùng để tính cộng hưởng ngũ hành
         let bloodlineId = '';
         try {
             const bl = database_1.default.prepare('SELECT bloodline_id FROM user_bloodlines WHERE user_id = ?').get(userId);
@@ -169,44 +249,67 @@ class HeartLawService {
                 bloodlineId = bl.bloodline_id;
         }
         catch (e) {
-            console.warn('[HeartLawService] Failed to fetch user bloodline:', e);
+            console.warn('Claude-Opus Failed to fetch user bloodline:', e);
         }
         const bloodlineElementMap = {
-            'phuong_hoang': 'Hỏa',
-            'huyen_vu': 'Thủy',
-            'con_luan': 'Thổ',
-            'bach_ho': 'Kim',
-            'thanh_long': 'Mộc',
-            'long_huyet': 'Hỏa'
+            'phuong_hoang': HOA,
+            'huyen_vu': THUY,
+            'con_luan': THO,
+            'bach_ho': KIM,
+            'thanh_long': MOC,
+            'long_huyet': HOA
         };
-        const userElement = bloodlineElementMap[bloodlineId] || 'Vô';
+        const userElement = bloodlineElementMap[bloodlineId] || VO;
+        // P1-07: Calculate set bonuses for 2-set effect (+10% effect value)
+        const setBonuses = this.getSetBonuses(userId);
+        const setBonusElements = new Set(setBonuses.filter(s => s.has2Set).map(s => s.element));
         return equipped.map(l => {
             let effectObj = { type: '', value: 0 };
             try {
                 effectObj = JSON.parse(l.base_effect);
             }
             catch (e) {
-                console.warn('[HeartLawService] Failed to parse heart law base_effect:', e);
+                console.warn('Claude-Opus Failed to parse heart law base_effect:', e);
             }
-            // Mỗi level tăng +10% giá trị gốc: value * (1 + (level - 1) * 0.1)
             let baseVal = effectObj.value * (1 + (l.level - 1) * 0.1);
             let scale = 1.0;
-            if (l.element !== 'Vô') {
+            if (l.element !== VO) {
                 if (l.element === userElement) {
-                    scale = 1.5; // Cộng hưởng ngũ hành huyết mạch -> 1.5x
+                    scale = 1.5;
                 }
-                else if (userElement !== 'Vô') {
-                    scale = 0.8; // Khác hệ (không neutral) -> giảm 20% hiệu quả (0.8x)
+                else if (userElement !== VO) {
+                    scale = 0.8;
                 }
             }
+            // P1-07: 2-set bonus: +10% effect value for same-element laws
+            const setMultiplier = setBonusElements.has(l.element) ? 1.10 : 1.0;
             return {
                 type: effectObj.type,
-                value: baseVal * scale,
+                value: baseVal * scale * setMultiplier,
                 lawName: l.name,
                 element: l.element,
-                scale
+                scale: scale * setMultiplier
             };
         });
+    }
+    /**
+     * P1-07: Lấy mô tả set bonus cho UI
+     */
+    getSetBonusDescription(userId) {
+        const sets = this.getSetBonuses(userId);
+        if (sets.length === 0)
+            return '';
+        let desc = '**Tâm Pháp Set Bonus:**\n';
+        for (const set of sets) {
+            if (set.has3Set) {
+                desc += `• **${set.element}** (3-set): +10% hiệu quả + Kích hoạt **${set.ability?.name || '???'}**\n`;
+                desc += `  └ ${set.ability?.description || ''}\n`;
+            }
+            else if (set.has2Set) {
+                desc += `• **${set.element}** (2-set): +10% hiệu quả Tâm Pháp\n`;
+            }
+        }
+        return desc;
     }
 }
 exports.heartLawService = new HeartLawService();

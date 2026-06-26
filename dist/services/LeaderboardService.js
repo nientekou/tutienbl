@@ -5,257 +5,173 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.leaderboardService = void 0;
 const database_1 = __importDefault(require("../database/database"));
-const InventoryService_1 = require("./InventoryService");
-const constants_1 = require("../utils/constants");
-const CACHE_TTL = 5 * 60 * 1000; // 5 phút
-const HIDDEN_USER_IDS = new Set(['724608013981450351']); // Admin - ẩn khỏi bảng xếp hạng
 class LeaderboardService {
-    cache = {
-        combatPower: { data: [], cachedAt: 0 },
-        realm: { data: [], cachedAt: 0 },
-        wealth: { data: [], cachedAt: 0 },
-        sectContribution: { data: [], cachedAt: 0 },
-        arena: { data: [], cachedAt: 0 },
-        alchemy: { data: [], cachedAt: 0 },
-        forging: { data: [], cachedAt: 0 },
-    };
-    isCacheValid(type) {
-        return Date.now() - this.cache[type].cachedAt < CACHE_TTL;
-    }
-    getRealmName(level) {
-        if (level >= 380)
-            return 'Đại La Kim Tiên';
-        if (level >= 350)
-            return 'Kim Tiên';
-        if (level >= 300)
-            return 'Chân Tiên';
-        if (level >= 250)
-            return 'Địa Tiên';
-        if (level >= 200)
-            return 'Nguyên Anh';
-        if (level >= 160)
-            return 'Kết Đan';
-        if (level >= 120)
-            return 'Trúc Cơ';
-        if (level >= 80)
-            return 'Luyện Khí';
-        if (level >= 40)
-            return 'Phàm Nhân';
-        return 'Sơ Nhập';
-    }
-    /** Top Lực Chiến */
-    getTopCombatPower(limit = 20) {
-        if (this.isCacheValid('combatPower')) {
-            return this.cache.combatPower.data.slice(0, limit);
-        }
-        const users = database_1.default.prepare("SELECT discord_id, name, level, base_hp, base_mp, base_atk, base_def, base_crit, base_crit_res, base_luck, base_speed, base_dodge FROM users WHERE level > 0 ORDER BY level DESC LIMIT 100").all();
-        const entries = users
-            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
-            .map(u => {
-            const stats = InventoryService_1.inventoryService.getActiveStats(u.discord_id);
-            const cp = stats ? Math.round(stats.hp * 0.2 + stats.mp * 0.1 + stats.atk * 3 + stats.def * 5 +
-                stats.crit * 1000 + stats.critRes * 1000 + stats.luck * 10 +
-                stats.speed * 10 + stats.dodge * 1000) : Math.round(u.base_hp * 0.2 + u.base_mp * 0.1 + u.base_atk * 3 + u.base_def * 5 +
-                u.base_crit * 1000 + u.base_crit_res * 1000 + u.base_luck * 10 +
-                u.base_speed * 10 + u.base_dodge * 1000);
-            return {
-                rank: 0,
-                userId: u.discord_id,
-                name: u.name,
-                value: cp,
-                displayValue: cp.toLocaleString(),
-                extra: this.getRealmName(u.level),
-            };
-        });
-        entries.sort((a, b) => b.value - a.value);
-        entries.forEach((e, i) => e.rank = i + 1);
-        this.cache.combatPower = { data: entries, cachedAt: Date.now() };
-        return entries.slice(0, limit);
-    }
-    /** Top Cảnh Giới */
-    getTopRealm(limit = 20) {
-        if (this.isCacheValid('realm')) {
-            return this.cache.realm.data.slice(0, limit);
-        }
-        const users = database_1.default.prepare("SELECT discord_id, name, level FROM users WHERE level > 0 ORDER BY level DESC, tu_vi DESC LIMIT 100").all();
-        const entries = users
-            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
-            .map(u => ({
-            rank: 0,
-            userId: u.discord_id,
-            name: u.name,
-            value: u.level,
-            displayValue: `Cấp ${u.level}`,
-            extra: this.getRealmName(u.level),
-        }));
-        entries.forEach((e, i) => e.rank = i + 1);
-        this.cache.realm = { data: entries, cachedAt: Date.now() };
-        return entries.slice(0, limit);
-    }
-    /** Top Tài Sản (Linh Thạch quy đổi) */
-    getTopWealth(limit = 20) {
-        if (this.isCacheValid('wealth')) {
-            return this.cache.wealth.data.slice(0, limit);
-        }
-        const users = database_1.default.prepare("SELECT discord_id, name, coin_ha_pham, coin_trung_pham, coin_thuong_pham FROM users WHERE coin_ha_pham > 0 ORDER BY coin_ha_pham DESC LIMIT 100").all();
-        const entries = users
-            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
-            .map(u => {
-            const total = u.coin_ha_pham + (u.coin_trung_pham || 0) * 100 + (u.coin_thuong_pham || 0) * 10000;
-            return {
-                rank: 0,
-                userId: u.discord_id,
-                name: u.name,
-                value: total,
-                displayValue: total.toLocaleString() + ' LT',
-                extra: `Hạ: ${(u.coin_ha_pham || 0).toLocaleString()} | Trung: ${(u.coin_trung_pham || 0)} | Thượng: ${(u.coin_thuong_pham || 0)}`,
-            };
-        });
-        entries.sort((a, b) => b.value - a.value);
-        entries.forEach((e, i) => e.rank = i + 1);
-        this.cache.wealth = { data: entries, cachedAt: Date.now() };
-        return entries.slice(0, limit);
-    }
-    /** Top Cống Hiến Tông Môn */
-    getTopSectContribution(limit = 20) {
-        if (this.isCacheValid('sectContribution')) {
-            return this.cache.sectContribution.data.slice(0, limit);
-        }
-        const users = database_1.default.prepare(`
-      SELECT u.discord_id, u.name, u.sect_contribution, s.name as sect_name
-      FROM users u
-      LEFT JOIN sects s ON u.sect_id = s.id
-      WHERE u.sect_contribution > 0
-      ORDER BY u.sect_contribution DESC
-      LIMIT 100
-    `).all();
-        const entries = users
-            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
-            .map(u => ({
-            rank: 0,
-            userId: u.discord_id,
-            name: u.name,
-            value: u.sect_contribution || 0,
-            displayValue: `${(u.sect_contribution || 0).toLocaleString()} điểm`,
-            extra: u.sect_name ? `Tông Môn: ${u.sect_name}` : 'Tán Tu',
-        }));
-        entries.forEach((e, i) => e.rank = i + 1);
-        this.cache.sectContribution = { data: entries, cachedAt: Date.now() };
-        return entries.slice(0, limit);
-    }
-    /** Top Đấu Trường (ELO) */
-    getTopArena(limit = 20) {
-        if (this.isCacheValid('arena')) {
-            return this.cache.arena.data.slice(0, limit);
-        }
-        const users = database_1.default.prepare(`
-      SELECT ap.user_id as discord_id, u.name, ap.elo, ap.wins, ap.losses, u.level
-      FROM arena_profiles ap
-      JOIN users u ON ap.user_id = u.discord_id
-      WHERE ap.elo > 0
-      ORDER BY ap.elo DESC, ap.wins DESC
-      LIMIT 100
-    `).all();
-        const entries = users
-            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
-            .map(u => ({
-            rank: 0,
-            userId: u.discord_id,
-            name: u.name,
-            value: u.elo,
-            displayValue: `${u.elo.toLocaleString()} Điểm`,
-            extra: `Cảnh Giới: ${(0, constants_1.getRealmDetails)(u.level).realmName} | Thắng: ${u.wins} / Thua: ${u.losses}`,
-        }));
-        entries.forEach((e, i) => e.rank = i + 1);
-        this.cache.arena = { data: entries, cachedAt: Date.now() };
-        return entries.slice(0, limit);
-    }
-    /** Top Luyện Đan */
-    getTopAlchemy(limit = 20) {
-        if (this.isCacheValid('alchemy')) {
-            return this.cache.alchemy.data.slice(0, limit);
-        }
-        const users = database_1.default.prepare(`
-      SELECT discord_id, name, alchemy_level, alchemy_exp
-      FROM users
-      WHERE alchemy_level > 0
-      ORDER BY alchemy_level DESC, alchemy_exp DESC
-      LIMIT 100
-    `).all();
-        const entries = users
-            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
-            .map(u => ({
-            rank: 0,
-            userId: u.discord_id,
-            name: u.name,
-            value: u.alchemy_level * 1000000 + u.alchemy_exp,
-            displayValue: `Cấp ${u.alchemy_level}`,
-            extra: `Kinh Nghiệm: ${u.alchemy_exp.toLocaleString()}`,
-        }));
-        entries.forEach((e, i) => e.rank = i + 1);
-        this.cache.alchemy = { data: entries, cachedAt: Date.now() };
-        return entries.slice(0, limit);
-    }
-    /** Top Luyện Khí */
-    getTopForging(limit = 20) {
-        if (this.isCacheValid('forging')) {
-            return this.cache.forging.data.slice(0, limit);
-        }
-        const users = database_1.default.prepare(`
-      SELECT discord_id, name, forging_level, forging_exp
-      FROM users
-      WHERE forging_level > 0
-      ORDER BY forging_level DESC, forging_exp DESC
-      LIMIT 100
-    `).all();
-        const entries = users
-            .filter(u => !HIDDEN_USER_IDS.has(u.discord_id))
-            .map(u => ({
-            rank: 0,
-            userId: u.discord_id,
-            name: u.name,
-            value: u.forging_level * 1000000 + u.forging_exp,
-            displayValue: `Cấp ${u.forging_level}`,
-            extra: `Kinh Nghiệm: ${u.forging_exp.toLocaleString()}`,
-        }));
-        entries.forEach((e, i) => e.rank = i + 1);
-        this.cache.forging = { data: entries, cachedAt: Date.now() };
-        return entries.slice(0, limit);
-    }
-    /** Tìm rank của user trong bảng xếp hạng */
-    getUserRank(type, userId) {
-        const methodMap = {
-            combatPower: () => this.getTopCombatPower(100),
-            realm: () => this.getTopRealm(100),
-            wealth: () => this.getTopWealth(100),
-            sectContribution: () => this.getTopSectContribution(100),
-            arena: () => this.getTopArena(100),
-            alchemy: () => this.getTopAlchemy(100),
-            forging: () => this.getTopForging(100),
-        };
-        const data = methodMap[type]?.();
-        if (!data)
-            return null;
-        const userEntry = data.find(e => e.userId === userId);
-        if (!userEntry)
-            return null;
-        return { rank: userEntry.rank, total: data.length };
-    }
-    /** Force clear all caches */
+    // === Compatibility methods for existing code ===
     clearCache() {
-        for (const key of Object.keys(this.cache)) {
-            this.cache[key] = { data: [], cachedAt: 0 };
-        }
+        // No-op for compatibility
     }
-    /** Force refresh cache */
-    refreshCache() {
-        this.cache.combatPower.cachedAt = 0;
-        this.cache.realm.cachedAt = 0;
-        this.cache.wealth.cachedAt = 0;
-        this.cache.sectContribution.cachedAt = 0;
-        this.cache.arena.cachedAt = 0;
-        this.cache.alchemy.cachedAt = 0;
-        this.cache.forging.cachedAt = 0;
+    getTopCombatPower(limit = 100) {
+        return database_1.default.prepare(`
+      SELECT u.discord_id as userId, u.name, u.level,
+        ROUND(u.base_hp * 0.2 + u.base_mp * 0.1 + u.base_atk * 3 + u.base_def * 5 +
+              u.base_crit * 1000 + u.base_crit_res * 1000 + u.base_luck * 10 +
+              u.base_speed * 10 + u.base_dodge * 1000) as score
+      FROM users u ORDER BY score DESC LIMIT ?
+    `).all(limit).map((r, i) => ({ ...r, rank: i + 1 }));
+    }
+    getTopRealm(limit = 100) {
+        return database_1.default.prepare(`
+      SELECT u.discord_id as userId, u.name, u.level, u.level as score
+      FROM users u ORDER BY u.level DESC LIMIT ?
+    `).all(limit).map((r, i) => ({ ...r, rank: i + 1 }));
+    }
+    getTopWealth(limit = 100) {
+        return database_1.default.prepare(`
+      SELECT u.discord_id as userId, u.name, (u.coin_ha_pham + u.coin_trung_pham * 100) as score
+      FROM users u ORDER BY score DESC LIMIT ?
+    `).all(limit).map((r, i) => ({ ...r, rank: i + 1 }));
+    }
+    getTopSectContribution(limit = 100) {
+        return database_1.default.prepare(`
+      SELECT u.discord_id as userId, u.name, u.sect_contribution as sectContribution, u.sect_contribution as score
+      FROM users u WHERE u.sect_id IS NOT NULL ORDER BY u.sect_contribution DESC LIMIT ?
+    `).all(limit).map((r, i) => ({ ...r, rank: i + 1 }));
+    }
+    getTopArena(limit = 100) {
+        return database_1.default.prepare(`
+      SELECT u.discord_id as userId, u.name, u.pvp_points as score
+      FROM users u ORDER BY u.pvp_points DESC LIMIT ?
+    `).all(limit).map((r, i) => ({ ...r, rank: i + 1 }));
+    }
+    getTopAlchemy(limit = 100) {
+        return database_1.default.prepare(`
+      SELECT u.discord_id as userId, u.name, u.alchemy_level as score
+      FROM users u ORDER BY u.alchemy_level DESC LIMIT ?
+    `).all(limit).map((r, i) => ({ ...r, rank: i + 1 }));
+    }
+    getTopForging(limit = 100) {
+        return database_1.default.prepare(`
+      SELECT u.discord_id as userId, u.name, u.forging_level as score
+      FROM users u ORDER BY u.forging_level DESC LIMIT ?
+    `).all(limit).map((r, i) => ({ ...r, rank: i + 1 }));
+    }
+    // === B-05: Enhanced leaderboard methods ===
+    getLeaderboard(category, limit = 10) {
+        let query = '';
+        switch (category) {
+            case 'level':
+                query = 'SELECT discord_id as userId, name, level as score FROM users ORDER BY level DESC LIMIT ?';
+                break;
+            case 'pvp':
+                query = 'SELECT discord_id as userId, name, pvp_points as score FROM users ORDER BY pvp_points DESC LIMIT ?';
+                break;
+            case 'tower':
+                query = 'SELECT r.user_id as userId, u.name, r.max_floor as score FROM roguelike_progress r JOIN users u ON r.user_id = u.discord_id ORDER BY r.max_floor DESC LIMIT ?';
+                break;
+            case 'dungeon':
+                query = 'SELECT n.user_id as userId, u.name, n.highest_floor as score FROM nine_heavens_progress n JOIN users u ON n.user_id = u.discord_id ORDER BY n.highest_floor DESC LIMIT ?';
+                break;
+            case 'achievement':
+                query = 'SELECT ua.user_id as userId, u.name, COUNT(*) as score FROM user_achievements ua JOIN users u ON ua.user_id = u.discord_id WHERE ua.is_completed = 1 GROUP BY ua.user_id ORDER BY score DESC LIMIT ?';
+                break;
+            default:
+                query = 'SELECT discord_id as userId, name, level as score FROM users ORDER BY level DESC LIMIT ?';
+        }
+        const rows = database_1.default.prepare(query).all(limit);
+        return rows.map((r, i) => ({ userId: r.userId, name: r.name, score: r.score, rank: i + 1 }));
+    }
+    getLeaderboardCategories() {
+        return [
+            { id: 'level', name: 'Cấp Độ', description: 'Người chơi có cấp độ cao nhất', icon: '📊' },
+            { id: 'pvp', name: 'PvP', description: 'Xếp hạng điểm PvP', icon: '⚔️' },
+            { id: 'tower', name: 'Tháp', description: 'Tầng tháp cao nhất đã đạt', icon: '🏯' },
+            { id: 'dungeon', name: 'Phó Bản', description: 'Tầng phó bản cao nhất đã đạt', icon: '🏰' },
+            { id: 'achievement', name: 'Thành Tựu', description: 'Hoàn thành nhiều thành tựu nhất', icon: '🏆' },
+        ];
+    }
+    getUserRank(userId, category) {
+        const leaderboard = this.getLeaderboard(category, 100);
+        const userEntry = leaderboard.find(e => e.userId === userId);
+        return userEntry ? { rank: userEntry.rank, score: userEntry.score, total: leaderboard.length } : { rank: 0, score: 0, total: 0 };
+    }
+    getLeaderboardDescription(category) {
+        const categories = this.getLeaderboardCategories();
+        const cat = categories.find(c => c.id === category);
+        const leaderboard = this.getLeaderboard(category);
+        let msg = `${cat?.icon || '📊'} **${cat?.name || category} Leaderboard**\n`;
+        if (leaderboard.length === 0) {
+            msg += 'No entries yet.';
+        }
+        else {
+            for (const entry of leaderboard) {
+                const medal = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `${entry.rank}.`;
+                msg += `${medal} **${entry.name}** — ${entry.score}\n`;
+            }
+        }
+        return msg;
+    }
+    // === A-03: Leaderboard Enhancement ===
+    /**
+     * A-03: Get rank rewards
+     */
+    getRankRewards(category) {
+        return [
+            { rank: '1', rewards: '200 KNB + danh hiệu "Vô Địch" + tọa kỳ đặc biệt' },
+            { rank: '2', rewards: '100 KNB + danh hiệu "Á Quân"' },
+            { rank: '3', rewards: '50 KNB + danh hiệu "Khiêu Chiến"' },
+            { rank: '4-10', rewards: '20 KNB + nguyên liệu hiếm' },
+            { rank: '11-50', rewards: '10 KNB' },
+        ];
+    }
+    /**
+     * A-03: Get seasonal leaderboard
+     */
+    getSeasonalLeaderboard(seasonId, limit = 10) {
+        const rows = database_1.default.prepare(`
+      SELECT us.user_id as userId, u.name, us.score
+      FROM user_season_scores us
+      JOIN users u ON us.user_id = u.discord_id
+      WHERE us.season_id = ?
+      ORDER BY us.score DESC
+      LIMIT ?
+    `).all(seasonId, limit);
+        return rows.map((r, i) => ({ ...r, rank: i + 1 }));
+    }
+    /**
+     * A-03: Get guild leaderboard
+     */
+    getGuildLeaderboard(limit = 10) {
+        const rows = database_1.default.prepare(`
+      SELECT s.id as guildId, s.name as guildName, COUNT(u.discord_id) as memberCount, COALESCE(SUM(u.level), 0) as totalLevel
+      FROM sects s
+      LEFT JOIN users u ON s.id = u.sect_id
+      GROUP BY s.id
+      ORDER BY totalLevel DESC
+      LIMIT ?
+    `).all(limit);
+        return rows;
+    }
+    /**
+     * A-03: Get leaderboard with rewards description
+     */
+    getLeaderboardWithRewards(category) {
+        const leaderboard = this.getLeaderboard(category);
+        const rewards = this.getRankRewards(category);
+        let msg = `📊 **${category} Leaderboard**\n`;
+        if (leaderboard.length === 0) {
+            msg += 'No entries yet.\n';
+        }
+        else {
+            for (const entry of leaderboard.slice(0, 10)) {
+                const medal = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `${entry.rank}.`;
+                msg += `${medal} **${entry.name}** — ${entry.score}\n`;
+            }
+        }
+        msg += `\n**Rewards:**\n`;
+        for (const r of rewards) {
+            msg += `• ${r.rank}: ${r.rewards}\n`;
+        }
+        return msg;
     }
 }
 exports.leaderboardService = new LeaderboardService();

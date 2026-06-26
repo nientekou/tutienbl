@@ -368,13 +368,208 @@ class MentorshipService {
       });
     })();
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: `✨ **Truyền Thụ Thành Công!**\n` +
         `• Sư phụ hao tổn **-${amount} Tu Vi** và **-1,000 Linh Thạch** để hộ pháp đại trận.\n` +
         `• Đệ tử **${apprentice.name}** nhận được **+${amount} Tu Vi**!\n` +
         `• Sư phụ đã truyền thụ **${updatedTransferred}/2000** tu vi tuần này.`
     };
+  }
+
+  // === P4-02: Mentor Ranking & Titles ===
+
+  /**
+   * P4-02: Lấy ranking các sư phụ dựa trên số đệ tử đã tốt nghiệp + cấp độ đệ tử
+   */
+  public getMentorRanking(limit: number = 10): { mentorId: string; name: string; graduatedCount: number; totalApprenticeLevel: number; title: string }[] {
+    const rows = db.prepare(`
+      SELECT
+        m.mentor_id,
+        u.name,
+        COUNT(*) as graduated_count,
+        COALESCE(SUM(u2.level), 0) as total_level
+      FROM mentorships m
+      JOIN users u ON m.mentor_id = u.discord_id
+      LEFT JOIN users u2 ON m.apprentice_id = u2.discord_id
+      WHERE m.status = 'graduated'
+      GROUP BY m.mentor_id
+      ORDER BY graduated_count DESC, total_level DESC
+      LIMIT ?
+    `).all(limit) as any[];
+
+    return rows.map(r => ({
+      mentorId: r.mentor_id,
+      name: r.name,
+      graduatedCount: r.graduated_count,
+      totalApprenticeLevel: r.total_level,
+      title: this.getMentorTitle(r.graduated_count)
+    }));
+  }
+
+  /**
+   * P4-02: Lấy danh hiệu sư phụ dựa trên số đệ tử tốt nghiệp
+   */
+  public getMentorTitle(graduatedCount: number): string {
+    if (graduatedCount >= 25) return 'Thánh Sư';
+    if (graduatedCount >= 10) return 'Tông Sư';
+    if (graduatedCount >= 5) return 'Đại Đạo Sư';
+    if (graduatedCount >= 1) return 'Đạo Sư';
+    return '';
+  }
+
+  /**
+   * P4-02: Lấy thống kê sư phạm của 1 sư phụ
+   */
+  public getMentorStats(mentorId: string): {
+    activeCount: number;
+    graduatedCount: number;
+    totalGraduatedLevel: number;
+    title: string;
+  } {
+    const active = this.getActiveApprentices(mentorId);
+    const graduated = this.getGraduatedApprentices(mentorId);
+
+    let totalLevel = 0;
+    for (const g of graduated) {
+      const user = db.prepare('SELECT level FROM users WHERE discord_id = ?').get(g.apprentice_id) as { level: number } | undefined;
+      if (user) totalLevel += user.level;
+    }
+
+    return {
+      activeCount: active.length,
+      graduatedCount: graduated.length,
+      totalGraduatedLevel: totalLevel,
+      title: this.getMentorTitle(graduated.length)
+    };
+  }
+
+  // === B-04: Mentor V2 — Missions & Graduation ===
+
+  private missionInit = false;
+
+  private initMissions(): void {
+    if (this.missionInit) return;
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS mentor_missions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        mentor_id TEXT NOT NULL,
+        apprentice_id TEXT NOT NULL,
+        mission_type TEXT NOT NULL,
+        progress INTEGER DEFAULT 0,
+        target INTEGER NOT NULL,
+        completed INTEGER DEFAULT 0,
+        claimed INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL
+      );
+    `);
+    this.missionInit = true;
+  }
+
+  /**
+   * B-04: Get daily mentor missions
+   */
+  getMentorMissions(mentorId: string): { id: string; name: string; description: string; progress: number; target: number }[] {
+    this.initMissions();
+    const today = this.getTodayString();
+    const apprentices = this.getActiveApprentices(mentorId);
+
+    if (apprentices.length === 0) return [];
+
+    // Simple daily missions based on apprentice activities
+    const missions = [
+      { id: 'mission_help_dungeon', name: 'Giúp Đệ Tử Bí Cảnh', description: 'Giúp đệ tử vượt qua Bí Cảnh', target: 3 },
+      { id: 'mission_teach_meditate', name: 'Dạy Thiền Định', description: 'Hướng dẫn đệ tử thiền định', target: 5 },
+      { id: 'mission_share_wisdom', name: 'Chia Sẻ Trí Tuệ', description: 'Chia sẻ chiến đấu kinh nghiệm', target: 2 },
+    ];
+
+    // Check progress from today
+    return missions.map(m => {
+      const progress = db.prepare(
+        "SELECT COALESCE(SUM(progress), 0) as p FROM mentor_missions WHERE mentor_id = ? AND mission_type = ? AND created_at >= ?"
+      ).get(mentorId, m.id, today) as { p: number };
+
+      return {
+        ...m,
+        progress: progress.p
+      };
+    });
+  }
+
+  /**
+   * B-04: Update mentor mission progress
+   */
+  updateMissionProgress(mentorId: string, missionType: string, amount: number = 1): void {
+    this.initMissions();
+    const today = this.getTodayString();
+
+    const existing = db.prepare(
+      "SELECT id FROM mentor_missions WHERE mentor_id = ? AND mission_type = ? AND created_at >= ?"
+    ).get(mentorId, missionType, today) as any;
+
+    if (existing) {
+      db.prepare('UPDATE mentor_missions SET progress = progress + ? WHERE id = ?')
+        .run(amount, existing.id);
+    } else {
+      const targets: Record<string, number> = {
+        mission_help_dungeon: 3,
+        mission_teach_meditate: 5,
+        mission_share_wisdom: 2,
+      };
+      db.prepare(
+        'INSERT INTO mentor_missions (mentor_id, apprentice_id, mission_type, progress, target, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+      ).run(mentorId, '', missionType, amount, targets[missionType] || 5, Math.floor(Date.now() / 1000));
+    }
+  }
+
+  /**
+   * B-04: Graduate ceremony — formal graduation with rewards
+   */
+  graduateCeremony(mentorId: string, apprenticeId: string): { success: boolean; message: string } {
+    const mentorship = db.prepare(
+      "SELECT * FROM mentorships WHERE mentor_id = ? AND apprentice_id = ? AND status = 'active'"
+    ).get(mentorId, apprenticeId) as any;
+
+    if (!mentorship) return { success: false, message: '❌ Không có mối quan hệ sư đồ active!' };
+
+    // Update status
+    db.prepare("UPDATE mentorships SET status = 'graduated', graduated_at = ? WHERE id = ?")
+      .run(Math.floor(Date.now() / 1000), mentorship.id);
+
+    // Award rewards
+    const mentor = userRepository.get(mentorId);
+    const apprentice = userRepository.get(apprenticeId);
+
+    if (mentor) {
+      userRepository.update(mentorId, {
+        knb: mentor.knb + 10,
+        coin_ha_pham: mentor.coin_ha_pham + 5000
+      });
+    }
+
+    if (apprentice) {
+      userRepository.update(apprenticeId, {
+        knb: apprentice.knb + 5,
+        coin_ha_pham: apprentice.coin_ha_pham + 2000
+      });
+    }
+
+    // Title for mentor
+    db.prepare('INSERT OR IGNORE INTO user_titles (user_id, title, source, unlocked_at) VALUES (?, ?, ?, ?)')
+      .run(mentorId, 'Đạo Sư', 'mentorship', Math.floor(Date.now() / 1000));
+
+    return {
+      success: true,
+      message: `🎓 **Lễ Tốt Nghiệp** hoàn thành!\n` +
+        `👨‍🏫 Sư phụ **${mentor?.name}** nhận +10 KNB + 5000 LT\n` +
+        `🧑‍🎓 Đệ tử **${apprentice?.name}** nhận +5 KNB + 2000 LT`
+    };
+  }
+
+  private getTodayString(): string {
+    const now = new Date();
+    const vn = new Date(now.getTime() + 7 * 3600000);
+    return vn.toISOString().slice(0, 10);
   }
 }
 

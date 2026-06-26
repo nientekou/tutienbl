@@ -113,7 +113,7 @@ type SicBoBet =
   | { type: 'single_double'; value: number }
   | { type: 'single_triple'; value: number }
   | { type: 'any_triple' }
-  | { type: 'odd_even'; choice: 'odd' | 'even' };
+  | { type: 'odd_even'; choice: 'lẻ' | 'chẵn' };
 
 const SICBO_PAYOUTS: Record<string, number> = {
   tai_xiu: 1.95,
@@ -156,7 +156,7 @@ function resolveSicBoBet(bet: SicBoBet, result: SicBoResult): { win: boolean; mu
       return { win: result.isTriple, multiplier: SICBO_PAYOUTS.any_triple };
     case 'odd_even':
       return {
-        win: (bet.choice === 'odd' && result.total % 2 === 1) || (bet.choice === 'even' && result.total % 2 === 0),
+        win: (bet.choice === 'lẻ' && result.total % 2 === 1) || (bet.choice === 'chẵn' && result.total % 2 === 0),
         multiplier: result.isTriple ? 0 : SICBO_PAYOUTS.odd_even,
       };
   }
@@ -320,8 +320,8 @@ export class CasinoService {
         sicboBet = { type: 'tai_xiu', choice: choice as 'tai' | 'xiu' };
         break;
       case 'odd_even':
-        if (!choice || !['odd', 'even'].includes(choice)) return { success: false, message: 'Chọn Lẻ hoặc Chẵn!' } as any;
-        sicboBet = { type: 'odd_even', choice: choice as 'odd' | 'even' };
+        if (!choice || !['lẻ', 'chẵn'].includes(choice)) return { success: false, message: 'Chọn Lẻ hoặc Chẵn!' } as any;
+        sicboBet = { type: 'odd_even', choice: choice as 'lẻ' | 'chẵn' };
         break;
       case 'any_triple':
         sicboBet = { type: 'any_triple' };

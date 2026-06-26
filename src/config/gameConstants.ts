@@ -33,6 +33,11 @@ export const GAME_CONSTANTS = {
   DAILY_BOSS_NGOTINH_PER_ATTACK: 3,
   DISCOUNT_ORTHODOX: 0.90,
   MARKET_TAX_RATE: 0.03,               // 3% tax on market sales (reduced from 5% to boost trading)
+  // B-02: Dynamic tax scaling based on item value
+  MARKET_TAX_LOW: 0.02,               // 2% for items < 500 LT
+  MARKET_TAX_MID: 0.03,               // 3% for items 500-5000 LT
+  MARKET_TAX_HIGH: 0.05,              // 5% for items > 5000 LT
+  MARKET_RARE_FIND_CHANCE: 0.05,      // 5% chance of "Rare Find" when selling
   SECT_CREATE_COST_LT: 800,            // 800 Linh Thach to create sect
   ENHANCE_COST_LT_PER_LEVEL: 150,      // 150 LT per enhance level
   WORK_COIN_MULTIPLIER: 0.8,           // 20% less coins from work
@@ -52,4 +57,16 @@ export const GAME_CONSTANTS = {
 
   // Cleanup intervals
   CLEANUP_INTERVAL_MS: 60_000,
+
+  // C-06: Economy Deep
+  CURRENCY_TYPES: ['linh_thach', 'knb', 'destiny_shards', 'prestige_tokens', 'dao_points', 'season_tokens', 'bounty_tokens'],
+  CURRENCY_EXCHANGE_RATES: {
+    linh_thach_to_knb: 10000,
+    knb_to_linh_thach: 5000,
+    destiny_shards_to_linh_thach: 100,
+    prestige_tokens_to_knb: 5,
+    dao_points_to_linh_thach: 50,
+    season_tokens_to_knb: 3,
+    bounty_tokens_to_linh_thach: 20,
+  },
 } as const;

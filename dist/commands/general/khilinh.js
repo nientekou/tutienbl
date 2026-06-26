@@ -30,7 +30,7 @@ function getSpiritListEmbed(userId, user, spiritWeapons, page) {
         const affinityBar = '❤️'.repeat(Math.min(Math.floor(sw.affinity / 20), 5)) + '🖤'.repeat(Math.max(0, 5 - Math.floor(sw.affinity / 20)));
         embed.addFields({
             name: `🔮 ${sw.spirit_name} (#${sw.id})`,
-            value: `• **Pháp Bảo ký chủ:** **${itemInfo?.name || sw.item_id}** [${itemInfo?.rarity.toUpperCase() || 'UNKNOWN'}]\n` +
+            value: `• **Pháp Bảo ký chủ:** **${itemInfo?.name || sw.item_id}** [${itemInfo?.rarity.toUpperCase() || 'KHÔNG RÕ'}]\n` +
                 `• **Cấp độ:** Cấp **${sw.level}** (EXP: ${expBar} - ${sw.exp}/${sw.level * 50})\n` +
                 `• **Thân mật:** ${affinityBar} (${sw.affinity}/100)\n` +
                 `• **Kỹ năng:** **${sw.skill_id || 'Chưa thức tỉnh'}**`

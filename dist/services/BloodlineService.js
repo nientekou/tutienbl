@@ -126,5 +126,151 @@ class BloodlineService {
     updateRageCooldown(userId, newCooldown) {
         database_1.default.prepare('UPDATE user_bloodlines SET rage_cooldown = ? WHERE user_id = ?').run(newCooldown, userId);
     }
+    // === P5-02: Bloodline Trials ===
+    getWeekKey() {
+        const now = new Date();
+        const vn = new Date(now.getTime() + 7 * 3600000);
+        const day = vn.getUTCDay() || 7;
+        vn.setUTCDate(vn.getUTCDate() - (day - 1));
+        vn.setUTCHours(0, 0, 0, 0);
+        return vn.toISOString().slice(0, 10);
+    }
+    /**
+     * P5-02: Kiểm tra còn lượt trial không
+     */
+    getTrialInfo(userId) {
+        const weekKey = this.getWeekKey();
+        let row = database_1.default.prepare('SELECT * FROM bloodline_trials WHERE user_id = ? AND week_key = ?').get(userId, weekKey);
+        if (!row) {
+            database_1.default.prepare('INSERT INTO bloodline_trials (user_id, bloodline_id, week_key, trials_used, max_trials) VALUES (?, ?, ?, 0, 3)').run(userId, '', weekKey);
+            row = database_1.default.prepare('SELECT * FROM bloodline_trials WHERE user_id = ? AND week_key = ?').get(userId, weekKey);
+        }
+        return {
+            used: row.trials_used,
+            max: row.max_trials,
+            canEnter: row.trials_used < row.max_trials
+        };
+    }
+    /**
+     * P5-02: Vào Bloodline Trial — mô phỏng fight dựa trên bloodline type
+     * Returns trial result with rewards
+     */
+    enterTrial(userId) {
+        const ub = this.getUserBloodline(userId);
+        if (!ub)
+            return { success: false, message: 'Đạo hữu chưa kích hoạt Huyết Mạch!' };
+        if (ub.level < 25) {
+            return { success: false, message: `Cần Huyết Mạch cấp 25+ để mở khóa Thử Thách Huyết Mạch (hiện cấp ${ub.level}).` };
+        }
+        const trialInfo = this.getTrialInfo(userId);
+        if (!trialInfo.canEnter) {
+            return { success: false, message: `Đã hết lượt Thử Thách tuần này (${trialInfo.used}/${trialInfo.max}).` };
+        }
+        // Simple trial result based on bloodline level
+        const successChance = Math.min(0.5 + ub.level * 0.01, 0.95); // 50-95% based on level
+        const isWin = Math.random() < successChance;
+        const weekKey = this.getWeekKey();
+        database_1.default.prepare('UPDATE bloodline_trials SET trials_used = trials_used + 1 WHERE user_id = ? AND week_key = ?').run(userId, weekKey);
+        if (isWin) {
+            const expReward = 200 + ub.level * 50;
+            this.addExp(userId, expReward);
+            const materials = ['bloodline_stone', 'bloodline_crystal', 'bloodline_essence'];
+            const material = materials[Math.floor(Math.random() * materials.length)];
+            const trialNames = {
+                'long_huyet': 'Thử Thách Long Huyết — Vampire lifesteal',
+                'phuong_hoang': 'Thử Thách Phượng Hoàng — Die & revive',
+                'con_luan': 'Thử Thách Côn Luân — Endurance 20 hiệp',
+                'bach_ho': 'Thử Thách Bạch Hổ — Kill in 5 hiệp',
+                'thanh_long': 'Thử Thách Thanh Long — Speed trial',
+                'huyen_vu': 'Thử Thách Huyền Vũ — Shield-only'
+            };
+            return {
+                success: true,
+                message: `⚔️ **${trialNames[ub.bloodline_id] || 'Thử Thách Huyết Mạch'}** — THÀNH CÔNG!\n+${expReward} EXP Huyết Mạch | +1 ${material}`,
+                expReward,
+                materialReward: material
+            };
+        }
+        return {
+            success: true,
+            message: `⚔️ **Thử Thách Huyết Mạch** — THẤT BẠI! Huyết Mạch chưa đủ mạnh. Thử lại tuần sau!`
+        };
+    }
+    // === A-05: Bloodline Trials Expansion ===
+    /**
+     * A-05: Get trial chapters for a bloodline
+     */
+    getTrialChapters(bloodlineId) {
+        const chapters = {
+            'long_huyet': [
+                { chapter: 1, name: 'Long Huyết — Hấp Huyết', description: 'Phải hút máu để tồn tại', minLevel: 25, rewards: '+5% hút máu' },
+                { chapter: 2, name: 'Long Huyết — Long Tức', description: 'Hồi phục 50% HP mỗi hiệp', minLevel: 35, rewards: '+10% hút máu' },
+                { chapter: 3, name: 'Long Huyết — Long Vương', description: 'Đánh bại Boss Long Vương', minLevel: 45, rewards: '+15% hút máu' },
+            ],
+            'phuong_hoang': [
+                { chapter: 1, name: 'Phượng Hoàng — Niết Bàn', description: 'Chết và hồi sinh 1 lần', minLevel: 25, rewards: '+5% tỷ lệ hồi sinh' },
+                { chapter: 2, name: 'Phượng Hoàng — Hỏa Phượng', description: '+50% sát thương khi hồi sinh', minLevel: 35, rewards: '+10% tỷ lệ hồi sinh' },
+                { chapter: 3, name: 'Phượng Hoàng — Phượng Hoàng', description: 'Hồi sinh với đầy HP', minLevel: 45, rewards: '+15% tỷ lệ hồi sinh' },
+            ],
+            'con_luan': [
+                { chapter: 1, name: 'Côn Luân — Chịu Đựng', description: 'Sống sót 10 hiệp', minLevel: 25, rewards: '+5% giảm sát thương' },
+                { chapter: 2, name: 'Côn Luân — Bất Tử', description: 'Sống sót 15 hiệp', minLevel: 35, rewards: '+10% giảm sát thương' },
+                { chapter: 3, name: 'Côn Luân — Vạn Kiếp', description: 'Sống sót 20 hiệp', minLevel: 45, rewards: '+15% giảm sát thương' },
+            ],
+            'bach_ho': [
+                { chapter: 1, name: 'Bạch Hổ — Sát Phạt', description: 'Tiêu diệt trong 5 hiệp', minLevel: 25, rewards: '+5% tỷ lệ chí mạng' },
+                { chapter: 2, name: 'Bạch Hổ — Bạch Hổ', description: 'Tiêu diệt trong 3 hiệp', minLevel: 35, rewards: '+10% tỷ lệ chí mạng' },
+                { chapter: 3, name: 'Bạch Hổ — Hổ Vương', description: 'Tiêu diệt trong 2 hiệp', minLevel: 45, rewards: '+15% tỷ lệ chí mạng' },
+            ],
+            'thanh_long': [
+                { chapter: 1, name: 'Thanh Long — Tốc Độ', description: 'Nhanh hơn địch 3 lần', minLevel: 25, rewards: '+5% tốc độ' },
+                { chapter: 2, name: 'Thanh Long — Thanh Long', description: 'Nhanh hơn địch 5 lần', minLevel: 35, rewards: '+10% tốc độ' },
+                { chapter: 3, name: 'Thanh Long — Long Vương', description: 'Nhanh hơn địch 7 lần', minLevel: 45, rewards: '+15% tốc độ' },
+            ],
+            'huyen_vu': [
+                { chapter: 1, name: 'Huyền Vũ — Khiên', description: 'Sống sót chỉ dùng khiên', minLevel: 25, rewards: '+5% lượng khiên' },
+                { chapter: 2, name: 'Huyền Vũ — Huyền Vũ', description: 'Sống sót 10 hiệp chỉ dùng khiên', minLevel: 35, rewards: '+10% lượng khiên' },
+                { chapter: 3, name: 'Huyền Vũ — Thần Thú', description: 'Sống sót 15 hiệp chỉ dùng khiên', minLevel: 45, rewards: '+15% lượng khiên' },
+            ],
+        };
+        return chapters[bloodlineId] || [];
+    }
+    /**
+     * A-05: Get trial leaderboard
+     */
+    getTrialLeaderboard(bloodlineId, limit = 10) {
+        const rows = database_1.default.prepare(`
+      SELECT bt.user_id, u.name, bt.trials_used as chapter, bt.completed_at
+      FROM bloodline_trials bt
+      JOIN users u ON bt.user_id = u.discord_id
+      WHERE bt.bloodline_id = ?
+      ORDER BY bt.trials_used DESC, bt.completed_at ASC
+      LIMIT ?
+    `).all(bloodlineId, limit);
+        return rows.map(r => ({
+            userId: r.user_id,
+            name: r.name,
+            chapter: r.chapter,
+            completedAt: r.completed_at
+        }));
+    }
+    /**
+     * A-05: Get bloodline trial description
+     */
+    getTrialDescription(userId) {
+        const ub = this.getUserBloodline(userId);
+        if (!ub)
+            return '❌ Chưa có Huyết Mạch!';
+        const chapters = this.getTrialChapters(ub.bloodline_id);
+        const trialInfo = this.getTrialInfo(userId);
+        let msg = `⚔️ **Thử Thách Huyết Mạch** — ${ub.name}\n`;
+        msg += `📊 Level: **${ub.level}** | Lượt tuần: **${trialInfo.used}/${trialInfo.max}**\n\n`;
+        for (const ch of chapters) {
+            const completed = ub.level >= ch.minLevel;
+            msg += `${completed ? '✅' : '🔒'} **Chapter ${ch.chapter}:** ${ch.name}\n`;
+            msg += `   ${ch.description} | Reward: ${ch.rewards}\n`;
+        }
+        return msg;
+    }
 }
 exports.bloodlineService = new BloodlineService();

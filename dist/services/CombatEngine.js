@@ -2,11 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CombatEngine = void 0;
 const LeylineService_1 = require("./LeylineService");
+const CombatEffectService_1 = require("./CombatEffectService");
 class CombatEngine {
     /**
      * Giả lập trận đấu Turn-based giữa Người chơi và Quái vật/Boss
      */
-    static run(player, enemy, pet = null, maxRounds = 30, isDreamscape = false, isSurvival = false) {
+    static run(player, enemy, pet = null, maxRounds = 30, isDreamscape = false, isSurvival = false, guildId) {
         let playerHp = player.hp;
         let playerMaxHp = player.maxHp;
         let enemyHp = enemy.hp;
@@ -15,6 +16,9 @@ class CombatEngine {
         let enemyParalyzed = false;
         let playerParalyzed = false;
         let playerDodge = false;
+        // E-02: Initialize combat effects from combatant data
+        let playerEffects = player.effects ? [...player.effects.map(e => ({ ...e }))] : [];
+        let enemyEffects = enemy.effects ? [...enemy.effects.map(e => ({ ...e }))] : [];
         // Load active Heart Laws
         let playerHeartLaws = player.heartLaws;
         if (!playerHeartLaws && player.userId) {
@@ -89,19 +93,59 @@ class CombatEngine {
         let enemyBurnDamage = 0;
         let playerBurnTicks = 0;
         let playerBurnDamage = 0;
-        // === RARE FIRE COMBAT PASSIVE ===
+        // === RARE FIRE COMBAT PASSIVE (P1-04: Wire up all passives) ===
+        let firePassiveLog = null;
         if (player.userId) {
             try {
                 const { rareFireService } = require('./RareFireService');
                 const fireBonus = rareFireService.getEquippedBonus(player.userId);
-                if (fireBonus.combatPassive === 'burn_chance') {
-                    enemyBurnTicks = Math.max(enemyBurnTicks, 2);
-                    enemyBurnDamage = Math.floor(player.atk * 0.05);
+                const passiveVal = fireBonus.combatValue || 0;
+                switch (fireBonus.combatPassive) {
+                    case 'burn_chance':
+                        enemyBurnTicks = Math.max(enemyBurnTicks, 2);
+                        enemyBurnDamage = Math.floor(player.atk * 0.05);
+                        break;
+                    case 'burn_dmg':
+                        enemyBurnTicks = Math.max(enemyBurnTicks, 3);
+                        enemyBurnDamage = Math.floor(player.atk * (0.05 + passiveVal * 0.005));
+                        break;
+                    case 'burn_aoe':
+                        enemyBurnTicks = Math.max(enemyBurnTicks, 3);
+                        enemyBurnDamage = Math.floor(player.atk * 0.08);
+                        firePassiveLog = `🔥 **[Thiên Hỏa]** Ngọn lửa lan rộng, thiêu đốt kẻ thù!`;
+                        break;
+                    case 'burn_reduce_def':
+                        enemyBurnTicks = Math.max(enemyBurnTicks, 3);
+                        enemyBurnDamage = Math.floor(player.atk * 0.06);
+                        firePassiveLog = `🔥 **[Địa Hỏa Chi Tinh]** Lửa thiêu đốt armor, enemy DEF -${passiveVal}% trong 3 hiệp!`;
+                        break;
+                    case 'burn_soul':
+                        enemyBurnTicks = Math.max(enemyBurnTicks, 4);
+                        enemyBurnDamage = Math.floor(player.atk * 0.07);
+                        firePassiveLog = `🔥 **[Nhân Ly Hỏa]** Lửa tách linh khí, gây thêm sát thương!`;
+                        break;
+                    case 'burn_true_damage':
+                        enemyBurnTicks = Math.max(enemyBurnTicks, 3);
+                        enemyBurnDamage = Math.floor(player.atk * 0.10);
+                        firePassiveLog = `🔥 **[Pháp Thần Hỏa]** Sát thương thực qua mọi phòng thủ!`;
+                        break;
+                    case 'burn_immolate':
+                        enemyBurnTicks = Math.max(enemyBurnTicks, 4);
+                        enemyBurnDamage = Math.floor(player.atk * 0.12);
+                        firePassiveLog = `🔥 **[Thiên Tàn Hỏa]** Lửa cổ đại thiêu rụi, DOT cực mạnh!`;
+                        break;
+                    case 'burn_annihilation':
+                        enemyBurnTicks = Math.max(enemyBurnTicks, 5);
+                        enemyBurnDamage = Math.floor(player.atk * 0.15);
+                        firePassiveLog = `🔥 **[Phản Thiên Hỏa]** Lửa phản thiên, thiêu rụi tất cả!`;
+                        break;
                 }
             }
             catch { }
         }
         const log = [];
+        if (firePassiveLog)
+            log.push(firePassiveLog);
         let totalDamageDealt = 0;
         let round = 1;
         let rageActive = false;
@@ -268,6 +312,25 @@ class CombatEngine {
                 log.push(`🔥 **Hỏa Phế:** Hỏa diễm cuồn cuộn đốt cháy, **${enemy.name}** chịu **-${enemyBurnDamage}** sát thương thiêu đốt! (Còn lại: ${Math.max(0, enemyHp)} HP)`);
                 enemyBurnTicks--;
             }
+            // E-02: Process combat effects (DoT, CC, buffs)
+            if (playerEffects.length > 0 && playerHp > 0) {
+                const peResult = CombatEffectService_1.combatEffectService.processEffects(playerEffects);
+                if (peResult.damage > 0) {
+                    playerHp -= peResult.damage;
+                    log.push(`💫 **[Trang Thai]** **${player.name}** chiu **-${peResult.damage}** sat thuong tu hieu ung! (Con lai: ${Math.max(0, playerHp)} HP)`);
+                }
+                for (const entry of peResult.log)
+                    log.push(`  ${entry}`);
+            }
+            if (enemyEffects.length > 0 && enemyHp > 0) {
+                const eeResult = CombatEffectService_1.combatEffectService.processEffects(enemyEffects);
+                if (eeResult.damage > 0) {
+                    enemyHp -= eeResult.damage;
+                    log.push(`💫 **[Trang Thai]** **${enemy.name}** chiu **-${eeResult.damage}** sat thuong tu hieu ung! (Con lai: ${Math.max(0, enemyHp)} HP)`);
+                }
+                for (const entry of eeResult.log)
+                    log.push(`  ${entry}`);
+            }
             if (playerHp <= 0 || enemyHp <= 0)
                 break;
             // Xác định lượt đi theo Tốc độ
@@ -278,6 +341,12 @@ class CombatEngine {
                 if (playerParalyzed) {
                     log.push(`⚡ **${player.name}** đang bị tê liệt, run rẩy không thể ra chiêu!`);
                     playerParalyzed = false; // Hết tê liệt
+                    return;
+                }
+                // E-02: Check effects-based CC (stun/freeze/sleep)
+                if (CombatEffectService_1.combatEffectService.isCC(playerEffects)) {
+                    const ccEffect = playerEffects.find(e => e.type === 'stun' || e.type === 'freeze' || e.type === 'sleep');
+                    log.push(`💫 **${player.name}** bị ${ccEffect?.type === 'stun' ? 'tê liệt' : ccEffect?.type === 'freeze' ? 'đóng băng' : 'ngủ'} bởi hiệu ứng, không thể hành động!`);
                     return;
                 }
                 // --- Kích hoạt "Oai" từ Ấn Ký (5% gây tê liệt) ---
@@ -417,7 +486,8 @@ class CombatEngine {
                             case 'Lôi': {
                                 const isThien = percentage >= 90;
                                 isLoiTriggered = true;
-                                playerLoiDamageMult = isThien ? 2.0 : 1.5;
+                                // P7-01: Linh Can bonus damage capped at 40% (1.4x max)
+                                playerLoiDamageMult = isThien ? 1.4 : 1.3;
                                 const hasStunImmune = enemyHeartLaws.some(hl => hl.type === 'stun_immune');
                                 const talentLabel = isThien ? '⚡ [Lôi Thiên Linh Căn]' : '⚡ [Linh Căn Lôi]';
                                 if (hasStunImmune) {
@@ -457,7 +527,10 @@ class CombatEngine {
                         // Lấy kỹ năng trang bị theo vòng lặp hiệp
                         let activeSkill = null;
                         if (player.equippedSkills && player.equippedSkills.length > 0) {
-                            const skillIndex = (round - 1) % player.equippedSkills.length;
+                            // A1: Use player-selected skill on round 1 if provided, otherwise cycle
+                            const skillIndex = (player.selectedSkillIndex !== undefined && round === 1 && player.selectedSkillIndex < player.equippedSkills.length)
+                                ? player.selectedSkillIndex
+                                : (round - 1) % player.equippedSkills.length;
                             activeSkill = player.equippedSkills[skillIndex];
                         }
                         // MP cost for skills
@@ -470,6 +543,11 @@ class CombatEngine {
                         else if (mpCost > 0) {
                             const newMp = playerMp - mpCost;
                             log.push(`💧 **${player.name}** tiêu hao **${mpCost}** Nội Lực (${newMp}/${player.maxMp ?? 100})`);
+                        }
+                        // E-02: Silence check - silenced characters cannot use skills
+                        if (activeSkill && CombatEffectService_1.combatEffectService.isSilenced(playerEffects)) {
+                            log.push(`🔇 **${player.name}** bị câm tính, kỹ năng bị phong ấn!`);
+                            activeSkill = null;
                         }
                         // Phá Nguyên Hành - sacrifice HP to recover MP when empty
                         if (playerMp === 0 && playerHp > playerMaxHp * 0.1) {
@@ -512,12 +590,13 @@ class CombatEngine {
                                     (ee === 'Thủy' && pe === 'Hỏa') ||
                                     (ee === 'Hỏa' && pe === 'Kim');
                                 if (isAdvantage) {
-                                    elemMult = 1.5;
-                                    elementText += ` 🌟 *(Khắc hệ: +50% Sát thương)*`;
+                                    // P7-01: Five Elements nerfed from 1.5x to 1.25x
+                                    elemMult = 1.25;
+                                    elementText += ` 🌟 *(Khắc hệ: +25% Sát thương)*`;
                                 }
                                 else if (isDisadvantage) {
-                                    elemMult = 0.5;
-                                    elementText += ` ⚠️ *(Bị khắc: -50% Sát thương)*`;
+                                    elemMult = 0.75;
+                                    elementText += ` ⚠️ *(Bị khắc: -25% Sát thương)*`;
                                 }
                                 baseDamage = Math.round(baseDamage * elemMult);
                             }
@@ -551,6 +630,16 @@ class CombatEngine {
                         if (isLoiTriggered) {
                             baseDamage = Math.round(baseDamage * playerLoiDamageMult);
                         }
+                        // E-02: Apply player weakness (reduces outgoing damage)
+                        const playerWeakness = playerEffects.find(e => e.type === 'weakness');
+                        if (playerWeakness) {
+                            baseDamage = Math.round(baseDamage * (1 - 0.30 * playerWeakness.stacks));
+                        }
+                        // E-02: Apply enemy vulnerability (increases incoming damage)
+                        const enemyVulnerability = enemyEffects.find(e => e.type === 'vulnerability');
+                        if (enemyVulnerability) {
+                            baseDamage = Math.round(baseDamage * (1 + 0.30 * enemyVulnerability.stacks));
+                        }
                         enemyHp -= baseDamage;
                         totalDamageDealt += baseDamage;
                         let lifestealText = '';
@@ -561,7 +650,8 @@ class CombatEngine {
                         }
                         let reflectText = '';
                         if (enemy.reflectRate && enemy.reflectRate > 0 && playerHp > 0) {
-                            const reflectDmg = Math.round(baseDamage * enemy.reflectRate);
+                            // P7-01: Reflect damage capped at 15% max
+                            const reflectDmg = Math.round(baseDamage * Math.min(enemy.reflectRate, 0.15));
                             playerHp = Math.max(0, playerHp - reflectDmg);
                             reflectText = ` ⚡ *(Bị phản chấn ngược: -${reflectDmg} HP)*`;
                         }
@@ -584,6 +674,11 @@ class CombatEngine {
                     log.push(`⚡ **${enemy.name}** đang bị tê liệt từ Lôi Phạt, run rẩy không thể ra chiêu!`);
                     enemyParalyzed = false; // Hết tê liệt
                 }
+                else if (CombatEffectService_1.combatEffectService.isCC(enemyEffects)) {
+                    // E-02: Check effects-based CC for enemy
+                    const ccEffect = enemyEffects.find(e => e.type === 'stun' || e.type === 'freeze' || e.type === 'sleep');
+                    log.push(`💫 **${enemy.name}** bị ${ccEffect?.type === 'stun' ? 'tê liệt' : ccEffect?.type === 'freeze' ? 'đóng băng' : 'ngủ'} bởi hiệu ứng!`);
+                }
                 else {
                     // Kiểm tra né tránh của người chơi
                     const isPlayerDodge = playerDodge || (Math.random() < (player.dodge ?? 0.05));
@@ -602,7 +697,8 @@ class CombatEngine {
                             return; // Skip damage
                         }
                         let playerDef = player.def;
-                        if (playerShield > 0 && (elements['Thổ'] ?? 0) >= 90) {
+                        // B03: Khiên Thổ Giáp +30% DEF khi khiên tồn tại (không chỉ Thiên Thổ)
+                        if (playerShield > 0 && (elements['Thổ'] ?? 0) > 0) {
                             playerDef = Math.round(playerDef * 1.3);
                         }
                         // Cơ chế boss Tầng 9: bộc phát liên chiêu nhân đôi ATK mỗi 3 hiệp
@@ -673,9 +769,20 @@ class CombatEngine {
                         if (isCrit) {
                             monsterDmg = Math.round(monsterDmg * 1.5);
                         }
+                        // E-02: Apply enemy weakness (reduces outgoing damage)
+                        const enemyWeakness = enemyEffects.find(e => e.type === 'weakness');
+                        if (enemyWeakness) {
+                            monsterDmg = Math.round(monsterDmg * (1 - 0.30 * enemyWeakness.stacks));
+                        }
+                        // E-02: Apply player vulnerability (increases incoming damage)
+                        const playerVulnerability = playerEffects.find(e => e.type === 'vulnerability');
+                        if (playerVulnerability) {
+                            monsterDmg = Math.round(monsterDmg * (1 + 0.30 * playerVulnerability.stacks));
+                        }
                         let reflectDmg = 0;
+                        // P7-01: Reflect damage capped at 15% max
                         if (player.reflectRate && player.reflectRate > 0 && enemyHp > 0) {
-                            reflectDmg = Math.round(monsterDmg * player.reflectRate);
+                            reflectDmg = Math.round(monsterDmg * Math.min(player.reflectRate, 0.15));
                             enemyHp = Math.max(0, enemyHp - reflectDmg);
                         }
                         const reflectText = reflectDmg > 0 ? ` ⚡ *(Bị phản chấn ngược: -${reflectDmg} HP)*` : '';
@@ -715,6 +822,40 @@ class CombatEngine {
                 playerHp = Math.min(playerMaxHp, playerHp + petHeal);
                 petRebornTriggered = true;
                 log.push(`\n🔥 **[Sủng Thú - Nirvana Chi Hỏa]** Hỏa Phượng Hoàng dâng trào linh hỏa trị liệu khẩn cấp, hồi phục **+${petHeal}** HP cho chủ nhân! (Hiện tại: ${playerHp}/${playerMaxHp})`);
+            }
+            // P1-02: Dreamscape Shadow Mutation effects
+            if (enemy.shadowMutation && playerHp > 0) {
+                const approxDmg = Math.round(enemy.atk * 0.7); // approximate damage for drain/thorn calcs
+                switch (enemy.shadowMutation) {
+                    case 'burn': {
+                        const burnDmg = Math.round(playerMaxHp * 0.05);
+                        playerHp -= burnDmg;
+                        log.push(`🔥 **[Bóng Tối - Hỏa Thiêu]** Bóng Tối thiêu đốt, gây **-${burnDmg}** sát thương nộig`);
+                        break;
+                    }
+                    case 'poison': {
+                        const poisonDmg = Math.round(playerMaxHp * 0.03);
+                        playerHp -= poisonDmg;
+                        log.push(`☠️ **[Bóng Tối - Độc Thi]** Bóng Tối rải độc, gây **-${poisonDmg}** sát thương mỗi lượt`);
+                        break;
+                    }
+                    case 'drain': {
+                        const healAmt = Math.round(approxDmg * 0.2);
+                        enemyHp = Math.min(enemyMaxHp, enemyHp + healAmt);
+                        log.push(`💉 **[Bóng Tối - Hấp Thụ]** Bóng Tối hấp thụ **+${healAmt}** HP từ đòn đánh!`);
+                        break;
+                    }
+                    case 'thorns': {
+                        const thornDmg = Math.round(approxDmg * 0.15);
+                        enemyHp -= thornDmg;
+                        log.push(`🌵 **[Bóng Tối - Gai Ngược]** Phản đòn **-${thornDmg}** sát thương lên Bóng Tối!`);
+                        break;
+                    }
+                    case 'swift': {
+                        log.push(`⚡ **[Bóng Tối - Tốc Hành]** Bóng Tối di chuyển cực nhanh!`);
+                        break;
+                    }
+                }
             }
             if (playerHp <= 0) {
                 // Xử lý Hồi sinh của Phượng Hoàng
@@ -769,8 +910,54 @@ class CombatEngine {
             enemyEndingHp: Math.max(0, enemyHp),
             totalDamageDealt,
             rounds: Math.min(round, maxRounds),
-            log
+            log,
+            playerEffects: playerEffects.length > 0 ? playerEffects : undefined,
+            enemyEffects: enemyEffects.length > 0 ? enemyEffects : undefined,
         };
+    }
+    // === C-05: Combat System Deep ===
+    /**
+     * C-05: Get combat techniques
+     */
+    static getCombatTechniques() {
+        return [
+            { id: 'ct_fire_burst', name: 'Hỏa Bạo Từ', description: 'Hỏa hệ sát thương AOE', element: 'Hoa', unlockLevel: 20 },
+            { id: 'ct_water_heal', name: 'Thủy Linh Hồi', description: 'Thủy hệ hồi 20% HP', element: 'Thuy', unlockLevel: 20 },
+            { id: 'ct_earth_shield', name: 'Thổ Giáp', description: 'Thổ hệ khiên 15% HP', element: 'Tho', unlockLevel: 20 },
+            { id: 'ct_wind_dodge', name: 'Phong Hành Né', description: 'Phong hệ né +30%', element: 'Phong', unlockLevel: 20 },
+            { id: 'ct_lightning_stun', name: 'Lôi Phát Choáng', description: 'Lôi hệ choáng 1 lượt', element: 'Loi', unlockLevel: 20 },
+            { id: 'ct_metal_crit', name: 'Kim Tinh Sát', description: 'Kim hệ chí mạng +20%', element: 'Kim', unlockLevel: 20 },
+            { id: 'ct_wood_lifesteal', name: 'Mộc Hấp Huyết', description: 'Mộc hệ hút máu 20%', element: 'Moc', unlockLevel: 20 },
+        ];
+    }
+    /**
+     * C-05: Get combat styles
+     */
+    static getCombatStyles() {
+        return [
+            { id: 'aggressive', name: 'Cường Công', description: 'Tấn công cao, phòng thủ thấp', bonus: '+20% ATK, -10% DEF' },
+            { id: 'defensive', name: 'Phòng Thủ', description: 'Phòng thủ cao, tấn công thấp', bonus: '+20% DEF, -10% ATK' },
+            { id: 'balanced', name: 'Cân Bằng', description: 'Chỉ số cân bằng', bonus: '+5% All Stats' },
+            { id: 'speed', name: 'Tốc Hành', description: 'Tốc độ cao, HP thấp', bonus: '+20% Speed, -10% HP' },
+        ];
+    }
+    /**
+     * C-05: Get combat description for UI
+     */
+    static getCombatDescription() {
+        const techniques = CombatEngine.getCombatTechniques();
+        const styles = CombatEngine.getCombatStyles();
+        let msg = `⚔️ **Hệ Thống Chiến Đấu**\n`;
+        msg += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        msg += `**Kỹ Năng:**\n`;
+        for (const t of techniques) {
+            msg += `• ${t.name}: ${t.description} (${t.element})\n`;
+        }
+        msg += `\n**Phong Cách:**\n`;
+        for (const s of styles) {
+            msg += `• ${s.name}: ${s.bonus}\n`;
+        }
+        return msg;
     }
 }
 exports.CombatEngine = CombatEngine;

@@ -58,6 +58,16 @@ class ReadyEvent extends Event_1.Event {
             table.push(['Event Scheduler', chalk_1.default.red('❌ LỖI')]);
             console.error(chalk_1.default.red('[System] Lỗi Event Scheduler:'), error);
         }
+        // 4b. Khởi động scheduler World Events (random events + broadcast)
+        try {
+            const { worldEventService } = require('../services/WorldEventService');
+            worldEventService.startScheduler(client);
+            table.push(['World Event Scheduler', chalk_1.default.green('✔ Running')]);
+        }
+        catch (error) {
+            table.push(['World Event Scheduler', chalk_1.default.red('❌ LỖI')]);
+            console.error(chalk_1.default.red('[System] Lỗi World Event Scheduler:'), error);
+        }
         // 5. Khởi động scheduler Vạn Bảo Lâu (kết thúc đấu giá hết hạn & auto-bid)
         try {
             const { marketService } = require('../services/MarketService');

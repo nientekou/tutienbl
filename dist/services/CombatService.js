@@ -110,7 +110,7 @@ class CombatService {
     /**
      * Thực hiện khiêu chiến phó bản Bí Cảnh
      */
-    challengeDungeon(userId, dungeonId, difficulty = 'thường', playerBuffApplied = false, monsterBuffApplied = false) {
+    challengeDungeon(userId, dungeonId, difficulty = 'thường', playerBuffApplied = false, monsterBuffApplied = false, selectedSkillIndex) {
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
             return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật! Hãy dùng `/taonhanvat`.' };
@@ -124,6 +124,17 @@ class CombatService {
                 success: false,
                 message: `Tu vi của đạo hữu quá thấp để tiến vào đây! Cần đạt **cấp ${dungeon.minLevel}** (hoặc cảnh giới tương đương).`
             };
+        }
+        // C5: Prestige gate check
+        if (dungeon.minPrestige) {
+            const { prestigeService } = require('./PrestigeService');
+            const prestigeData = prestigeService.getPrestigeData(userId);
+            if (prestigeData.prestige_level < dungeon.minPrestige) {
+                return {
+                    success: false,
+                    message: `❌ Cần đạt **Prestige ${dungeon.minPrestige}** để vào phó bản này! (Hiện: Prestige ${prestigeData.prestige_level})`
+                };
+            }
         }
         // Kiểm tra số lượt khiêu chiến hàng ngày
         const now = Math.floor(Date.now() / 1000);
@@ -238,7 +249,8 @@ class CombatService {
             bloodline: bdl1 ? { id: bdl1.bloodline_id, name: bdl1.name, level: bdl1.level, passives: bdl1.passives, rage_effect: bdl1.rage_effect, rage_cooldown: bdl1.rage_cooldown || 0 } : undefined,
             hasOai: soulImprintService.hasOaiActive(userId),
             userId: userId,
-            level: user.level
+            level: user.level,
+            selectedSkillIndex
         };
         // Tăng tốc độ né tránh quái vật theo bậc dungeon
         let monsterSpeed = 90;

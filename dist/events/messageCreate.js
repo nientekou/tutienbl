@@ -16,9 +16,10 @@ class MessageCreateEvent extends Event_1.Event {
             return;
         if (!message.guild)
             return;
-        const config = database_1.default.prepare('SELECT noitu_channel_id FROM guild_configs WHERE guild_id = ?')
+        // Existing Noi Tu logic
+        const gameConfig = database_1.default.prepare('SELECT noitu_channel_id FROM guild_configs WHERE guild_id = ?')
             .get(message.guild.id);
-        if (!config?.noitu_channel_id || message.channel.id !== config.noitu_channel_id)
+        if (!gameConfig?.noitu_channel_id || message.channel.id !== gameConfig.noitu_channel_id)
             return;
         const gameKey = `${message.guild.id}:${message.channel.id}`;
         const game = NoituService_1.noituService.getGame(gameKey);

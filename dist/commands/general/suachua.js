@@ -77,7 +77,7 @@ class SuaChuaCommand extends Command_1.Command {
         }
         else {
             for (const item of equippedItems) {
-                const slot = (item.equipment_slot || 'unknown').toUpperCase();
+                const slot = (item.equipment_slot || 'không rõ').toUpperCase();
                 const durabilityBar = this.getDurabilityBar(item.durability, item.max_durability);
                 const statusText = item.durability <= 0
                     ? '💔 **HỎNG** - Chỉ còn 50% chỉ số!'

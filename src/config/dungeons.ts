@@ -22,6 +22,7 @@ export interface DungeonConfig {
   name: string;
   description: string;
   minLevel: number;
+  minPrestige?: number; // C5: Prestige gate
   maxDailyEntries: number;
   monster: MonsterConfig;
   rewards: {
@@ -116,6 +117,36 @@ export const DUNGEONS: Record<string, DungeonConfig> = {
         { itemId: ITEMS.PILL_BREAK_1, rate: 0.40, quantity: 2 },     // 40% x2 trúc cơ đan
         { itemId: ITEMS.TALISMAN_SPEED_1, rate: 0.50, quantity: 2 }, // 50% x2 Thần Hành Phù
         { itemId: ITEMS.SEED_VOID_HERB, rate: 0.20, quantity: 1 },   // 20% hạt hư không thảo
+      ]
+    }
+  },
+
+  // C5: Prestige-Exclusive Dungeon
+  prestige_void: {
+    id: 'prestige_void',
+    name: 'Hư Không Prestige',
+    description: 'Phó bản chỉ dành cho đạo hữu đã Prestige 3+. Hư Không Ma Quân canh giữ những bí mật của thiên đạo.',
+    minLevel: 1,
+    minPrestige: 3,
+    maxDailyEntries: 2,
+    monster: {
+      name: 'Hư Không Ma Quân',
+      element: 'Vô',
+      hp: 8000,
+      maxHp: 8000,
+      atk: 200,
+      def: 120,
+      crit: 0.15,
+      critRes: 0.10,
+    },
+    rewards: {
+      exp: 2000,
+      coinMin: 500,
+      coinMax: 1000,
+      loots: [
+        { itemId: 'prestige_material', rate: 0.30, quantity: 1 },
+        { itemId: 'tinh_thach_shard', rate: 0.50, quantity: 2 },
+        { itemId: ITEMS.PILL_BREAK_1, rate: 0.40, quantity: 1 },
       ]
     }
   }

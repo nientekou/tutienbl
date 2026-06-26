@@ -116,7 +116,7 @@ const WORDS = [
     'nắng chói', 'mưa to', 'gió lớn', 'sấm rền', 'chớp giật',
     'sương rơi', 'tuyết tan', 'hơi nước', 'khói xám', 'tro đỏ',
     'đá xanh', 'cát vàng', 'bùn đen', 'sét ngang', 'sấm dồn',
-    'mây hồng', 'trăng sáng', 'sao今日', 'mặt trời', 'bầu trong',
+    'mây hồng', 'trăng sáng', 'sao hôm nay', 'mặt trời', 'bầu trong',
     'núi phủ', 'sông chảy', 'hồ phản', 'biển động', 'thác đổ',
     'hang tối', 'động sáng', 'suối reo', 'giếng sâu', 'ao tĩnh',
     'đầm rộng', 'vịnh nhỏ', 'cửa biển', 'song ngòi', 'mương dẫn',
@@ -195,7 +195,7 @@ const WORDS = [
     'gương soi', 'bàn chải', 'kéo cắt', 'dao cắt', 'búa đập',
     'đinh vít', 'tua vít', 'cờ lê', 'mỏ lết', 'kìm cắt',
     'xe container', 'xe ben', 'xe cứu hỏa', 'xe cấp cứu', 'xe cảnh sát',
-    'tàu chiến', 'tàu ngầm', 'tàu vũ trụ', 'máy bay phản lực', '直升机',
+    'tàu chiến', 'tàu ngầm', 'tàu vũ trụ', 'máy bay phản lực', 'máy bay trực thăng',
     // ── Tự nhiên & Thời tiết ──
     'gió heo', 'mưa bụi', 'nắng gắt', 'sương giá', 'sấm rền',
     'mây đen', 'chớp sáng', 'lốc xoáy', 'bão mạnh', 'lũ quét',
@@ -219,7 +219,7 @@ const WORDS = [
     'văn hóa', 'ẩm thực', 'mua sắm', 'giải trí', 'nghỉ dưỡng',
     // ── Khoa học ──
     'vũ trụ', 'hành tinh', 'mặt trời', 'ngôi sao', 'thiên hà',
-    'vật lý', 'hóa học', 'sinh học', 'toán học', 'astronomy',
+    'vật lý', 'hóa học', 'sinh học', 'toán học', 'thiên văn học',
     'nguyên tử', 'phân tử', 'electron', 'proton', 'neutron',
     'năng lượng', 'điện năng', 'quang hợp', 'đại dương', 'khí quyển',
     // ── Nghệ thuật ──
@@ -253,7 +253,7 @@ const WORDS = [
     'cầu lông', 'quần vợt', 'golf', 'đua xe', 'bơi lội',
     'điền kinh', 'vật lộn', 'judo', 'karate', 'taekwondo',
     'boxing', 'kickboxing', 'muay thai', 'cử tạ', 'gym',
-    'yoga', 'pilates', 'aerobic', 'zumba', ' stretching',
+    'yoga', 'pilates', 'aerobic', 'zumba', 'giãn cơ',
     // ── Công nghệ ──
     'phần mềm', 'phần cứng', 'máy chủ', 'mạng máy', 'công nghệ',
     'trí tuệ', 'nhân tạo', 'robot', 'AI', 'blockchain',

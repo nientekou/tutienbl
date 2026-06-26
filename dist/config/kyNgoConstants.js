@@ -15,7 +15,7 @@ exports.KY_NGO_EVENTS = [
                 riskLevel: 'medium'
             },
             {
-                id: 'steady', label: '🟢稳扎稳打击 (tu luyện bình thường)',
+                id: 'steady', label: '🟢 Tu luyện vững chắc (bình thường)',
                 successRate: 0.95,
                 successReward: { type: 'cultivation_speed', value: 10, duration: 24 },
                 failurePenalty: { type: 'exp', value: -50 },
@@ -161,6 +161,108 @@ exports.KY_NGO_EVENTS = [
             }
         ],
         minRealm: 25, weight: 12, cooldownHours: 72
+    },
+    {
+        type: 'heart_law_meditation',
+        title: '🧘 Tâm Pháp Tham Ngộ',
+        description: 'Một luồng sáng tâm pháp hiện ra giữa thinh không, cổ động ngươi tham ngộ…',
+        choices: [
+            {
+                id: 'insight', label: '🔵 Tham ngộ sâu',
+                successRate: 0.35,
+                successReward: { type: 'heart_law_exp', value: 200 },
+                failurePenalty: { type: 'qi_deviation', value: 20 },
+                riskLevel: 'medium'
+            },
+            {
+                id: 'observe_hl', label: '🟢 Quan sát cẩn thận',
+                successRate: 0.85,
+                successReward: { type: 'heart_law_exp', value: 80 },
+                failurePenalty: { type: 'exp', value: -30 },
+                riskLevel: 'low'
+            }
+        ],
+        minRealm: 50, weight: 15, cooldownHours: 36
+    },
+    {
+        type: 'soul_imprint_trial',
+        title: '⚡ Thử Thách Ấn Ký',
+        description: 'Ấn ký cổ đại trên cơ thể đạo hữu bỗng rung động, thử thách đang đến…',
+        choices: [
+            {
+                id: 'endure', label: '🔵 Chịu đựng thử thách',
+                successRate: 0.4,
+                successReward: { type: 'tu_vi', value: 1500 },
+                failurePenalty: { type: 'qi_deviation', value: 25 },
+                riskLevel: 'medium'
+            },
+            {
+                id: 'resist', label: '🔴 Phản kháng quyết liệt',
+                successRate: 0.2,
+                successReward: { type: 'tu_vi', value: 4000 },
+                failurePenalty: { type: 'qi_deviation', value: 40 },
+                riskLevel: 'high'
+            },
+            {
+                id: 'harmonize', label: '🟢 Hòa giải ấn ký',
+                successRate: 0.9,
+                successReward: { type: 'cultivation_speed', value: 25, duration: 24 },
+                failurePenalty: { type: 'exp', value: -50 },
+                riskLevel: 'low'
+            }
+        ],
+        minRealm: 100, weight: 12, cooldownHours: 48
+    },
+    {
+        type: 'prestige_destiny',
+        title: '🌟 Tiên Cơ Prestige',
+        description: 'Thiên đạo mở ra một khe hở, cho ngươi thấy cơ hội chuyển kiếp…',
+        choices: [
+            {
+                id: 'grasp', label: '🔵 Chộp lấy cơ hội',
+                successRate: 0.3,
+                successReward: { type: 'prestige_token', value: 2 },
+                failurePenalty: { type: 'qi_deviation', value: 30 },
+                riskLevel: 'medium'
+            },
+            {
+                id: 'meditate_p', label: '🟢 Đạo tâm vững vàng',
+                successRate: 0.9,
+                successReward: { type: 'cultivation_speed', value: 30, duration: 48 },
+                failurePenalty: { type: 'exp', value: -100 },
+                riskLevel: 'low'
+            }
+        ],
+        minRealm: 200, weight: 10, cooldownHours: 72
+    },
+    {
+        type: 'thien_dao_enlightenment',
+        title: '🌌 Thiên Đạo Khai Ngộ',
+        description: 'Trời đất rung chuyển, ánh sáng vạn trượng bao phủ thân thể đạo hữu…',
+        choices: [
+            {
+                id: 'merge', label: '🔴 Hợp nhất Thiên Đạo',
+                successRate: 0.15,
+                successReward: { type: 'tu_vi', value: 8000 },
+                failurePenalty: { type: 'qi_deviation', value: 50 },
+                riskLevel: 'high'
+            },
+            {
+                id: 'absorb_td', label: '🔵 Hấp thụ từng phần',
+                successRate: 0.5,
+                successReward: { type: 'tu_vi', value: 3000 },
+                failurePenalty: { type: 'qi_deviation', value: 20 },
+                riskLevel: 'medium'
+            },
+            {
+                id: 'witness', label: '🟢 Chỉ quan sát',
+                successRate: 1.0,
+                successReward: { type: 'breakthrough_rate', value: 30 },
+                failurePenalty: { type: 'exp', value: -20 },
+                riskLevel: 'low'
+            }
+        ],
+        minRealm: 300, weight: 8, cooldownHours: 96
     }
 ];
 exports.KY_NGO_BASE_CHANCE = 0.08;

@@ -98,3 +98,9 @@ function handleCombatAction(interaction, action, parts, userId) {
     const { handleCombatAction: fn } = require('./CombatInteractionHandler');
     return fn(interaction, action, parts, userId);
 }
+// Huongdan — help system select menu
+function handleHuongDanAction(interaction, action, parts, userId) {
+    const { handleHuongDanAction: fn } = require('./HuongDanInteractionHandler');
+    return fn(interaction, action, parts, userId);
+}
+InteractionRegistry_1.registry.on(['huongdan'], handleHuongDanAction);

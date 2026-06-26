@@ -7,11 +7,11 @@ exports.ngoTinhService = exports.NGO_TINH_BUFFS = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
 exports.NGO_TINH_BUFFS = [
-    { id: 'exp_boost', name: 'Tu Vi Quả', cost: 10, duration: 3600, effect: '+30% tu_vi gain', emoji: '🌿' },
-    { id: 'luck_boost', name: 'Cơ Duyên', cost: 15, duration: 3600, effect: '+20% breakthrough rate', emoji: '🍀' },
-    { id: 'crit_boost', name: 'Sát Tâm', cost: 12, duration: 1800, effect: '+15% crit rate', emoji: '💥' },
-    { id: 'drop_boost', name: 'Bảo Vật', cost: 20, duration: 3600, effect: '+50% drop rate', emoji: '💎' },
-    { id: 'forge_boost', name: 'Lô Hỏa', cost: 8, duration: 1800, effect: '+10% enhance success', emoji: '🔥' },
+    { id: 'exp_boost', name: 'Tu Vi Quả', cost: 10, duration: 3600, effect: '+30% tu vi', emoji: '🌿' },
+    { id: 'luck_boost', name: 'Cơ Duyên', cost: 15, duration: 3600, effect: '+20% tỷ lệ đột phá', emoji: '🍀' },
+    { id: 'crit_boost', name: 'Sát Tâm', cost: 12, duration: 1800, effect: '+15% tỷ lệ bạo kích', emoji: '💥' },
+    { id: 'drop_boost', name: 'Bảo Vật', cost: 20, duration: 3600, effect: '+50% tỷ lệ rơi đồ', emoji: '💎' },
+    { id: 'forge_boost', name: 'Lô Hỏa', cost: 8, duration: 1800, effect: '+10% tỷ lệ cường hóa thành công', emoji: '🔥' },
 ];
 class NgoTinhService {
     constructor() {

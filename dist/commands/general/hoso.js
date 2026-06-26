@@ -296,6 +296,37 @@ function getChienTichTabEmbed(user) {
             } })()}** loại`,
         ].join('\n'),
         inline: false,
+    }, 
+    // W9-03: Extended stats
+    {
+        name: '📊 Thống Kê Mở Rộng',
+        value: (() => {
+            const stats = [];
+            // Tower
+            try {
+                const tower = database_1.default.prepare('SELECT max_floor FROM roguelike_progress WHERE user_id = ?').get(user.discord_id);
+                if (tower)
+                    stats.push(`🏯 **Tháp cao nhất:** Tầng **${tower.max_floor}**`);
+            }
+            catch { }
+            // Beast collection
+            try {
+                const beastCount = database_1.default.prepare('SELECT COUNT(DISTINCT beast_type) as c FROM rare_beasts WHERE user_id = ?').get(user.discord_id);
+                if (beastCount)
+                    stats.push(`🐉 **Linh thú hiếm:** **${beastCount.c}** loại`);
+            }
+            catch { }
+            // Dream Dust
+            stats.push(`✨ **Dust Mộng:** **${(0, constants_1.formatNumber)(user.dream_dust || 0)}**`);
+            // Bounty tokens
+            stats.push(`🎫 **Token Săn Thưởng:** **${(0, constants_1.formatNumber)(user.bounty_tokens || 0)}**`);
+            // Destiny shards
+            stats.push(`🔮 **Mảnh Mệnh Cách:** **${(0, constants_1.formatNumber)(user.destiny_shards || 0)}**`);
+            // Reincarnation tokens
+            stats.push(`🔄 **Token Luân Hồi:** **${(0, constants_1.formatNumber)(user.reincarnation_tokens || 0)}**`);
+            return stats.join('\n') || 'Chưa có thống kê';
+        })(),
+        inline: false,
     })
         .setFooter({ text: 'Tiếp tục tu luyện để mở thêm thành tựu!' })
         .setTimestamp();
@@ -715,24 +746,41 @@ class HoSoCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
             .setName('hoso')
-            .setDescription('Xem hồ sơ nhân vật tu hành của đạo hữu.'));
+            .setDescription('Xem hồ sơ nhân vật tu hành của đạo hữu.')
+            .addUserOption(opt => opt
+            .setName('dao_huu')
+            .setDescription('Xem hồ sơ của đạo hữu khác (để trống = xem của mình)')
+            .setRequired(false)));
     }
     async execute(client, interaction) {
-        const discordId = interaction.user.id;
+        // Hỗ trợ xem hồ sơ người khác: /hoso @user
+        const targetUser = interaction.options.getUser('dao_huu');
+        const discordId = targetUser ? targetUser.id : interaction.user.id;
+        const isViewingOther = targetUser && targetUser.id !== interaction.user.id;
         // Kiểm tra nhanh xem người chơi có tồn tại không trước khi defer
         const userExists = UserRepository_1.userRepository.get(discordId);
         if (!userExists) {
+            const targetName = isViewingOther ? targetUser.displayName : 'Đạo hữu';
             await interaction.editReply({
-                content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat` để bước vào con đường tu tiên!',
+                content: `❌ ${targetName} chưa khởi tạo nhân vật!`,
             });
             return;
         }
-        const idleRes = CultivationService_1.cultivationService.claimIdleCultivation(discordId);
-        const user = idleRes ? idleRes.user : UserRepository_1.userRepository.get(discordId);
+        // Chỉ claim idle cultivation khi xem profile mình
+        let idleGained = 0;
+        if (!isViewingOther) {
+            const idleRes = CultivationService_1.cultivationService.claimIdleCultivation(discordId);
+            if (idleRes && idleRes.gained > 0)
+                idleGained = idleRes.gained;
+        }
+        const user = UserRepository_1.userRepository.get(discordId);
         const activeStats = InventoryService_1.inventoryService.getActiveStats(discordId);
         const embed = getChiSoTabEmbed(user || userExists, activeStats);
-        if (idleRes && idleRes.gained > 0) {
-            embed.setDescription(`✨ **Thu Hoạch Nhàn Rỗi:** Đạo hữu tự động hấp thu thêm **+${idleRes.gained}** Tu Vi!\n\n` + (embed.data.description || ''));
+        if (idleGained > 0) {
+            embed.setDescription(`✨ **Thu Hoạch Nhàn Rỗi:** Đạo hữu tự động hấp thu thêm **+${idleGained}** Tu Vi!\n\n` + (embed.data.description || ''));
+        }
+        if (isViewingOther) {
+            embed.setFooter({ text: `Đang xem hồ sơ của ${targetUser.displayName}` });
         }
         const rows = getHoSoAllComponents(discordId, 'chiso');
         await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], rows));

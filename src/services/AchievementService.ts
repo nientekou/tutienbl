@@ -5,7 +5,7 @@ import { systemConfigService } from './SystemConfigService';
 export interface Achievement {
   id: string;
   name: string;
-  category: 'tu_luyen' | 'chien_dau' | 'pvp' | 'sung_thu' | 'sinh_hoat';
+  category: 'tu_luyen' | 'chien_dau' | 'pvp' | 'sung_thu' | 'sinh_hoat' | 'hidden';
   description: string;
   icon: string;
   target_value: number;
@@ -13,6 +13,9 @@ export interface Achievement {
   reward_exp: number;
   reward_coins: number;
   sort_order: number;
+  // B-05: Achievement Points
+  points: number;
+  is_hidden: number; // 0 or 1
 }
 
 export interface UserAchievement {
@@ -417,6 +420,352 @@ class AchievementService {
     }
 
     return [];
+  }
+
+  // === B-05: Achievement Points System ===
+
+  /**
+   * B-05: Tính tổng achievement points của user
+   */
+  getTotalPoints(userId: string): number {
+    const completed = this.getCompletedAchievements(userId);
+    return completed.reduce((sum, a) => sum + (a.points || 0), 0);
+  }
+
+  /**
+   * B-05: Get achievement description with points for profile
+   */
+  getAchievementSummary(userId: string): string {
+    const total = this.getAllAchievements().length;
+    const completed = this.countCompleted(userId);
+    const points = this.getTotalPoints(userId);
+    return `🏆 ${completed}/${total} thành tựu (${points} điểm)`;
+  }
+
+  /**
+   * B-05: Hidden achievement definitions
+   */
+  private readonly HIDDEN_ACHIEVEMENTS = [
+    { id: 'hidden_1', name: 'Vô Cực', icon: '♾️', description: 'Vượt qua tầng 100+ Tháp Trấn Yêu', target: 100, points: 10 },
+    { id: 'hidden_2', name: 'Thương Nhân', icon: '💰', description: 'Kiếm 1,000,000 Linh Thạch từ chợ trời', target: 1000000, points: 8 },
+    { id: 'hidden_3', name: 'Phúc Lạc', icon: '🌟', description: '100 ngày đăng nhập liên tiếp', target: 100, points: 10 },
+    { id: 'hidden_4', name: 'Sát Thủ', icon: '🗡️', description: 'Thắng 100 trận tỷ thí liên tiếp', target: 100, points: 9 },
+    { id: 'hidden_5', name: 'Đại Đan Sư', icon: '⚗️', description: 'Luyện chế 500 đan dược', target: 500, points: 7 },
+    { id: 'hidden_6', name: 'Thú Vương', icon: '🐉', description: 'Sở hữu 15+ linh thú', target: 15, points: 8 },
+    { id: 'hidden_7', name: 'Hỏa Thần', icon: '🔥', description: 'Đạt Hỏa Lửa cấp 8', target: 1, points: 9 },
+    { id: 'hidden_8', name: 'Bất Tử', icon: '💀', description: 'Luân hồi 10 lần', target: 10, points: 10 },
+    { id: 'hidden_9', name: 'Tông Sư', icon: '☯️', description: 'Tốt nghiệp 10 đệ tử', target: 10, points: 8 },
+    { id: 'hidden_10', name: 'Thiên Hạ Đệ Nhất', icon: '👑', description: 'Đạt top 1 trên bảng xếp hạng', target: 1, points: 10 },
+  ];
+
+  /**
+   * B-05: Check and award hidden achievements
+   */
+  checkHiddenAchievements(userId: string): Achievement[] {
+    const user = userRepository.get(userId);
+    if (!user) return [];
+
+    const unlocked: Achievement[] = [];
+
+    // hidden_1: Tower floor 100+
+    try {
+      const towerProgress = db.prepare('SELECT max_floor FROM roguelike_progress WHERE user_id = ?').get(userId) as any;
+      if (towerProgress && towerProgress.max_floor >= 100) {
+        const result = this.updateProgress(userId, 'hidden_1', 1);
+        unlocked.push(...result);
+      }
+    } catch {}
+
+    // hidden_3: Login streak 100
+    try {
+      const loginRecord = db.prepare('SELECT streak FROM user_daily_logins WHERE user_id = ?').get(userId) as any;
+      if (loginRecord && loginRecord.streak >= 100) {
+        const result = this.updateProgress(userId, 'hidden_3', 1);
+        unlocked.push(...result);
+      }
+    } catch {}
+
+    // hidden_6: Beast count 15+
+    try {
+      const beastCount = db.prepare('SELECT COUNT(*) as c FROM rare_beasts WHERE user_id = ?').get(userId) as { c: number };
+      if (beastCount.c >= 15) {
+        const result = this.updateProgress(userId, 'hidden_6', 1);
+        unlocked.push(...result);
+      }
+    } catch {}
+
+    // hidden_8: Reincarnation 10
+    if (user.luan_hoi_count >= 10) {
+      const result = this.updateProgress(userId, 'hidden_8', 1);
+      unlocked.push(...result);
+    }
+
+    // hidden_9: Mentor graduated 10
+    try {
+      const gradCount = db.prepare("SELECT COUNT(*) as c FROM mentorships WHERE mentor_id = ? AND status = 'graduated'").get(userId) as { c: number };
+      if (gradCount.c >= 10) {
+        const result = this.updateProgress(userId, 'hidden_9', 1);
+        unlocked.push(...result);
+      }
+    } catch {}
+
+    return unlocked;
+  }
+
+  // === D-04: Achievement V3 — Categories, Chains, Points Shop ===
+
+  /**
+   * D-04: Get achievements by category with stats
+   */
+  getCategoryStats(userId: string): { category: string; total: number; completed: number; points: number }[] {
+    const categories = ['tu_luyen', 'chien_dau', 'pvp', 'sung_thu', 'sinh_hoat', 'hidden'];
+    const allAchievements = this.getAllAchievements();
+
+    return categories.map(cat => {
+      const catAchievements = allAchievements.filter(a => a.category === cat);
+      const completedCat = catAchievements.filter(a => {
+        const ua = db.prepare('SELECT is_completed FROM user_achievements WHERE user_id = ? AND achievement_id = ?')
+          .get(userId, a.id) as any;
+        return ua?.is_completed === 1;
+      });
+
+      return {
+        category: cat,
+        total: catAchievements.length,
+        completed: completedCat.length,
+        points: completedCat.reduce((sum, a) => sum + (a.points || 0), 0)
+      };
+    });
+  }
+
+  /**
+   * D-04: Achievement chain — multi-part achievements
+   */
+  private readonly ACHIEVEMENT_CHAINS = [
+    {
+      id: 'chain_battle',
+      name: 'Chiến Binh',
+      parts: [
+        { id: 'chain_battle_1', name: 'Chiến Binh Tập Sự', target: 10, reward: 100 },
+        { id: 'chain_battle_2', name: 'Chiến Binh Lão Luyện', target: 100, reward: 500 },
+        { id: 'chain_battle_3', name: 'Chiến Binh Huyền Thoại', target: 1000, reward: 2000 },
+      ]
+    },
+    {
+      id: 'chain_explore',
+      name: 'Thám Hiểm Viên',
+      parts: [
+        { id: 'chain_explore_1', name: 'Người Mới', target: 5, reward: 100 },
+        { id: 'chain_explore_2', name: 'Thám Hiểm Gia', target: 25, reward: 500 },
+        { id: 'chain_explore_3', name: 'Bậc Thầy Thám Hiểm', target: 100, reward: 2000 },
+      ]
+    },
+    {
+      id: 'chain_craft',
+      name: 'Đại Đan Sư',
+      parts: [
+        { id: 'chain_craft_1', name: 'Đan Sư Mới', target: 10, reward: 100 },
+        { id: 'chain_craft_2', name: 'Đan Sư Giỏi', target: 50, reward: 500 },
+        { id: 'chain_craft_3', name: 'Đại Đan Sư', target: 200, reward: 2000 },
+      ]
+    },
+  ];
+
+  /**
+   * D-04: Get achievement chains
+   */
+  getAchievementChains(userId: string): { chainId: string; chainName: string; parts: { id: string; name: string; progress: number; target: number; completed: boolean; reward: number }[] }[] {
+    return this.ACHIEVEMENT_CHAINS.map(chain => ({
+      chainId: chain.id,
+      chainName: chain.name,
+      parts: chain.parts.map(part => {
+        const ua = db.prepare('SELECT progress, is_completed FROM user_achievements WHERE user_id = ? AND achievement_id = ?')
+          .get(userId, part.id) as any;
+
+        return {
+          id: part.id,
+          name: part.name,
+          progress: ua?.progress || 0,
+          target: part.target,
+          completed: ua?.is_completed === 1,
+          reward: part.reward
+        };
+      })
+    }));
+  }
+
+  /**
+   * D-04: Achievement points shop
+   */
+  private readonly POINTS_SHOP_ITEMS = [
+    { id: 'shop_aura', name: 'Hào Quang Thành Tựu', cost: 50, type: 'cosmetic' },
+    { id: 'shop_title', name: 'Danh Hiệu Đặc Biệt', cost: 100, type: 'title' },
+    { id: 'shop_exp_boost', name: 'Tăng Tốc EXP 24h', cost: 30, type: 'convenience' },
+    { id: 'shop_linh_thach', name: '5000 Linh Thạch', cost: 20, type: 'currency' },
+  ];
+
+  /**
+   * D-04: Get points shop items
+   */
+  getPointsShopItems(): { id: string; name: string; cost: number; type: string }[] {
+    return this.POINTS_SHOP_ITEMS;
+  }
+
+  /**
+   * D-04: Buy from points shop
+   */
+  buyFromPointsShop(userId: string, itemId: string): { success: boolean; message: string } {
+    const item = this.POINTS_SHOP_ITEMS.find(i => i.id === itemId);
+    if (!item) return { success: false, message: '❌ Vật phẩm không tồn tại!' };
+
+    const points = this.getTotalPoints(userId);
+    if (points < item.cost) {
+      return { success: false, message: `❌ Không đủ điểm! (Cần ${item.cost}, có ${points})` };
+    }
+
+    // Apply reward
+    if (item.type === 'currency') {
+      const user = userRepository.get(userId);
+      if (user) {
+        userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham + 5000 });
+      }
+    } else if (item.type === 'title') {
+      db.prepare('INSERT OR IGNORE INTO user_titles (user_id, title, source, unlocked_at) VALUES (?, ?, ?, ?)')
+        .run(userId, item.name, 'achievement', Math.floor(Date.now() / 1000));
+    }
+
+    return { success: true, message: `✅ Đã mua **${item.name}**! (-${item.cost} điểm)` };
+  }
+
+  /**
+   * D-04: Get achievement description for UI
+   */
+  getAchievementDescription(userId: string): string {
+    const stats = this.getCategoryStats(userId);
+    const points = this.getTotalPoints(userId);
+    const completed = this.countCompleted(userId);
+    const total = this.getAllAchievements().length;
+
+    let msg = `🏆 **Thành Tựu** — ${completed}/${total} (${points} điểm)\n\n`;
+
+    const categoryNames: Record<string, string> = {
+      tu_luyen: '🧘 Tu Luyện',
+      chien_dau: '⚔️ Chiến Đấu',
+      pvp: '🏆 PvP',
+      sung_thu: '🐉 Sủng Thú',
+      sinh_hoat: '🏠 Sinh Hoạt',
+      hidden: '🔮 Ẩn'
+    };
+
+    for (const s of stats) {
+      if (s.total > 0) {
+        const bar = '█'.repeat(Math.round(s.completed / s.total * 10)) + '░'.repeat(10 - Math.round(s.completed / s.total * 10));
+        msg += `${categoryNames[s.category] || s.category}: ${bar} ${s.completed}/${s.total} (${s.points} điểm)\n`;
+      }
+    }
+
+    return msg;
+  }
+
+  // === A-05: Achievement Rotation ===
+
+  /**
+   * A-05: Get weekly achievements (5 per week, rotating)
+   */
+  getWeeklyAchievements(): { id: string; name: string; description: string; target: number; reward: number }[] {
+    const weekKey = this.getWeekKey();
+    const hash = this.dateHash(weekKey);
+
+    const allWeekly = [
+      { id: 'wa_combat_1', name: 'Chiến Đấu Hàng Tuần', description: 'Thắng 10 trận PvP', target: 10, reward: 200 },
+      { id: 'wa_explore_1', name: 'Thám Hiểm Hàng Tuần', description: 'Hoàn thành 5 lần thám hiểm', target: 5, reward: 150 },
+      { id: 'wa_craft_1', name: 'Chế Tạo Hàng Tuần', description: 'Chế tạo 10 vật phẩm', target: 10, reward: 180 },
+      { id: 'wa_social_1', name: 'Giao Lưu Hàng Tuần', description: 'Giúp đỡ 5 người chơi khác', target: 5, reward: 120 },
+      { id: 'wa_progress_1', name: 'Tu Luyện Hàng Tuần', description: 'Đạt 10000 Tu Vi', target: 10000, reward: 250 },
+      { id: 'wa_combat_2', name: 'Sát Thủ Hàng Tuần', description: 'Tiêu diệt 50 yêu thú', target: 50, reward: 220 },
+      { id: 'wa_explore_2', name: 'Thợ Săn Kho Báu', description: 'Tìm 3 kho báu', target: 3, reward: 200 },
+      { id: 'wa_craft_2', name: 'Đại Sư Chế Tạo', description: 'Chế tạo 1 vật phẩm Huyền Thoại', target: 1, reward: 300 },
+      { id: 'wa_social_2', name: 'Sư Phụ Hàng Tuần', description: 'Hướng dẫn đồ đệ 3 lần', target: 3, reward: 180 },
+      { id: 'wa_progress_2', name: 'Thăng Cấp Hàng Tuần', description: 'Tăng 5 cấp', target: 5, reward: 200 },
+    ];
+
+    // Select 5 based on week hash
+    const selected: typeof allWeekly = [];
+    const indices = new Set<number>();
+    while (selected.length < 5 && indices.size < allWeekly.length) {
+      const idx = (hash + selected.length) % allWeekly.length;
+      if (!indices.has(idx)) {
+        indices.add(idx);
+        selected.push(allWeekly[idx]);
+      }
+    }
+
+    return selected;
+  }
+
+  /**
+   * A-05: Get seasonal achievements (10 per season)
+   */
+  getSeasonalAchievements(): { id: string; name: string; description: string; target: number; reward: number }[] {
+    const month = new Date().getMonth() + 1;
+
+    return [
+      { id: `sa_${month}_1`, name: 'Chiến Đấu Mùa', description: 'Thắng 50 trận PvP trong mùa', target: 50, reward: 500 },
+      { id: `sa_${month}_2`, name: 'Thám Hiểm Mùa', description: 'Hoàn thành 20 lần thám hiểm', target: 20, reward: 400 },
+      { id: `sa_${month}_3`, name: 'Chế Tạo Mùa', description: 'Chế tạo 50 vật phẩm', target: 50, reward: 450 },
+      { id: `sa_${month}_4`, name: 'Giao Lưu Mùa', description: 'Giúp đỡ 20 người chơi', target: 20, reward: 350 },
+      { id: `sa_${month}_5`, name: 'Tu Luyện Mùa', description: 'Đạt 50000 Tu Vi', target: 50000, reward: 600 },
+      { id: `sa_${month}_6`, name: 'Sưu Tầm Mùa', description: 'Thu thập 10 vật phẩm hiếm', target: 10, reward: 500 },
+      { id: `sa_${month}_7`, name: 'Chiến Binh Mùa', description: 'Tiêu diệt 200 yêu thú', target: 200, reward: 550 },
+      { id: `sa_${month}_8`, name: 'Sư Phụ Mùa', description: 'Hướng dẫn 5 đồ đệ', target: 5, reward: 400 },
+      { id: `sa_${month}_9`, name: 'Môn Chủ Mùa', description: 'Quyên góp 10000 cho môn phái', target: 10000, reward: 450 },
+      { id: `sa_${month}_10`, name: 'Quán Quân Mùa', description: 'Chiến thắng một giải đấu', target: 1, reward: 700 },
+    ];
+  }
+
+  /**
+   * A-05: Get hidden achievements (5 new ones)
+   */
+  getHiddenAchievements(): { id: string; name: string; description: string; target: number; reward: number }[] {
+    return [
+      { id: 'ha_secret_1', name: 'Thám Tử', description: 'Khám phá địa điểm ẩn', target: 1, reward: 300 },
+      { id: 'ha_secret_2', name: 'Người Giải Mã', description: 'Giải mã 3 nhiệm vụ NPC thần bí', target: 3, reward: 400 },
+      { id: 'ha_secret_3', name: 'Vận May', description: 'Kích hoạt 10 sự kiện ngẫu nhiên', target: 10, reward: 350 },
+      { id: 'ha_secret_4', name: 'Cao Thủ Sự Kiện', description: 'Hoàn thành 5 sự kiện mùa', target: 5, reward: 500 },
+      { id: 'ha_secret_5', name: 'Vua Khám Phá', description: 'Tìm tất cả vật phẩm ẩn', target: 10, reward: 600 },
+    ];
+  }
+
+  /**
+   * A-05: Check weekly achievement progress
+   */
+  checkWeeklyAchievements(userId: string): { id: string; progress: number; target: number; completed: boolean }[] {
+    const weekly = this.getWeeklyAchievements();
+    return weekly.map(a => {
+      const ua = db.prepare('SELECT progress FROM user_achievements WHERE user_id = ? AND achievement_id = ?')
+        .get(userId, a.id) as any;
+      const progress = ua?.progress || 0;
+      return { id: a.id, progress, target: a.target, completed: progress >= a.target };
+    });
+  }
+
+  private getWeekKey(): string {
+    const now = new Date();
+    const vn = new Date(now.getTime() + 7 * 3600000);
+    const day = vn.getUTCDay() || 7;
+    vn.setUTCDate(vn.getUTCDate() - (day - 1));
+    vn.setUTCHours(0, 0, 0, 0);
+    return vn.toISOString().slice(0, 10);
+  }
+
+  private dateHash(dateStr: string): number {
+    let hash = 0;
+    for (let i = 0; i < dateStr.length; i++) {
+      const char = dateStr.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash |= 0;
+    }
+    return Math.abs(hash);
   }
 }
 

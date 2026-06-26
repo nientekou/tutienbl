@@ -53,7 +53,7 @@ export const EVENT_TEMPLATES: EventConfig[] = [
     id: 'double_exp_weekend',
     name: 'Cuồng Phong Tu Luyện',
     type: 'double_exp',
-    description: '⚠️ DOUBLE EXP WEEKEND! Trong thời gian diễn ra sự kiện, tất cả Tu Vi nhận được từ thiền định, luyện đan, làm việc và bí cảnh được nhân đôi!',
+    description: '⚠️ CUỐI TUẦN EXP X2! Trong thời gian diễn ra sự kiện, tất cả Tu Vi nhận được từ thiền định, luyện đan, làm việc và bí cảnh được nhân đôi!',
     durationHours: 48, // 2 ngày (thứ 7-CN)
     rewards: [
       { type: 'tuvi', amount: 0 } // 0 = buff multiplier, not direct reward

@@ -132,9 +132,109 @@ class NineHeavensService {
             return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
         const progress = this.getProgress(userId);
         const nextFloor = progress.highest_floor + 1;
-        if (nextFloor > 9) {
-            return { success: false, message: '🎉 Đạo hữu đã xuất sắc phá đảo tất cả 9 tầng Cửu Trùng Tháp rồi!' };
+        // P1-06: Infinite Mode — sau khi clear floor 9, mở Infinite Mode
+        const isInfiniteMode = nextFloor > 9;
+        if (isInfiniteMode) {
+            // P1-06: Infinite Mode — không cần level gate, không có floorConfig
+            // Kiểm tra lượt (vẫn dùng system lượt)
+            if (progress.attempts_this_week >= 3 && !forceBuy) {
+                return {
+                    success: false,
+                    requireBuy: true,
+                    message: `⚠️ Đạo hữu đã hết **3 lượt miễn phí** tuần này!\nMua thêm lượt? (**1,000 Linh Thạch**)`
+                };
+            }
+            if (progress.attempts_this_week >= 3 && forceBuy) {
+                const buyRes = this.buyExtraAttempt(userId);
+                if (!buyRes.success)
+                    return { success: false, message: buyRes.message };
+            }
+            // ─── P1-06: INFINITE MODE ENEMY ───
+            const infiniteFloor = nextFloor; // 10, 11, 12, ...
+            const infiniteScale = Math.pow(1.15, infiniteFloor - 10); // Floor 10 = 1x, 11 = 1.15x, etc.
+            const activeStats = InventoryService_1.inventoryService.getActiveStats(userId);
+            const petRaw = database_1.default.prepare('SELECT name, base_atk, mutations, skills FROM pets WHERE user_id = ? AND is_deployed = 1').get(userId);
+            let pet = null;
+            if (petRaw) {
+                let mutations = { stars: 0, bonus_atk: 0, bonus_def: 0, bonus_hp: 0 };
+                let skillsArr = [];
+                try {
+                    mutations = JSON.parse(petRaw.mutations || '{}');
+                }
+                catch (e) { }
+                try {
+                    skillsArr = JSON.parse(petRaw.skills || '[]');
+                }
+                catch (e) { }
+                pet = { name: petRaw.name, atk: petRaw.base_atk + (mutations.bonus_atk || 0), skills: skillsArr };
+            }
+            const equippedSkillsQuery = database_1.default.prepare('SELECT skill_id, level FROM user_skills WHERE user_id = ? AND is_equipped = 1 ORDER BY equipped_slot ASC').all(userId);
+            const equippedSkills = equippedSkillsQuery.map(s => {
+                const { SKILL_DETAILS } = require('../commands/general/kynang');
+                const detail = SKILL_DETAILS && SKILL_DETAILS[s.skill_id] ? SKILL_DETAILS[s.skill_id] : { name: s.skill_id, element: 'Vô' };
+                return { id: s.skill_id, level: s.level, element: detail.element, name: detail.name };
+            });
+            const bdl = BloodlineService_1.bloodlineService.getUserBloodline(userId);
+            const { soulImprintService } = require('./SoulImprintService');
+            const playerCombatant = {
+                name: user.name, hp: activeStats.hp, maxHp: activeStats.hp,
+                atk: activeStats.atk, def: activeStats.def, crit: activeStats.crit,
+                critRes: activeStats.critRes, luck: activeStats.luck,
+                speed: activeStats.speed ?? 100, dodge: activeStats.dodge ?? 0.05,
+                linhCan: user.linh_can, equippedSkills,
+                bloodline: bdl ? { id: bdl.bloodline_id, name: bdl.name, level: bdl.level, passives: bdl.passives, rage_effect: bdl.rage_effect, rage_cooldown: bdl.rage_cooldown || 0 } : undefined,
+                hasOai: soulImprintService.hasOaiActive(userId),
+                userId, level: user.level
+            };
+            // P1-06: Infinite enemy stats — base từ floor 9 enemy, scale 1.15x per floor
+            const baseInfiniteAtk = 350;
+            const baseInfiniteDef = 200;
+            const baseInfiniteHp = 5000;
+            const enemyAtk = Math.round(baseInfiniteAtk * infiniteScale);
+            const enemyDef = Math.round(baseInfiniteDef * infiniteScale);
+            const enemyHp = Math.round(baseInfiniteHp * infiniteScale);
+            // P1-06: Floor modifiers every 5 floors
+            const modifiers = ['Phản Hư', 'Ngũ Hành Loạn', 'Song Đấu', 'Thời Gian', 'Băng Hộa'];
+            const activeModifier = infiniteFloor % 5 === 0 ? modifiers[Math.floor(Math.random() * modifiers.length)] : null;
+            const enemyCombatant = {
+                name: `Cửu Trùng Vô Cực - Tầng ${infiniteFloor}${activeModifier ? ` [${activeModifier}]` : ''}`,
+                hp: enemyHp, maxHp: enemyHp, atk: enemyAtk, def: enemyDef,
+                crit: 0.10 + infiniteFloor * 0.003, critRes: 0.05 + infiniteFloor * 0.002, luck: 20
+            };
+            // P1-06: 25 round limit (from 30 default)
+            const combatResult = CombatEngine_1.CombatEngine.run(playerCombatant, enemyCombatant, pet, 25, false, false);
+            const now = Math.floor(Date.now() / 1000);
+            let rewardsLog = '';
+            database_1.default.transaction(() => {
+                database_1.default.prepare('UPDATE nine_heavens_progress SET attempts_this_week = attempts_this_week + 1 WHERE user_id = ?').run(userId);
+                if (combatResult.winner === 'player') {
+                    database_1.default.prepare('UPDATE nine_heavens_progress SET highest_floor = ? WHERE user_id = ?').run(nextFloor, userId);
+                    // P1-06: Infinite Mode rewards
+                    const lthapReward = 500 + infiniteFloor * 100;
+                    const tuViReward = 200 + infiniteFloor * 50;
+                    const knbReward = Math.floor(infiniteFloor / 10);
+                    // Every 10 floors: Tinh Thach Shard + chance for legendary materials
+                    let bonusLoot = '';
+                    if (infiniteFloor % 10 === 0) {
+                        bonusLoot = '\n💠 **+1 Mảnh Tinh Thạch**';
+                        // 20% chance for legendary material
+                        if (Math.random() < 0.20) {
+                            bonusLoot += '\n✨ **Vật liệu Thần Thoại rơi ra!**';
+                        }
+                    }
+                    UserRepository_1.userRepository.update(userId, {
+                        coin_ha_pham: user.coin_ha_pham + lthapReward,
+                        knb: user.knb + knbReward,
+                        tu_vi: Math.min(user.tu_vi + tuViReward, user.exp_needed)
+                    });
+                    rewardsLog = `🎉 **VƯỢT THÁP VÔ CỰC TẦNG ${infiniteFloor}!**${activeModifier ? `\n⚙️ Modifier: ${activeModifier}` : ''}\n` +
+                        `• +${lthapReward.toLocaleString()} Linh Thạch | +${tuViReward} Tu Vi | +${knbReward} KNB` +
+                        bonusLoot;
+                }
+            })();
+            return { success: true, message: combatResult.winner === 'player' ? 'Thành Công' : 'Thất Bại', combatResult, rewardsLog };
         }
+        // ─── NORMAL MODE (Floors 1-9) ───
         const floorConfig = this.FLOORS[nextFloor];
         if (user.level < floorConfig.minLevel) {
             return { success: false, message: `❌ Tầng **${nextFloor}** yêu cầu cấp độ tối thiểu phải đạt **Cấp ${floorConfig.minLevel}**!` };

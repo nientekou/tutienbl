@@ -958,19 +958,19 @@ export class InventoryService {
         
         if (chosen === 'atk') {
           customStats.atk = (customStats.atk || 0) + 5;
-          statsMsg = '+5 ATK';
+          statsMsg = '+5 Công Kích';
         } else if (chosen === 'def') {
           customStats.def = (customStats.def || 0) + 2;
-          statsMsg = '+2 DEF';
+          statsMsg = '+2 Phòng Thủ';
         } else if (chosen === 'hp') {
           customStats.hp = (customStats.hp || 0) + 30;
-          statsMsg = '+30 HP';
+          statsMsg = '+30 Sinh Lực';
         } else if (chosen === 'crit') {
           customStats.crit = parseFloat(((customStats.crit || 0) + 0.005).toFixed(3));
-          statsMsg = '+0.5% CRIT';
+          statsMsg = '+0.5% Bạo Kích';
         } else if (chosen === 'luck') {
           customStats.luck = (customStats.luck || 0) + 1;
-          statsMsg = '+1 LUCK';
+          statsMsg = '+1 May Mắn';
         }
 
         db.prepare('UPDATE inventories SET bound_level = ?, bound_exp = ?, custom_stats = ? WHERE id = ?')
@@ -1007,19 +1007,19 @@ export class InventoryService {
     let statsMsg = '';
     if (chosen === 'atk_percent') {
       customStats.atk_percent = parseFloat(((customStats.atk_percent || 0) + 0.02).toFixed(3));
-      statsMsg = '+2% ATK';
+      statsMsg = '+2% Công Kích';
     } else if (chosen === 'def_percent') {
       customStats.def_percent = parseFloat(((customStats.def_percent || 0) + 0.02).toFixed(3));
-      statsMsg = '+2% DEF';
+      statsMsg = '+2% Phòng Thủ';
     } else if (chosen === 'hp_percent') {
       customStats.hp_percent = parseFloat(((customStats.hp_percent || 0) + 0.03).toFixed(3));
-      statsMsg = '+3% HP';
+      statsMsg = '+3% Sinh Lực';
     } else if (chosen === 'speed_percent') {
       customStats.speed_percent = parseFloat(((customStats.speed_percent || 0) + 0.02).toFixed(3));
-      statsMsg = '+2% SPD';
+      statsMsg = '+2% Tốc Độ';
     } else if (chosen === 'dodge') {
       customStats.dodge = parseFloat(((customStats.dodge || 0) + 0.01).toFixed(3));
-      statsMsg = '+1% DODGE';
+      statsMsg = '+1% Né Tránh';
     }
 
     try {
@@ -1239,6 +1239,64 @@ export class InventoryService {
     }
 
     return stats;
+  }
+
+  // === A3: Item Salvage System ===
+
+  private static readonly SALVAGE_YIELDS: Record<string, { materialId: string; minQty: number; maxQty: number }> = {
+    'f': { materialId: 'tinh_thach_shard', minQty: 1, maxQty: 1 },
+    'd': { materialId: 'tinh_thach_shard', minQty: 1, maxQty: 1 },
+    'c': { materialId: 'tinh_thach_shard', minQty: 1, maxQty: 2 },
+    'b': { materialId: 'tinh_thach_shard', minQty: 1, maxQty: 3 },
+    'a': { materialId: 'material_rare_fire_shard', minQty: 1, maxQty: 2 },
+    's': { materialId: 'material_rare_fire_shard', minQty: 2, maxQty: 3 },
+    'ss': { materialId: 'material_rare_fire_shard', minQty: 2, maxQty: 4 },
+    'sss': { materialId: 'material_rare_fire_shard', minQty: 3, maxQty: 5 },
+    'ex': { materialId: 'material_rare_fire_shard', minQty: 4, maxQty: 6 },
+  };
+
+  public salvageItem(userId: string, inventoryId: number): { success: boolean; message: string } {
+    const inv = db.prepare('SELECT * FROM inventories WHERE id = ? AND user_id = ?').get(inventoryId, userId) as any;
+    if (!inv) return { success: false, message: 'Vật phẩm không tồn tại trong hành trang!' };
+
+    // Cannot salvage equipped items
+    if (inv.equipped) return { success: false, message: 'Không thể phân loại vật phẩm đang mặc!' };
+
+    const item = db.prepare('SELECT * FROM items WHERE id = ?').get(inv.item_id) as any;
+    if (!item) return { success: false, message: 'Không tìm thấy thông tin vật phẩm!' };
+
+    // Get grade from item (grade is stored on the item row or defaults to 'c')
+    const grade = (item.grade || 'c').toLowerCase();
+    const salvage = InventoryService.SALVAGE_YIELDS[grade] || InventoryService.SALVAGE_YIELDS['c'];
+
+    // Calculate quantity: base roll, double if durability <= 0
+    const durability = inv.durability ?? 100;
+    const baseQty = salvage.minQty + Math.floor(Math.random() * (salvage.maxQty - salvage.minQty + 1));
+    const qty = durability <= 0 ? baseQty * 2 : baseQty;
+
+    // Remove the item
+    if (inv.quantity > 1) {
+      db.prepare('UPDATE inventories SET quantity = quantity - 1 WHERE id = ?').run(inventoryId);
+    } else {
+      db.prepare('DELETE FROM inventories WHERE id = ?').run(inventoryId);
+    }
+
+    // Add materials
+    const existingMat = db.prepare('SELECT * FROM inventories WHERE user_id = ? AND item_id = ?').get(userId, salvage.materialId) as any;
+    if (existingMat) {
+      db.prepare('UPDATE inventories SET quantity = quantity + ? WHERE id = ?').run(qty, existingMat.id);
+    } else {
+      db.prepare('INSERT INTO inventories (user_id, item_id, quantity) VALUES (?, ?, ?)').run(userId, salvage.materialId, qty);
+    }
+
+    const matItem = db.prepare('SELECT name FROM items WHERE id = ?').get(salvage.materialId) as any;
+    const matName = matItem?.name || salvage.materialId;
+    const brokenNote = durability <= 0 ? ' (x2 từ equipment hỏng)' : '';
+
+    return {
+      success: true,
+      message: `🔧 Phân loại **${item.name}** thành công! Nhận **${qty}x ${matName}**${brokenNote}.`
+    };
   }
 }
 

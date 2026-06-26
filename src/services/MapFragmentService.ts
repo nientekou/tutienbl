@@ -239,6 +239,113 @@ class MapFragmentService {
       ORDER BY created_at DESC
     `).all(now) as TreasureLocation[];
   }
+
+  // === P5-04: Unified Kho Bao (treasure) info ===
+
+  /**
+   * P5-04: Lấy thông tin tổng hợp Kho Bao từ cả 2 hệ thống
+   */
+  public getUnifiedTreasureInfo(userId: string): string {
+    const fragments = this.getFragmentCount(userId);
+    const locations = this.getActiveLocations(userId);
+
+    let msg = `🗺️ **Kho Báu**\n━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `🧩 Mảnh bản đồ: **${fragments}**/5 để ghép\n`;
+    msg += `📍 Địa điểm active: **${locations.length}**\n`;
+
+    if (locations.length > 0) {
+      msg += `\n**Địa điểm hiện tại:**\n`;
+      for (const loc of locations.slice(0, 3)) {
+        const rarityEmoji = loc.rarity === 'legendary' ? '🟡' : loc.rarity === 'epic' ? '🟣' : loc.rarity === 'rare' ? '🔵' : '⚪';
+        const timeLeft = Math.max(0, Math.floor((loc.expires_at - Date.now() / 1000) / 3600));
+        msg += `${rarityEmoji} **${loc.location_name}** (${loc.coord_x},${loc.coord_y}) — còn ${timeLeft}h\n`;
+      }
+    }
+
+    msg += `\n*Ghép 5 mảnh → tạo địa điểm mới. Đào địa điểm → nhận thưởng. Đánh cắp → 50% thành công.*`;
+    return msg;
+  }
+
+  // === C-02: Treasure Hunt — Traps, PvP Stealing, Treasure Tiers ===
+
+  /**
+   * C-02: Get trap types for treasure locations
+   */
+  getTrapTypes(): { id: string; name: string; description: string; effect: string }[] {
+    return [
+      { id: 'ancient_guardian', name: 'Vệ Binh Cổ Đại', description: 'Phải đánh bại quái vật cổ đại', effect: 'combat' },
+      { id: 'curse', name: 'Lời Nguyền', description: 'Chịu debuff 1h', effect: 'debuff' },
+      { id: 'empty', name: 'Hòm Rỗng', description: 'Không có gì', effect: 'none' },
+      { id: 'mimic', name: 'Mimic', description: 'Quái vật mạnh hơn, loot tốt hơn', effect: 'combat_better_loot' },
+    ];
+  }
+
+  /**
+   * C-02: Roll trap when claiming treasure
+   */
+  rollTrap(userId: string): { trapped: boolean; trapId: string; trapName: string; description: string } {
+    const user = require('../database/repositories/UserRepository').userRepository.get(userId);
+    const luck = user?.base_luck || 10;
+
+    // 30% chance of trap, reduced by luck
+    const trapChance = Math.max(0.10, 0.30 - luck * 0.002);
+    if (Math.random() > trapChance) {
+      return { trapped: false, trapId: 'none', trapName: 'An Toàn', description: 'Không gặp bẫy!' };
+    }
+
+    const traps = this.getTrapTypes().filter(t => t.id !== 'none');
+    const trap = traps[Math.floor(Math.random() * traps.length)];
+
+    return {
+      trapped: true,
+      trapId: trap.id,
+      trapName: trap.name,
+      description: trap.description
+    };
+  }
+
+  /**
+   * C-02: Enhanced PvP stealing with realm-based success
+   */
+  enhancedStealLocation(userId: string, locationId: number): { success: boolean; message: string } {
+    const user = require('../database/repositories/UserRepository').userRepository.get(userId);
+    if (!user) return { success: false, message: '❌ Chưa tạo nhân vật!' };
+
+    const location = this.getLocationById(locationId);
+    if (!location) return { success: false, message: '❌ Địa điểm không tồn tại!' };
+    if (location.is_claimed) return { success: false, message: '❌ Địa điểm đã được nhận!' };
+
+    const now = Math.floor(Date.now() / 1000);
+    if (location.expires_at < now) return { success: false, message: '❌ Địa điểm đã hết hạn!' };
+
+    // Success chance based on luck and realm
+    const luckBonus = (user.base_luck || 10) * 0.003;
+    const realmBonus = Math.min(user.level / 380, 0.20); // Max +20% from realm
+    const stealChance = 0.50 + luckBonus + realmBonus;
+
+    if (Math.random() > stealChance) {
+      return { success: false, message: `❌ Đánh cắp thất bại! (${Math.round(stealChance * 100)}% tỷ lệ)` };
+    }
+
+    // Success — transfer ownership
+    db.prepare('UPDATE treasure_locations SET owner_id = ?, expires_at = ? WHERE id = ?')
+      .run(userId, now + 86400, locationId);
+
+    return { success: true, message: `🏴‍☠️ Đánh cắp thành công địa điểm **${location.location_name}**!` };
+  }
+
+  /**
+   * C-02: Get treasure tier description
+   */
+  getTreasureTierInfo(rarity: string): { name: string; rewards: string; timeLimit: string } {
+    const tiers: Record<string, { name: string; rewards: string; timeLimit: string }> = {
+      common: { name: 'Thường', rewards: '1,000 LT + 3 vật liệu cơ bản', timeLimit: '24h' },
+      rare: { name: 'Hiếm', rewards: '5,000 LT + 1 KNB + 2 vật liệu hiếm', timeLimit: '24h' },
+      epic: { name: 'Cực Phẩm', rewards: '15,000 LT + 3 KNB + 2 vật liệu epic + 20% pet evolve', timeLimit: '24h' },
+      legendary: { name: 'Thần Thoại', rewards: '50,000 LT + 10 KNB + mảnh vũ khí thần thoại', timeLimit: '24h' },
+    };
+    return tiers[rarity] || tiers.common;
+  }
 }
 
 export const mapFragmentService = new MapFragmentService();

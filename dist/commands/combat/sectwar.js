@@ -99,7 +99,7 @@ class SectWarCommand extends Command_1.Command {
                     // Lấy thông tin các sect trong battle
                     const sectNames = b.sect_ids.map((id) => {
                         const s = database_1.default.prepare('SELECT name FROM sects WHERE id = ?').get(id);
-                        return s ? s.name : 'Unknown';
+                        return s ? s.name : 'Không rõ';
                     });
                     const scoresList = b.sect_ids.map((id, idx) => {
                         return `**${sectNames[idx]}**: ${b.scores[id] || 0} điểm`;
@@ -173,7 +173,7 @@ class SectWarCommand extends Command_1.Command {
             for (const b of history) {
                 const sectNames = b.sect_ids.map((id) => {
                     const s = database_1.default.prepare('SELECT name FROM sects WHERE id = ?').get(id);
-                    return s ? s.name : 'Unknown';
+                    return s ? s.name : 'Không rõ';
                 });
                 const scoresStr = b.sect_ids.map((id, idx) => {
                     return `${sectNames[idx]}: ${b.scores[id] || 0}`;

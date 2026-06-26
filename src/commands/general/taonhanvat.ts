@@ -338,6 +338,15 @@ export default class TaoNhanVatCommand extends Command {
               `\n🎁 *Quà khởi nghiệp: +1000 LT đã được cộng vào hành trang!*`
             ].filter(Boolean).join('\n'),
           },
+          {
+            name: '🎯 Các Bước Đầu Tiên',
+            value: [
+              `1️⃣ **Tăng Cấp:** \`/luyenkhi\` — Tu luyện để nhận EXP`,
+              `2️⃣ **Nhiệm Vụ:** \`/nhiemvu\` — Nhận nhiệm vụ hàng ngày`,
+              `3️⃣ **Trang Bị:** \`/trangbi\` — Xem và sử dụng vật phẩm`,
+              `4️⃣ **Thẩm:** \`/camnang\` — Đọc cẩm nang hướng dẫn`,
+            ].join('\n'),
+          },
         )
         .setFooter({ text: '📖 Hãy dùng lệnh /camnang để xem Cẩm Nang Tiên Lộ hướng dẫn tân thủ!' })
         .setTimestamp();

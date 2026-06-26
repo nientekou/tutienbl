@@ -32,8 +32,8 @@ export const BOSS_PHASES: BossPhase[] = [
     hpThreshold: 60,
     name: 'Giai Đoạn 2 — Phẫn nộ',
     abilities: [
-      { id: 'fury_strike', name: 'Phẫn Nộ Quyền', type: 'aoe', power: 1.5, cooldown: 2, description: 'AOE damage lớn' },
-      { id: 'weaken', name: 'Yếu Đuối', type: 'debuff', power: 0.3, cooldown: 3, description: '-30% ATK player' }
+      { id: 'fury_strike', name: 'Phẫn Nộ Quyền', type: 'aoe', power: 1.5, cooldown: 2, description: 'Sát thương diện rộng lớn' },
+      { id: 'weaken', name: 'Yếu Đuối', type: 'debuff', power: 0.3, cooldown: 3, description: '-30% Công Kích người chơi' }
     ],
     weakness: 'thuy',
     statMultiplier: { atk: 1.3, def: 1.1, spd: 1.2 }
@@ -45,7 +45,7 @@ export const BOSS_PHASES: BossPhase[] = [
     abilities: [
       { id: 'devastation', name: 'Hủy Diệt', type: 'aoe', power: 2.0, cooldown: 3, description: 'Sát thương cực lớn' },
       { id: 'regenerate', name: 'Hồi Sinh', type: 'heal', power: 0.15, cooldown: 4, description: 'Hồi 15% HP' },
-      { id: 'berserk', name: 'Cuồng Chiến', type: 'debuff', power: 0.5, cooldown: 5, description: '+50% ATK, -30% DEF' }
+      { id: 'berserk', name: 'Cuồng Chiến', type: 'debuff', power: 0.5, cooldown: 5, description: '+50% Công Kích, -30% Phòng Thủ' }
     ],
     weakness: 'loi',
     statMultiplier: { atk: 1.6, def: 0.8, spd: 1.5 }

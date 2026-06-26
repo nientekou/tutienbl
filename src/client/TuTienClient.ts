@@ -9,7 +9,7 @@ export class TuTienClient extends Client {
 
   // Collection chứa danh sách lệnh Slash Command
   public readonly commands = new Collection<string, Command>();
-  
+
   // Khởi tạo các Handler nạp lệnh và sự kiện
   public readonly commandHandler = new CommandHandler(this);
   public readonly eventHandler = new EventHandler(this);

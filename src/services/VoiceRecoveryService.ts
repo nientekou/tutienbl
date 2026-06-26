@@ -135,7 +135,7 @@ export class VoiceRecoveryService {
       try {
         const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId);
         const vc = guild?.channels.cache.get(channelId) || await guild?.channels.fetch(channelId);
-        const vcName = vc ? vc.name : 'Voice Channel';
+        const vcName = vc ? vc.name : 'Kênh Thoại';
 
         const embed = new EmbedBuilder()
           .setTitle('🎵 TỤ LINH HỒI PHỤC')

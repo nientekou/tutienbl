@@ -112,7 +112,7 @@ function resolveSicBoBet(bet, result) {
             return { win: result.isTriple, multiplier: SICBO_PAYOUTS.any_triple };
         case 'odd_even':
             return {
-                win: (bet.choice === 'odd' && result.total % 2 === 1) || (bet.choice === 'even' && result.total % 2 === 0),
+                win: (bet.choice === 'lẻ' && result.total % 2 === 1) || (bet.choice === 'chẵn' && result.total % 2 === 0),
                 multiplier: result.isTriple ? 0 : SICBO_PAYOUTS.odd_even,
             };
     }
@@ -261,7 +261,7 @@ class CasinoService {
                 sicboBet = { type: 'tai_xiu', choice: choice };
                 break;
             case 'odd_even':
-                if (!choice || !['odd', 'even'].includes(choice))
+                if (!choice || !['lẻ', 'chẵn'].includes(choice))
                     return { success: false, message: 'Chọn Lẻ hoặc Chẵn!' };
                 sicboBet = { type: 'odd_even', choice: choice };
                 break;

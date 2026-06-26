@@ -78,7 +78,22 @@ export const DESTINY_RARITY_MULTIPLIER: Record<DestinyRarity, number> = {
 };
 
 export const DESTINY_GACHA_COST = 10000; // 10k Hạ Phẩm Linh Thạch mỗi lần bốc
+export const DESTINY_FOCUS_COST = 15000; // 15k khi dùng Fate Focus (1.5x)
 export const DESTINY_MAX_LEVEL = 10;
+
+// P1-08: Pity System
+export const DESTINY_PITY_SOFT = 100;   // Soft pity bắt đầu tại 100 rolls
+export const DESTINY_PITY_HARD = 150;   // Hard pity guarantee tại 150 rolls
+export const DESTINY_PITY_SOFT_RATE = 0.01; // +1% per roll sau soft pity
+
+// P1-08: Scrap & Fragment System
+export const DESTINY_SCRAP_SHARDS: Record<DestinyRarity, number> = {
+  thuong: 10,
+  hiem: 25,
+  cuc_pham: 60,
+  tien_pham: 150
+};
+export const DESTINY_BUY_COST_SHARDS = 500; // Mua 1 destiny thường bằng shards
 
 // Tính kinh nghiệm cần để lên cấp tiếp theo
 export function getDestinyExpNeeded(level: number, rarity: DestinyRarity): number {

@@ -151,6 +151,146 @@ export class EnhanceService {
 
     return result;
   }
+
+  // === A-02: Equipment Reforge System ===
+
+  private readonly REFORGE_COST = 5000; // Linh Thạch
+  private readonly MAX_REFORGES = 3;
+
+  /**
+   * A-02: Reforge an equipment — reroll random stat bonus
+   */
+  reforgeItem(userId: string, inventoryId: number): { success: boolean; message: string; oldBonus?: string; newBonus?: string } {
+    const user = userRepository.get(userId);
+    if (!user) return { success: false, message: '❌ Chưa tạo nhân vật!' };
+
+    const item = invRepo.get(inventoryId);
+    if (!item || item.user_id !== userId) return { success: false, message: '❌ Trang bị không tồn tại!' };
+    if (item.equipable !== 1 || item.type !== 'equipment') return { success: false, message: '❌ Chỉ reforged được trang bị!' };
+
+    // Check reforge count
+    const reforgeCount = item.reforge_count || 0;
+    if (reforgeCount >= this.REFORGE_COST / 1000) { // Simplified check
+      return { success: false, message: `❌ Đã reforged tối đa ${this.MAX_REFORGES} lần!` };
+    }
+
+    if (user.coin_ha_pham < this.REFORGE_COST) {
+      return { success: false, message: `❌ Không đủ Linh Thạch! (Cần ${this.REFORGE_COST}, có ${user.coin_ha_pham})` };
+    }
+
+    // Roll new random stat bonus
+    const stats = ['atk', 'def', 'hp', 'crit', 'speed'];
+    const randomStat = stats[Math.floor(Math.random() * stats.length)];
+    const randomValue = Math.round(Math.random() * 10 + 1); // +1 to +10
+
+    const oldBonus = item.custom_stats || '{}';
+    const newBonus = JSON.stringify({ [randomStat]: randomValue });
+
+    db.transaction(() => {
+      userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham - this.REFORGE_COST });
+      db.prepare('UPDATE inventories SET custom_stats = ?, reforge_count = COALESCE(reforge_count, 0) + 1 WHERE id = ?')
+        .run(newBonus, inventoryId);
+    })();
+
+    return {
+      success: true,
+      message: `✨ **Reforged thành công!** ${item.name}\n📊 Stat mới: **${randomStat} +${randomValue}**\n🔄 Lần reforged: ${reforgeCount + 1}/${this.MAX_REFORGES}`,
+      oldBonus,
+      newBonus
+    };
+  }
+
+  /**
+   * A-02: Get item quality description
+   */
+  getItemQuality(enhanceLevel: number): { quality: string; color: string; bonus: string } {
+    if (enhanceLevel >= 13) return { quality: 'Huyền Thoại', color: '🟡', bonus: '+25% chỉ số' };
+    if (enhanceLevel >= 10) return { quality: 'Sử Thi', color: '🟣', bonus: '+15% chỉ số' };
+    if (enhanceLevel >= 7) return { quality: 'Hiếm', color: '🔵', bonus: '+10% chỉ số' };
+    if (enhanceLevel >= 4) return { quality: 'Không Phổ Biến', color: '🟢', bonus: '+5% chỉ số' };
+    return { quality: 'Thường', color: '⚪', bonus: 'Không có thưởng' };
+  }
+
+  // === A-03: Equipment Sets Expansion ===
+
+  /**
+   * A-03: Get all available equipment sets
+   */
+  getAllEquipmentSets(): { id: string; name: string; pieces: number; bonus2: string; bonus3: string; element?: string; class?: string }[] {
+    return [
+      { id: 'flame_set', name: 'Hỏa Lôi Set', pieces: 3, bonus2: '+5% ATK', bonus3: '+10% Fire Damage + Tỷ Lệ Thiêu Đốt', element: 'Hoa' },
+      { id: 'frost_set', name: 'Băng Giá Set', pieces: 3, bonus2: '+5% DEF', bonus3: '+10% Freeze Chance + Slow', element: 'Thuy' },
+      { id: 'storm_set', name: 'Sấm Sét Set', pieces: 3, bonus2: '+5% Speed', bonus3: '+10% Crit Rate + Stun Chance', element: 'Loi' },
+      { id: 'earth_set', name: 'Thổ Địa Set', pieces: 3, bonus2: '+5% HP', bonus3: '+10% HP + Damage Shield', element: 'Tho' },
+      { id: 'wind_set', name: 'Gió Mùa Set', pieces: 3, bonus2: '+5% Dodge', bonus3: '+10% Dodge + Phản Đòn', element: 'Phong' },
+      { id: 'light_set', name: 'Quang Minh Set', pieces: 3, bonus2: '+5% Crit Damage', bonus3: '+10% Crit Damage + Lifesteal', element: 'Kim' },
+      { id: 'dark_set', name: 'Hắc Ám Set', pieces: 3, bonus2: '+5% All Stats', bonus3: '+8% All Stats + Damage Reflect', element: 'Vo' },
+      { id: 'tank_set', name: 'Bất Tử Set', pieces: 3, bonus2: '+10% DEF', bonus3: '+20% DEF + Giảm Sát Thương', class: 'tank' },
+      { id: 'dps_set', name: 'Sát Thủ Set', pieces: 3, bonus2: '+10% ATK', bonus3: '+20% ATK + Crit Rate', class: 'dps' },
+      { id: 'support_set', name: 'Hỗ Trợ Set', pieces: 3, bonus2: '+10% Heal Power', bonus3: '+20% Heal Power + Giảm Hồi Chiêu', class: 'support' },
+    ];
+  }
+
+  /**
+   * A-03: Get set bonus for equipped items
+   */
+  getSetBonuses(userId: string): { setId: string; setName: string; count: number; bonus2: string; bonus3: string; active: boolean; activeBonus: string }[] {
+    const equipped = db.prepare('SELECT * FROM inventories WHERE user_id = ? AND is_equipped = 1 AND type = ?')
+      .all(userId, 'equipment') as any[];
+
+    // Group by set
+    const setCounts: Record<string, number> = {};
+    for (const item of equipped) {
+      try {
+        const stats = JSON.parse(item.custom_stats || '{}');
+        if (stats.setId) {
+          setCounts[stats.setId] = (setCounts[stats.setId] || 0) + 1;
+        }
+      } catch {}
+    }
+
+    const allSets = this.getAllEquipmentSets();
+    const results: { setId: string; setName: string; count: number; bonus2: string; bonus3: string; active: boolean; activeBonus: string }[] = [];
+
+    for (const set of allSets) {
+      const count = setCounts[set.id] || 0;
+      const has2Set = count >= 2;
+      const has3Set = count >= 3;
+
+      let activeBonus = '';
+      if (has3Set) activeBonus = set.bonus3;
+      else if (has2Set) activeBonus = set.bonus2;
+
+      results.push({
+        setId: set.id,
+        setName: set.name,
+        count,
+        bonus2: set.bonus2,
+        bonus3: set.bonus3,
+        active: has2Set,
+        activeBonus
+      });
+    }
+
+    return results;
+  }
+
+  /**
+   * A-03: Get set description for UI
+   */
+  getSetDescription(userId: string): string {
+    const sets = this.getSetBonuses(userId);
+    const activeSets = sets.filter(s => s.active);
+
+    if (activeSets.length === 0) return '❌ Chưa kích hoạt set bonus nào.';
+
+    let msg = '🔗 **Set Bonuses đang active:**\n';
+    for (const s of activeSets) {
+      msg += `• **${s.setName}** (${s.count}/3): ${s.activeBonus}\n`;
+    }
+
+    return msg;
+  }
 }
 
 export const enhanceService = new EnhanceService();

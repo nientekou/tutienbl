@@ -398,15 +398,217 @@ class SectWarService {
     // === LỊCH SỬ CHIẾN TRẬN (HISTORY) ===
     getFinishedBattlesHistory() {
         return database_1.default.prepare(`
-      SELECT * FROM sect_war_battles 
-      WHERE status = 'completed' 
-      ORDER BY ended_at DESC 
+      SELECT * FROM sect_war_battles
+      WHERE status = 'completed'
+      ORDER BY ended_at DESC
       LIMIT 10
     `).all().map((r) => ({
             ...r,
             sect_ids: JSON.parse(r.sect_ids || '[]'),
             scores: JSON.parse(r.scores || '{}')
         }));
+    }
+    // === W9-01: Sect War Season — War Points & Tier Rewards ===
+    /**
+     * W9-01: Award war points after battle
+     */
+    awardWarPoints(userId, won) {
+        const basePoints = won ? 10 : 2;
+        // Streak bonus: up to +50% for consecutive wins
+        let streakBonus = 0;
+        try {
+            const user = UserRepository_1.userRepository.get(userId);
+            if (user && user.sect_id) {
+                const recentWins = database_1.default.prepare(`
+          SELECT COUNT(*) as c FROM sect_war_participant_scores swps
+          WHERE swps.user_id = ? AND swps.wins > 0 AND swps.season_id = (
+            SELECT id FROM sect_war_seasons WHERE status = 'active' LIMIT 1
+          )
+        `).get(userId);
+                streakBonus = Math.min(recentWins.c * 0.10, 0.50); // +10% per win, max +50%
+            }
+        }
+        catch { }
+        const totalPoints = Math.round(basePoints * (1 + streakBonus));
+        // Store war points (add to user's sect_contribution or a separate field)
+        try {
+            const user = UserRepository_1.userRepository.get(userId);
+            if (user) {
+                UserRepository_1.userRepository.update(userId, {
+                    sect_contribution: user.sect_contribution + totalPoints
+                });
+            }
+        }
+        catch { }
+        return { points: basePoints, streakBonus };
+    }
+    /**
+     * W9-01: Get season ranking rewards
+     */
+    getSeasonRewards() {
+        return [
+            { rank: 'Top 1', reward: '500 KNB + "Võ Lâm Minh Chủ" title + Sect-wide buff +10% ATK next season' },
+            { rank: 'Top 2-3', reward: '200 KNB + "Chiến Thần" title + Sect-wide buff +5% ATK next season' },
+            { rank: 'Top 4-10', reward: '100 KNB + Rare materials' },
+            { rank: 'Participating', reward: '50 KNB for all members of top 10 sects' },
+        ];
+    }
+    /**
+     * W9-01: Get season info
+     */
+    getSeasonInfo() {
+        const season = this.getOrCreateSeason();
+        const now = Math.floor(Date.now() / 1000);
+        const endDate = season.ended_at || (season.started_at + 30 * 86400);
+        const daysLeft = Math.max(0, Math.ceil((endDate - now) / 86400));
+        return {
+            seasonNumber: season.season_number,
+            status: season.status,
+            daysLeft
+        };
+    }
+    // === B-02: Guild War V2 — Siege Mechanics & War Roles ===
+    /**
+     * B-02: Assign war role to member
+     */
+    assignWarRole(userId, role) {
+        const user = UserRepository_1.userRepository.get(userId);
+        if (!user || !user.sect_id)
+            return { success: false, message: '❌ Chưa gia nhập Tông Môn!' };
+        const roleBonuses = {
+            attacker: { stat: 'atk', value: 0.20 },
+            defender: { stat: 'def', value: 0.20 },
+            support: { stat: 'heal', value: 0.20 },
+        };
+        // Store role in user's y_canh JSON
+        try {
+            const yCanh = JSON.parse(user.y_canh || '{}');
+            yCanh.war_role = role;
+            UserRepository_1.userRepository.update(userId, { y_canh: JSON.stringify(yCanh) });
+        }
+        catch {
+            UserRepository_1.userRepository.update(userId, { y_canh: JSON.stringify({ war_role: role }) });
+        }
+        const bonus = roleBonuses[role];
+        return {
+            success: true,
+            message: `⚔️ Đã chọn vai trò **${role}**!\nBonus: +${bonus.value * 100}% ${bonus.stat} trong chiến tranh`
+        };
+    }
+    /**
+     * B-02: Get war role bonus
+     */
+    getWarRoleBonus(userId) {
+        const user = UserRepository_1.userRepository.get(userId);
+        if (!user)
+            return { role: 'none', bonus: 0 };
+        try {
+            const yCanh = JSON.parse(user.y_canh || '{}');
+            const role = yCanh.war_role || 'none';
+            const bonuses = { attacker: 0.20, defender: 0.20, support: 0.20 };
+            return { role, bonus: bonuses[role] || 0 };
+        }
+        catch {
+            return { role: 'none', bonus: 0 };
+        }
+    }
+    /**
+     * B-02: Siege capture point
+     */
+    captureSiegePoint(userId, pointId) {
+        const user = UserRepository_1.userRepository.get(userId);
+        if (!user || !user.sect_id)
+            return { success: false, message: '❌ Chưa gia nhập Tông Môn!' };
+        const roleBonus = this.getWarRoleBonus(userId);
+        const capturePower = 100 + roleBonus.bonus * 100; // Base 100 + role bonus
+        // Simple capture logic
+        const now = Math.floor(Date.now() / 1000);
+        database_1.default.prepare(`
+      INSERT INTO siege_points (point_id, sect_id, captured_at, defense_power)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(point_id) DO UPDATE SET
+        sect_id = excluded.sect_id, captured_at = excluded.captured_at, defense_power = excluded.defense_power
+    `).run(pointId, user.sect_id, now, capturePower);
+        return {
+            success: true,
+            message: `🏰 Đã chiếm điểm **${pointId}**! Defense Power: ${capturePower}`
+        };
+    }
+    /**
+     * B-02: Get siege status
+     */
+    getSiegeStatus() {
+        try {
+            const points = database_1.default.prepare('SELECT * FROM siege_points').all();
+            return {
+                points: points.map(p => {
+                    const sect = database_1.default.prepare('SELECT name FROM sects WHERE id = ?').get(p.sect_id);
+                    return {
+                        id: p.point_id,
+                        sectId: p.sect_id,
+                        sectName: sect?.name || 'Không rõ',
+                        defensePower: p.defense_power
+                    };
+                })
+            };
+        }
+        catch {
+            return { points: [] };
+        }
+    }
+    // === B-01: Guild War Siege Expansion ===
+    /**
+     * B-01: Get siege maps
+     */
+    getSiegeMaps() {
+        return [
+            { id: 'thanh_thanh', name: 'Thành Thành', description: 'Chiếm cửa thành và pháo đài', capturePoints: 5 },
+            { id: 'nui_doi', name: 'Núi Đồi', description: 'Chiếm vùng cao để giành lợi thế', capturePoints: 3 },
+            { id: 'song_ngu', name: 'Song Ngư', description: 'Chiến trường hai mặt — phân chia lực lượng', capturePoints: 4 },
+            { id: 'huyet_truong', name: 'Huyết Trường', description: 'Tính điểm theo số mạng — không chiếm đóng', capturePoints: 0 },
+        ];
+    }
+    /**
+     * B-01: Get siege strategies
+     */
+    getSiegeStrategies() {
+        return [
+            { id: 'rush', name: 'Tấn Công Thần Tốc', description: 'Tập trung tấn công nhanh', bonus: '+20% damage trong 5 phút đầu' },
+            { id: 'defend', name: 'Phòng Thủ Kiên Cố', description: 'Tập trung phòng thủ điểm chính', bonus: '+20% defense cho tất cả thành viên' },
+            { id: 'split', name: 'Phân Tán Lực Lượng', description: 'Chia đều lực lượng', bonus: '+10% all stats cho tất cả' },
+            { id: 'guerrilla', name: 'Du Kích', description: 'Tấn công điểm yếu của địch', bonus: '+30% damage cho 1 target' },
+        ];
+    }
+    /**
+     * B-01: Get siege spectating info
+     */
+    getSiegeSpectating(siegeId) {
+        const viewers = database_1.default.prepare('SELECT COUNT(*) as c FROM arena_spectators WHERE match_id = ?').get(siegeId);
+        const topDamage = database_1.default.prepare(`
+      SELECT swps.user_id, u.name, swps.damage_dealt as damage
+      FROM sect_war_participant_scores swps
+      JOIN users u ON swps.user_id = u.discord_id
+      WHERE swps.battle_id = ?
+      ORDER BY swps.damage_dealt DESC
+      LIMIT 5
+    `).all(siegeId);
+        return { viewers: viewers.c, topDamage };
+    }
+    /**
+     * B-01: Get siege history
+     */
+    getSiegeHistory(limit = 10) {
+        return database_1.default.prepare(`
+      SELECT
+        datetime(ended_at, 'unixepoch') as date,
+        winner_sect_id as winner,
+        loser_sect_id as loser,
+        total_damage as score
+      FROM sect_war_battles
+      WHERE status = 'completed'
+      ORDER BY ended_at DESC
+      LIMIT ?
+    `).all(limit);
     }
 }
 exports.sectWarService = new SectWarService();

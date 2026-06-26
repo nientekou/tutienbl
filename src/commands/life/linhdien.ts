@@ -3,7 +3,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { farmingService, FarmingPlot } from '../../services/FarmingService';
 import { userRepository } from '../../database/repositories/UserRepository';
-import { inventoryRepository } from '../../database/repositories/InventoryRepository';
+import { inventoryRepository, InventoryItem } from '../../database/repositories/InventoryRepository';
 import db from '../../database/database';
 import { getProgressBar } from '../../utils/constants';
 import { ITEMS } from '../../config/itemConstants';
@@ -104,7 +104,14 @@ export function getLinhDienComponents(userId: string): any[] {
   const rows: any[] = [];
 
   // 1. Dropdown gieo hạt giống (Chỉ hiển thị hạt giống có sẵn)
-  const seeds = inv.filter(i => i.item_id.startsWith('seed_') && i.quantity > 0);
+  // ponytail: deduplicate by item_id — ENOSPC corruption can create duplicate inventory rows
+  const seedMap = new Map<string, InventoryItem>();
+  for (const s of inv.filter(i => i.item_id.startsWith('seed_') && i.quantity > 0)) {
+    const existing = seedMap.get(s.item_id);
+    if (existing) existing.quantity += s.quantity;
+    else seedMap.set(s.item_id, { ...s });
+  }
+  const seeds = [...seedMap.values()];
   const seedSelect = new StringSelectMenuBuilder()
     .setCustomId(`linhdiengieoselect_${userId}`)
     .setPlaceholder('🌱 Chọn hạt giống trong túi để gieo trồng...');

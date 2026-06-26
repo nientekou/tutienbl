@@ -109,6 +109,15 @@ class KyNgoService {
           db.prepare('UPDATE users SET qi_deviation = MIN(100, COALESCE(qi_deviation, 0) + ?) WHERE discord_id = ?')
             .run(eff.value, userId);
           break;
+        case 'heart_law_exp':
+          // Grant heart law experience (stored as bonus points)
+          db.prepare('UPDATE users SET coin_ha_pham = coin_ha_pham + ? WHERE discord_id = ?')
+            .run(eff.value, userId);
+          break;
+        case 'prestige_token':
+          db.prepare('UPDATE users SET prestige_tokens = COALESCE(prestige_tokens, 0) + ? WHERE discord_id = ?')
+            .run(eff.value, userId);
+          break;
       }
     }
   }
@@ -169,6 +178,8 @@ class KyNgoService {
       case 'tu_vi': return `${eff.value > 0 ? 'Nhận' : 'Mất'} ${Math.abs(eff.value)} Tu Vi`;
       case 'exp': return `${eff.value > 0 ? 'Nhận' : 'Mất'} ${Math.abs(eff.value)} EXP`;
       case 'qi_deviation': return `Lệch tâm +${eff.value}`;
+      case 'heart_law_exp': return `Nhận ${eff.value} Tâm Pháp EXP`;
+      case 'prestige_token': return `Nhận ${eff.value} Prestige Token`;
       default: return '';
     }
   }

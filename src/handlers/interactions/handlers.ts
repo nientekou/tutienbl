@@ -140,3 +140,11 @@ function handleCombatAction(interaction: Interaction, action: string, parts: str
   const { handleCombatAction: fn } = require('./CombatInteractionHandler');
   return fn(interaction, action, parts, userId);
 }
+
+// Huongdan — help system select menu
+function handleHuongDanAction(interaction: Interaction, action: string, parts: string[], userId: string): Promise<void> {
+  const { handleHuongDanAction: fn } = require('./HuongDanInteractionHandler');
+  return fn(interaction, action, parts, userId);
+}
+
+registry.on(['huongdan'], handleHuongDanAction as HandlerFn);

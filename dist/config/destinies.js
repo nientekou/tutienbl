@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DESTINY_MAX_LEVEL = exports.DESTINY_GACHA_COST = exports.DESTINY_RARITY_MULTIPLIER = exports.DESTINY_TYPES = void 0;
+exports.DESTINY_BUY_COST_SHARDS = exports.DESTINY_SCRAP_SHARDS = exports.DESTINY_PITY_SOFT_RATE = exports.DESTINY_PITY_HARD = exports.DESTINY_PITY_SOFT = exports.DESTINY_MAX_LEVEL = exports.DESTINY_FOCUS_COST = exports.DESTINY_GACHA_COST = exports.DESTINY_RARITY_MULTIPLIER = exports.DESTINY_TYPES = void 0;
 exports.getDestinyExpNeeded = getDestinyExpNeeded;
 exports.getDestinyScrapExp = getDestinyScrapExp;
 exports.DESTINY_TYPES = {
@@ -68,7 +68,20 @@ exports.DESTINY_RARITY_MULTIPLIER = {
     tien_pham: 4.0 // Hệ số 4x (Cực mạnh)
 };
 exports.DESTINY_GACHA_COST = 10000; // 10k Hạ Phẩm Linh Thạch mỗi lần bốc
+exports.DESTINY_FOCUS_COST = 15000; // 15k khi dùng Fate Focus (1.5x)
 exports.DESTINY_MAX_LEVEL = 10;
+// P1-08: Pity System
+exports.DESTINY_PITY_SOFT = 100; // Soft pity bắt đầu tại 100 rolls
+exports.DESTINY_PITY_HARD = 150; // Hard pity guarantee tại 150 rolls
+exports.DESTINY_PITY_SOFT_RATE = 0.01; // +1% per roll sau soft pity
+// P1-08: Scrap & Fragment System
+exports.DESTINY_SCRAP_SHARDS = {
+    thuong: 10,
+    hiem: 25,
+    cuc_pham: 60,
+    tien_pham: 150
+};
+exports.DESTINY_BUY_COST_SHARDS = 500; // Mua 1 destiny thường bằng shards
 // Tính kinh nghiệm cần để lên cấp tiếp theo
 function getDestinyExpNeeded(level, rarity) {
     const baseExp = 100 * level * level;

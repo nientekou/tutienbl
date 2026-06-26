@@ -25,6 +25,11 @@ export interface UserEntity {
   coin_trung_pham: number;
   coin_thuong_pham: number;
   knb: number;
+  destiny_shards: number;
+  dream_dust: number;
+  bounty_tokens: number;
+  reincarnation_tokens: number;
+  dao_tam: string | null;
   boss_points: number;
   sect_id: number | null;
   sect_role: string;

@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mountService = void 0;
 const database_1 = __importDefault(require("../database/database"));
+const UserRepository_1 = require("../database/repositories/UserRepository");
 const EXP_PER_LEVEL = 100;
 const MAX_LEVEL = 10;
 class MountService {
@@ -151,6 +152,74 @@ class MountService {
             success: true,
             message: `🎉 Chúc mừng! Đạo hữu đã tóm được **${selectedMount.name}** [${selectedMount.rarity}]! (ID: ${res.lastInsertRowid})\n⚠️ Tọa kỵ vẫn còn hoang dại, hãy dùng \`/toaky nuoiduong\` để thuần hóa.`,
             mount: selectedMount
+        };
+    }
+    // === Mount Skills ===
+    getMountSkills(mount) {
+        const skillDefs = {
+            horse: [
+                { id: 'gallop', name: 'Vun Vút', description: 'Tăng tốc độ 20% trong 3 lượt', requiredLevel: 3 },
+                { id: 'endurance', name: 'Đại Lực', description: 'Giảm tiêu hao thể lực 30%', requiredLevel: 6 },
+            ],
+            wolf: [
+                { id: 'hunt', name: 'Sát Hại', description: 'Tăng 15% sát thương khi khám phá', requiredLevel: 3 },
+                { id: 'pack', name: 'Đồng Đội', description: 'Tăng 10% tất cả stats khi có 3+ tọa kỵ', requiredLevel: 6 },
+            ],
+            tiger: [
+                { id: 'pounce', name: 'Vượt Đội', description: '50% cơ hội tránh cuốc khi bắt', requiredLevel: 3 },
+                { id: 'roar', name: 'Hổ Hiệu', description: 'Giảm 15% DEF của quái khi tham gia combat', requiredLevel: 6 },
+            ],
+            dragon: [
+                { id: 'fly', name: 'Bay', description: 'Giảm 50% thời gian di chuyển', requiredLevel: 3 },
+                { id: 'breath', name: 'Phun Lửa', description: 'AoE burn 5% HP 3 lượt khi combat', requiredLevel: 6 },
+            ],
+            kirin: [
+                { id: 'blessing', name: 'Phúc Lợi', description: 'Tăng 20% EXP nhận được', requiredLevel: 3 },
+                { id: 'teleport', name: 'Tích Tồn', description: 'Dịch chuyển đến bất kỳ địa điểm nào', requiredLevel: 6 },
+            ],
+        };
+        return (skillDefs[mount.template_id] || []).filter(s => mount.level >= s.requiredLevel);
+    }
+    // === Mount Collection ===
+    getCollection(userId) {
+        const mounts = this.getMounts(userId);
+        const discovered = [...new Set(mounts.map(m => m.template_id))];
+        const bonuses = {};
+        // Collection milestones
+        const milestones = [
+            { count: 3, bonus: 'all_stats', value: 0.01 },
+            { count: 5, bonus: 'all_stats', value: 0.02 },
+            { count: 5, bonus: 'luck', value: 0.03 },
+        ];
+        for (const ms of milestones) {
+            if (discovered.length >= ms.count) {
+                bonuses[ms.bonus] = (bonuses[ms.bonus] || 0) + ms.value;
+            }
+        }
+        return { total: discovered.length, discovered, bonuses };
+    }
+    // === Mount Racing (weekly event) ===
+    raceMount(userId, mountId) {
+        const mount = this.getMount(mountId, userId);
+        if (!mount)
+            return { success: false, message: 'Tọa kỵ không tồn tại' };
+        if (!mount.is_tamed)
+            return { success: false, message: 'Tọa kỵ chưa được thuần hóa' };
+        // Racing uses mount stats to determine outcome
+        const speedScore = mount.speed_bonus * 100 + mount.level * 5 + Math.random() * 20;
+        const targetScore = 30 + Math.random() * 40; // random target between 30-70
+        const won = speedScore >= targetScore;
+        const reward = won ? Math.round(500 + mount.level * 200 + mount.speed_bonus * 1000) : Math.round(100 + mount.level * 50);
+        const user = UserRepository_1.userRepository.get(userId);
+        if (user) {
+            UserRepository_1.userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham + reward });
+        }
+        return {
+            success: true,
+            message: won
+                ? `🏆 **${mount.name}** về nhất! Điểm: ${Math.round(speedScore)} vs ${Math.round(targetScore)}. Thưởng: ${reward} Linh Thạch!`
+                : `😤 **${mount.name}** không đủ tốc độ. Điểm: ${Math.round(speedScore)} vs ${Math.round(targetScore)}. Thưởng an ủi: ${reward} Linh Thạch.`,
+            reward,
         };
     }
 }

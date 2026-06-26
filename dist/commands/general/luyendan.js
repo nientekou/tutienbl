@@ -97,7 +97,7 @@ class LuyenDanCommand extends Command_1.Command {
             .setDescription(`Đạo hữu đang ngự tại phòng luyện chế linh đan.\n` +
             `🏆 **Cấp Luyện Đan Sư:** Cấp **${alchemyLevel}**\n` +
             `${expBar} *(EXP: **${alchemyExp}/${expNeeded}**)*\n\n` +
-            `🔋 **Thể Lực Hiện Tại:** **${user.stamina}/500** Stamina\n` +
+            `🔋 **Thể Lực Hiện Tại:** **${user.stamina}/500**\n` +
             `⚙️ **Lò Luyện Sử Dụng:** ${bestCauldronText}\n` +
             `⚡ **Chế Tác Hiện Tại:** **x${craftQty} mẻ** ${craftQty === 2 ? '(Linh Sư / Lò Thượng Phẩm)' : ''}\n\n` +
             `*Chú ý: Hệ thống tự động chọn Lò luyện đan tốt nhất trong hành trang của đạo hữu để tối ưu tỷ lệ luyện thành.*\n` +

@@ -612,5 +612,100 @@ class ExplorationService {
         }
         return items[items.length - 1];
     }
+    // === A-05: Exploration Depth — Zones, Events, Goals ===
+    goalInit = false;
+    initGoals() {
+        if (this.goalInit)
+            return;
+        database_1.default.exec(`
+      CREATE TABLE IF NOT EXISTS exploration_goals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL REFERENCES users(discord_id) ON DELETE CASCADE,
+        goal_type TEXT NOT NULL,
+        target_value INTEGER NOT NULL,
+        current_progress INTEGER DEFAULT 0,
+        reward_type TEXT NOT NULL,
+        reward_amount INTEGER NOT NULL,
+        status TEXT DEFAULT 'active',
+        created_at INTEGER NOT NULL
+      );
+    `);
+        this.goalInit = true;
+    }
+    /**
+     * A-05: Get exploration zones (difficulty tiers)
+     */
+    getExplorationZones() {
+        return [
+            { zone: 1, name: 'Rừng Sương Mù', minLevel: 1, description: 'Khu rừng đầy sương mù, phù hợp người mới', rewards: 'Nguyên liệu cơ bản, thảo dược' },
+            { zone: 2, name: 'Núi Đá Tuyết', minLevel: 30, description: 'Núi tuyết phủ trắng, nguyên liệu quý hiếm', rewards: 'Nguyên liệu uncommon, khoáng thạch' },
+            { zone: 3, name: 'Thung Lũng Rồng', minLevel: 60, description: 'Thung lũng nơi rồng cư ngụ', rewards: 'Nguyên liệu rare, trứng rồng' },
+            { zone: 4, name: 'Hố Tunnels', minLevel: 100, description: 'Hang động sâu thẳm đầy bí ẩn', rewards: 'Nguyên liệu epic, kho báu cổ đại' },
+            { zone: 5, name: 'Vực Sâu Vô Đáy', minLevel: 200, description: 'Vực sâu nơi thiên địa giao hòa', rewards: 'Nguyên liệu legendary, đá quý' },
+        ];
+    }
+    /**
+     * A-05: Create personal exploration goal
+     */
+    createGoal(userId, goalType, targetValue) {
+        this.initGoals();
+        const now = Math.floor(Date.now() / 1000);
+        const rewards = {
+            'explore_10': { type: 'coin', amount: 500 },
+            'explore_25': { type: 'coin', amount: 1500 },
+            'explore_50': { type: 'item', amount: 5 },
+            'event_5': { type: 'exp', amount: 500 },
+            'event_10': { type: 'coin', amount: 2000 },
+        };
+        const reward = rewards[goalType] || { type: 'coin', amount: 100 };
+        database_1.default.prepare(`INSERT INTO exploration_goals (user_id, goal_type, target_value, reward_type, reward_amount, status, created_at) VALUES (?, ?, ?, ?, ?, 'active', ?)`)
+            .run(userId, goalType, targetValue, reward.type, reward.amount, now);
+        return { success: true, message: `🎯 Đã tạo mục tiêu: **${goalType}** (${targetValue} lần)` };
+    }
+    /**
+     * A-05: Check and update exploration goals
+     */
+    checkGoals(userId) {
+        this.initGoals();
+        const goals = database_1.default.prepare("SELECT * FROM exploration_goals WHERE user_id = ? AND status = 'active'").all(userId);
+        const completed = [];
+        for (const goal of goals) {
+            const count = database_1.default.prepare("SELECT COUNT(*) as c FROM explorations WHERE user_id = ? AND status = 'completed'").get(userId);
+            if (count.c >= goal.target_value) {
+                database_1.default.prepare("UPDATE exploration_goals SET status = 'completed', current_progress = ? WHERE id = ?")
+                    .run(count.c, goal.id);
+                // Award reward
+                const user = UserRepository_1.userRepository.get(userId);
+                if (user) {
+                    if (goal.reward_type === 'coin') {
+                        UserRepository_1.userRepository.update(userId, { coin_ha_pham: user.coin_ha_pham + goal.reward_amount });
+                    }
+                    else if (goal.reward_type === 'exp') {
+                        UserRepository_1.userRepository.update(userId, { tu_vi: Math.min(user.tu_vi + goal.reward_amount, user.exp_needed) });
+                    }
+                }
+                completed.push({ goalId: goal.id, message: `🎯 Mục tiêu hoàn thành! +${goal.reward_amount} ${goal.reward_type}` });
+            }
+            else {
+                database_1.default.prepare("UPDATE exploration_goals SET current_progress = ? WHERE id = ?")
+                    .run(count.c, goal.id);
+            }
+        }
+        return completed;
+    }
+    /**
+     * A-05: Get exploration stats for UI
+     */
+    getExplorationStats(userId) {
+        this.initGoals();
+        const total = database_1.default.prepare("SELECT COUNT(*) as c FROM explorations WHERE user_id = ? AND status = 'completed'").get(userId);
+        const activeGoals = database_1.default.prepare("SELECT COUNT(*) as c FROM exploration_goals WHERE user_id = ? AND status = 'active'").get(userId);
+        const completedGoals = database_1.default.prepare("SELECT COUNT(*) as c FROM exploration_goals WHERE user_id = ? AND status = 'completed'").get(userId);
+        return {
+            totalExplorations: total.c,
+            activeGoals: activeGoals.c,
+            completedGoals: completedGoals.c
+        };
+    }
 }
 exports.explorationService = new ExplorationService();

@@ -14,6 +14,10 @@ class LeylineService {
         setInterval(() => {
             this.processDecay();
         }, 60 * 60 * 1000);
+        // B-01: Leyline Surges — check mỗi phút
+        setInterval(() => {
+            this.checkSurges();
+        }, 60 * 1000);
         // Chạy decay lần đầu lúc khởi động
         this.processDecay();
     }
@@ -180,6 +184,130 @@ class LeylineService {
             // Ignored
         }
         return false;
+    }
+    // === B-01: Leyline Surges & History ===
+    surgeTableInit = false;
+    initSurgeTable() {
+        if (this.surgeTableInit)
+            return;
+        database_1.default.exec(`
+      CREATE TABLE IF NOT EXISTS leyline_surges (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        leyline_id TEXT NOT NULL,
+        started_at INTEGER NOT NULL,
+        ends_at INTEGER NOT NULL,
+        was_contaminated INTEGER DEFAULT 0
+      );
+    `);
+        this.surgeTableInit = true;
+    }
+    /**
+     * B-01: Check and trigger leyline surges every 4h
+     */
+    checkSurges() {
+        this.initSurgeTable();
+        const now = Math.floor(Date.now() / 1000);
+        const fourHoursAgo = now - 4 * 3600;
+        // Check if there's an active surge
+        const activeSurge = database_1.default.prepare('SELECT * FROM leyline_surges WHERE ends_at > ? LIMIT 1').get(now);
+        if (activeSurge)
+            return; // Surge still active
+        // Check last surge time
+        const lastSurge = database_1.default.prepare('SELECT * FROM leyline_surges ORDER BY started_at DESC LIMIT 1').get();
+        if (lastSurge && (now - lastSurge.started_at) < 4 * 3600)
+            return; // Too soon
+        // Roll random leyline for surge
+        const leylines = ['tuluyen', 'chiendau', 'thuthap', 'kinhte', 'tongmon'];
+        const surgeLeyline = leylines[Math.floor(Math.random() * leylines.length)];
+        const surgeEnd = now + 30 * 60; // 30 minutes
+        database_1.default.prepare('INSERT INTO leyline_surges (leyline_id, started_at, ends_at) VALUES (?, ?, ?)')
+            .run(surgeLeyline, now, surgeEnd);
+        // 10% chance of contamination
+        if (Math.random() < 0.10) {
+            database_1.default.prepare('UPDATE leyline_surges SET was_contaminated = 1 WHERE started_at = ?').run(now);
+        }
+        // Announce surge
+        const names = {
+            'tuluyen': 'Tu Luyện', 'chiendau': 'Chiến Đấu', 'thuthap': 'Thu Thập',
+            'kinhte': 'Kinh Tế', 'tongmon': 'Tông Môn'
+        };
+        const isContaminated = Math.random() < 0.10;
+        const msg = `⚡ **[LINH MẠCH DÂNG TRÀO]** Linh mạch **${names[surgeLeyline]}** đang surging!\n` +
+            `🔥 **x2 contribution reward** trong **30 phút**!\n` +
+            (isContaminated ? `⚠️ **CẢNH BÁO:** Linh mạch có dấu hiệu ô nhiễm!` : '');
+        try {
+            const configs = database_1.default.prepare('SELECT guild_id, event_channel_id FROM guild_configs WHERE event_channel_id IS NOT NULL').all();
+            configs.forEach(conf => {
+                const guild = this.discordClient?.guilds.cache.get(conf.guild_id);
+                if (guild) {
+                    const channel = guild.channels.cache.get(conf.event_channel_id);
+                    if (channel)
+                        channel.send(msg).catch(() => null);
+                }
+            });
+        }
+        catch { }
+    }
+    /**
+     * B-01: Check if a leyline is currently surging (double rewards)
+     */
+    isSurging(leylineId) {
+        this.initSurgeTable();
+        const now = Math.floor(Date.now() / 1000);
+        const surge = database_1.default.prepare('SELECT * FROM leyline_surges WHERE leyline_id = ? AND ends_at > ? LIMIT 1')
+            .get(leylineId, now);
+        return !!surge;
+    }
+    /**
+     * B-01: Get surge multiplier (2x during surge)
+     */
+    getSurgeMultiplier(leylineId) {
+        return this.isSurging(leylineId) ? 2.0 : 1.0;
+    }
+    /**
+     * B-01: Get leyline history (last 7 days)
+     */
+    getLeylineHistory() {
+        this.initSurgeTable();
+        const sevenDaysAgo = Math.floor(Date.now() / 1000) - 7 * 86400;
+        const surges = database_1.default.prepare('SELECT * FROM leyline_surges WHERE started_at > ? ORDER BY started_at ASC')
+            .all(sevenDaysAgo);
+        const history = {};
+        for (const s of surges) {
+            const date = new Date(s.started_at * 1000).toISOString().slice(0, 10);
+            if (!history[date])
+                history[date] = {};
+            history[date][s.leyline_id] = (history[date][s.leyline_id] || 0) + 1;
+        }
+        return Object.entries(history).map(([date, leylines]) => ({ date, leylines }));
+    }
+    /**
+     * B-01: Get leyline prediction based on history
+     */
+    getPrediction() {
+        const history = this.getLeylineHistory();
+        const leylines = ['tuluyen', 'chiendau', 'thuthap', 'kinhte', 'tongmon'];
+        const counts = {};
+        let total = 0;
+        for (const h of history) {
+            for (const [l, c] of Object.entries(h.leylines)) {
+                counts[l] = (counts[l] || 0) + c;
+                total += c;
+            }
+        }
+        if (total === 0)
+            return '📊 Chưa đủ dữ liệu dự báo.';
+        const names = {
+            'tuluyen': 'Tu Luyện', 'chiendau': 'Chiến Đấu', 'thuthap': 'Thu Thập',
+            'kinhte': 'Kinh Tế', 'tongmon': 'Tông Môn'
+        };
+        let prediction = `**Dự báo Leyline (7 ngày qua):**\n`;
+        for (const l of leylines) {
+            const pct = Math.round(((counts[l] || 0) / total) * 100);
+            const bar = '█'.repeat(Math.round(pct / 5)) + '░'.repeat(20 - Math.round(pct / 5));
+            prediction += `${names[l]}: ${bar} **${pct}%**\n`;
+        }
+        return prediction;
     }
 }
 exports.LeylineService = LeylineService;

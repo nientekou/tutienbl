@@ -12,6 +12,7 @@ export interface InventoryItem {
   durability: number;       // Độ bền hiện tại (0-100)
   max_durability: number;   // Độ bền tối đa
   enhance_level: number;    // Cấp độ cường hóa
+  reforge_count: number;    // A-02: Số lần reforged
   created_at: number;
   is_life_bound: number;     // 1 if life bound, 0 otherwise
   bound_exp: number;

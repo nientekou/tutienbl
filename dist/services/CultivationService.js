@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.cultivationService = exports.CultivationService = void 0;
 const UserRepository_1 = require("../database/repositories/UserRepository");
 const itemConstants_1 = require("../config/itemConstants");
+const gameConstants_1 = require("../config/gameConstants");
 const constants_1 = require("../utils/constants");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 const EventService_1 = require("./EventService");
@@ -22,7 +23,11 @@ class CultivationService {
      * - 4 hệ (Tứ): 35%
      * - 5 hệ (Ngũ): 15%
      */
-    generateLinhCan() {
+    /**
+     * @param pityCount - Số lần roll liên tiếp không có element nào >=40%.
+     *   Khi >= LINH_CAN_PITY_THRESHOLD, guarantee element cao nhất >= LINH_CAN_PITY_MIN_ELEMENT%.
+     */
+    generateLinhCan(pityCount = 0) {
         const rand = Math.random() * 100;
         let elementCount = 2;
         // BIG UPDATE: Linh Can RNG rework - more single/dual, less quad+
@@ -93,6 +98,25 @@ class CultivationService {
             if (keys.length > 1) {
                 const weakest = keys.reduce((a, b) => linhCan[a] < linhCan[b] ? a : b);
                 linhCan[weakest] = Math.max(1, linhCan[weakest] - boostAmount);
+            }
+        }
+        // B02: Linh Can Pity System — sau N roll không element nào >=40%, guarantee element cao nhất >=35%
+        const pityThreshold = gameConstants_1.GAME_CONSTANTS.LINH_CAN_PITY_THRESHOLD;
+        const pityMinElement = gameConstants_1.GAME_CONSTANTS.LINH_CAN_PITY_MIN_ELEMENT;
+        if (pityCount >= pityThreshold) {
+            // Tìm element hiện tại có % cao nhất
+            const keys = Object.keys(linhCan);
+            if (keys.length > 0) {
+                const highestKey = keys.reduce((a, b) => linhCan[a] > linhCan[b] ? a : b);
+                const deficit = pityMinElement - linhCan[highestKey];
+                if (deficit > 0) {
+                    linhCan[highestKey] = pityMinElement;
+                    // Trừ deficit từ element thấp nhất
+                    const weakestKey = keys.filter(k => k !== highestKey).reduce((a, b) => linhCan[a] < linhCan[b] ? a : b, keys.filter(k => k !== highestKey)[0] || highestKey);
+                    if (weakestKey !== highestKey) {
+                        linhCan[weakestKey] = Math.max(1, linhCan[weakestKey] - deficit);
+                    }
+                }
             }
         }
         return JSON.stringify(linhCan);
@@ -239,8 +263,8 @@ class CultivationService {
                 : `Tu vi của đạo hữu đã đạt cực hạn tầng ${minorLevel}. Cần thực hiện lệnh \`/dotpha\` để tiếp tục tích lũy Linh khí nhàn rỗi!`;
             return { gained: 0, message: limitMsg, user: UserRepository_1.userRepository.get(discordId) };
         }
-        // Tốc độ tích lũy: base speed tăng theo cấp độ (ví dụ: 0.05 + level * 0.01 tu vi/giây)
-        const baseSpeed = 0.05 + user.level * 0.01;
+        // Tốc độ tích lũy: base speed tăng theo cấp độ (P7-03: tiny increase from 0.01 to 0.011)
+        const baseSpeed = 0.05 + user.level * 0.011;
         let sectLinhTratBonus = 0.0;
         if (user.sect_id) {
             try {
@@ -258,12 +282,13 @@ class CultivationService {
         try {
             const cave = caveService.getCave(discordId);
             const springLvl = cave.spring_level || 1;
-            caveExpBuff = springLvl * 0.02;
+            // B04: Unified cave buff — capped at 10%
+            caveExpBuff = Math.min(springLvl * 0.02, 0.10);
         }
         catch (e) {
             console.warn('[CultivationService] Failed to fetch cave spring level:', e);
         }
-        const speedMultiplier = this.getCultivationSpeedMultiplier(user.linh_can) + Math.min(user.luan_hoi_count * 0.25, 2.0) + sectLinhTratBonus + caveExpBuff;
+        const speedMultiplier = this.getCultivationSpeedMultiplier(user.linh_can) + Math.min(user.luan_hoi_count * 0.20, 1.5) + sectLinhTratBonus + caveExpBuff;
         // Leyline Buff Tu Luyện (+20% EXP)
         let leylineExpBuff = LeylineService_1.leylineService.isBuffActive('tuluyen') ? 1.2 : 1.0;
         // Tương tác Động Phủ: Nếu có Động Phủ và Leyline Tu Luyện đang bật -> Động Phủ x1.5 thay vì buff chung 1.2
@@ -395,19 +420,14 @@ class CultivationService {
         let caveExpBuff = 0.0;
         try {
             const cave = caveService.getCave(discordId);
-            if (cave.level === 2)
-                caveExpBuff = 0.02;
-            if (cave.level === 3)
-                caveExpBuff = 0.04;
-            if (cave.level === 4)
-                caveExpBuff = 0.06;
-            if (cave.level >= 5)
-                caveExpBuff = 0.10;
+            // B04: Unified cave buff — same formula as claimIdleCultivation
+            const springLvl = cave.spring_level || 1;
+            caveExpBuff = Math.min(springLvl * 0.02, 0.10);
         }
         catch (e) {
             console.warn('[CultivationService] Failed to fetch cave level for practice buff:', e);
         }
-        const speedMultiplier = this.getCultivationSpeedMultiplier(user.linh_can) + Math.min(user.luan_hoi_count * 0.25, 2.0) + sectLinhTratBonus + caveExpBuff;
+        const speedMultiplier = this.getCultivationSpeedMultiplier(user.linh_can) + Math.min(user.luan_hoi_count * 0.20, 1.5) + sectLinhTratBonus + caveExpBuff;
         // Leyline Buff Tu Luyện (+20% EXP)
         let leylineExpBuff = LeylineService_1.leylineService.isBuffActive('tuluyen') ? 1.2 : 1.0;
         // Double EXP Weekend: x2 Tu Vi từ thiền định
@@ -914,7 +934,7 @@ class CultivationService {
     /**
      * Tiến hành Luân Hồi cho tu sĩ
      */
-    reincarnate(discordId) {
+    reincarnate(discordId, daoTamElement) {
         const user = UserRepository_1.userRepository.get(discordId);
         if (!user) {
             return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`!' };
@@ -930,6 +950,53 @@ class CultivationService {
         const nextExpNeeded = this.calculateNextExp(1);
         // Tính toán chỉ số cơ bản cho level 1
         const newStats = this.calculateStatsForLevel(1, newLinhCan);
+        // P5-01: Reincarnation V2 — Đạo Tâm choices with tradeoffs
+        let daoTamData = null;
+        let daoTamMsg = '';
+        if (daoTamElement && ['Hoa', 'Thuy', 'Phong'].includes(daoTamElement)) {
+            const daoTamDefs = {
+                'Hoa': { buffs: { atk_percent: 0.08, crit_rate: 0.03 }, nerfs: { hp_percent: -0.10, def_percent: -0.05 } },
+                'Thuy': { buffs: { hp_percent: 0.12, def_percent: 0.08 }, nerfs: { atk_percent: -0.08, speed_percent: -0.03 } },
+                'Phong': { buffs: { speed_percent: 0.08, dodge_rate: 0.05 }, nerfs: { hp_percent: -0.10, def_percent: -0.05 } }
+            };
+            // Check existing Dao Tam level (max 5)
+            let currentLevel = 0;
+            if (user.dao_tam) {
+                try {
+                    const existing = JSON.parse(user.dao_tam);
+                    if (existing.element === daoTamElement)
+                        currentLevel = existing.level || 0;
+                }
+                catch { }
+            }
+            const newLevel = Math.min(currentLevel + 1, 5);
+            // Stack cap: max +40% per stat total
+            const cappedBuffs = {};
+            for (const [stat, val] of Object.entries(daoTamDefs[daoTamElement].buffs)) {
+                cappedBuffs[stat] = Math.min(val * newLevel, 0.40);
+            }
+            daoTamData = {
+                element: daoTamElement,
+                level: newLevel,
+                buffs: cappedBuffs,
+                nerfs: daoTamDefs[daoTamElement].nerfs
+            };
+            daoTamMsg = `\n🔮 Đạo Tâm **${daoTamElement}** cấp ${newLevel}: +${Math.round(cappedBuffs[Object.keys(cappedBuffs)[0]] * 100)}% ${Object.keys(cappedBuffs)[0]}`;
+        }
+        // P5-01: Reincarnation EXP Bonus — nerfed to +20% per count, capped at +150%
+        const expBonusPercent = Math.min(newLuanHoiCount * 20, 150);
+        // P5-01: Reincarnation Token
+        const newTokens = (user.reincarnation_tokens || 0) + 1;
+        // P5-01: Reincarnation Milestones
+        let milestoneMsg = '';
+        if (newLuanHoiCount === 1)
+            milestoneMsg = '\n🎯 Đời đầu: Nhận **+20% EXP** vĩnh viễn!';
+        else if (newLuanHoiCount === 3)
+            milestoneMsg = '\n🏆 Đời 3: Unlock danh hiệu **"Tái Sinh"**!';
+        else if (newLuanHoiCount === 10)
+            milestoneMsg = '\n🐉 Đời 10: Unlock skin cưỡi **Phượng Hoàng**!';
+        else if (newLuanHoiCount === 15)
+            milestoneMsg = '\n👑 Đời 15: Unlock danh hiệu huyền thoại **"Vô Cực"**!';
         // Cập nhật người chơi
         UserRepository_1.userRepository.update(discordId, {
             level: 1,
@@ -947,7 +1014,9 @@ class CultivationService {
             base_luck: newStats.luck,
             base_speed: newStats.speed,
             alignment: 'neutral',
-            qi_deviation_until: 0
+            qi_deviation_until: 0,
+            reincarnation_tokens: newTokens,
+            dao_tam: daoTamData ? JSON.stringify(daoTamData) : user.dao_tam
         });
         const updatedUser = UserRepository_1.userRepository.get(discordId);
         // Ghi log giao dịch
@@ -955,7 +1024,8 @@ class CultivationService {
         systemConfigService.writeAuditLog(discordId, 'reincarnate', {
             luanHoiCount: newLuanHoiCount,
             oldLinhCan: user.linh_can,
-            newLinhCan
+            newLinhCan,
+            daoTam: daoTamElement || 'none'
         });
         // Kiểm tra thành tựu luân hồi
         const newlyUnlocked = [];
@@ -977,7 +1047,11 @@ class CultivationService {
         }
         return {
             success: true,
-            message: `🎉 **LUÂN HỒI THÀNH CÔNG!** Đạo hữu đã chọn buông bỏ tu vi kiếp này, vượt qua lục đạo luân hồi chuyển thế trùng sinh! Nhận danh hiệu **${updatedUser.title}** và được buff vĩnh viễn **+${newLuanHoiCount * 25}%** linh khí hấp thu!${achieveText}`,
+            message: `🎉 **LUÂN HỒI THÀNH CÔNG!** Đạo hữu đã chuyển thế trùng sinh!\n` +
+                `• Danh hiệu: **${updatedUser.title}**\n` +
+                `• EXP Bonus: **+${expBonusPercent}%** vĩnh viễn (capped +150%)\n` +
+                `• Token: **${newTokens}** (dùng tại Cửa Hàng Luân Hồi)` +
+                daoTamMsg + milestoneMsg + achieveText,
             user: updatedUser
         };
     }
@@ -1073,6 +1147,142 @@ class CultivationService {
         const baseRate = Math.max(65 - majorIndex * 12, 8);
         const luckBonus = luck * 0.002;
         return Math.min(baseRate + luckBonus * 100, 100);
+    }
+    // === A-01: Cultivation Milestone System ===
+    /**
+     * A-01: Get realm-specific bonuses based on major realm index
+     * Permanent +3% to specific stat per major realm achieved
+     */
+    getRealmBonuses(level) {
+        const { majorIndex, realmName } = (0, constants_1.getRealmDetails)(level);
+        const bonuses = [];
+        // Each major realm gives +3% to a specific stat
+        const realmStatMap = {
+            0: { stat: 'hp', value: 0.03 }, // Luyện Khí: +3% HP
+            1: { stat: 'atk', value: 0.03 }, // Trúc Cơ: +3% ATK
+            2: { stat: 'def', value: 0.03 }, // Kim Đan: +3% DEF
+            3: { stat: 'crit', value: 0.03 }, // Nguyên Anh: +3% Crit
+            4: { stat: 'speed', value: 0.03 }, // Hóa Thần: +3% Speed
+            5: { stat: 'hp', value: 0.05 }, // Luyện Hư: +5% HP (endgame)
+            6: { stat: 'atk', value: 0.05 }, // Hợp Thể: +5% ATK (endgame)
+            7: { stat: 'all', value: 0.03 }, // Đại乘: +3% all stats (endgame)
+            8: { stat: 'all', value: 0.05 }, // Tam Thiên: +5% all stats (endgame)
+        };
+        for (let i = 0; i <= majorIndex; i++) {
+            const bonus = realmStatMap[i];
+            if (bonus) {
+                bonuses.push({ stat: bonus.stat, value: bonus.value, realm: realmName });
+            }
+        }
+        return bonuses;
+    }
+    /**
+     * A-01: Get breakthrough challenge description for each major realm
+     */
+    getBreakthroughChallenge(majorIndex) {
+        const challenges = [
+            { name: 'Luyện Khí → Trúc Cơ', description: 'Vượt qua 3 yêu quái liên tiếp', restriction: 'Không có restriction' },
+            { name: 'Trúc Cơ → Kim Đan', description: 'Vượt qua trial trong 10 hiệp', restriction: 'Không dùng vật phẩm' },
+            { name: 'Kim Đan → Nguyên Anh', description: 'Giải đố linh lực', restriction: 'Không dùng kỹ năng active' },
+            { name: 'Nguyên Anh → Hóa Thần', description: 'Đánh bại bản sao của chính mình', restriction: 'HP chỉ恢复1 lần' },
+            { name: 'Hóa Thần → Luyện Hư', description: 'Vượt qua 5 tầng trial', restriction: 'Mỗi tầng có restriction riêng' },
+            { name: 'Luyện Hư → Hợp Thể', description: 'Đánh bại Boss Thần', restriction: 'Không dùng pet' },
+            { name: 'Hợp Thể → Đại乗', description: 'Vượt qua trial cực khó', restriction: 'Tất cả restriction' },
+            { name: 'Đại乗 → Tam Thiên', description: 'Cuối cùng — Trial của Thiên Đạo', restriction: 'Không dùng bất kỳ buff nào' },
+        ];
+        return challenges[majorIndex] || challenges[0];
+    }
+    /**
+     * A-01: Get total realm bonuses as stat multipliers
+     */
+    getRealmBonusMultipliers(level) {
+        const bonuses = this.getRealmBonuses(level);
+        const multipliers = { hp: 1.0, atk: 1.0, def: 1.0, crit: 1.0, speed: 1.0 };
+        for (const bonus of bonuses) {
+            if (bonus.stat === 'all') {
+                for (const key of Object.keys(multipliers)) {
+                    multipliers[key] += bonus.value;
+                }
+            }
+            else if (multipliers[bonus.stat] !== undefined) {
+                multipliers[bonus.stat] += bonus.value;
+            }
+        }
+        return multipliers;
+    }
+    // === C-01: Reincarnation V4 ===
+    /**
+     * C-01: Get additional Dao Tam choices
+     */
+    getDaoTamChoices() {
+        return [
+            {
+                element: 'Hoa', name: 'Hoa Dao Tam',
+                buffs: { atk_percent: 0.08, crit_rate: 0.03 },
+                nerfs: { hp_percent: -0.10, def_percent: -0.05 },
+                description: '+8% Công Kích, +3% Bạo Kích nhưng -10% Sinh Lực, -5% Phòng Thủ'
+            },
+            {
+                element: 'Thuy', name: 'Thuy Dao Tam',
+                buffs: { hp_percent: 0.12, def_percent: 0.08 },
+                nerfs: { atk_percent: -0.08, speed_percent: -0.03 },
+                description: '+12% Sinh Lực, +8% Phòng Thủ nhưng -8% Công Kích, -3% Tốc Độ'
+            },
+            {
+                element: 'Phong', name: 'Phong Dao Tam',
+                buffs: { speed_percent: 0.08, dodge_rate: 0.05 },
+                nerfs: { hp_percent: -0.10, def_percent: -0.05 },
+                description: '+8% Tốc Độ, +5% Né Tránh nhưng -10% Sinh Lực, -5% Phòng Thủ'
+            },
+        ];
+    }
+    /**
+     * C-01: Get reincarnation shop items
+     */
+    getReincarnationShopItems() {
+        return [
+            { id: 'ri_title', name: 'Danh Hiệu Trùng Sinh', cost: 3, type: 'title', description: 'Danh hiệu Trùng Sinh' },
+            { id: 'ri_cosmetic', name: 'Hào Quang Luân Hồi', cost: 5, type: 'cosmetic', description: 'Hào Quang Luân Hồi' },
+            { id: 'ri_mount', name: 'Tọa Kỵ Luân Hồi', cost: 8, type: 'cosmetic', description: 'Ngoại Hình Tọa Kỵ' },
+            { id: 'ri_convenience', name: 'Tăng Tốc Tu Luyện', cost: 2, type: 'convenience', description: '+20% tu luyện trong 24h' },
+            { id: 'ri_material', name: 'Vật Liệu Luân Hồi', cost: 4, type: 'material', description: 'Nguyên liệu chế tạo hiếm' },
+        ];
+    }
+    /**
+     * C-01: Get reincarnation milestones
+     */
+    getReincarnationMilestones() {
+        return [
+            { count: 1, reward: '+20% tu luyện' },
+            { count: 3, reward: 'Danh Hiệu Trùng Sinh', title: 'Trùng Sinh' },
+            { count: 5, reward: 'Cửa Hàng Luân Hồi Cấp 2' },
+            { count: 10, reward: 'Ngoại Hình Phượng Hoàng', title: 'Phượng Hoàng' },
+            { count: 15, reward: 'Danh hiệu Vô Cực huyền thoại', title: 'Vo Cuc' },
+        ];
+    }
+    /**
+     * C-01: Get reincarnation description for UI
+     */
+    getReincarnationDescription(userId) {
+        const user = UserRepository_1.userRepository.get(userId);
+        if (!user)
+            return 'Chua tao nhan vat!';
+        const count = user.luan_hoi_count || 0;
+        const bonus = Math.min(count * 20, 150);
+        const tokens = user.reincarnation_tokens || 0;
+        const daoTam = user.dao_tam ? JSON.parse(user.dao_tam) : null;
+        let msg = `🔄 **Reincarnation** — Doi ${count}\n`;
+        msg += `📈 EXP Bonus: +${bonus}% (tối đa +150%)\n`;
+        msg += `🎫 Tokens: ${tokens}\n`;
+        if (daoTam) {
+            msg += `🔮 Dao Tam: ${daoTam.element} cấp ${daoTam.level}\n`;
+        }
+        msg += `\n**Milestones:**\n`;
+        for (const m of this.getReincarnationMilestones()) {
+            const achieved = count >= m.count;
+            msg += `${achieved ? '✅' : '🔒'} Doi ${m.count}: ${m.reward}\n`;
+        }
+        return msg;
     }
 }
 exports.CultivationService = CultivationService;

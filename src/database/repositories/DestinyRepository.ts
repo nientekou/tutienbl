@@ -13,6 +13,12 @@ export interface UserDestinyEntity {
   created_at: number;
 }
 
+export interface DestinyPityRow {
+  user_id: string;
+  pull_count: number;
+  last_pull_at: number;
+}
+
 export class DestinyRepository {
   /**
    * Lấy toàn bộ mệnh cách của người dùng
@@ -29,14 +35,15 @@ export class DestinyRepository {
   }
 
   /**
-   * Thêm mệnh cách mới
+   * Thêm mệnh cách mới — trả về entity vừa tạo
    */
-  public addDestiny(userId: string, destinyId: DestinyType, rarity: DestinyRarity): void {
+  public addDestiny(userId: string, destinyId: DestinyType, rarity: DestinyRarity): UserDestinyEntity {
     const now = Math.floor(Date.now() / 1000);
-    db.prepare(`
+    const result = db.prepare(`
       INSERT INTO user_destinies (user_id, destiny_id, rarity, level, exp, is_equipped, slot, created_at)
       VALUES (?, ?, ?, 1, 0, 0, 0, ?)
     `).run(userId, destinyId, rarity, now);
+    return this.get(result.lastInsertRowid as number)!;
   }
 
   /**
@@ -52,7 +59,7 @@ export class DestinyRepository {
   public update(id: number, data: Partial<UserDestinyEntity>): void {
     const fields = Object.keys(data).map(k => `${k} = ?`).join(', ');
     const values = Object.values(data);
-    
+
     if (fields.length === 0) return;
 
     db.prepare(`UPDATE user_destinies SET ${fields} WHERE id = ?`).run(...values, id);
@@ -63,6 +70,34 @@ export class DestinyRepository {
    */
   public unequipSlot(userId: string, slot: number): void {
     db.prepare('UPDATE user_destinies SET is_equipped = 0, slot = 0 WHERE user_id = ? AND slot = ?').run(userId, slot);
+  }
+
+  // === P1-08: Pity System ===
+
+  public getPity(userId: string): DestinyPityRow {
+    let row = db.prepare('SELECT * FROM destiny_pity WHERE user_id = ?').get(userId) as DestinyPityRow | undefined;
+    if (!row) {
+      db.prepare('INSERT INTO destiny_pity (user_id, pull_count, last_pull_at) VALUES (?, 0, 0)').run(userId);
+      row = db.prepare('SELECT * FROM destiny_pity WHERE user_id = ?').get(userId) as DestinyPityRow;
+    }
+    return row!;
+  }
+
+  public incrementPity(userId: string): void {
+    db.prepare('UPDATE destiny_pity SET pull_count = pull_count + 1, last_pull_at = ? WHERE user_id = ?')
+      .run(Math.floor(Date.now() / 1000), userId);
+  }
+
+  public resetPity(userId: string): void {
+    db.prepare('UPDATE destiny_pity SET pull_count = 0 WHERE user_id = ?').run(userId);
+  }
+
+  /**
+   * Đếm số lượng mệnh cách theo rarity
+   */
+  public countByRarity(userId: string, rarity: DestinyRarity): number {
+    const row = db.prepare('SELECT COUNT(*) as c FROM user_destinies WHERE user_id = ? AND rarity = ?').get(userId, rarity) as { c: number };
+    return row.c;
   }
 }
 

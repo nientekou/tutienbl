@@ -232,7 +232,8 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           interaction.customId.startsWith('sectdonateselect_') ||
           interaction.customId.startsWith('pb_bind_select_') ||
           interaction.customId.startsWith('pb_swap_select_') ||
-          interaction.customId.startsWith('adminpanel_restoreselect_')
+          interaction.customId.startsWith('adminpanel_restoreselect_') ||
+          interaction.customId.startsWith('huongdan_')
         ))
       ) {
         let customId = interaction.customId;

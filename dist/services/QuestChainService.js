@@ -6,179 +6,233 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.questChainService = exports.QUEST_CHAINS = void 0;
 const database_1 = __importDefault(require("../database/database"));
 const UserRepository_1 = require("../database/repositories/UserRepository");
-const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 exports.QUEST_CHAINS = [
     {
-        id: 'chain_1',
-        name: 'Tân Thủ Thí Luyện',
-        description: 'Thử thách dành cho tu sĩ mới nhập môn',
-        steps: [
-            { id: 'chain_1_step_1', name: 'Thu Thập', description: 'Thu thập 10 Linh Thảo', objectiveType: 'collect', objectiveTarget: 10, objectiveCount: 10, rewardExp: 500, rewardCoins: 200 },
-            { id: 'chain_1_step_2', name: 'Chiến Đấu', description: 'Tiêu diệt 5 yêu thú', objectiveType: 'kill', objectiveTarget: 5, objectiveCount: 5, rewardExp: 1000, rewardCoins: 500 },
-            { id: 'chain_1_step_3', name: 'Luyện Đan', description: 'Luyện chế 3 viên đan dược', objectiveType: 'craft', objectiveTarget: 3, objectiveCount: 3, rewardExp: 1500, rewardCoins: 800 },
+        id: 'main_chain_1', name: 'Cốt Truyện Chính - Hồi 1', type: 'main',
+        description: 'Bắt đầu hành trình tu tiên của đạo hữu',
+        quests: [
+            { id: 'mc1_1', name: 'Bước Đầu', description: 'Đạt cấp 10', target: 10, objectiveTarget: 10, reward: 500 },
+            { id: 'mc1_2', name: 'Học Chiến Đấu', description: 'Thắng 5 trận PvP', target: 5, objectiveTarget: 5, reward: 800 },
+            { id: 'mc1_3', name: 'Gia Nhập Tông Môn', description: 'Gia nhập bất kỳ tông môn nào', target: 1, objectiveTarget: 1, reward: 1000 },
+            { id: 'mc1_4', name: 'Phó Bản Đầu Tiên', description: 'Vượt qua phó bản đầu tiên', target: 1, objectiveTarget: 1, reward: 1500 },
+            { id: 'mc1_5', name: 'Đạt Trúc Cơ', description: 'Đạt đến cảnh giới Trúc Cơ Kỳ', target: 1, objectiveTarget: 1, reward: 3000 },
         ],
-        finalRewardExp: 5000,
-        finalRewardCoins: 2000,
+        steps: [
+            { id: 'mc1_1', name: 'Bước Đầu', description: 'Đạt cấp 10', target: 10, objectiveTarget: 10, reward: 500 },
+            { id: 'mc1_2', name: 'Học Chiến Đấu', description: 'Thắng 5 trận PvP', target: 5, objectiveTarget: 5, reward: 800 },
+            { id: 'mc1_3', name: 'Gia Nhập Tông Môn', description: 'Gia nhập bất kỳ tông môn nào', target: 1, objectiveTarget: 1, reward: 1000 },
+            { id: 'mc1_4', name: 'Phó Bản Đầu Tiên', description: 'Vượt qua phó bản đầu tiên', target: 1, objectiveTarget: 1, reward: 1500 },
+            { id: 'mc1_5', name: 'Đạt Trúc Cơ', description: 'Đạt đến cảnh giới Trúc Cơ Kỳ', target: 1, objectiveTarget: 1, reward: 3000 },
+        ],
+        finalRewardCoins: 10000, finalRewardExp: 5000, finalRewardTitle: 'Kẻ Mở Đường'
     },
     {
-        id: 'chain_2',
-        name: 'Thám Hiểm Viễn Cổ',
-        description: 'Khám phá bí mật thượng cổ',
-        steps: [
-            { id: 'chain_2_step_1', name: 'Khảo Cổ', description: 'Hoàn thành 3 lần khảo cổ', objectiveType: 'explore', objectiveTarget: 3, objectiveCount: 3, rewardExp: 2000, rewardCoins: 1000 },
-            { id: 'chain_2_step_2', name: 'Đấu Trường', description: 'Thắng 5 trận quyết đấu', objectiveType: 'pvp_win', objectiveTarget: 5, objectiveCount: 5, rewardExp: 3000, rewardCoins: 2000 },
+        id: 'side_chain_1', name: 'Câu Chuyện Phụ: Kho Báu Thất Lạc', type: 'side',
+        description: 'Tìm kho báu thất lạc trong dãy núi',
+        quests: [
+            { id: 'sc1_1', name: 'Tin Đồn', description: 'Nói chuyện với NPC trong thành', target: 1, objectiveTarget: 1, reward: 200 },
+            { id: 'sc1_2', name: 'Tìm Kiếm', description: 'Thám hiểm 3 địa điểm', target: 3, objectiveTarget: 3, reward: 400 },
+            { id: 'sc1_3', name: 'Chiến Đấu', description: 'Đánh bại kẻ canh giữ', target: 1, objectiveTarget: 1, reward: 800 },
         ],
-        finalRewardExp: 10000,
-        finalRewardCoins: 5000,
+        steps: [
+            { id: 'sc1_1', name: 'Tin Đồn', description: 'Nói chuyện với NPC trong thành', target: 1, objectiveTarget: 1, reward: 200 },
+            { id: 'sc1_2', name: 'Tìm Kiếm', description: 'Thám hiểm 3 địa điểm', target: 3, objectiveTarget: 3, reward: 400 },
+            { id: 'sc1_3', name: 'Chiến Đấu', description: 'Đánh bại kẻ canh giữ', target: 1, objectiveTarget: 1, reward: 800 },
+        ],
+        finalRewardCoins: 5000, finalRewardExp: 2000, finalRewardTitle: 'Thợ Săn Kho Báu'
     },
     {
-        id: 'chain_3',
-        name: 'Thần Binh Xuất Thế',
-        description: 'Rèn luyện thần binh',
-        steps: [
-            { id: 'chain_3_step_1', name: 'Nguyên Liệu', description: 'Thu thập 20 Huyền Thiết Sa', objectiveType: 'collect', objectiveTarget: 20, objectiveCount: 20, rewardExp: 5000, rewardCoins: 3000 },
-            { id: 'chain_3_step_2', name: 'Rèn Luyện', description: 'Cường hóa trang bị 10 lần', objectiveType: 'craft', objectiveTarget: 10, objectiveCount: 10, rewardExp: 8000, rewardCoins: 5000 },
+        id: 'guild_chain_1', name: 'Sứ Mệnh Tông Môn', type: 'guild',
+        description: 'Giúp tông môn phát triển hùng mạnh',
+        quests: [
+            { id: 'gc1_1', name: 'Cống Hiến', description: 'Cống hiến 1000 cho tông môn', target: 1000, objectiveTarget: 1000, reward: 500 },
+            { id: 'gc1_2', name: 'Tu Luyện', description: 'Tu luyện 5 lần', target: 5, objectiveTarget: 5, reward: 800 },
+            { id: 'gc1_3', name: 'Đại Diện', description: 'Thắng 3 trận tông môn chiến', target: 3, objectiveTarget: 3, reward: 1500 },
         ],
-        finalRewardTitle: 'Thần Binh',
-        finalRewardExp: 20000,
-        finalRewardCoins: 10000,
+        steps: [
+            { id: 'gc1_1', name: 'Cống Hiến', description: 'Cống hiến 1000 cho tông môn', target: 1000, objectiveTarget: 1000, reward: 500 },
+            { id: 'gc1_2', name: 'Tu Luyện', description: 'Tu luyện 5 lần', target: 5, objectiveTarget: 5, reward: 800 },
+            { id: 'gc1_3', name: 'Đại Diện', description: 'Thắng 3 trận tông môn chiến', target: 3, objectiveTarget: 3, reward: 1500 },
+        ],
+        finalRewardCoins: 8000, finalRewardExp: 3000, finalRewardTitle: 'Trụ Cột Tông Môn'
+    },
+    {
+        id: 'couple_chain_1', name: 'Hành Trình Đạo Lữ', type: 'couple',
+        description: 'Phiêu lưu cùng đạo lữ của đạo hữu',
+        quests: [
+            { id: 'cc1_1', name: 'Song Tu', description: 'Song tu 3 lần', target: 3, objectiveTarget: 3, reward: 300 },
+            { id: 'cc1_2', name: 'Đồng Chiến', description: 'Vượt tầng 3 động phủ đạo lữ', target: 1, objectiveTarget: 1, reward: 800 },
+            { id: 'cc1_3', name: 'Gắn Kết', description: 'Đạt 500 thân mật độ', target: 500, objectiveTarget: 500, reward: 1500 },
+        ],
+        steps: [
+            { id: 'cc1_1', name: 'Song Tu', description: 'Song tu 3 lần', target: 3, objectiveTarget: 3, reward: 300 },
+            { id: 'cc1_2', name: 'Đồng Chiến', description: 'Vượt tầng 3 động phủ đạo lữ', target: 1, objectiveTarget: 1, reward: 800 },
+            { id: 'cc1_3', name: 'Gắn Kết', description: 'Đạt 500 thân mật độ', target: 500, objectiveTarget: 500, reward: 1500 },
+        ],
+        finalRewardCoins: 6000, finalRewardExp: 2500, finalRewardTitle: 'Tâm Đầu Ý Hợp'
+    },
+    {
+        id: 'mentor_chain_1', name: 'Sư Phụ Đại Nhân', type: 'mentor',
+        description: 'Trở thành một bậc thầy khai tâm',
+        quests: [
+            { id: 'mtc1_1', name: 'Chỉ Dẫn', description: 'Giúp đỡ đồ đệ 5 lần', target: 5, objectiveTarget: 5, reward: 500 },
+            { id: 'mtc1_2', name: 'Truyền Thụ', description: 'Truyền 500 EXP cho đồ đệ', target: 500, objectiveTarget: 500, reward: 800 },
+            { id: 'mtc1_3', name: 'Tốt Nghiệp', description: 'Tốt nghiệp 1 đồ đệ', target: 1, objectiveTarget: 1, reward: 2000 },
+        ],
+        steps: [
+            { id: 'mtc1_1', name: 'Chỉ Dẫn', description: 'Giúp đỡ đồ đệ 5 lần', target: 5, objectiveTarget: 5, reward: 500 },
+            { id: 'mtc1_2', name: 'Truyền Thụ', description: 'Truyền 500 EXP cho đồ đệ', target: 500, objectiveTarget: 500, reward: 800 },
+            { id: 'mtc1_3', name: 'Tốt Nghiệp', description: 'Tốt nghiệp 1 đồ đệ', target: 1, objectiveTarget: 1, reward: 2000 },
+        ],
+        finalRewardCoins: 15000, finalRewardExp: 5000, finalRewardTitle: 'Minh Sư'
     },
 ];
 class QuestChainService {
+    initTable() {
+        database_1.default.exec(`
+      CREATE TABLE IF NOT EXISTS quest_chains (
+        user_id TEXT NOT NULL REFERENCES users(discord_id) ON DELETE CASCADE,
+        chain_id TEXT NOT NULL,
+        current_quest INTEGER DEFAULT 0,
+        progress INTEGER DEFAULT 0,
+        completed INTEGER DEFAULT 0,
+        claimed INTEGER DEFAULT 0,
+        PRIMARY KEY(user_id, chain_id)
+      );
+    `);
+    }
+    getAvailableChains(userId) {
+        const user = UserRepository_1.userRepository.get(userId);
+        if (!user)
+            return [];
+        return exports.QUEST_CHAINS.filter(chain => {
+            if (chain.type === 'main' && user.level < 10)
+                return false;
+            if (chain.type === 'guild' && !user.sect_id)
+                return false;
+            return true;
+        });
+    }
+    getChainProgress(userId, chainId) {
+        this.initTable();
+        const row = database_1.default.prepare('SELECT * FROM quest_chains WHERE user_id = ? AND chain_id = ?')
+            .get(userId, chainId);
+        if (!row) {
+            database_1.default.prepare('INSERT INTO quest_chains (user_id, chain_id, current_quest, progress) VALUES (?, ?, 0, 0)')
+                .run(userId, chainId);
+            return { currentQuest: 0, progress: 0, completed: false };
+        }
+        return { currentQuest: row.current_quest, progress: row.progress, completed: row.completed === 1 };
+    }
+    updateProgress(userId, chainId, amount = 1) {
+        this.initTable();
+        const chain = exports.QUEST_CHAINS.find(c => c.id === chainId);
+        if (!chain)
+            return { questComplete: false, chainComplete: false, message: 'Chuỗi nhiệm vụ không tồn tại' };
+        const progress = this.getChainProgress(userId, chainId);
+        const currentQuest = chain.quests[progress.currentQuest];
+        if (!currentQuest)
+            return { questComplete: false, chainComplete: true, message: 'Chuỗi nhiệm vụ đã hoàn thành' };
+        const newProgress = progress.progress + amount;
+        let questComplete = false;
+        let chainComplete = false;
+        if (newProgress >= currentQuest.target) {
+            questComplete = true;
+            if (progress.currentQuest >= chain.quests.length - 1) {
+                chainComplete = true;
+                database_1.default.prepare('UPDATE quest_chains SET current_quest = ?, progress = ?, completed = 1 WHERE user_id = ? AND chain_id = ?')
+                    .run(progress.currentQuest + 1, 0, userId, chainId);
+            }
+            else {
+                database_1.default.prepare('UPDATE quest_chains SET current_quest = ?, progress = 0 WHERE user_id = ? AND chain_id = ?')
+                    .run(progress.currentQuest + 1, userId, chainId);
+            }
+        }
+        else {
+            database_1.default.prepare('UPDATE quest_chains SET progress = ? WHERE user_id = ? AND chain_id = ?')
+                .run(newProgress, userId, chainId);
+        }
+        return {
+            questComplete,
+            chainComplete,
+            message: questComplete ? `Nhiệm vụ "${currentQuest.name}" hoàn thành!` : `Tiến độ: ${newProgress}/${currentQuest.target}`
+        };
+    }
+    getChainDescription(userId, chainId) {
+        const chain = exports.QUEST_CHAINS.find(c => c.id === chainId);
+        if (!chain)
+            return 'Chuỗi nhiệm vụ không tồn tại';
+        const progress = this.getChainProgress(userId, chainId);
+        let msg = `📜 **${chain.name}** (${chain.type})\n${chain.description}\n\n`;
+        chain.quests.forEach((q, i) => {
+            const isCurrent = i === progress.currentQuest;
+            const isCompleted = i < progress.currentQuest;
+            const status = isCompleted ? '✅' : (isCurrent ? '⬜' : '🔒');
+            msg += `${status} **${q.name}**: ${q.description}\n`;
+            if (isCurrent)
+                msg += `   Tiến độ: ${progress.progress}/${q.target} | Thưởng: ${q.reward} Tu Vi\n`;
+        });
+        return msg;
+    }
+    // === Compatibility methods for existing code ===
+    /**
+     * Get detailed progress for all chains (compatibility method)
+     */
+    getDetailedProgress(userId) {
+        this.initTable();
+        return database_1.default.prepare('SELECT * FROM quest_chains WHERE user_id = ?').all(userId);
+    }
+    /**
+     * Start a chain (compatibility method)
+     */
     startChain(userId, chainId) {
         const chain = exports.QUEST_CHAINS.find(c => c.id === chainId);
         if (!chain)
-            return { success: false, message: '❌ Chuỗi nhiệm vụ không tồn tại.' };
-        const user = UserRepository_1.userRepository.get(userId);
-        if (!user)
-            return { success: false, message: '❌ Đạo hữu chưa khởi tạo nhân vật.' };
-        const existing = database_1.default.prepare('SELECT * FROM quest_chain_progress WHERE user_id = ? AND chain_id = ?').get(userId, chainId);
-        if (existing) {
-            if (existing.completed)
-                return { success: false, message: '❌ Đạo hữu đã hoàn thành chuỗi nhiệm vụ này rồi.' };
-            return { success: false, message: '❌ Đạo hữu đã bắt đầu chuỗi nhiệm vụ này rồi. Hãy tiếp tục hoàn thành các bước.' };
+            return { success: false, message: 'Chuỗi nhiệm vụ không tồn tại' };
+        const existing = database_1.default.prepare('SELECT * FROM quest_chains WHERE user_id = ? AND chain_id = ?')
+            .get(userId, chainId);
+        if (existing)
+            return { success: false, message: 'Chuỗi nhiệm vụ đã được bắt đầu' };
+        database_1.default.prepare('INSERT INTO quest_chains (user_id, chain_id, current_quest, progress) VALUES (?, ?, 0, 0)')
+            .run(userId, chainId);
+        return { success: true, message: `Đã bắt đầu chuỗi: ${chain.name}` };
+    }
+    /**
+     * Claim step reward (compatibility method)
+     */
+    claimStepReward(userId, chainId, stepIndex) {
+        // If no chainId provided, find the active chain for this user
+        if (!chainId) {
+            const activeChain = database_1.default.prepare('SELECT chain_id, current_quest FROM quest_chains WHERE user_id = ? AND completed = 0')
+                .get(userId);
+            if (!activeChain)
+                return { success: false, message: 'Không có chuỗi nhiệm vụ nào đang hoạt động' };
+            chainId = activeChain.chain_id;
+            stepIndex = activeChain.current_quest;
         }
-        database_1.default.prepare(`
-      INSERT INTO quest_chain_progress (user_id, chain_id, step_index, progress, completed, finished_at)
-      VALUES (?, ?, 0, 0, 0, NULL)
-    `).run(userId, chainId);
-        return { success: true, message: `✅ Đã bắt đầu chuỗi nhiệm vụ **${chain.name}**!` };
-    }
-    getProgress(userId) {
-        const row = database_1.default.prepare(`
-      SELECT * FROM quest_chain_progress WHERE user_id = ? AND completed = 0 ORDER BY step_index ASC LIMIT 1
-    `).get(userId);
-        if (!row)
-            return null;
-        return { chainId: row.chain_id, stepIndex: row.step_index, progress: row.progress, completed: row.completed === 1 };
-    }
-    getDetailedProgress(userId) {
-        const chainData = exports.QUEST_CHAINS;
-        const rows = database_1.default.prepare(`
-      SELECT * FROM quest_chain_progress WHERE user_id = ?
-    `).all(userId);
-        return rows.map(r => {
-            const chain = chainData.find(c => c.id === r.chain_id);
-            return { ...r, chain: chain };
-        }).filter(r => r.chain);
-    }
-    updateProgress(userId, objectiveType, amount) {
-        const rows = database_1.default.prepare(`
-      SELECT * FROM quest_chain_progress WHERE user_id = ? AND completed = 0
-    `).all(userId);
-        if (rows.length === 0)
-            return { success: false, message: '' };
-        let updated = false;
-        for (const row of rows) {
-            const chain = exports.QUEST_CHAINS.find(c => c.id === row.chain_id);
-            if (!chain)
-                continue;
-            const step = chain.steps[row.step_index];
-            if (!step)
-                continue;
-            if (step.objectiveType !== objectiveType)
-                continue;
-            if (row.progress >= step.objectiveTarget)
-                continue;
-            const newProgress = Math.min(step.objectiveTarget, row.progress + amount);
-            database_1.default.prepare('UPDATE quest_chain_progress SET progress = ? WHERE user_id = ? AND chain_id = ?').run(newProgress, userId, row.chain_id);
-            updated = true;
-        }
-        if (updated)
-            return { success: true, message: '' };
-        return { success: false, message: '' };
-    }
-    claimStepReward(userId) {
-        const row = database_1.default.prepare(`
-      SELECT * FROM quest_chain_progress WHERE user_id = ? AND completed = 0 ORDER BY step_index ASC LIMIT 1
-    `).get(userId);
-        if (!row)
-            return { success: false, message: '❌ Đạo hữu chưa bắt đầu chuỗi nhiệm vụ nào.' };
-        const chain = exports.QUEST_CHAINS.find(c => c.id === row.chain_id);
+        const chain = exports.QUEST_CHAINS.find(c => c.id === chainId);
         if (!chain)
-            return { success: false, message: '❌ Chuỗi nhiệm vụ không tồn tại.' };
-        const step = chain.steps[row.step_index];
+            return { success: false, message: 'Chuỗi nhiệm vụ không tồn tại' };
+        const progress = this.getChainProgress(userId, chainId);
+        if (stepIndex !== undefined && stepIndex !== progress.currentQuest)
+            return { success: false, message: 'Không phải bước này' };
+        const step = chain.steps[progress.currentQuest];
         if (!step)
-            return { success: false, message: '❌ Lỗi dữ liệu bước nhiệm vụ.' };
-        if (row.progress < step.objectiveTarget) {
-            return { success: false, message: `❌ Chưa hoàn thành bước **${step.name}** (${row.progress}/${step.objectiveTarget}).` };
-        }
+            return { success: false, message: 'Bước này không tồn tại' };
+        if (progress.progress < step.target)
+            return { success: false, message: 'Bước này chưa hoàn thành' };
+        // Mark as claimed
+        database_1.default.prepare('UPDATE quest_chains SET claimed = 1 WHERE user_id = ? AND chain_id = ?')
+            .run(userId, chainId);
+        // Award reward
         const user = UserRepository_1.userRepository.get(userId);
-        if (!user)
-            return { success: false, message: '❌ Đạo hữu chưa khởi tạo nhân vật.' };
-        database_1.default.transaction(() => {
+        if (user) {
             UserRepository_1.userRepository.update(userId, {
-                tu_vi: Math.min(user.tu_vi + step.rewardExp, user.exp_needed),
-                coin_ha_pham: user.coin_ha_pham + step.rewardCoins,
+                coin_ha_pham: user.coin_ha_pham + step.reward,
+                tu_vi: Math.min(user.tu_vi + step.reward, user.exp_needed)
             });
-            if (step.rewardItems) {
-                for (const item of step.rewardItems) {
-                    InventoryRepository_1.inventoryRepository.addItem(userId, item.id, item.qty);
-                }
-            }
-            const isLastStep = row.step_index >= chain.steps.length - 1;
-            if (isLastStep) {
-                UserRepository_1.userRepository.update(userId, {
-                    tu_vi: Math.min(user.tu_vi + chain.finalRewardExp, user.exp_needed),
-                    coin_ha_pham: user.coin_ha_pham + chain.finalRewardCoins,
-                });
-                if (chain.finalRewardTitle) {
-                    const userTitles = database_1.default.prepare('SELECT * FROM user_titles WHERE user_id = ? AND title = ?').get(userId, chain.finalRewardTitle);
-                    if (!userTitles) {
-                        database_1.default.prepare(`
-              INSERT INTO user_titles (user_id, title, source, unlocked_at)
-              VALUES (?, ?, 'quest_chain', ?)
-            `).run(userId, chain.finalRewardTitle, Math.floor(Date.now() / 1000));
-                    }
-                }
-                database_1.default.prepare('UPDATE quest_chain_progress SET completed = 1, finished_at = ? WHERE user_id = ? AND chain_id = ?')
-                    .run(Math.floor(Date.now() / 1000), userId, row.chain_id);
-            }
-            else {
-                database_1.default.prepare('UPDATE quest_chain_progress SET step_index = step_index + 1, progress = 0 WHERE user_id = ? AND chain_id = ?')
-                    .run(userId, row.chain_id);
-            }
-        })();
-        const stepRewardMsg = `🟤 +${step.rewardCoins} Linh Thạch | 🌿 +${step.rewardExp} Tu Vi`;
-        if (row.step_index >= chain.steps.length - 1) {
-            const titlePart = chain.finalRewardTitle ? `\n🏅 **Nhận danh hiệu:** ${chain.finalRewardTitle}` : '';
-            return {
-                success: true,
-                message: `🎉 **HOÀN THÀNH CHUỖI NHIỆM VỤ "${chain.name}"!**${titlePart}\nPhần thưởng bước: ${stepRewardMsg}\n🎁 Phần thưởng cuối: 🟤 +${chain.finalRewardCoins} Linh Thạch | 🌿 +${chain.finalRewardExp} Tu Vi`
-            };
         }
-        const nextStep = chain.steps[row.step_index + 1];
-        return {
-            success: true,
-            message: `✅ **${step.name}** hoàn thành! ${stepRewardMsg}\n📋 Bước tiếp theo: **${nextStep.name}** - ${nextStep.description}`
-        };
-    }
-    getAvailableChains(userId) {
-        const userProgress = database_1.default.prepare(`
-      SELECT chain_id, completed FROM quest_chain_progress WHERE user_id = ?
-    `).all(userId);
-        const completedIds = new Set(userProgress.filter(p => p.completed).map(p => p.chain_id));
-        return exports.QUEST_CHAINS.filter(c => !completedIds.has(c.id));
+        return { success: true, message: `Đã nhận thưởng: ${step.reward} Linh Thạch + Tu Vi` };
     }
 }
 exports.questChainService = new QuestChainService();
