@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, ContainerBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
@@ -6,7 +6,8 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import { inventoryService } from '../../services/InventoryService';
 import db from '../../database/database';
 import { ITEMS, getPhoiWeaponByGrade, getPhoiArmorByGrade, getWeaponByGrade, getArmorByGrade } from '../../config/itemConstants';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 
 export default class DungCommand extends Command {
   constructor() {
@@ -80,15 +81,11 @@ export default class DungCommand extends Command {
       });
       openTx();
 
-      const embed = new EmbedBuilder()
-        .setTitle('🎁 KẾT QUẢ MỞ RƯƠNG BÁO')
-        .setColor(EMBED_COLORS.GOLD)
-        .setDescription(`Đạo hữu đã khui thành công **${qty}x ${userItem.name}**! Phương trời chuyển sắc, linh khí lan tỏa...`)
-        .addFields({
-          name: '✨ Các vật phẩm nhận được:',
-          value: openResult.description
-        })
-        .setTimestamp();
+      const embed = container(V2_COLORS.gold, [
+        header('🎁 KẾT QUẢ MỞ RƯƠNG BẢO', `Đạo hữu đã khui thành công **${qty}x ${userItem.name}**!\nPhương trời chuyển sắc, linh khí lan tỏa...`),
+        separator(),
+        body(`✨ **Các vật phẩm nhận được:**\n${openResult.description}`)
+      ]);
 
       await interaction.editReply(toV2Payload([embed]));
       return;

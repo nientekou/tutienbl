@@ -11,6 +11,7 @@ const UserRepository_1 = require("../../database/repositories/UserRepository");
 const luyendan_1 = __importDefault(require("../../commands/general/luyendan"));
 const DailyQuestService_1 = require("../../services/DailyQuestService");
 const QuestChainService_1 = require("../../services/QuestChainService");
+const v2Components_1 = require("../../utils/v2Components");
 class LifeInteractionHandler {
     static async handle(interaction, action, parts, targetUserId) {
         if (action === 'alch') {
@@ -73,11 +74,12 @@ class LifeInteractionHandler {
                 }
                 const luyenDanCmd = new luyendan_1.default();
                 const updatedEmbed = luyenDanCmd.getAlchemyEmbed(targetUserId);
-                const currentDesc = updatedEmbed.data.description || '';
-                let resultIcon = res.success ? '✅' : '💥';
-                updatedEmbed.setDescription(`🔔 **Kết quả luyện chế:** ${resultIcon} ${res.message}\n\n${currentDesc}`);
                 const updatedComponents = luyenDanCmd.getAlchemyComponents(targetUserId);
-                await (0, uiSystem_1.safeV2Update)(interaction, [updatedEmbed], updatedComponents);
+                let resultIcon = res.success ? '✅' : '💥';
+                const feedbackContainer = (0, v2Components_1.container)(res.success ? v2Components_1.V2_COLORS.success : v2Components_1.V2_COLORS.danger, [
+                    (0, v2Components_1.header)(`🔔 Kết quả luyện chế: ${resultIcon} ${res.message}`)
+                ]);
+                await (0, uiSystem_1.safeV2Update)(interaction, [feedbackContainer, updatedEmbed], updatedComponents);
             }
             return;
         }

@@ -6,6 +6,7 @@ import { userRepository } from '../../database/repositories/UserRepository';
 import LuyenDanCommand from '../../commands/general/luyendan';
 import { dailyQuestService } from '../../services/DailyQuestService';
 import { questChainService } from '../../services/QuestChainService';
+import { container, header, V2_COLORS } from '../../utils/v2Components';
 
 export class LifeInteractionHandler {
   public static async handle(
@@ -77,14 +78,14 @@ export class LifeInteractionHandler {
 
         const luyenDanCmd = new LuyenDanCommand();
         const updatedEmbed = luyenDanCmd.getAlchemyEmbed(targetUserId);
-        const currentDesc = updatedEmbed.data.description || '';
-        
-        let resultIcon = res.success ? '✅' : '💥';
-        updatedEmbed.setDescription(`🔔 **Kết quả luyện chế:** ${resultIcon} ${res.message}\n\n${currentDesc}`);
-        
         const updatedComponents = luyenDanCmd.getAlchemyComponents(targetUserId);
         
-        await safeV2Update(interaction, [updatedEmbed], updatedComponents);
+        let resultIcon = res.success ? '✅' : '💥';
+        const feedbackContainer = container(res.success ? V2_COLORS.success : V2_COLORS.danger, [
+          header(`🔔 Kết quả luyện chế: ${resultIcon} ${res.message}`)
+        ]);
+        
+        await safeV2Update(interaction, [feedbackContainer, updatedEmbed], updatedComponents);
       }
       return;
     }

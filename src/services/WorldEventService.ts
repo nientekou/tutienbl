@@ -8,7 +8,7 @@ import { broadcastService } from './BroadcastService';
 
 // A-01: Dynamic World Events
 
-type EventType = 'world_boss' | 'leyline_surge' | 'thien_kiep' | 'seasonal';
+type EventType = 'world_boss' | 'leyline_surge' | 'thien_kiep' | 'seasonal' | 'thien_ha_dai_chien';
 
 interface WorldEvent {
   id: string;
@@ -25,26 +25,33 @@ const EVENT_DEFINITIONS: Record<EventType, { name: string; description: string; 
   world_boss: {
     name: 'Boss Xuất Hiện',
     description: 'Một Boss hùng mạnh xuất hiện! Tất cả tu sĩ cùng nhau tiêu diệt!',
-    duration: 30 * 60, // 30 minutes
+    duration: 30 * 60,
     rewards: 'Top cống hiến: Vật phẩm hiếm + KNB\nTất cả: EXP + Linh Thạch'
   },
   leyline_surge: {
     name: 'Linh Mạch Dâng Trào',
     description: 'Linh mạch địa đồ đang dâng trào! Nhân 3 điểm cống hiến!',
-    duration: 15 * 60, // 15 minutes
+    duration: 15 * 60,
     rewards: 'x3 điểm cống hiến cho mọi hoạt động'
   },
   thien_kiep: {
     name: 'Thiên Kiếp',
     description: 'Một vị tu sĩ đang trải qua thiên kiếp! Cầu nguyện cho họ!',
-    duration: 10 * 60, // 10 minutes
+    duration: 10 * 60,
     rewards: 'Nếu vượt qua: +50% EXP trong 1h\nNếu thất bại: -20% EXP trong 30p'
   },
   seasonal: {
     name: 'Sự Kiện Mùa',
     description: 'Sự kiện đặc biệt theo mùa đang diễn ra!',
-    duration: 60 * 60, // 1 hour
+    duration: 60 * 60,
     rewards: 'x2 phần thưởng cho mọi hoạt động'
+  },
+  // V16 C-04: Thiên Hạ Đại Chiến — monthly 72-hour server-wide competition
+  thien_ha_dai_chien: {
+    name: 'Thiên Hạ Đại Chiến',
+    description: 'Đại hội võ lâm toàn server! Tranh tài giành vinh quang!',
+    duration: 72 * 60 * 60,
+    rewards: 'Top 1: Danh hiệu "Thiên Hạ Vô Địch" + 500 KNB\nTop 3: 300 KNB + Vật phẩm hiếm\nTop 10: 100 KNB + Nguyên liệu'
   }
 };
 
@@ -91,15 +98,52 @@ class WorldEventService {
 
   /**
    * A-01: Check and trigger events (call periodically)
+   * V16 C-04: Also checks/schedules Thiên Hạ Đại Chiến monthly
    */
   checkAndTriggerEvents(): WorldEvent[] {
     this.initTable();
     const now = Math.floor(Date.now() / 1000);
     const triggered: WorldEvent[] = [];
 
-    // Check if any active event
+    // End expired events (especially the 72h Thiên Hạ Đại Chiến)
+    const endedEvents = db.prepare(
+      "SELECT * FROM world_events WHERE status = 'active' AND end_time <= ?"
+    ).all(now) as WorldEvent[];
+    for (const e of endedEvents) {
+      db.prepare("UPDATE world_events SET status = 'ended' WHERE id = ?").run(e.id);
+      if (e.type === 'thien_ha_dai_chien') this.endThienHaDaiChien(e);
+    }
+
+    // Check if any active event remains
     const activeEvent = db.prepare("SELECT * FROM world_events WHERE status = 'active' AND end_time > ? LIMIT 1").get(now) as WorldEvent | undefined;
-    if (activeEvent) return []; // Event still active
+    if (activeEvent) return [];
+
+    // V16 C-04: Schedule Thiên Hạ Đại Chiến on the 1st of every month
+    const vnDate = new Date(now * 1000 + 7 * 3600000);
+    const dayOfMonth = vnDate.getUTCDate();
+    const monthStart = new Date(Date.UTC(vnDate.getUTCFullYear(), vnDate.getUTCMonth(), 1, 0, 0, 0));
+    const monthStartTs = Math.floor(monthStart.getTime() / 1000);
+    const alreadyTriggeredThisMonth = db.prepare(
+      "SELECT id FROM world_events WHERE type = 'thien_ha_dai_chien' AND start_time >= ? LIMIT 1"
+    ).get(monthStartTs);
+
+    if (dayOfMonth === 1 && !alreadyTriggeredThisMonth) {
+      const eventId = `thien_ha_dai_chien_${monthStartTs}`;
+      const def = EVENT_DEFINITIONS.thien_ha_dai_chien;
+      db.prepare(`
+        INSERT INTO world_events (id, type, name, description, start_time, end_time, status, rewards, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)
+      `).run(eventId, 'thien_ha_dai_chien', def.name, def.description, now, now + def.duration, def.rewards, now);
+
+      const event: WorldEvent = {
+        id: eventId, type: 'thien_ha_dai_chien', name: def.name,
+        description: def.description, startTime: now,
+        endTime: now + def.duration, status: 'active', rewards: def.rewards
+      };
+      triggered.push(event);
+      this.announceEvent(event);
+      return triggered;
+    }
 
     // Roll for new event (10% chance per check)
     if (Math.random() > 0.10) return [];
@@ -288,6 +332,43 @@ class WorldEventService {
     }
 
     return calendar;
+  }
+
+  /**
+   * V16 C-04: End Thiên Hạ Đại Chiến — distribute rewards to top contributors
+   */
+  private endThienHaDaiChien(event: WorldEvent): void {
+    const participants = db.prepare(`
+      SELECT wep.*, u.name FROM world_event_participants wep
+      JOIN users u ON wep.user_id = u.discord_id
+      WHERE wep.event_id = ? AND wep.claimed = 0
+      ORDER BY wep.contribution DESC
+      LIMIT 10
+    `).all(event.id) as any[];
+
+    if (participants.length === 0) return;
+
+    db.transaction(() => {
+      participants.forEach((p, idx) => {
+        const rank = idx + 1;
+        let coins = 0;
+        let knb = 0;
+        let bonusNgotinh = 0;
+
+        if (rank === 1) { coins = 10000; knb = 500; bonusNgotinh = 200; }
+        else if (rank <= 3) { coins = 5000; knb = 300; bonusNgotinh = 100; }
+        else if (rank <= 10) { coins = 2000; knb = 100; bonusNgotinh = 50; }
+
+        userRepository.update(p.user_id, {
+          coin_ha_pham: (p.coin_ha_pham || 0) + coins,
+          knb: (p.knb || 0) + knb,
+          ngotinh: (p.ngotinh || 0) + bonusNgotinh,
+        });
+        db.prepare("UPDATE world_event_participants SET claimed = 1 WHERE id = ?").run(p.id);
+      });
+    })();
+
+    console.log(`🏆 [Thiên Hạ Đại Chiến] Đã kết thúc, ${participants.length} người nhận thưởng.`);
   }
 
   /**

@@ -45,8 +45,8 @@ export function getLuanHoiComponents(userId: string, isEligible: boolean): Actio
       .setStyle(ButtonStyle.Danger)
       .setDisabled(!isEligible),
     new ButtonBuilder()
-      .setCustomId(`luanhoicancel_${userId}`)
-      .setLabel('❌ Hủy Bỏ')
+      .setCustomId(`hosoback_${userId}`)
+      .setLabel('🔙 Quay Lại Hồ Sơ')
       .setStyle(ButtonStyle.Secondary)
   );
 }

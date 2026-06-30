@@ -19,7 +19,7 @@ class VinhDanhCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.' });
             return;
         }
         const category = (interaction.options.getString('danhmuc') || 'tuvi');
@@ -34,7 +34,7 @@ class VinhDanhCommand extends Command_1.Command {
         if (rankInfo) {
             embed.setFooter({ text: `Hạng của đạo hữu: #${rankInfo.rank} (${rankInfo.value.toLocaleString()} điểm)` });
         }
-        await interaction.reply((0, uiSystem_1.toV2Payload)([embed]));
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
 }
 exports.default = new VinhDanhCommand();

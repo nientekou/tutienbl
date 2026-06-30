@@ -18,7 +18,7 @@ export default class HoiDongCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user || !user.sect_id) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa gia nhập tông môn.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa gia nhập tông môn.' });
       return;
     }
 
@@ -33,7 +33,7 @@ export default class HoiDongCommand extends Command {
       desc += `👍 Đồng ý: **${voting.votesYes}** | 👎 Abstain: **${voting.votesNo}**\n`;
       desc += `⏰ Kết thúc: <t:${voting.endTime}:R>\n`;
     } else if (active) {
-      desc += `✅ **Chính sách đang active:** ${active.name}\n`;
+      desc += `✅ **Chính sách đang hoạt động:** ${active.name}\n`;
       desc += `${active.description}\n`;
     } else {
       desc += '📭 Chưa có chính sách nào. Chỉ tông chủ có thể đề xuất.\n';
@@ -59,6 +59,6 @@ export default class HoiDongCommand extends Command {
       );
     }
 
-    await interaction.reply(toV2Payload([embed], row.components.length > 0 ? [row] : []));
+    await interaction.editReply(toV2Payload([embed], row.components.length > 0 ? [row] : []));
   }
 }

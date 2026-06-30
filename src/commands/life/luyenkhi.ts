@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ContainerBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
@@ -6,7 +6,8 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import { blacksmithService } from '../../services/BlacksmithService';
 import db from '../../database/database';
 import { getProgressBar } from '../../utils/constants';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 
 export default class LuyenKhiCommand extends Command {
   constructor() {
@@ -19,43 +20,39 @@ export default class LuyenKhiCommand extends Command {
 
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const userId = interaction.user.id;
-    const user = userRepository.get(userId);
-    if (!user) {
-      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!'});
+    const embed = getLuyenKhiEmbed(userId);
+    if (!embed) {
+      await interaction.editReply({ content: '❌ Đạo hữu chưa tạo nhân vật!' });
       return;
     }
+    const components = getLuyenKhiComponents(userId);
+    await interaction.editReply(toV2Payload([embed], components));
+  }
+}
 
-    const anyUser = user as any;
-    const level = anyUser.forging_level || 1;
-    const exp = anyUser.forging_exp || 0;
-    const expNeeded = level * 150;
-    const expBar = getProgressBar(exp, expNeeded, 10);
+export function getLuyenKhiEmbed(userId: string): ContainerBuilder | null {
+  const user = userRepository.get(userId);
+  if (!user) return null;
 
-    const embed = new EmbedBuilder()
-      .setTitle('🛠️ PHÒNG RÈN ĐÚC (LUYỆN KHÍ SƯ)')
-      .setColor(EMBED_COLORS.ORANGE)
-      .setDescription(
-        `Đạo hiệu: **${user.name}**\n` +
-        `Cảnh Giới Luyện Khí: **Cấp ${level} Luyện Khí Sư**\n` +
-        `Tiến Độ EXP: ${expBar} **(${exp}/${expNeeded})**\n\n` +
-        `*Sử dụng khoáng thạch và linh thạch để rèn đúc trang bị, đạo bào, vũ khí siêu cấp. Hãy chọn một công thức rèn ở menu bên dưới!*`
-      )
-      .setThumbnail('https://i.imgur.com/vHqAOYZ.png')
-      .setFooter({ text: `Thể lực hiện tại: ${user.stamina}/500 | Linh Thạch: ${user.coin_ha_pham}` });
+  const anyUser = user as any;
+  const level = anyUser.forging_level || 1;
+  const exp = anyUser.forging_exp || 0;
+  const expNeeded = level * 150;
+  const expBar = getProgressBar(exp, expNeeded, 10);
 
-    const recipes = blacksmithService.getRecipes();
-    const inv = inventoryRepository.getUserInventory(userId);
+  const content: any[] = [
+    header('🛠️ PHÒNG RÈN ĐÚC (LUYỆN KHÍ SƯ)', `Đạo hiệu: **${user.name}**\nCảnh Giới Luyện Khí: **Cấp ${level} Luyện Khí Sư**\nTiến Độ EXP: ${expBar} **(${exp}/${expNeeded})**\n\n*Sử dụng khoáng thạch và linh thạch để rèn đúc trang bị, đạo bào, vũ khí siêu cấp. Hãy chọn một công thức rèn ở menu bên dưới!*`)
+  ];
 
-    // Lọc công thức hiển thị được (cấp độ người chơi >= cấp công thức - 20)
-    // Để không hiển thị quá nhiều
-    const visibleRecipes = recipes.filter(r => user.level >= Math.max(1, r.minLevel - 20)).slice(0, 25);
+  const recipes = blacksmithService.getRecipes();
+  const inv = inventoryRepository.getUserInventory(userId);
 
-    if (visibleRecipes.length === 0) {
-      embed.addFields({ name: 'Trống', value: 'Chưa có công thức rèn nào phù hợp với cảnh giới của đạo hữu.' });
-      await interaction.editReply(toV2Payload([embed]));
-      return;
-    }
+  const visibleRecipes = recipes.filter(r => user.level >= Math.max(1, r.minLevel - 20)).slice(0, 25);
 
+  if (visibleRecipes.length === 0) {
+    content.push(separator());
+    content.push(body('Chưa có công thức rèn nào phù hợp với cảnh giới của đạo hữu.'));
+  } else {
     visibleRecipes.forEach(r => {
       const isLocked = user.level < r.minLevel;
       const title = `${isLocked ? '🔒' : '⚒️'} **${r.name}** ${isLocked ? `(Yêu cầu: Cấp độ ${r.minLevel})` : ''}`;
@@ -66,17 +63,34 @@ export default class LuyenKhiCommand extends Command {
           const entry = inv.find(i => i.item_id === ing.itemId && i.is_equipped === 0);
           const count = entry ? entry.quantity : 0;
           const hasEnough = count >= ing.quantity;
-          return `${hasEnough ? '✅' : '❌'} ${item ? item.name : ing.itemId}: ${count}/${ing.quantity}`;
+          return `  ${hasEnough ? '✅' : '❌'} ${item ? item.name : ing.itemId}: **${count}/${ing.quantity}**`;
         })
         .join('\n');
 
       const descText = `• Mô tả: *${r.description}*\n` +
-                       `• Chi phí: **${r.cost}** Linh Thạch | **15** Thể Lực\n` +
+                       `• Chi phí: **${r.cost}** Linh Thạch │ **15** Thể Lực\n` +
                        `• Nguyên liệu yêu cầu:\n${ingredientsText}`;
 
-      embed.addFields({ name: title, value: descText, inline: false });
+      content.push(separator());
+      content.push(body(`${title}\n${descText}`));
     });
+  }
 
+  content.push(separator());
+  content.push(body(`*Thể lực hiện tại: **${user.stamina}/500** │ Linh Thạch: **${user.coin_ha_pham}***`));
+
+  return container(V2_COLORS.gold, content);
+}
+
+export function getLuyenKhiComponents(userId: string): ActionRowBuilder<any>[] {
+  const user = userRepository.get(userId);
+  const rows: ActionRowBuilder<any>[] = [];
+  if (!user) return rows;
+
+  const recipes = blacksmithService.getRecipes();
+  const visibleRecipes = recipes.filter(r => user.level >= Math.max(1, r.minLevel - 20)).slice(0, 25);
+
+  if (visibleRecipes.length > 0) {
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId(`luyenkhiselect_1_${userId}`)
       .setPlaceholder('🛠️ Chọn công thức rèn trang bị');
@@ -92,9 +106,16 @@ export default class LuyenKhiCommand extends Command {
           .setDescription(`Tốn ${r.cost} LT & 15 Thể Lực.`)
       );
     }
-
-    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-
-    await interaction.editReply(toV2Payload([embed], [row] ));
+    rows.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu));
   }
+
+  const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`hosoback_${userId}`)
+      .setLabel('🔙 Quay Lại Hồ Sơ')
+      .setStyle(ButtonStyle.Secondary)
+  );
+  rows.push(backRow);
+
+  return rows;
 }

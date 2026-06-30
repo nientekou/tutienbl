@@ -210,7 +210,8 @@ class CultivationInteractionHandler {
                     .setColor(result.success ? uiSystem_1.EMBED_COLORS.SUCCESS : uiSystem_1.EMBED_COLORS.ERROR)
                     .setDescription(result.message)
                     .setTimestamp();
-                await (0, uiSystem_1.safeV2Update)(interaction, [embed], []);
+                const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], [backRow]);
             }
             return;
         }
@@ -224,7 +225,8 @@ class CultivationInteractionHandler {
             else {
                 const res = TribulationService_1.tribulationService.handleAction(targetUserId, subAction);
                 if (res.finished) {
-                    await (0, uiSystem_1.safeV2Update)(interaction, [res.embed], []);
+                    const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [res.embed], [backRow]);
                 }
                 else {
                     await (0, uiSystem_1.safeV2Update)(interaction, [res.embed], res.rows);
@@ -289,7 +291,8 @@ class CultivationInteractionHandler {
                 .setColor(result.success ? uiSystem_1.EMBED_COLORS.SUCCESS : uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription(result.message)
                 .setTimestamp();
-            await (0, uiSystem_1.safeV2Update)(interaction, [embed], []);
+            const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], [backRow]);
             return;
         }
         if (action === 'dotphastabilize') {
@@ -306,7 +309,8 @@ class CultivationInteractionHandler {
                 .setColor(result.success ? uiSystem_1.EMBED_COLORS.SUCCESS : uiSystem_1.EMBED_COLORS.ERROR)
                 .setDescription(`✨ Đạo hữu tiêu hao **${cost}** Linh Thạch ổn định đạo tâm, khôi phục nguyên trạng tỷ lệ đột phá thành công!\n\n` + result.message)
                 .setTimestamp();
-            await (0, uiSystem_1.safeV2Update)(interaction, [embed], []);
+            const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
+            await (0, uiSystem_1.safeV2Update)(interaction, [embed], [backRow]);
             return;
         }
         if (action === 'select' && parts[1] === 'alignment') {
@@ -394,7 +398,8 @@ class CultivationInteractionHandler {
                     header(result.success ? '✅ Kỳ Ngộ Thành Công!' : '❌ Kỳ Ngộ Thất Bại!'),
                     body(result.message)
                 ]);
-                await (0, uiSystem_1.safeV2Update)(interaction, [comp]);
+                const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
+                await (0, uiSystem_1.safeV2Update)(interaction, [comp], [backRow]);
                 return;
             }
             if (sub === 'view') {
@@ -410,7 +415,8 @@ class CultivationInteractionHandler {
                     desc += `**${data.title}**\n${data.description}\n\n`;
                 }
                 const comp = container(V2_COLORS.mystic, [header('✨ Kỳ Ngộ Đang Chờ'), body(desc)]);
-                await (0, uiSystem_1.safeV2Update)(interaction, [comp]);
+                const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
+                await (0, uiSystem_1.safeV2Update)(interaction, [comp], [backRow]);
                 return;
             }
         }

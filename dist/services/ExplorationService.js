@@ -199,7 +199,8 @@ const EXPLORATION_EVENTS = [
                 failMsg: '❌ Linh thú phẫn nộ! Bị cắn xé mất Stamina và Linh Thạch.',
                 successRate: 0.45,
                 successReward: { type: 'item', itemId: itemConstants_1.ITEMS.ITEM_FRAGMENT, amount: 2, weight: 100 },
-                failPenalty: { stamina: 40, coin: 200 }
+                failPenalty: { stamina: 40, coin: 200 },
+                karma: 8
             },
             {
                 id: 'loot',
@@ -208,7 +209,8 @@ const EXPLORATION_EVENTS = [
                 failMsg: '❌ Mãnh thú tỉnh dậy phản công! Đạo hữu tổn thương nặng.',
                 successRate: 0.7,
                 successReward: { type: 'coin', amount: 200, weight: 100 },
-                failPenalty: { stamina: 80 }
+                failPenalty: { stamina: 80 },
+                karma: -5
             }
         ]
     },
@@ -545,6 +547,11 @@ class ExplorationService {
                     updates.stamina = (user.stamina || 0) - choice.cost.stamina;
                 UserRepository_1.userRepository.update(userId, updates);
             }
+            // BIG UPDATE §2: Apply karma from exploration choice
+            if (choice.karma) {
+                const { karmaService } = require('./KarmaService');
+                karmaService.addKarma(userId, choice.karma);
+            }
             if (isSuccess) {
                 rewardText = this.applyReward(userId, user, choice.successReward);
             }
@@ -594,7 +601,25 @@ class ExplorationService {
             return '';
         const location = exports.EXPLORATION_LOCATIONS[locationId];
         const reward = this.weightedRandom(location.rewardPool);
-        return this.applyReward(userId, user, reward);
+        const msg = this.applyReward(userId, user, reward);
+        // BIG UPDATE §4: Soul drop from exploration (chance = danger rate × 0.5)
+        let soulMsg = '';
+        if (Math.random() < (location.dangerRate || 0.45) * 0.5) {
+            const soulTiers = [
+                { id: 'soul_holy', rate: 0.05, minDanger: 0.80 },
+                { id: 'soul_fierce', rate: 0.20, minDanger: 0.60 },
+                { id: 'soul_spirit', rate: 0.40, minDanger: 0.40 },
+                { id: 'soul_mortal', rate: 1.00, minDanger: 0 },
+            ];
+            const eligible = soulTiers.filter(s => location.dangerRate >= s.minDanger && Math.random() < s.rate);
+            const chosen = eligible.length > 0 ? eligible[0] : soulTiers[soulTiers.length - 1];
+            const soulItem = database_1.default.prepare('SELECT name FROM items WHERE id = ?').get(chosen.id);
+            if (soulItem) {
+                InventoryRepository_1.inventoryRepository.addItem(userId, chosen.id, 1);
+                soulMsg = `\n💀 Nhặt được **${soulItem.name}**! (Linh hồn vương vấn)`;
+            }
+        }
+        return msg + soulMsg;
     }
     applyReward(userId, user, reward) {
         if (reward.type === 'nothing')

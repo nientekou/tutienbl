@@ -17,6 +17,7 @@ export interface EncounterChoice {
   successRate: number;
   successReward: EncounterReward;
   failPenalty: EncounterReward;
+  karma?: number; // BIG UPDATE §2: karma change (positive=good, negative=evil)
 }
 
 export interface EncounterReward {
@@ -110,6 +111,7 @@ const LAMVIEC_ENCOUNTERS: Encounter[] = [
         successRate: 0.8,
         successReward: { contribution: 150, coins: 300, exp: 50 },
         failPenalty: { coins: -150, hp: -30 },
+        karma: 10,
       },
       {
         id: 'lv_ts_bo',
@@ -117,6 +119,7 @@ const LAMVIEC_ENCOUNTERS: Encounter[] = [
         successRate: 1.0,
         successReward: { coins: 50 },
         failPenalty: { coins: -10 },
+        karma: -5,
       },
     ],
   },
@@ -562,6 +565,14 @@ class EncounterService {
       }
     }
 
+    // BIG UPDATE §2: Apply karma change from choice
+    let karmaMsg = '';
+    if (choice.karma) {
+      const { karmaService } = require('./KarmaService');
+      const newKarma = karmaService.addKarma(userId, choice.karma);
+      karmaMsg = newKarma !== 0 ? `\n• Nghiệp lực biến hóa: **${newKarma > 0 ? '+' : ''}${newKarma}** ☯️` : '';
+    }
+
     if (Object.keys(updates).length > 0) {
       userRepository.update(userId, updates as any);
     }
@@ -614,6 +625,7 @@ class EncounterService {
         ? `✨ **Kỳ Ngộ**: ${encounter.title} - Thành công!`
         : `😅 **Kỳ Ngộ**: ${encounter.title} - Thất bại...`;
     }
+    if (karmaMsg) customMsg += karmaMsg;
 
     return {
       success: isSuccess,

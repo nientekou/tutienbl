@@ -255,7 +255,10 @@ export class CultivationInteractionHandler {
           .setDescription(result.message)
           .setTimestamp();
 
-        await safeV2Update(interaction, [embed], []);
+        const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
+        );
+        await safeV2Update(interaction, [embed], [backRow]);
       }
       return;
     }
@@ -270,7 +273,10 @@ export class CultivationInteractionHandler {
       } else {
         const res = tribulationService.handleAction(targetUserId, subAction as any);
         if (res.finished) {
-          await safeV2Update(interaction, [res.embed], []);
+          const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
+          );
+          await safeV2Update(interaction, [res.embed], [backRow]);
         } else {
           await safeV2Update(interaction, [res.embed], res.rows);
         }
@@ -360,7 +366,10 @@ export class CultivationInteractionHandler {
         .setDescription(result.message)
         .setTimestamp();
 
-      await safeV2Update(interaction, [embed], []);
+      const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
+      );
+      await safeV2Update(interaction, [embed], [backRow]);
       return;
     }
 
@@ -382,7 +391,10 @@ export class CultivationInteractionHandler {
         .setDescription(`✨ Đạo hữu tiêu hao **${cost}** Linh Thạch ổn định đạo tâm, khôi phục nguyên trạng tỷ lệ đột phá thành công!\n\n` + result.message)
         .setTimestamp();
 
-      await safeV2Update(interaction, [embed], []);
+      const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
+      );
+      await safeV2Update(interaction, [embed], [backRow]);
       return;
     }
 
@@ -492,7 +504,10 @@ export class CultivationInteractionHandler {
           header(result.success ? '✅ Kỳ Ngộ Thành Công!' : '❌ Kỳ Ngộ Thất Bại!'),
           body(result.message)
         ]);
-        await safeV2Update(interaction, [comp]);
+        const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
+        );
+        await safeV2Update(interaction, [comp], [backRow]);
         return;
       }
 
@@ -509,7 +524,10 @@ export class CultivationInteractionHandler {
           desc += `**${data.title}**\n${data.description}\n\n`;
         }
         const comp = container(V2_COLORS.mystic, [header('✨ Kỳ Ngộ Đang Chờ'), body(desc)]);
-        await safeV2Update(interaction, [comp]);
+        const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
+        );
+        await safeV2Update(interaction, [comp], [backRow]);
         return;
       }
     }

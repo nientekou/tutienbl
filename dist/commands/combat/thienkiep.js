@@ -6,6 +6,7 @@ const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InfiniteTribulationService_1 = require("../../services/InfiniteTribulationService");
 const SkillMasteryService_1 = require("../../services/SkillMasteryService");
 const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 class ThienKiepCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -20,43 +21,43 @@ class ThienKiepCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.' });
             return;
         }
         const subcommand = interaction.options.getSubcommand();
         if (subcommand === 'info') {
             const desc = InfiniteTribulationService_1.infiniteTribulationService.getDescription(userId);
-            const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('⚡ Thiên Kiếp Vô Cực')
-                .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
-                .setDescription(desc)
-                .setTimestamp();
+            const embed = (0, v2Components_1.container)(v2Components_1.V2_COLORS.mystic, [
+                (0, v2Components_1.header)('⚡ Thiên Kiếp Vô Cực', 'Chinh phạt thiên kiếp để rèn luyện căn cơ, phá vỡ xiềng xích võ học.'),
+                (0, v2Components_1.separator)(),
+                (0, v2Components_1.body)(desc)
+            ]);
             const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
                 .setCustomId(`thienkiep_start_${userId}`)
                 .setLabel('Bắt Đầu Thiên Kiếp')
                 .setStyle(discord_js_1.ButtonStyle.Danger)
                 .setEmoji('⚡'));
-            await interaction.reply((0, uiSystem_1.toV2Payload)([embed], [row]));
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
             return;
         }
         if (subcommand === 'start') {
             const canEnter = InfiniteTribulationService_1.infiniteTribulationService.canEnter(userId);
             if (!canEnter.eligible) {
-                await interaction.reply({ content: `❌ ${canEnter.reason}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${canEnter.reason}` });
                 return;
             }
             const prog = InfiniteTribulationService_1.infiniteTribulationService.getProgress(userId);
             const enemy = InfiniteTribulationService_1.infiniteTribulationService.getEnemyForFloor(prog.tier, prog.floor);
-            const embed = new discord_js_1.EmbedBuilder()
-                .setTitle(`⚡ Thiên Kiếp — Tier ${prog.tier} / Floor ${prog.floor}`)
-                .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
-                .setDescription(`**${enemy.modifier.name}**: ${enemy.modifier.description}\n\n` +
-                `👹 **Kẻ thù:**\n` +
-                `❤️ HP: ${enemy.hp.toLocaleString()}\n` +
-                `⚔️ ATK: ${enemy.atk.toLocaleString()}\n` +
-                `🛡️ DEF: ${enemy.def.toLocaleString()}\n\n` +
-                `🎫 Lượt còn lại: **${prog.attemptsLeft}**/5`)
-                .setTimestamp();
+            const embed = (0, v2Components_1.container)(v2Components_1.V2_COLORS.mystic, [
+                (0, v2Components_1.header)(`⚡ Thiên Kiếp — Tier ${prog.tier} / Floor ${prog.floor}`, `**${enemy.modifier.name}**: ${enemy.modifier.description}`),
+                (0, v2Components_1.separator)(),
+                (0, v2Components_1.body)(`👹 **Kẻ thù:**\n` +
+                    `• ❤️ HP: **${enemy.hp.toLocaleString()}**\n` +
+                    `• ⚔️ ATK: **${enemy.atk.toLocaleString()}**\n` +
+                    `• 🛡️ DEF: **${enemy.def.toLocaleString()}**`),
+                (0, v2Components_1.separator)(),
+                (0, v2Components_1.body)(`🎫 Lượt còn lại: **${prog.attemptsLeft}**/5`)
+            ]);
             const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
                 .setCustomId(`thienkiep_fight_${userId}_${prog.tier}_${prog.floor}`)
                 .setLabel('Chiến Đấu')
@@ -70,18 +71,17 @@ class ThienKiepCommand extends Command_1.Command {
                 .setLabel('Rút Lui')
                 .setStyle(discord_js_1.ButtonStyle.Secondary)
                 .setEmoji('🏃'));
-            await interaction.reply((0, uiSystem_1.toV2Payload)([embed], [row]));
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
         }
         if (subcommand === 'chien-dau') {
             const canEnter = InfiniteTribulationService_1.infiniteTribulationService.canEnter(userId);
             if (!canEnter.eligible) {
-                await interaction.reply({ content: `❌ ${canEnter.reason}`, ephemeral: true });
+                await interaction.editReply({ content: `❌ ${canEnter.reason}` });
                 return;
             }
             const prog = InfiniteTribulationService_1.infiniteTribulationService.getProgress(userId);
             const enemy = InfiniteTribulationService_1.infiniteTribulationService.getEnemyForFloor(prog.tier, prog.floor);
             const skillIndex = interaction.options.getInteger('skill') ?? 0;
-            // Build skill selection if player has equipped skills
             let skillText = 'Auto-cycle';
             try {
                 const user = UserRepository_1.userRepository.get(userId);
@@ -91,14 +91,14 @@ class ThienKiepCommand extends Command_1.Command {
                 }
             }
             catch { }
-            const embed = new discord_js_1.EmbedBuilder()
-                .setTitle(`⚡ Thiên Kiếp — Tier ${prog.tier} / Floor ${prog.floor}`)
-                .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
-                .setDescription(`**${enemy.modifier.name}**: ${enemy.modifier.description}\n\n` +
-                `👹 **Kẻ thù:** HP ${enemy.hp.toLocaleString()} | ATK ${enemy.atk.toLocaleString()} | DEF ${enemy.def.toLocaleString()}\n` +
-                `🎯 **Skill:** ${skillText}\n` +
-                `🎫 Lượt còn lại: **${prog.attemptsLeft}**/5`)
-                .setTimestamp();
+            const embed = (0, v2Components_1.container)(v2Components_1.V2_COLORS.mystic, [
+                (0, v2Components_1.header)(`⚡ Thiên Kiếp — Tier ${prog.tier} / Floor ${prog.floor}`, `**${enemy.modifier.name}**: ${enemy.modifier.description}`),
+                (0, v2Components_1.separator)(),
+                (0, v2Components_1.body)(`👹 **Kẻ thù:** HP ${enemy.hp.toLocaleString()} │ ATK ${enemy.atk.toLocaleString()} │ DEF ${enemy.def.toLocaleString()}`),
+                (0, v2Components_1.separator)(),
+                (0, v2Components_1.body)(`🎯 **Kỹ năng đã chọn:** ${skillText}\n` +
+                    `🎫 Lượt còn lại: **${prog.attemptsLeft}**/5`)
+            ]);
             const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
                 .setCustomId(`thienkiep_fight_${userId}_${prog.tier}_${prog.floor}_${skillIndex}`)
                 .setLabel('Chiến Đấu')
@@ -108,7 +108,7 @@ class ThienKiepCommand extends Command_1.Command {
                 .setLabel('Rút Lui')
                 .setStyle(discord_js_1.ButtonStyle.Secondary)
                 .setEmoji('🏃'));
-            await interaction.reply((0, uiSystem_1.toV2Payload)([embed], [row]));
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
         }
     }
 }

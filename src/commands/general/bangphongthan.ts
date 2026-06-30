@@ -1,9 +1,10 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ContainerBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { leaderboardService } from '../../services/LeaderboardService';
 import { userRepository } from '../../database/repositories/UserRepository';
-import { EMBED_COLORS, toV2Update, toV2Payload } from '../../utils/uiSystem';
+import { toV2Update, toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 
 export const LABELS: Record<string, { name: string; emoji: string; color: number; description: string }> = {
   combatPower: {
@@ -50,7 +51,7 @@ export const LABELS: Record<string, { name: string; emoji: string; color: number
   }
 };
 
-export function buildLeaderboardEmbed(userId: string, category: string, page: number): EmbedBuilder {
+export function buildLeaderboardEmbed(userId: string, category: string, page: number): ContainerBuilder {
   const typeMap: Record<string, (limit?: number) => any[]> = {
     combatPower: (l) => leaderboardService.getTopCombatPower(l || 100),
     realm: (l) => leaderboardService.getTopRealm(l || 100),
@@ -64,10 +65,9 @@ export function buildLeaderboardEmbed(userId: string, category: string, page: nu
   const getData = typeMap[category];
   const info = LABELS[category];
   if (!getData || !info) {
-    return new EmbedBuilder()
-      .setTitle('👑 Bảng Phong Thần')
-      .setColor(EMBED_COLORS.GOLD)
-      .setDescription('❌ Danh mục không hợp lệ.');
+    return container(V2_COLORS.danger, [
+      header('👑 Bảng Phong Thần', '❌ Danh mục không hợp lệ.')
+    ]);
   }
 
   const entries = getData();
@@ -86,26 +86,20 @@ export function buildLeaderboardEmbed(userId: string, category: string, page: nu
     return `${medal} **${e.name}**${isYou} — **${e.displayValue}**${extraLine}`;
   });
 
-  const embed = new EmbedBuilder()
-    .setTitle(`👑 Bảng Phong Thần — ${info.name}`)
-    .setColor(info.color)
-    .setDescription(
-      `**${info.emoji} ${info.description}**\n*(Cập nhật mỗi 5 phút)*\n\n` +
-      (lines.length > 0 ? lines.join('\n\n') : '*Hiện chưa có tu sĩ nào lọt vào bảng xếp hạng này.*')
-    )
-    .setTimestamp();
-
+  let footerText = '';
   if (userRank) {
-    embed.setFooter({
-      text: `📍 Hạng của bạn: #${userRank.rank} / ${userRank.total} | Trang ${currentPage}/${totalPages}`
-    });
+    footerText = `📍 Hạng của bạn: #${userRank.rank} / ${userRank.total} │ Trang ${currentPage}/${totalPages}`;
   } else {
-    embed.setFooter({
-      text: `📍 Đạo hữu chưa có dữ liệu trong bảng này | Trang ${currentPage}/${totalPages}`
-    });
+    footerText = `📍 Đạo hữu chưa có dữ liệu trong bảng này │ Trang ${currentPage}/${totalPages}`;
   }
 
-  return embed;
+  return container(info.color, [
+    header(`👑 Bảng Phong Thần — ${info.name}`, `${info.emoji} ${info.description}\n*(Cập nhật mỗi 5 phút)*`),
+    separator(),
+    body(lines.length > 0 ? lines.join('\n\n') : '*Hiện chưa có tu sĩ nào lọt vào bảng xếp hạng này.*'),
+    separator(),
+    body(`*${footerText}*`)
+  ]);
 }
 
 export function buildLeaderboardComponents(userId: string, category: string, page: number, totalEntries: number) {

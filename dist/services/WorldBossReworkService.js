@@ -49,7 +49,9 @@ class WorldBossReworkService {
         if (!contrib)
             return 0;
         const phaseDmg = JSON.parse(contrib.phase_damages || '{}');
-        return (phaseDmg[1] || 0) * 1.0 + (phaseDmg[2] || 0) * 1.5 + (phaseDmg[3] || 0) * 2.0;
+        // V2: 5 phases, each later phase worth more (multiplier increases)
+        return (phaseDmg[1] || 0) * 1.0 + (phaseDmg[2] || 0) * 1.3 + (phaseDmg[3] || 0) * 1.6
+            + (phaseDmg[4] || 0) * 2.0 + (phaseDmg[5] || 0) * 3.0;
     }
     getBossInfo(bossId) {
         const boss = database_1.default.prepare('SELECT * FROM world_boss WHERE id = ?').get(bossId);
@@ -196,39 +198,69 @@ class WorldBossReworkService {
         const info = this.getBossInfo(bossId);
         if (!info)
             return '❌ Không có boss active!';
-        let msg = `👹 **${info.name}** (Phase ${info.phase || 1})\n`;
+        const phase = worldBossReworkConstants_1.BOSS_PHASES.find(p => p.phase === (info.phase || 1)) || worldBossReworkConstants_1.BOSS_PHASES[0];
+        let msg = `👹 **${info.name}** — **Giai Đoạn ${info.phase || 1}: ${phase.name}**\n`;
         msg += `❤️ HP: **${info.hpPercent}%** (${info.hp}/${info.max_hp})\n`;
         msg += `⚔️ ATK: **${info.atk}** | 🛡️ DEF: **${info.def}**\n`;
-        msg += `🔥 Weakness: **${info.currentWeakness}**\n`;
-        if (info.abilities) {
-            msg += `\n**Abilities:**\n`;
-            for (const a of info.abilities) {
-                msg += `• ${a}\n`;
-            }
+        msg += `🔥 Điểm Yếu: **${info.currentWeakness}**\n`;
+        msg += `\n**Kỹ Năng Giai Đoạn ${info.phase}:**\n`;
+        for (const a of phase.abilities) {
+            msg += `• **${a.name}**: ${a.description}\n`;
         }
+        // Phase-specific mechanic warnings
+        if (phase.phase >= 3)
+            msg += `\n⚠️ **Hồi Phục:** Boss hồi 10% HP mỗi hiệp!`;
+        if (phase.phase >= 4)
+            msg += `\n⚠️ **Thôn Tính:** Boss hấp thụ sát thương nguyên tố (-50%)!`;
+        if (phase.phase === 5)
+            msg += `\n💀 **Tuyệt Vọng:** Boss sẽ hủy diệt sau 5 hiệp nếu không bị tiêu diệt!`;
         return msg;
     }
     // === V16 B-02: World Boss V2 — 5 Phases ===
-    BOSS_PHASES_V2 = [
-        { phase: 1, name: 'Sơ Khởi', hpThreshold: 1.0, mechanic: 'Basic attacks', atkMult: 1.0, defMult: 1.0 },
-        { phase: 2, name: 'Phẫn Nộ', hpThreshold: 0.7, mechanic: 'AOE + debuff', atkMult: 1.3, defMult: 1.1 },
-        { phase: 3, name: 'Hồi Phục', hpThreshold: 0.4, mechanic: 'Heal 10% HP per round', atkMult: 1.5, defMult: 1.2 },
-        { phase: 4, name: 'Thôn Tính', hpThreshold: 0.2, mechanic: 'Absorbs element damage', atkMult: 1.8, defMult: 0.8 },
-        { phase: 5, name: 'Tuyệt Vong', hpThreshold: 0.0, mechanic: 'One-shot if not killed in 5 rounds', atkMult: 2.5, defMult: 0.5 },
-    ];
-    getPhaseV2(hpPercent) {
-        for (const phase of this.BOSS_PHASES_V2) {
-            if (hpPercent > phase.hpThreshold)
-                return phase;
-        }
-        return this.BOSS_PHASES_V2[this.BOSS_PHASES_V2.length - 1];
-    }
+    // ponytail: in-memory phase 5 attack counter (lost on restart, acceptable for boss fights)
+    phase5AttackCount = new Map();
     getPhaseV2Description() {
-        let msg = '**5-Phase World Boss:**\n';
-        for (const phase of this.BOSS_PHASES_V2) {
-            msg += `• Phase ${phase.phase} (${Math.round(phase.hpThreshold * 100)}%+): ${phase.name} — ${phase.mechanic}\n`;
+        let msg = '**5-Giai Đoạn Boss:**\n';
+        for (const phase of worldBossReworkConstants_1.BOSS_PHASES) {
+            msg += `• GĐ ${phase.phase} (≤${phase.hpThreshold}%): **${phase.name}**\n`;
+            msg += `  ${phase.abilities.map(a => a.description).join('; ')}\n`;
         }
         return msg;
+    }
+    /**
+     * Apply phase mechanic effects when a player attacks the boss
+     */
+    applyPhaseMechanics(boss, hpPercent) {
+        const phase = worldBossReworkConstants_1.BOSS_PHASES.find(p => p.phase === (boss.phase || 1)) || worldBossReworkConstants_1.BOSS_PHASES[0];
+        const result = {
+            atkMult: phase.statMultiplier.atk,
+            defMult: phase.statMultiplier.def,
+            healAmount: 0,
+            absorbPct: 0,
+            phase5Attacks: 0,
+        };
+        // Phase 3: heal 10% max HP per round
+        if (phase.phase >= 3) {
+            result.healAmount = Math.round(boss.max_hp * 0.10);
+        }
+        // Phase 4: absorb element damage (reduce player damage by 50% if element matches)
+        if (phase.phase >= 4) {
+            result.absorbPct = 50;
+        }
+        // Phase 5: track attacks, one-shot after 5
+        if (phase.phase === 5) {
+            const bossId = boss.id || 'world_boss_current';
+            const count = (this.phase5AttackCount.get(bossId) || 0) + 1;
+            this.phase5AttackCount.set(bossId, count);
+            result.phase5Attacks = count;
+        }
+        return result;
+    }
+    resetPhase5Count(bossId) {
+        this.phase5AttackCount.delete(bossId);
+    }
+    getPhase5Attacks(bossId) {
+        return this.phase5AttackCount.get(bossId) || 0;
     }
 }
 exports.worldBossReworkService = new WorldBossReworkService();

@@ -13,28 +13,27 @@ const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const database_1 = __importDefault(require("../../database/database"));
 const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 /**
- * Tạo Embed hiển thị Lò Chế Tạo
+ * Tạo V2 Container hiển thị Lò Chế Tạo
  */
 function getCraftingEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
-        return new discord_js_1.EmbedBuilder()
-            .setTitle('❌ Lỗi')
-            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
-            .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
+        return (0, v2Components_1.container)(v2Components_1.V2_COLORS.danger, [
+            (0, v2Components_1.header)('❌ Lỗi'),
+            (0, v2Components_1.body)('Đạo hữu chưa khởi tạo nhân vật.')
+        ]);
     }
     const queue = CraftingService_1.craftingService.getQueue(userId);
     const inv = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
-    const embed = new discord_js_1.EmbedBuilder()
-        .setTitle(`🧪 Lò Luyện Đan & Rèn Khí - ${user.name}`)
-        .setDescription('Luyện hóa linh thảo vạn năm, rèn đúc thần sa tinh thiết tạo nên đan dược nghịch thiên và giáp binh tinh lương.')
-        .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
-        .setTimestamp();
-    // 1. Hiển thị danh mục công thức hiện có (chia nhỏ để tránh vượt 1024 ký tự/field)
+    const content = [
+        (0, v2Components_1.header)(`🧪 Lò Luyện Đan & Rèn Khí - ${user.name}`, 'Luyện hóa linh thảo vạn năm, rèn đúc thần sa tinh thiết tạo nên đan dược nghịch thiên.'),
+        (0, v2Components_1.separator)()
+    ];
+    // 1. Hiển thị danh mục công thức hiện có
     const recipeEntries = Object.entries(recipes_1.RECIPES);
-    let currentChunk = '';
-    let chunkIndex = 0;
+    let recipesText = '';
     for (const [id, r] of recipeEntries) {
         const typeLabel = r.type === 'alchemy' ? '🔮 [Luyện Đan]' : '⚒️ [Rèn Khí]';
         const ingredientsText = r.ingredients
@@ -45,26 +44,12 @@ function getCraftingEmbed(userId) {
             return `${item ? item.name : ing.itemId} (x${ing.quantity}, có x${count})`;
         })
             .join('\n• ');
-        const line = `🔹 **${r.name}** ${typeLabel}\n` +
-            `  Cấp ${r.minLevel} | ${r.duration}s | ${r.cost} LThạch\n` +
+        recipesText += `🔹 **${r.name}** ${typeLabel}\n` +
+            `  Cấp ${r.minLevel} │ ${r.duration}s │ ${r.cost} LThạch\n` +
             `  • ${ingredientsText}\n\n`;
-        // Nếu chunk hiện tại + dòng mới vượt 1000 ký tự -> lưu lại và tạo chunk mới
-        if (currentChunk.length + line.length > 1000) {
-            const fieldName = chunkIndex === 0 ? '📜 Thư Mục Công Thức (1)' : `📜 Công Thức (tiếp ${chunkIndex + 1})`;
-            embed.addFields({ name: fieldName, value: currentChunk || '*Trống.*' });
-            currentChunk = '';
-            chunkIndex++;
-        }
-        currentChunk += line;
     }
-    // Thêm chunk cuối
-    if (currentChunk) {
-        const fieldName = chunkIndex === 0 ? '📜 Thư Mục Công Thức' : `📜 Công Thức (tiếp ${chunkIndex + 1})`;
-        embed.addFields({ name: fieldName, value: currentChunk });
-    }
-    if (recipeEntries.length === 0) {
-        embed.addFields({ name: '📜 Thư Mục Công Thức', value: '*Chưa có công thức.*' });
-    }
+    content.push((0, v2Components_1.body)(`**📜 Thư Mục Công Thức**\n${recipesText || '*Chưa có công thức.*'}`));
+    content.push((0, v2Components_1.separator)());
     // 2. Hiển thị hàng chờ luyện lò hiện tại
     let queueText = '';
     if (queue.length > 0) {
@@ -82,9 +67,10 @@ function getCraftingEmbed(userId) {
     else {
         queueText = '*Lò luyện hiện tại nguội lạnh, không hoạt động.*';
     }
-    embed.addFields({ name: '🔥 Trạng Thái Hỏa Lò', value: queueText });
-    embed.addFields({ name: '💼 Linh Thạch hiện có', value: `🟤 **${user.coin_ha_pham}** Linh Thạch Hạ Phẩm` });
-    return embed;
+    content.push((0, v2Components_1.body)(`**🔥 Trạng Thái Hỏa Lò**\n${queueText}`));
+    content.push((0, v2Components_1.separator)());
+    content.push((0, v2Components_1.body)(`💼 Linh Thạch hiện có: 🟤 **${user.coin_ha_pham.toLocaleString()}** Linh Thạch Hạ Phẩm`));
+    return (0, v2Components_1.container)(v2Components_1.V2_COLORS.primary, content);
 }
 /**
  * Tạo các Component lò chế tạo
@@ -118,6 +104,9 @@ function getCraftingComponents(userId) {
         .setDisabled(!hasCompleted), new discord_js_1.ButtonBuilder()
         .setCustomId(`craftrefresh_${userId}`)
         .setLabel('🔄 Làm Mới Lò')
+        .setStyle(discord_js_1.ButtonStyle.Secondary), new discord_js_1.ButtonBuilder()
+        .setCustomId(`hosoback_${userId}`)
+        .setLabel('🔙 Quay Lại Hồ Sơ')
         .setStyle(discord_js_1.ButtonStyle.Secondary));
     rows.push(btnRow);
     return rows;

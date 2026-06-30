@@ -624,8 +624,9 @@ export function getHoSoActionMenus(userId: string): ActionRowBuilder<StringSelec
       new StringSelectMenuOptionBuilder().setLabel('🐺 Săn Bắn Yêu Thú').setValue('sanyeuthunaav').setDescription('Tiêu diệt dã thú nhặt chiến lợi phẩm'),
       new StringSelectMenuOptionBuilder().setLabel('🔮 Khiêu Chiến Bí Cảnh').setValue('bicanhnaav').setDescription('Khiêu chiến phó bản bí cảnh viễn cổ'),
       new StringSelectMenuOptionBuilder().setLabel('🏯 Khiêu Chiến Trấn Yêu Tháp').setValue('leothapnav').setDescription('Leo Tháp Vô Hạn trừ ma'),
-      new StringSelectMenuOptionBuilder().setLabel('👹 Khiêu Chiến World Boss').setValue('worldbossnav').setDescription('Đại chiến Boss toàn server'),
+      new StringSelectMenuOptionBuilder().setLabel('🛡️ Khiêu Chiến World Boss').setValue('worldbossnav').setDescription('Đại chiến Boss toàn server'),
       new StringSelectMenuOptionBuilder().setLabel('⚔️ Quyết Đấu PvP').setValue('quyetau').setDescription('Tỷ thí võ nghệ cướp linh thạch'),
+      new StringSelectMenuOptionBuilder().setLabel('⚔️ Đấu Trường PvP (Ranked)').setValue('arenanav').setDescription('Khiêu chiến đối thủ ELO nâng cao'),
       new StringSelectMenuOptionBuilder().setLabel('🌀 Luân Hồi Trọng Sinh').setValue('luanhoinnav').setDescription('Chuyển thế đầu thai nhận thuộc tính vĩnh viễn')
     );
 
@@ -641,6 +642,7 @@ export function getHoSoActionMenus(userId: string): ActionRowBuilder<StringSelec
       new StringSelectMenuOptionBuilder().setLabel('⛏️ Làm Việc Kiếm Liệu').setValue('lamviecnav').setDescription('Chặt củi, đào mỏ tích lũy linh tài'),
       new StringSelectMenuOptionBuilder().setLabel('🌿 Luyện Đan Dược').setValue('luyendannav').setDescription('Chế tạo đan dược phụ trợ'),
       new StringSelectMenuOptionBuilder().setLabel('🛠️ Chế Tạo Pháp Khí').setValue('chetaonav').setDescription('Rèn phôi chế tạo trang bị'),
+      new StringSelectMenuOptionBuilder().setLabel('⚒️ Rèn Đúc Luyện Khí').setValue('luyenkhinav').setDescription('Rèn đúc trang bị (Luyện Khí Sư)'),
       new StringSelectMenuOptionBuilder().setLabel('🌾 Chăm Sóc Linh Điền').setValue('linhdiennav').setDescription('Gieo hạt trồng trọt thảo mộc'),
       new StringSelectMenuOptionBuilder().setLabel('🏰 Quản Lý Động Phủ').setValue('dongphunav').setDescription('Quản lý Động Phủ Tiên Gia và Linh Mạch'),
       new StringSelectMenuOptionBuilder().setLabel('☯️ Trở Về Tông Môn').setValue('tonmonnav').setDescription('Bái sư bách nghệ gia nhập tông môn'),

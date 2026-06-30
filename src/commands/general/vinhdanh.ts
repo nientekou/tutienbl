@@ -29,7 +29,7 @@ class VinhDanhCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.' });
       return;
     }
 
@@ -48,7 +48,7 @@ class VinhDanhCommand extends Command {
       embed.setFooter({ text: `Hạng của đạo hữu: #${rankInfo.rank} (${rankInfo.value.toLocaleString()} điểm)` });
     }
 
-    await interaction.reply(toV2Payload([embed]));
+    await interaction.editReply(toV2Payload([embed]));
   }
 }
 

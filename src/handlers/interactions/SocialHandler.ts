@@ -1,4 +1,4 @@
-import { ButtonInteraction, StringSelectMenuInteraction, ModalSubmitInteraction, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, Routes, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
+import { ButtonInteraction, StringSelectMenuInteraction, ModalSubmitInteraction, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, Routes, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, AttachmentBuilder } from 'discord.js';
 import { sectService } from '../../services/SectService';
 import { combatService } from '../../services/CombatService';
 import { guildWarService } from '../../services/GuildWarService';
@@ -16,7 +16,11 @@ import { getLuanHoiEmbed, getLuanHoiComponents } from '../../commands/general/lu
 import { getDungeonEmbed, getDungeonComponents } from '../../commands/combat/bicanh';
 import { getSungThuEmbed, getSungThuComponents } from '../../commands/general/sungthu';
 import { getSanYeuThuEmbed, getSanYeuThuComponents, performHunt } from '../../commands/general/sanyeuthu';
-import { getTowerEmbed, getTowerComponents } from '../../commands/general/leothap';
+import { getTowerEmbed, getTowerComponents, performTowerChallenge, performTowerReset, selectTowerCard, type TowerCard } from '../../commands/general/leothap';
+import { getMountListEmbed, getMountListComponents } from '../../commands/general/toaky';
+import { getArenaProfileEmbed, getArenaProfileComponents } from '../../commands/combat/arena';
+import { arenaService } from '../../services/ArenaService';
+import { container, header, body, separator, V2_COLORS, statLine } from '../../utils/v2Components';
 import { combatLogsCache } from './CombatLogsCache';
 import { safeV2Update, safeV2TextUpdate, toV2Payload } from '../../utils/uiSystem';
 import { EMBED_COLORS } from '../../utils/uiSystem';
@@ -619,37 +623,38 @@ export class SocialHandler {
 
       // --- Nút: ĐI ĐẾN TỌA KỴ (từ hồ sơ) ---
       else if (action === 'toakynav') {
+        const user = userRepository.get(targetUserId);
+        if (!user) {
+          await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', flags: MessageFlags.Ephemeral });
+          return;
+        }
+
         const mounts = mountService.getMounts(targetUserId);
         const active = mountService.getActiveMount(targetUserId);
 
-        let desc = 'Quản lý tọa kỵ - giảm cooldown làm việc và tiết kiệm thể lực.';
-        if (active) {
-          desc = `🐎 Đang cưỡi: **${active.name}** (Tốc độ +${Math.round(active.speed_bonus * 100)}% / Tiết kiệm +${Math.round(active.stamina_save * 100)}%)`;
-        }
+        const ropeInv = db.prepare('SELECT quantity FROM inventories WHERE user_id = ? AND item_id = ?').get(targetUserId, 'thung_bat_thu') as { quantity: number } | undefined;
+        const ropesCount = ropeInv ? ropeInv.quantity : 0;
 
-        const embed = new EmbedBuilder()
-          .setTitle('🐎 TỌA KỴ')
-          .setColor(EMBED_COLORS.ORANGE)
-          .setDescription(desc);
+        const feedableItems = db.prepare(`
+          SELECT i.id as inv_id, i.item_id, item.name, item.rarity, i.quantity
+          FROM inventories i
+          JOIN items item ON i.item_id = item.id
+          WHERE i.user_id = ? AND (item.type = 'material' OR item.type = 'pill')
+          ORDER BY i.quantity DESC
+          LIMIT 5
+        `).all(targetUserId) as { inv_id: number; item_id: string; name: string; rarity: string; quantity: number }[];
 
-        if (mounts.length > 0) {
-          for (const m of mounts.slice(0, 5)) {
-            embed.addFields({
-              name: `#${m.id} ${m.name} (Cấp ${m.level}) [${m.rarity}]${m.is_active ? ' ✅' : ''}`,
-              value: `Tốc độ: +${Math.round(m.speed_bonus * 100)}% | Tiết kiệm: +${Math.round(m.stamina_save * 100)}%`,
-            });
-          }
-        } else {
-          embed.addFields({ name: '📭 Danh sách trống', value: 'Chưa có tọa kỵ nào.' });
-        }
+        const { embed, totalPages } = getMountListEmbed(user, mounts, active, ropesCount, feedableItems, 1);
+        const components = getMountListComponents(targetUserId, 1, totalPages);
 
-        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
             .setCustomId(`hosoback_${targetUserId}`)
             .setLabel('🔙 Quay Lại Hồ Sơ')
             .setStyle(ButtonStyle.Secondary)
         );
-        await safeV2Update(interaction, [embed], [row]);
+
+        await safeV2Update(interaction, [embed], [...components, backRow]);
       }
 
       // --- Nút: SỬA CHỮA TRANG BỊ (từ /suachua danhsach) ---
@@ -767,6 +772,219 @@ export class SocialHandler {
         const components = getSectComponents(targetUserId);
         await safeV2Update(interaction, [embed], components);
         await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
+      }
+
+      // --- Nút: ĐI ĐẾN ĐẤU TRƯỜNG (từ hồ sơ) ---
+      else if (action === 'arenanav') {
+        const embed = getArenaProfileEmbed(targetUserId);
+        if (!embed) {
+          await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`.', flags: MessageFlags.Ephemeral });
+          return;
+        }
+        const comps = getArenaProfileComponents(targetUserId);
+        await safeV2Update(interaction, [embed], comps);
+      }
+
+      // --- Nút: TÌM ĐỐI THỦ ĐẤU TRƯỜNG ---
+      else if (action === 'arena_find') {
+        const opponentId = arenaService.getMatchmaking(targetUserId);
+        if (!opponentId) {
+          await interaction.reply({ content: '❌ Đấu trường hiện tại vắng lặng, không tìm thấy đối thủ nào! Hãy quay lại sau.', flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        const oUser = userRepository.get(opponentId);
+        if (!oUser) {
+          await interaction.reply({ content: '❌ Đối thủ bỗng nhiên bốc hơi, vui lòng thử lại.', flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        const user = userRepository.get(targetUserId)!;
+        const oldChallengerProfile = arenaService.getProfile(targetUserId);
+        const oldOpponentProfile = arenaService.getProfile(opponentId);
+
+        const matchResult = arenaService.challenge(targetUserId, opponentId);
+        
+        if (!matchResult.success || !matchResult.result) {
+          await interaction.reply({ content: `❌ ${matchResult.message || 'Lỗi khiêu chiến!'}`, flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        const newChallengerProfile = arenaService.getProfile(targetUserId);
+        const eloDiff = newChallengerProfile.elo - oldChallengerProfile.elo;
+        const isWin = matchResult.result.winner === 'player';
+
+        const logText = matchResult.result.log.join('\n');
+        const attachment = new AttachmentBuilder(Buffer.from(logText, 'utf-8'), { name: 'combat_log.txt' });
+
+        let resultText = '';
+        if (isWin) {
+          resultText = `🎉 **CHIẾN THẮNG!** Đạo hữu đã đánh bại **${oUser.name}**.\n📈 **ELO:** ${oldChallengerProfile.elo} ➔ **${newChallengerProfile.elo}** (+${eloDiff})`;
+          if (matchResult.artifactMessage) {
+            resultText += `\n\n${matchResult.artifactMessage}`;
+          }
+        } else {
+          resultText = `💀 **THẤT BẠI!** Đạo hữu đã gục ngã trước **${oUser.name}**.\n📉 **ELO:** ${oldChallengerProfile.elo} ➔ **${newChallengerProfile.elo}** (${eloDiff})`;
+        }
+
+        const comp = container(isWin ? V2_COLORS.success : V2_COLORS.danger, [
+          header('⚔️ KẾT QUẢ ĐẤU TRƯỜNG'),
+          body(`**${user.name}** (ELO: ${oldChallengerProfile.elo}) 🆚 **${oUser.name}** (ELO: ${oldOpponentProfile.elo})\n\n${resultText}`),
+          separator(),
+          body([
+            statLine('Trận chiến kéo dài', `${matchResult.result.rounds} hiệp`),
+            statLine('Tổng sát thương', `${matchResult.result.totalDamageDealt}`),
+          ].join('\n')),
+          separator(),
+          body('Chi tiết trận đấu được đính kèm trong file.'),
+        ]);
+
+        const nextRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder().setCustomId(`arena_find_${targetUserId}`).setLabel('⚡ Tìm Tiếp').setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId(`arenanav_${targetUserId}`).setLabel('🔙 Đấu Trường').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Hồ Sơ').setStyle(ButtonStyle.Danger)
+        );
+
+        if (interaction.deferred || interaction.replied) {
+          await interaction.followUp({ embeds: [comp as any], components: [nextRow], files: [attachment] });
+        } else {
+          await interaction.reply({ embeds: [comp as any], components: [nextRow], files: [attachment] });
+        }
+      }
+
+      // --- Nút: LỊCH SỬ ĐẤU TRƯỜNG ---
+      else if (action === 'arena_history') {
+        const history = db.prepare(`
+          SELECT * FROM arena_history 
+          WHERE challenger_id = ? OR opponent_id = ?
+          ORDER BY created_at DESC 
+          LIMIT 5
+        `).all(targetUserId, targetUserId) as any[];
+
+        if (history.length === 0) {
+          await interaction.reply({ content: '📭 Đạo hữu chưa tham gia trận đấu nào.', flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        let desc = '';
+        for (const h of history) {
+          const isChallenger = h.challenger_id === targetUserId;
+          const isWin = h.winner_id === targetUserId;
+          const opponentId = isChallenger ? h.opponent_id : h.challenger_id;
+          const oUser = userRepository.get(opponentId);
+          const oName = oUser ? oUser.name : 'Vô Danh';
+          
+          const resultIcon = isWin ? '✅ Thắng' : '❌ Thua';
+          const eloMod = isWin ? `+${h.elo_change}` : `-${h.elo_change}`;
+          const timeStr = `<t:${h.created_at}:R>`;
+
+          desc += `**${resultIcon}** vs **${oName}** (${eloMod} ELO) - ${timeStr}\n`;
+        }
+
+        const comp = container(V2_COLORS.mystic, [
+          header('📜 Lịch Sử Đấu Trường (5 Trận Gần Nhất)'),
+          body(desc),
+        ]);
+
+        const nextRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder().setCustomId(`arenanav_${targetUserId}`).setLabel('🔙 Đấu Trường').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Hồ Sơ').setStyle(ButtonStyle.Danger)
+        );
+
+        await safeV2Update(interaction, [comp], [nextRow]);
+      }
+
+      // --- Nút: BẢNG XẾP HẠNG ĐẤU TRƯỜNG ---
+      else if (action === 'arena_top') {
+        const topPlayers = arenaService.getLeaderboard(10);
+
+        if (topPlayers.length === 0) {
+          await interaction.reply({ content: '📭 Bảng xếp hạng Đấu Trường hiện tại trống rỗng.', flags: MessageFlags.Ephemeral });
+          return;
+        }
+
+        let description = '';
+        topPlayers.forEach((p, index) => {
+          let rankIcon = '🏅';
+          if (index === 0) rankIcon = '🥇';
+          else if (index === 1) rankIcon = '🥈';
+          else if (index === 2) rankIcon = '🥉';
+
+          description += `**${rankIcon} #${index + 1}** | **${p.name}**\n`;
+          description += `└─ 🏆 ELO: **${p.elo}** | ⚔️ W/L: ${p.wins}/${p.losses} | 🔥 Chuỗi: ${p.win_streak}\n\n`;
+        });
+
+        const comp = container(V2_COLORS.gold, [
+          header('🏆 BẢNG XẾP HẠNG ĐẤU TRƯỜNG (TOP 10)'),
+          body(description),
+        ]);
+
+        const nextRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder().setCustomId(`arenanav_${targetUserId}`).setLabel('🔙 Đấu Trường').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Hồ Sơ').setStyle(ButtonStyle.Danger)
+        );
+
+        await safeV2Update(interaction, [comp], [nextRow]);
+      }
+
+      // --- Nút: CHỌN THẺ CHÚC PHÚC LEO THÁP (Card Draft) ---
+      else if (action === 'leothapcard') {
+        // customId: leothapcard_cardId_here_userId → reconstruct cardId from parts[1..end-1]
+        const cardId = parts.slice(1, parts.length - 1).join('_');
+        const res = selectTowerCard(targetUserId, cardId);
+        if (res.success) {
+          const comps = getTowerComponents(targetUserId);
+          const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
+          );
+          await safeV2Update(interaction, [res.embed], [...comps, backRow]);
+        } else {
+          await safeV2Update(interaction, [res.embed], []);
+        }
+      }
+
+      // --- Nút: TƯƠNG TÁC LEO THÁP (Khiêu Chiến & Khởi Đầu) ---
+      else if (action === 'leothap') {
+        const subAction = parts[1]; // 'khieuchien' or 'khoidau'
+
+        if (subAction === 'khieuchien') {
+          const res = performTowerChallenge(targetUserId);
+          const comps = getTowerComponents(targetUserId);
+          const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
+          );
+
+          if (res.draftCards && res.draftCards.length > 0) {
+            // BIG UPDATE §1: Show card draft buttons
+            const cardRow = new ActionRowBuilder<ButtonBuilder>();
+            for (const card of res.draftCards) {
+              cardRow.addComponents(
+                new ButtonBuilder()
+                  .setCustomId(`leothapcard_${card.id}_${targetUserId}`)
+                  .setLabel(`${card.emoji} ${card.name}`)
+                  .setStyle(ButtonStyle.Primary)
+              );
+            }
+            await safeV2Update(interaction, [res.embed], [cardRow]);
+          } else if (res.message && (res.message.includes('Suối Linh') || res.message.includes('Lễ Hộp') || res.message.includes('Tiệm Tỳ Bà') || res.message.includes('Cờ Tỷ Phú'))) {
+            const nextRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+              new ButtonBuilder().setCustomId(`leothapnav_${targetUserId}`).setLabel('➡️ Tiếp Tục Tháp').setStyle(ButtonStyle.Primary),
+              new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
+            );
+            await safeV2Update(interaction, [res.embed], [nextRow]);
+          } else {
+            await safeV2Update(interaction, [res.embed], [...comps, backRow]);
+          }
+        } 
+        
+        else if (subAction === 'khoidau') {
+          const res = performTowerReset(targetUserId);
+          const comps = getTowerComponents(targetUserId);
+          const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
+          );
+          await safeV2Update(interaction, [res.embed], [...comps, backRow]);
+        }
       }
 
     } catch (error: any) {

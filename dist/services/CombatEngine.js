@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CombatEngine = void 0;
 const LeylineService_1 = require("./LeylineService");
 const CombatEffectService_1 = require("./CombatEffectService");
+const ElementalService_1 = require("./ElementalService");
 class CombatEngine {
     /**
      * Giả lập trận đấu Turn-based giữa Người chơi và Quái vật/Boss
@@ -17,16 +18,22 @@ class CombatEngine {
         let playerParalyzed = false;
         let playerDodge = false;
         let playerGuarding = false; // V12 A-01: Guard/Defend
+        // BIG UPDATE §2: Auto-apply karma crit bonus from user data
+        if (!player.karmaCritBonus && player.userId) {
+            try {
+                const { karmaService } = require('./KarmaService');
+                const critBonus = karmaService.getCritBonus(player.userId);
+                if (critBonus > 0)
+                    player.karmaCritBonus = critBonus;
+            }
+            catch { }
+        }
         // E-02: Initialize combat effects from combatant data
         let playerEffects = player.effects ? [...player.effects.map(e => ({ ...e }))] : [];
         let enemyEffects = enemy.effects ? [...enemy.effects.map(e => ({ ...e }))] : [];
-        // V12 A-03: Elemental Combo tracking
-        let lastUsedElement = null;
-        let consecutiveElement = 0; // V15 A-02: chain counter
-        let elementalStreak = 0; // V15 A-04: weakness exploitation streak
-        const ELEMENT_COUNTERS = {
-            'Hoa': 'Kim', 'Kim': 'Moc', 'Moc': 'Tho', 'Tho': 'Thuy', 'Thuy': 'Hoa', 'Loi': 'Thuy', 'Phong': 'Loi'
-        };
+        // BIG UPDATE §10: Ấn Ký Ngũ Hành & Phản Ứng Đạo Pháp
+        let enemyElementalMark = null;
+        let enemyDefDownTurns = 0;
         // Load active Heart Laws
         let playerHeartLaws = player.heartLaws;
         if (!playerHeartLaws && player.userId) {
@@ -249,6 +256,7 @@ class CombatEngine {
         let rageTurnsLeft = 0;
         let playerRevived = false;
         let petRebornTriggered = false;
+        let petRescueTriggered = false; // BIG UPDATE §3: Pet Hộ Chủ (rescue_master)
         // Phân tích Linh Căn của người chơi
         let elements = {};
         if (player.linhCan) {
@@ -305,7 +313,6 @@ class CombatEngine {
                 }
             }
         }
-        // Hỏa Chân Linh Căn (>= 40%): Tự động thiêu đốt kẻ địch ở hiệp 1
         // Hỏa Chân Linh Căn (>= 40%): Tự động thiêu đốt kẻ địch ở hiệp 1
         if (elements['Hỏa'] >= 40) {
             enemyBurnTicks = 2;
@@ -450,6 +457,15 @@ class CombatEngine {
                 enemyHp -= enemyBurnDamage;
                 log.push(`🔥 **Hỏa Phế:** Hỏa diễm cuồn cuộn đốt cháy, **${enemy.name}** chịu **-${enemyBurnDamage}** sát thương thiêu đốt! (Còn lại: ${Math.max(0, enemyHp)} HP)`);
                 enemyBurnTicks--;
+            }
+            // BIG UPDATE §10: Bạo Viêm Lôi DEF down tick
+            if (enemyDefDownTurns > 0)
+                enemyDefDownTurns--;
+            // BIG UPDATE §1: Floor 50+ environment drain (HP loss per round)
+            if (enemy.environmentDrain && playerHp > 0) {
+                const drainAmt = Math.max(1, Math.round(playerMaxHp * enemy.environmentDrain));
+                playerHp -= drainAmt;
+                log.push(`🌑 **[Môi Trường Hút Linh]** Mất **-${drainAmt}** HP do linh khí bị hút cạn! (Còn lại: ${Math.max(0, playerHp)} HP)`);
             }
             // E-02: Process combat effects (DoT, CC, buffs)
             if (playerEffects.length > 0 && playerHp > 0) {
@@ -677,6 +693,9 @@ class CombatEngine {
                         }
                     }
                 }
+                // BIG UPDATE §1: Card draft lifesteal
+                if (player.cardLifesteal)
+                    playerLifesteal += player.cardLifesteal;
                 // Đòn đánh chính của Người chơi (kiểm tra quái vật né tránh)
                 if (enemyHp > 0) {
                     const baseDodge = enemy.dodge ?? 0.05;
@@ -726,6 +745,10 @@ class CombatEngine {
                         if ((elements['Hỏa'] ?? 0) >= 90) {
                             enemyDef = Math.round(enemyDef * 0.8);
                         }
+                        // BIG UPDATE §10: Bạo Viêm Lôi DEF reduction
+                        if (enemyDefDownTurns > 0) {
+                            enemyDef = Math.round(enemyDef * 0.5);
+                        }
                         // BIG UPDATE: Balance rework - DEF ratio reduced weight, cap 70%, variance ±5%
                         const defRatio = enemyDef / (player.atk * 0.7 + enemyDef);
                         const reduction = Math.min(0.70, defRatio);
@@ -774,15 +797,28 @@ class CombatEngine {
                                     (ee === 'Thủy' && pe === 'Hỏa') ||
                                     (ee === 'Hỏa' && pe === 'Kim');
                                 if (isAdvantage) {
-                                    // P7-01: Five Elements nerfed from 1.5x to 1.25x
-                                    elemMult = 1.25;
-                                    elementText += ` 🌟 *(Khắc hệ: +25% Sát thương)*`;
+                                    // V17 B-01: buffed from 1.25x to 1.30x + ignore 20% target DEF
+                                    elemMult = 1.30;
+                                    elementText += ` 🌟 *(Khắc hệ: +30% Sát thương)*`;
+                                    enemy.def = Math.round((enemy.def || 0) * 0.8);
                                 }
                                 else if (isDisadvantage) {
                                     elemMult = 0.75;
                                     elementText += ` ⚠️ *(Bị khắc: -25% Sát thương)*`;
                                 }
                                 baseDamage = Math.round(baseDamage * elemMult);
+                            }
+                            // V17 B-01: Elemental mastery bonus
+                            if (activeSkill) {
+                                const elementNames = { 'Hoa': 'Hoa', 'Thuy': 'Thuy', 'Moc': 'Moc', 'Kim': 'Kim', 'Tho': 'Tho', 'Loi': 'Loi', 'Phong': 'Phong' };
+                                const elementName = elementNames[activeSkill.element];
+                                if (elementName && player.userId) {
+                                    const masteryBonus = ElementalService_1.elementalService.getMasteryBonus(player.userId, elementName);
+                                    if (masteryBonus > 0) {
+                                        baseDamage = Math.round(baseDamage * (1 + masteryBonus));
+                                        elementText += ` 📖 *(Tinh Thông: +${Math.round(masteryBonus * 100)}%)*`;
+                                    }
+                                }
                             }
                         }
                         // V14 D-03: Weather Elemental Bonus
@@ -791,51 +827,51 @@ class CombatEngine {
                             baseDamage = Math.round(baseDamage * weatherBonus);
                             elementText += ` 🌤️ *(Thời tiết: +${Math.round(player.weatherElementBonus.value * 100)}%)*`;
                         }
-                        // V12 A-03: Elemental Combo System + V15 A-02 Chain + A-04 Weakness
-                        if (activeSkill && lastUsedElement) {
+                        // BIG UPDATE §10: Ấn Ký Ngũ Hành & Phản Ứng Đạo Pháp
+                        if (activeSkill) {
                             const currentElement = activeSkill.element;
-                            if (currentElement === lastUsedElement) {
-                                consecutiveElement++;
-                                // V15 A-02: Chain bonus scales with count
-                                let chainMult = 1.20; // base 2-hit combo
-                                if (consecutiveElement >= 3)
-                                    chainMult = 1.40; // 3-hit: +40%
-                                if (consecutiveElement >= 4)
-                                    chainMult = 1.60; // 4+: +60% "Đại Liên Hoàn"
-                                baseDamage = Math.round(baseDamage * chainMult);
-                                const chainLabel = consecutiveElement >= 4 ? '🔥🔥🔥 **ĐẠI LIÊN HOÀN!' : `🔥 **LIÊN HOÀN ${currentElement.toUpperCase()}!**`;
-                                elementText += ` ${chainLabel} (+${Math.round((chainMult - 1) * 100)}%)`;
-                                // V15 A-02: At 3+ chain, trigger element proc
-                                if (consecutiveElement >= 3 && enemy.element) {
-                                    if (currentElement === 'Hỏa') {
-                                        enemyBurnTicks = Math.max(enemyBurnTicks, 2);
-                                        enemyBurnDamage = Math.max(enemyBurnDamage, Math.round(player.atk * 0.05));
+                            if (enemyElementalMark) {
+                                const pairKey = [currentElement, enemyElementalMark].sort().join('+');
+                                const reactions = {
+                                    'Lôi+Thủy': {
+                                        name: 'Khống Lôi Diên', icon: '⚡🌊',
+                                        apply: () => {
+                                            const trueDmg = Math.round(enemyMaxHp * 0.20);
+                                            enemyHp -= trueDmg;
+                                            totalDamageDealt += trueDmg;
+                                            enemyParalyzed = true;
+                                            elementText += ` ⚡🌊 **[Khống Lôi Diên]:** Xuyên giáp **-${trueDmg}** (20% HP) + Tê Liệt!`;
+                                        }
+                                    },
+                                    'Hỏa+Mộc': {
+                                        name: 'Bạo Viêm Lôi', icon: '🔥🌿',
+                                        apply: () => {
+                                            enemyBurnTicks = Math.max(enemyBurnTicks, 3);
+                                            enemyBurnDamage = Math.max(enemyBurnDamage, Math.round(player.atk * 0.15));
+                                            enemyDefDownTurns = 3;
+                                            elementText += ` 🔥🌿 **[Bạo Viêm Lôi]:** Thiêu đốt x3 + Giảm phòng ngự 3 hiệp!`;
+                                        }
+                                    },
+                                    'Thổ+Thủy': {
+                                        name: 'Hóa Bùn Lầy', icon: '🌍💧',
+                                        apply: () => {
+                                            enemyParalyzed = true;
+                                            elementText += ` 🌍💧 **[Hóa Bùn Lầy]:** Quái vật sa lầy, mất lượt tấn công!`;
+                                        }
                                     }
-                                    else if (currentElement === 'Thủy') {
-                                        const heal = Math.round(playerMaxHp * 0.05);
-                                        playerHp = Math.min(playerMaxHp, playerHp + heal);
-                                    }
-                                    else if (currentElement === 'Lôi') {
-                                        enemyParalyzed = true;
-                                    }
+                                };
+                                const reaction = reactions[pairKey];
+                                if (reaction) {
+                                    reaction.apply();
+                                    enemyElementalMark = null;
+                                }
+                                else {
+                                    enemyElementalMark = currentElement;
                                 }
                             }
-                            else if (ELEMENT_COUNTERS[currentElement] === lastUsedElement) {
-                                // Counter element: +30% + V15 A-04 weakness streak
-                                elementalStreak++;
-                                const streakBonus = Math.min(0.50, elementalStreak * 0.10); // +10% per hit, cap 50%
-                                baseDamage = Math.round(baseDamage * (1.30 + streakBonus));
-                                elementText += ` ⚡ **KHẮC CHẾ!** (+${Math.round((0.30 + streakBonus) * 100)}%)`;
-                                consecutiveElement = 0;
-                            }
                             else {
-                                consecutiveElement = 0;
-                                elementalStreak = 0; // V15 A-04: break weakness streak
+                                enemyElementalMark = currentElement;
                             }
-                            lastUsedElement = currentElement;
-                        }
-                        else if (activeSkill) {
-                            lastUsedElement = activeSkill.element;
                         }
                         // V14 D-04: Daily Rotation PvP Element Bonus
                         if (dailyRotationBonus > 0 && activeSkill) {
@@ -873,7 +909,10 @@ class CombatEngine {
                             elementText += ` 🌟 *(Tâm Pháp [${suppressionHL.lawName}]: +${Math.round(suppressionHL.value * 100)}% Sát thương vượt cấp)*`;
                         }
                         if (isCrit) {
-                            baseDamage = Math.round(baseDamage * 1.5);
+                            let critMult = 1.5;
+                            if (player.karmaCritBonus)
+                                critMult += player.karmaCritBonus;
+                            baseDamage = Math.round(baseDamage * critMult);
                         }
                         if (isLoiTriggered) {
                             baseDamage = Math.round(baseDamage * playerLoiDamageMult);
@@ -1139,8 +1178,14 @@ class CombatEngine {
                 }
             }
             if (playerHp <= 0) {
+                // BIG UPDATE §3: Pet Hộ Chủ - chặn đòn chí tử (trước huyết mạch revive)
+                if (pet && pet.skills && pet.skills.includes('rescue_master') && !petRescueTriggered && !isDreamscape) {
+                    playerHp = Math.round(playerMaxHp * 0.20);
+                    petRescueTriggered = true;
+                    log.push(`\n🐉 **[Sủng Thú - Hộ Chủ]** **${pet.name}** dùng thân mình chặn đòn chí tử, chủ nhân hồi phục **${playerHp}** HP!`);
+                }
                 // Xử lý Hồi sinh của Phượng Hoàng
-                if (player.bloodline && player.bloodline.passives.revive_chance && !playerRevived) {
+                else if (player.bloodline && player.bloodline.passives.revive_chance && !playerRevived) {
                     let reviveRate = player.bloodline.passives.revive_chance;
                     if (rageActive)
                         reviveRate *= (player.bloodline.rage_effect.multiplier || 2);

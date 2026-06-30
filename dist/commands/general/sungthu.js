@@ -15,6 +15,9 @@ const sanyeuthu_1 = require("./sanyeuthu");
 const constants_1 = require("../../utils/constants");
 const database_1 = __importDefault(require("../../database/database"));
 const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
+const itemConstants_1 = require("../../config/itemConstants");
+const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 // Định nghĩa kỹ năng linh thú
 exports.PET_SKILLS = {
     crit_bite: { name: 'Cắn Chí Mạng', emoji: '🖥️', description: 'Tăng 3% tỷ lệ bạo kích khi trợ chiến.', minLevel: 5 },
@@ -32,25 +35,27 @@ exports.PET_SKILLS = {
     phoenix_rebirth: { name: 'Phượng Hoàng Tái Sinh', emoji: '🔥', description: 'Miễn dịch Ngộ Độc, Tái Sinh 1 lần/trận với 30% HP khi tử vong.', minLevel: 1 },
     sky_agile: { name: 'Cửu Thiên Phong Tốc', emoji: '💨', description: '+8% tốc độ đánh và +8% né tránh cho chủ nhân khi xuất chiến.', minLevel: 1 },
     nine_charm: { name: 'Hồn Mê Chỉ Pháp', emoji: '🌸', description: '+10% né tránh, gây mê 1 hiệp lên kẻ địch khi bị tấn công.', minLevel: 1 },
+    rescue_master: { name: 'Hộ Chủ', emoji: '🐉', description: 'Khi chủ nhân sắp tử vong, linh thú chặn đòn chí tử và hồi phục 20% HP (1 lần/trận). Yêu cầu vượt Lôi Kiếp Độ Kiếp.', minLevel: 100 },
 };
 // === Helper functions for button handlers ===
 const PETS_PER_PAGE = 5;
 function getSungThuEmbed(userId, page = 1) {
     const user = UserRepository_1.userRepository.get(userId);
     const allPets = database_1.default.prepare('SELECT * FROM pets WHERE user_id = ?').all(userId);
-    const embed = new discord_js_1.EmbedBuilder()
-        .setTitle(`🐾 LINH THÚ CÁC - ${user?.name || 'Không xác định'}`)
-        .setColor(uiSystem_1.EMBED_COLORS.CAVE)
-        .setDescription('Sủng thú trợ chiến giúp tăng sát thương khi công kích Boss Thế Giới và vượt phó bản Bí Cảnh.\n\n👯‍♂️ **Thiết Lập:** Dùng `/sungthu xuatchien` để phái xuất chiến | `/sungthu thuctinhkynang` để thức tỉnh kỹ năng | `/sungthu laitao` lai tạo dị biến.')
-        .setTimestamp();
     if (allPets.length === 0) {
-        embed.setDescription('*Đạo hữu hiện chưa thu phục được linh thú nào. Hãy sử dụng lệnh `/sanyeuthu` dã ngoại để tìm bắt linh thú!*');
-        return embed;
+        return (0, v2Components_1.container)(v2Components_1.V2_COLORS.info, [
+            (0, v2Components_1.header)(`🐾 LINH THÚ CÁC - ${user?.name || 'Không xác định'}`, 'Sủng thú trợ chiến giúp tăng sát thương khi công kích Boss Thế Giới và vượt phó bản Bí Cảnh.'),
+            (0, v2Components_1.separator)(),
+            (0, v2Components_1.body)('*Đạo hữu hiện chưa thu phục được linh thú nào. Hãy sử dụng lệnh `/sanyeuthu` dã ngoại để tìm bắt linh thú!*')
+        ]);
     }
     const totalPages = Math.max(1, Math.ceil(allPets.length / PETS_PER_PAGE));
     const currentPage = Math.min(page, totalPages);
     const startIdx = (currentPage - 1) * PETS_PER_PAGE;
     const pets = allPets.slice(startIdx, startIdx + PETS_PER_PAGE);
+    const content = [
+        (0, v2Components_1.header)(`🐾 LINH THÚ CÁC - ${user?.name || 'Không xác định'}`, 'Sủng thú trợ chiến giúp tăng sát thương khi công kích Boss Thế Giới và vượt phó bản Bí Cảnh.\n\n👯‍♂️ **Thiết Lập:** Dùng `/sungthu xuatchien` để phái xuất chiến │ `/sungthu laitao` lai tạo dị biến.'),
+    ];
     for (const pet of pets) {
         const status = pet.is_deployed === 1 ? '⚔️ **[ĐANG XUẤT CHIẾN]**' : '💤 Trong lồng thú';
         const rarityEmoji = { common: '⚪', uncommon: '🟢', rare: '🔵', epic: '🟣', legendary: '🟡' };
@@ -83,7 +88,7 @@ function getSungThuEmbed(userId, page = 1) {
             const nextSkillLevel = lockedSkills[0][1].minLevel;
             const hasAvailable = lockedSkills.some(([, sk]) => pet.level >= sk.minLevel);
             if (hasAvailable) {
-                evolutionHint = `\n💡 *Có thể thức tỉnh kỹ năng mới! Dùng /sungthu thuctinhkynang.*`;
+                evolutionHint = `\n💡 *Có thể thức tỉnh kỹ năng mới! Dùng /sungthu laitao.*`;
             }
             else {
                 evolutionHint = `\n🔒 *Kỹ năng tiếp theo mở khoá ở cấp ${nextSkillLevel} (Hiện cấp ${pet.level}).*`;
@@ -106,21 +111,19 @@ function getSungThuEmbed(userId, page = 1) {
         const genderText = pet.gender === 0 ? 'Đực ♂️' : 'Cái ♀️';
         const expNeeded = pet.level * 100;
         const expBar = (0, constants_1.getProgressBar)(pet.exp, expNeeded, 10);
-        embed.addFields({
-            name: `${emoji} ID: \`${pet.id}\` | ${pet.name}${starStr} (Cấp ${pet.level}) [${pet.rarity.toUpperCase()}]`,
-            value: [
-                `• Trạng thái: ${status}`,
-                `• Giới tính: **${genderText}**`,
-                `• EXP: ${expBar} (${(0, constants_1.formatNumber)(pet.exp)}/${(0, constants_1.formatNumber)(expNeeded)})`,
-                `• Chỉ số: ⚔️ ATK **${displayAtk}**${bonusAtk} | 🛡️ DEF **${displayDef}**${bonusDef} | ❤️ HP **${displayHp}**${bonusHp}`,
-                `• Kỹ Năng:\n${skillsText}${evolutionHint}`
-            ].join('\n')
-        });
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)(`🐾 **${pet.name}${starStr}** (Cấp ${pet.level}) [${pet.rarity.toUpperCase()}]\n` +
+            `└ ID: \`${pet.id}\` │ Giới tính: **${genderText}**\n` +
+            `└ Trạng thái: ${status}\n` +
+            `└ EXP: ${expBar} (${(0, constants_1.formatNumber)(pet.exp)}/${(0, constants_1.formatNumber)(expNeeded)})\n` +
+            `└ Chỉ số: ⚔️ ATK **${displayAtk}**${bonusAtk} │ 🛡️ DEF **${displayDef}**${bonusDef} │ ❤️ HP **${displayHp}**${bonusHp}\n` +
+            `└ Kỹ Năng:\n${skillsText}${evolutionHint}`));
     }
     if (totalPages > 1) {
-        embed.setFooter({ text: `📄 Trang ${currentPage}/${totalPages} • Tổng số: ${allPets.length} linh thú` });
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)(`*📄 Trang ${currentPage}/${totalPages} • Tổng số: ${allPets.length} linh thú*`));
     }
-    return embed;
+    return (0, v2Components_1.container)(v2Components_1.V2_COLORS.info, content);
 }
 function getSungThuComponents(userId, page = 1) {
     const allPets = database_1.default.prepare('SELECT * FROM pets WHERE user_id = ?').all(userId);
@@ -193,7 +196,11 @@ class SungThuCommand extends Command_1.Command {
             .addSubcommand(sub => sub
             .setName('hocky')
             .setDescription('Học kỹ năng mới cho linh thú cấp 70+ (Phí 5,000 Linh Thạch).')
-            .addIntegerOption(opt => opt.setName('pet_id').setDescription('ID linh thú cần học kỹ năng.').setRequired(true))));
+            .addIntegerOption(opt => opt.setName('pet_id').setDescription('ID linh thú cần học kỹ năng.').setRequired(true)))
+            .addSubcommand(sub => sub
+            .setName('dokiep')
+            .setDescription('Độ Lôi Kiếp cho linh thú cấp 100+ để tiến hóa và thức tỉnh kỹ năng Hộ Chủ.')
+            .addIntegerOption(opt => opt.setName('pet_id').setDescription('ID linh thú cần độ kiếp.').setRequired(true))));
     }
     async execute(client, interaction) {
         const userId = interaction.user.id;
@@ -532,6 +539,79 @@ class SungThuCommand extends Command_1.Command {
             await interaction.editReply({
                 content: `📚 **HỌC KỸ NĂNG THÀNH CÔNG!** (-5,000 LT)\n\n🐉 Linh thú **${pet.name}** đã lĩnh hội kỹ năng mới!\n\n${skillDef.emoji} **${skillDef.name}**: ${skillDef.description}`
             });
+            return;
+        }
+        // --- SUBCOMMAND: ĐỘ KIẾP LÔI (Lôi Kiếp Sủng Thú Cấp 100+) ---
+        if (sub === 'dokiep') {
+            const petId = interaction.options.getInteger('pet_id', true);
+            const pet = database_1.default.prepare('SELECT * FROM pets WHERE id = ? AND user_id = ?').get(petId, userId);
+            if (!pet) {
+                await interaction.editReply({ content: '❌ Linh thú không tồn tại!' });
+                return;
+            }
+            if (pet.level < 100) {
+                await interaction.editReply({ content: `❌ **${pet.name}** chưa đạt cấp 100 để độ kiếp! (Hiện cấp **${pet.level}**)` });
+                return;
+            }
+            const curSkills = JSON.parse(pet.skills || '[]');
+            if (curSkills.includes('rescue_master')) {
+                await interaction.editReply({ content: `❌ **${pet.name}** đã vượt qua Lôi Kiếp, không thể độ kiếp lần nữa!` });
+                return;
+            }
+            // Kiểm tra Hộ Thú Đan trong túi đồ
+            const protectItem = database_1.default.prepare('SELECT quantity FROM inventory WHERE user_id = ? AND item_id = ?').get(userId, itemConstants_1.ITEMS.PILL_PET_TRIBULATION_PROTECT);
+            const hasProtect = protectItem && protectItem.quantity > 0;
+            // Lôi Kiếp: 5 đạo sét
+            let survivedBolts = 0;
+            const tribulationLog = [];
+            for (let bolt = 1; bolt <= 5; bolt++) {
+                let survivalRate = 0.85; // cơ bản 85%
+                survivalRate += (pet.base_def / 100) * 0.02; // mỗi 100 DEF +2%
+                survivalRate += (pet.base_hp / 100) * 0.01; // mỗi 100 HP +1%
+                if (hasProtect)
+                    survivalRate += 0.20; // Hộ Thú Đan +20%
+                survivalRate = Math.min(0.98, survivalRate);
+                if (Math.random() < survivalRate) {
+                    survivedBolts++;
+                    tribulationLog.push(`⚡ **Lôi Kiếp ${bolt}/5**: **${pet.name}** chịu đựng được! (${(survivalRate * 100).toFixed(0)}%)`);
+                }
+                else {
+                    tribulationLog.push(`💥 **Lôi Kiếp ${bolt}/5**: **${pet.name}** gục ngã! (${(survivalRate * 100).toFixed(0)}%)`);
+                    break;
+                }
+            }
+            // Tiêu hao Hộ Thú Đan nếu có
+            if (hasProtect) {
+                InventoryRepository_1.inventoryRepository.removeItem(userId, itemConstants_1.ITEMS.PILL_PET_TRIBULATION_PROTECT, 1);
+            }
+            if (survivedBolts === 5) {
+                // THÀNH CÔNG: tiến hóa + thức tỉnh Hộ Chủ
+                const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+                const curIdx = rarityOrder.indexOf(pet.rarity);
+                const newRarity = curIdx < rarityOrder.length - 1 ? rarityOrder[curIdx + 1] : 'legendary';
+                curSkills.push('rescue_master');
+                const cleanName = pet.name.replace(' 👑', '');
+                database_1.default.transaction(() => {
+                    database_1.default.prepare('UPDATE pets SET rarity = ?, skills = ?, name = ? || \' 👑\' WHERE id = ?')
+                        .run(newRarity, JSON.stringify(curSkills), cleanName, pet.id);
+                })();
+                await interaction.editReply({
+                    content: `🌟 **ĐỘ KIẾP THÀNH CÔNG!** 🌟\n\n${tribulationLog.join('\n')}\n\n` +
+                        `✨ **${cleanName}** đã vượt qua Lôi Kiếp, tiến hóa thành **${newRarity.toUpperCase()}**!\n` +
+                        `🐉 Kỹ năng **Hộ Chủ (Rescue Master)** thức tỉnh: Chặn đòn chí tử và hồi phục 20% HP (1 lần/trận).`
+                });
+            }
+            else {
+                // THẤT BẠI: mất 10 cấp
+                const newLevel = Math.max(1, pet.level - 10);
+                database_1.default.prepare('UPDATE pets SET level = ? WHERE id = ?').run(newLevel, pet.id);
+                await interaction.editReply({
+                    content: `💥 **ĐỘ KIẾP THẤT BẠI!** 💥\n\n${tribulationLog.join('\n')}\n\n` +
+                        `😢 **${pet.name}** không thể chịu nổi uy lực Lôi Kiếp!\n` +
+                        `📉 Mất **10 cấp** (Cấp ${pet.level} → ${newLevel}).\n` +
+                        `💪 Hãy bồi dưỡng và thử lại sau!`
+                });
+            }
             return;
         }
     }

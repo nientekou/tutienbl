@@ -165,29 +165,63 @@ class EventCalendarService {
     }
     // === V16 B-04: Seasonal Events ===
     SEASONAL_EVENTS = [
-        { id: 'spring_phoenix', name: 'Hội Phượng Hoàng', season: 'spring', month: 3, duration: 14, description: 'Special dungeon + mount skin', rewards: 'Phượng Hoàng Tọa Kỵ Skin + 50 KNB' },
-        { id: 'summer_thunder', name: 'Lôi Đạo Đại Hội', season: 'summer', month: 6, duration: 14, description: 'PvP tournament + exclusive title', rewards: '"Lôi Đạo Vương" Title + 100 KNB' },
-        { id: 'autumn_harvest', name: 'Thuộc Nguyên Festival', season: 'autumn', month: 9, duration: 14, description: 'Crafting bonus + rare materials', rewards: '3x Awakening Materials + 50 KNB' },
-        { id: 'winter_trial', name: 'Băng Phong Trials', season: 'winter', month: 12, duration: 14, description: 'Survival challenge + cosmetic rewards', rewards: 'Băng Phong Avatar Frame + 100 KNB' },
+        { id: 'spring_phoenix', name: 'Hội Phượng Hoàng', season: 'spring', month: 3, duration: 14, description: 'Special dungeon + mount skin', rewards: 'Phượng Hoàng Tọa Kỵ Skin + 50 KNB', effects: { expBonus: 0.50, atkBonus: 0.10, defBonus: 0, pvpDmgBonus: 0, craftBonus: 0, dropBonus: 0.10, questBonus: 0.25 } },
+        { id: 'summer_thunder', name: 'Lôi Đạo Đại Hội', season: 'summer', month: 6, duration: 14, description: 'PvP tournament + exclusive title', rewards: '"Lôi Đạo Vương" Title + 100 KNB', effects: { expBonus: 0, atkBonus: 0, defBonus: 0, pvpDmgBonus: 0.30, craftBonus: 0, dropBonus: 0, questBonus: 0.50 } },
+        { id: 'autumn_harvest', name: 'Thuộc Nguyên Festival', season: 'autumn', month: 9, duration: 14, description: 'Crafting bonus + rare materials', rewards: '3x Awakening Materials + 50 KNB', effects: { expBonus: 0.25, atkBonus: 0, defBonus: 0, pvpDmgBonus: 0, craftBonus: 0.20, dropBonus: 0.50, questBonus: 0.25 } },
+        { id: 'winter_trial', name: 'Băng Phong Trials', season: 'winter', month: 12, duration: 14, description: 'Survival challenge + cosmetic rewards', rewards: 'Băng Phong Avatar Frame + 100 KNB', effects: { expBonus: 0, atkBonus: 0, defBonus: 0.30, pvpDmgBonus: 0, craftBonus: 0, dropBonus: 0.25, questBonus: 0.50 } },
     ];
     getCurrentSeasonalEvent() {
         const now = new Date();
         const month = now.getMonth() + 1;
-        return this.SEASONAL_EVENTS.find(e => e.month === month) || null;
+        // Check if current date falls within the event's 14-day window starting month's 1st
+        const event = this.SEASONAL_EVENTS.find(e => e.month === month);
+        if (!event)
+            return null;
+        const dayOfMonth = now.getDate();
+        if (dayOfMonth > event.duration)
+            return null;
+        return event;
+    }
+    /**
+     * V16 B-04: Get active seasonal event effects for gameplay integration
+     */
+    getSeasonalEventEffects() {
+        const event = this.getCurrentSeasonalEvent();
+        if (!event)
+            return {};
+        return {
+            exp_bonus: event.effects.expBonus,
+            atk_bonus: event.effects.atkBonus,
+            def_bonus: event.effects.defBonus,
+            pvp_dmg_bonus: event.effects.pvpDmgBonus,
+            craft_bonus: event.effects.craftBonus,
+            drop_bonus: event.effects.dropBonus,
+            quest_bonus: event.effects.questBonus,
+        };
+    }
+    hasSeasonalEvent() {
+        return this.getCurrentSeasonalEvent() !== null;
+    }
+    /**
+     * V16 B-04: Get a specific effect modifier (0 if not active or effect not present)
+     */
+    getSeasonalEffect(key) {
+        const effects = this.getSeasonalEventEffects();
+        return effects[key] || 0;
     }
     getSeasonalEventDescription() {
-        const current = this.getCurrentSeasonalEvent();
         const now = new Date();
         const month = now.getMonth() + 1;
+        const dayOfMonth = now.getDate();
         let msg = '🌸 **Sự Kiện Theo Mùa**\n\n';
         for (const event of this.SEASONAL_EVENTS) {
-            const isActive = event.month === month;
+            const isActive = event.month === month && dayOfMonth <= event.duration;
             const status = isActive ? '🟢 ĐANG DIỄN RA' : '⚪ Chờ đến lượt';
             msg += `${isActive ? '🟢' : '⚪'} **${event.name}** — Tháng ${event.month}\n`;
             msg += `  ${event.description}\n`;
             msg += `  Phần thưởng: ${event.rewards}\n`;
             if (isActive)
-                msg += `  ⏰ Còn lại: ${Math.max(0, 14 - now.getDate())} ngày\n`;
+                msg += `  ⏰ Còn lại: ${Math.max(0, event.duration - dayOfMonth)} ngày\n`;
             msg += '\n';
         }
         return msg;

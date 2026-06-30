@@ -18,7 +18,7 @@ export default class BangNghiaVuCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.' });
       return;
     }
 
@@ -57,9 +57,9 @@ export default class BangNghiaVuCommand extends Command {
           .setStyle(ButtonStyle.Success)
           .setEmoji('✅'),
       );
-      await interaction.reply(toV2Payload([embed], [row]));
+      await interaction.editReply(toV2Payload([embed], [row]));
     } else {
-      await interaction.reply(toV2Payload([embed]));
+      await interaction.editReply(toV2Payload([embed]));
     }
   }
 }

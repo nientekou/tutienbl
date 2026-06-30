@@ -180,6 +180,20 @@ exports.ITEMS = {
     INFINITE_CORE: 'infinite_core',
     // ---- Prestige Materials ----
     PRESTIGE_MATERIAL: 'prestige_material',
+    // ---- Phase 3: Spirit Beast Tribulation + Divine Pill ----
+    PILL_PET_TRIBULATION_PROTECT: 'pill_pet_tribulation_protect',
+    PILL_THAN_DAN: 'pill_than_dan',
+    // ---- Phase 4: Soul Harvesting & Dao Fruits ----
+    SOUL_MORTAL: 'soul_mortal',
+    SOUL_SPIRIT: 'soul_spirit',
+    SOUL_FIERCE: 'soul_fierce',
+    SOUL_HOLY: 'soul_holy',
+    SEED_DAO_MANH: 'seed_dao_manh',
+    SEED_DAO_TRUONG: 'seed_dao_truong',
+    SEED_DAO_KIEN: 'seed_dao_kien',
+    FRUIT_DAO_MANH: 'fruit_dao_manh',
+    FRUIT_DAO_TRUONG: 'fruit_dao_truong',
+    FRUIT_DAO_KIEN: 'fruit_dao_kien',
 };
 // ---- Helper: Get dynamic item ID by grade ----
 function getWeaponByGrade(grade) {

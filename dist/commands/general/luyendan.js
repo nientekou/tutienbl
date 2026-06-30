@@ -12,6 +12,7 @@ const constants_1 = require("../../utils/constants");
 const database_1 = __importDefault(require("../../database/database"));
 const itemConstants_1 = require("../../config/itemConstants");
 const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 class LuyenDanCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -30,7 +31,7 @@ class LuyenDanCommand extends Command_1.Command {
         await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], rows));
     }
     /**
-     * Tạo Embed giao diện Luyện Đan
+     * Tạo V2 Container hiển thị giao diện Luyện Đan
      */
     getAlchemyEmbed(userId) {
         const user = UserRepository_1.userRepository.get(userId);
@@ -91,18 +92,17 @@ class LuyenDanCommand extends Command_1.Command {
         }
         catch (e) { }
         const hoaBonus = hoaLinhCan * 0.001;
-        const embed = new discord_js_1.EmbedBuilder()
-            .setTitle('🌿 LINH DƯỢC LUYỆN ĐAN PHÒNG')
-            .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
-            .setDescription(`Đạo hữu đang ngự tại phòng luyện chế linh đan.\n` +
-            `🏆 **Cấp Luyện Đan Sư:** Cấp **${alchemyLevel}**\n` +
-            `${expBar} *(EXP: **${alchemyExp}/${expNeeded}**)*\n\n` +
-            `🔋 **Thể Lực Hiện Tại:** **${user.stamina}/500**\n` +
-            `⚙️ **Lò Luyện Sử Dụng:** ${bestCauldronText}\n` +
-            `⚡ **Chế Tác Hiện Tại:** **x${craftQty} mẻ** ${craftQty === 2 ? '(Linh Sư / Lò Thượng Phẩm)' : ''}\n\n` +
-            `*Chú ý: Hệ thống tự động chọn Lò luyện đan tốt nhất trong hành trang của đạo hữu để tối ưu tỷ lệ luyện thành.*\n` +
-            `💡 *Mẹo: Đạo hữu có thể mua Lò Luyện Đan tốt hơn tại Phường Thị (\`/shop danhsach\`) hoặc đổi Chế tác x2.*`)
-            .setTimestamp();
+        const content = [
+            (0, v2Components_1.header)(`🌿 LINH DƯỢC LUYỆN ĐAN PHÒNG - ${user.name}`, 'Đạo hữu đang ngự tại phòng luyện chế linh đan tiên gia.'),
+            (0, v2Components_1.separator)(),
+            (0, v2Components_1.body)(`🏆 **Cấp Luyện Đan Sư:** Cấp **${alchemyLevel}**\n` +
+                `${expBar} *(EXP: **${alchemyExp}/${expNeeded}**)*\n\n` +
+                `🔋 **Thể Lực Hiện Tại:** **${user.stamina}/500**\n` +
+                `⚙️ **Lò Luyện Sử Dụng:** ${bestCauldronText}\n` +
+                `⚡ **Chế Tác Hiện Tại:** **x${craftQty} mẻ** ${craftQty === 2 ? '(Linh Sư / Lò Thượng Phẩm)' : ''}\n\n` +
+                `*Chú ý: Hệ thống tự động chọn Lò luyện đan tốt nhất trong hành trang để tối ưu tỷ lệ thành công.*`),
+            (0, v2Components_1.separator)()
+        ];
         // Liệt kê các công thức
         for (const recipe of AlchemyService_1.ALCHEMY_RECIPES) {
             const matText = recipe.requiredMaterials.map(m => {
@@ -138,17 +138,17 @@ class LuyenDanCommand extends Command_1.Command {
                     costCoinText = `${recipe.costCoin * 2} *(x2)*`;
                     staminaCostText = `${recipe.staminaCost * 2} *(x2)*`;
                 }
-                rateText = `⚡ Tỷ lệ thành công thực tế: **${Math.round(finalSuccessRate * 100)}%**\n${rateBar}\n` +
-                    `*(Gốc: ${recipe.baseSuccessRate * 100}% | Lò: +${successBonus * 100}% | Cấp: +${Math.round(levelBonus * 100)}% | Tông Môn: +${Math.round(sectBonus * 100)}% | Hỏa Căn: +${(hoaBonus * 100).toFixed(1)}%)*\n` +
-                    `🔋 Tiêu hao: **${staminaCostText}** Thể lực | 🪙 Phí: **${costCoinText}** Linh thạch`;
+                rateText = `⚡ Tỷ lệ thành công: **${Math.round(finalSuccessRate * 100)}%**\n${rateBar}\n` +
+                    `└ Gốc: ${recipe.baseSuccessRate * 100}% │ Lò: +${successBonus * 100}% │ Cấp: +${Math.round(levelBonus * 100)}% │ Hỏa: +${(hoaBonus * 100).toFixed(1)}%\n` +
+                    `🔋 Tiêu hao: **${staminaCostText}** Thể lực │ 🪙 Phí: **${costCoinText}** Linh thạch`;
             }
-            embed.addFields({
-                name: `🔮 Công Thức: ${recipe.name} (Yêu cầu cấp: ${recipe.requiredAlchemyLevel})`,
-                value: `${matText}\n${rateText}`,
-                inline: false
-            });
+            content.push((0, v2Components_1.body)(`**🔮 Công Thức: ${recipe.name} (Yêu cầu cấp: ${recipe.requiredAlchemyLevel})**\n${matText}\n${rateText}`));
+            content.push((0, v2Components_1.separator)());
         }
-        return embed;
+        if (content.length > 0) {
+            content.pop(); // Xóa separator cuối cùng
+        }
+        return (0, v2Components_1.container)(v2Components_1.V2_COLORS.success, content);
     }
     /**
      * Tạo Action Row nút bấm luyện đan
@@ -165,11 +165,14 @@ class LuyenDanCommand extends Command_1.Command {
         }
         const craftQty = yCanh.active_craft_quantity || 1;
         const rows = [];
-        // Row 1: Toggle Quantity button
+        // Row 1: Toggle Quantity button & Back button
         const rowQty = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
             .setCustomId(`alch_toggleqty_${userId}`)
             .setLabel(`Chế tác: x${craftQty} mẻ ${craftQty === 2 ? '🔥' : '⏳'}`)
-            .setStyle(craftQty === 2 ? discord_js_1.ButtonStyle.Success : discord_js_1.ButtonStyle.Primary));
+            .setStyle(craftQty === 2 ? discord_js_1.ButtonStyle.Success : discord_js_1.ButtonStyle.Primary), new discord_js_1.ButtonBuilder()
+            .setCustomId(`hosoback_${userId}`)
+            .setLabel('🔙 Quay Lại Hồ Sơ')
+            .setStyle(discord_js_1.ButtonStyle.Secondary));
         rows.push(rowQty);
         // Row 2: Recipe select menu
         const recipeSelect = new discord_js_1.StringSelectMenuBuilder()

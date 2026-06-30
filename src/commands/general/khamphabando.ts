@@ -1,9 +1,10 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, ContainerBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { mapFragmentService } from '../../services/MapFragmentService';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 
 const RARITY_EMOJI: Record<string, string> = {
   common: '🟤',
@@ -71,28 +72,25 @@ export default class KhamPhaBanDoCommand extends Command {
     const fragmentCount = mapFragmentService.getFragmentCount(userId);
     const activeLocations = mapFragmentService.getActiveLocations(userId);
 
-    const embed = new EmbedBuilder()
-      .setTitle('🗺️ MẢNH BẢN ĐỒ')
-      .setColor(EMBED_COLORS.ORANGE)
-      .setDescription(
+    const content: any[] = [
+      header('🗺️ MẢNH BẢN ĐỒ', 'Đạo hữu thu thập Mảnh Bản Đồ qua công việc Phiêu Lưu (/lamviec adventure) và ghép chúng để tìm kiếm bảo tạng.'),
+      separator(),
+      body(
         `**Mảnh Bản Đồ hiện có:** **${fragmentCount}/5**\n` +
-        `*Thu thập Mảnh Bản Đồ qua công việc **Phiêu Lưu (/lamviec adventure)** và ghép chúng để tìm kho báu!*\n\n` +
+        `*Ghép đủ 5 mảnh để khám phá vị trí kho báu hoang dã!*\n\n` +
         `**Hướng dẫn:**\n` +
-        `\`/khamphabando ghep\` - Ghép 5 mảnh thành kho báu\n` +
-        `\`/khamphabando den [id]\` - Đến khai thác kho báu\n` +
-        `\`/khamphabando cuop [id]\` - Cướp kho báu người khác`
+        `• \`/khamphabando ghep\` - Ghép 5 mảnh thành kho báu\n` +
+        `• \`/khamphabando den [id]\` - Đến khai thác kho báu\n` +
+        `• \`/khamphabando cuop [id]\` - Cướp kho báu của người khác`
       )
-      .setTimestamp();
+    ];
 
     if (fragmentCount > 0) {
       const barLength = 10;
       const filled = Math.round((fragmentCount / 5) * barLength);
       const bar = '■'.repeat(filled) + '□'.repeat(Math.max(0, barLength - filled));
-      embed.addFields({
-        name: '📊 Tiến Trình',
-        value: `\`${bar}\` **${fragmentCount}/5**`,
-        inline: false,
-      });
+      content.push(separator());
+      content.push(body(`📊 **Tiến Trình:** \`${bar}\` **${fragmentCount}/5**`));
     }
 
     if (activeLocations.length > 0) {
@@ -101,31 +99,28 @@ export default class KhamPhaBanDoCommand extends Command {
         const hours = Math.floor(remaining / 3600);
         const mins = Math.floor((remaining % 3600) / 60);
         const emoji = RARITY_EMOJI[loc.rarity] || '📦';
-        return `**#${loc.id}** ${emoji} **${loc.location_name}** [${loc.coord_x}, ${loc.coord_y}]\n└ ⏳ Còn **${hours}g ${mins}p** | ${loc.rarity.toUpperCase()}`;
+        return `**#${loc.id}** ${emoji} **${loc.location_name}** [${loc.coord_x}, ${loc.coord_y}]\n└ ⏳ Còn **${hours}g ${mins}p** │ ${loc.rarity.toUpperCase()}`;
       }).join('\n');
 
-      embed.addFields({
-        name: `📍 Kho Báu Của Đạo Hữu (${activeLocations.length})`,
-        value: locationList,
-        inline: false,
-      });
+      content.push(separator());
+      content.push(body(`📍 **Kho Báu Của Đạo Hữu (${activeLocations.length}):**\n${locationList}`));
     }
 
     const allLocations = mapFragmentService.getAllActiveLocations().filter(l => l.owner_id !== userId);
     if (allLocations.length > 0) {
       const stealTargets = allLocations.slice(0, 5).map(loc => {
         const emoji = RARITY_EMOJI[loc.rarity] || '📦';
-        return `**#${loc.id}** ${emoji} **${loc.location_name}** - Chủ: <@${loc.owner_id}>`;
+        return `**#${loc.id}** ${emoji} **${loc.location_name}** │ Chủ: <@${loc.owner_id}>`;
       }).join('\n');
 
-      embed.addFields({
-        name: `👀 Kho Báu Có Thể Cướp (${allLocations.length})`,
-        value: stealTargets + '\n*Dùng `/khamphabando cuop [id]` để cướp!*',
-        inline: false,
-      });
+      content.push(separator());
+      content.push(body(`👀 **Kho Báu Có Thể Cướp (${allLocations.length}):**\n${stealTargets}\n\n*Dùng \`/khamphabando cuop [id]\` để cướp!*`));
     }
 
-    embed.setFooter({ text: 'Mảnh Bản Đồ có thể nhận được khi làm công việc Phiêu Lưu.' });
+    content.push(separator());
+    content.push(body(`*Mảnh Bản Đồ có thể nhận ngẫu nhiên từ hoạt động Phiêu Lưu.*`));
+
+    const embed = container(V2_COLORS.gold, content);
     await interaction.editReply(toV2Payload([embed]));
   }
 
@@ -138,11 +133,11 @@ export default class KhamPhaBanDoCommand extends Command {
     const locationId = interaction.options.getInteger('id', true);
     const result = mapFragmentService.claimLocation(userId, locationId);
 
-    const embed = new EmbedBuilder()
-      .setTitle(result.success ? '🎉 Khai Thác Kho Báu' : '❌ Thất Bại')
-      .setColor(result.success ? EMBED_COLORS.GOLD : EMBED_COLORS.ERROR)
-      .setDescription(result.message)
-      .setTimestamp();
+    const embed = container(result.success ? V2_COLORS.success : V2_COLORS.danger, [
+      header(result.success ? '🎉 Khai Thác Kho Báu Thành Công' : '❌ Khai Thác Thất Bại'),
+      separator(),
+      body(result.message)
+    ]);
 
     await interaction.editReply(toV2Payload([embed]));
   }
@@ -151,11 +146,11 @@ export default class KhamPhaBanDoCommand extends Command {
     const locationId = interaction.options.getInteger('id', true);
     const result = mapFragmentService.stealLocation(userId, locationId);
 
-    const embed = new EmbedBuilder()
-      .setTitle(result.success ? '⚔️ Cướp Thành Công' : '💢 Cướp Thất Bại')
-      .setColor(result.success ? EMBED_COLORS.ERROR : EMBED_COLORS.NEUTRAL)
-      .setDescription(result.message)
-      .setTimestamp();
+    const embed = container(result.success ? V2_COLORS.success : V2_COLORS.danger, [
+      header(result.success ? '⚔️ Đoạt Bảo Thành Công' : '💢 Đoạt Bảo Thất Bại'),
+      separator(),
+      body(result.message)
+    ]);
 
     await interaction.editReply(toV2Payload([embed]));
   }

@@ -18,7 +18,7 @@ class SachYeuKhoaCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.' });
             return;
         }
         const zone = interaction.options.getString('zone') || undefined;
@@ -29,7 +29,7 @@ class SachYeuKhoaCommand extends Command_1.Command {
                 .setColor(uiSystem_1.EMBED_COLORS.INFO)
                 .setDescription('Chưa ghi nhận enemy nào. Hãy đi chiến đấu để thu thập thông tin!')
                 .setTimestamp();
-            await interaction.reply((0, uiSystem_1.toV2Payload)([embed]));
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }
         // Group by zone
@@ -57,7 +57,7 @@ class SachYeuKhoaCommand extends Command_1.Command {
             .setColor(uiSystem_1.EMBED_COLORS.INFO)
             .setDescription(desc.slice(0, 4000))
             .setTimestamp();
-        await interaction.reply((0, uiSystem_1.toV2Payload)([embed]));
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
 }
 exports.default = new SachYeuKhoaCommand();

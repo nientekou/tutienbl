@@ -1,8 +1,9 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, ContainerBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 import { TuTienClient } from '../../client/TuTienClient';
 import { feastService } from '../../services/FeastService';
+import { toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 
 export default class YenTiecCommand extends Command {
   constructor() {
@@ -17,11 +18,11 @@ export default class YenTiecCommand extends Command {
     const userId = interaction.user.id;
     const result = feastService.joinFeast(userId);
 
-    const embed = new EmbedBuilder()
-      .setTitle('🍲 TÔNG MÔN YẾN TIỆC')
-      .setColor(result.success ? '#2ecc71' : '#e74c3c')
-      .setDescription(result.message)
-      .setTimestamp();
+    const embed = container(result.success ? V2_COLORS.success : V2_COLORS.danger, [
+      header('🍲 TÔNG MÔN YẾN TIỆC'),
+      separator(),
+      body(result.message)
+    ]);
 
     await interaction.editReply(toV2Payload([embed]));
   }

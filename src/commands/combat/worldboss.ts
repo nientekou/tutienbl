@@ -77,10 +77,18 @@ export function buildWorldBossContainer(userId: string): { components: any[]; fl
       );
     }
 
+    // ── V2 Phase Info ──
+    const phaseNames = ['', 'Sơ Khởi', 'Phẫn Nộ', 'Hồi Phục', 'Thôn Tính', 'Tuyệt Vọng'];
+    const currentPhase = (boss as any).phase || 1;
+    const phaseName = phaseNames[currentPhase] || stageName;
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`🌀 **Giai Đoạn ${currentPhase}/5: ${phaseName}**`)
+    );
+
     // ── Stats Row ──
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(1));
     container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`⚔️ **Sát lực:** ${boss.atk.toLocaleString()} │ 🛡️ **Phòng Thủ:** ${boss.def.toLocaleString()} │ 🌀 **Trạng thái:** Giai đoạn ${stageName}`)
+      new TextDisplayBuilder().setContent(`⚔️ **Sát lực:** ${boss.atk.toLocaleString()} │ 🛡️ **Phòng Thủ:** ${boss.def.toLocaleString()} │ 🌀 **Trạng thái:** ${stageName}`)
     );
 
     // ── Player Status ──

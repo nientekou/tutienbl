@@ -39,8 +39,8 @@ function getLuanHoiComponents(userId, isEligible) {
         .setLabel('🌌 Đi Vào Luân Hồi')
         .setStyle(discord_js_1.ButtonStyle.Danger)
         .setDisabled(!isEligible), new discord_js_1.ButtonBuilder()
-        .setCustomId(`luanhoicancel_${userId}`)
-        .setLabel('❌ Hủy Bỏ')
+        .setCustomId(`hosoback_${userId}`)
+        .setLabel('🔙 Quay Lại Hồ Sơ')
         .setStyle(discord_js_1.ButtonStyle.Secondary));
 }
 class LuanHoiCommand extends Command_1.Command {

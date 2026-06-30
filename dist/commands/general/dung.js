@@ -11,6 +11,7 @@ const InventoryService_1 = require("../../services/InventoryService");
 const database_1 = __importDefault(require("../../database/database"));
 const itemConstants_1 = require("../../config/itemConstants");
 const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 class DungCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
@@ -67,15 +68,11 @@ class DungCommand extends Command_1.Command {
                 }
             });
             openTx();
-            const embed = new discord_js_1.EmbedBuilder()
-                .setTitle('🎁 KẾT QUẢ MỞ RƯƠNG BÁO')
-                .setColor(uiSystem_1.EMBED_COLORS.GOLD)
-                .setDescription(`Đạo hữu đã khui thành công **${qty}x ${userItem.name}**! Phương trời chuyển sắc, linh khí lan tỏa...`)
-                .addFields({
-                name: '✨ Các vật phẩm nhận được:',
-                value: openResult.description
-            })
-                .setTimestamp();
+            const embed = (0, v2Components_1.container)(v2Components_1.V2_COLORS.gold, [
+                (0, v2Components_1.header)('🎁 KẾT QUẢ MỞ RƯƠNG BẢO', `Đạo hữu đã khui thành công **${qty}x ${userItem.name}**!\nPhương trời chuyển sắc, linh khí lan tỏa...`),
+                (0, v2Components_1.separator)(),
+                (0, v2Components_1.body)(`✨ **Các vật phẩm nhận được:**\n${openResult.description}`)
+            ]);
             await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
             return;
         }

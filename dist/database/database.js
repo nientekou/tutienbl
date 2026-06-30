@@ -116,6 +116,7 @@ function initDatabase() {
       -- Hệ thống Tiên Ma
       alignment TEXT DEFAULT 'neutral',
       qi_deviation_until INTEGER DEFAULT 0,
+      karma INTEGER DEFAULT 0, -- BIG UPDATE §2: Nhân Quả Thiện Ác (tích lũy qua các lựa chọn)
       
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
@@ -168,6 +169,9 @@ function initDatabase() {
     }
     if (!userColNames.includes('consecutive_fails')) {
         db.exec("ALTER TABLE users ADD COLUMN consecutive_fails INTEGER DEFAULT 0");
+    }
+    if (!userColNames.includes('karma')) {
+        db.exec("ALTER TABLE users ADD COLUMN karma INTEGER DEFAULT 0");
     }
     // Migration: thêm cột mới cho inventories
     try {
@@ -3613,6 +3617,102 @@ function seedItems() {
         { id: 'fish_whale', name: 'Cá Ông', type: 'material', rarity: 'rare', description: 'Cá ông linh thiêng từ đại dương.', stats: '{}', value_ha_pham: 800, usable: 1, equipable: 0 },
         { id: 'fish_turtle', name: 'Rùa Biển', type: 'material', rarity: 'epic', description: 'Rùa biển cổ đại từ đại dương.', stats: '{}', value_ha_pham: 1500, usable: 1, equipable: 0 },
         { id: 'fish_dragon', name: 'Cá Rồng', type: 'material', rarity: 'legendary', description: 'Cá rồng thần thoại từ vực sâu.', stats: '{}', value_ha_pham: 5000, usable: 1, equipable: 0 },
+        // Phase 3 items
+        {
+            id: 'pill_pet_tribulation_protect',
+            name: 'Hộ Thú Đan',
+            type: 'pill',
+            rarity: 'epic',
+            description: 'Đan dược cổ truyền giúp linh thú tăng 20% khả năng chịu đựng Lôi Kiếp Độ Kiếp.',
+            stats: JSON.stringify({ pet_tribulation_bonus: 0.20 }),
+            value_ha_pham: 10000,
+            usable: 1,
+            equipable: 0
+        },
+        {
+            id: 'pill_than_dan',
+            name: 'Thần Đan Thượng Cổ',
+            type: 'pill',
+            rarity: 'mythic',
+            description: 'Thần đan thượng cổ tái sinh, tăng vĩnh viễn +500 HP, +50 ATK, +50 DEF. Công hiệu gấp 3 lần đan dược thường.',
+            stats: JSON.stringify({ hp_max_perm: 500, atk_perm: 50, def_perm: 50 }),
+            value_ha_pham: 50000,
+            usable: 1,
+            equipable: 0
+        },
+        // Phase 4: Soul items
+        { id: 'soul_mortal', name: 'Phàm Hồn', type: 'material', rarity: 'common', description: 'Linh hồn phàm nhân vụn vỡ, vật liệu cơ bản để bồi dưỡng Đạo Quả.', stats: '{}', value_ha_pham: 50, usable: 0, equipable: 0 },
+        { id: 'soul_spirit', name: 'Linh Hồn', type: 'material', rarity: 'uncommon', description: 'Linh hồn tinh khiết của yêu thú, chứa đựng nguyên khí dồi dào.', stats: '{}', value_ha_pham: 200, usable: 0, equipable: 0 },
+        { id: 'soul_fierce', name: 'Cương Hồn', type: 'material', rarity: 'rare', description: 'Hồn phách cứng cỏi của mãnh thú thượng cổ, luyện chế Đạo Quả phẩm chất cao.', stats: '{}', value_ha_pham: 800, usable: 0, equipable: 0 },
+        { id: 'soul_holy', name: 'Thánh Hồn', type: 'material', rarity: 'epic', description: 'Thánh hồn ngàn năm kết tinh, cực phẩm bồi nguyên cho Đạo Quả Thượng Cổ.', stats: '{}', value_ha_pham: 3000, usable: 0, equipable: 0 },
+        // Phase 4: Dao Seeds
+        {
+            id: 'seed_dao_manh',
+            name: 'Hạt Đạo Quả Sức Mạnh',
+            type: 'seed',
+            rarity: 'mythic',
+            description: 'Hạt giống Đạo Quả cổ xưa, khi trưởng thành cho Đạo Quả tăng vĩnh viễn +25 ATK.',
+            stats: JSON.stringify({ product: 'fruit_dao_manh', growth_time: 3600 }),
+            value_ha_pham: 20000,
+            usable: 0,
+            equipable: 0
+        },
+        {
+            id: 'seed_dao_truong',
+            name: 'Hạt Đạo Quả Trường Sinh',
+            type: 'seed',
+            rarity: 'mythic',
+            description: 'Hạt giống Đạo Quả cổ xưa, khi trưởng thành cho Đạo Quả tăng vĩnh viễn +250 HP.',
+            stats: JSON.stringify({ product: 'fruit_dao_truong', growth_time: 3600 }),
+            value_ha_pham: 20000,
+            usable: 0,
+            equipable: 0
+        },
+        {
+            id: 'seed_dao_kien',
+            name: 'Hạt Đạo Quả Kiên Cố',
+            type: 'seed',
+            rarity: 'mythic',
+            description: 'Hạt giống Đạo Quả cổ xưa, khi trưởng thành cho Đạo Quả tăng vĩnh viễn +25 DEF.',
+            stats: JSON.stringify({ product: 'fruit_dao_kien', growth_time: 3600 }),
+            value_ha_pham: 20000,
+            usable: 0,
+            equipable: 0
+        },
+        // Phase 4: Dao Fruits
+        {
+            id: 'fruit_dao_manh',
+            name: 'Đạo Quả Sức Mạnh',
+            type: 'pill',
+            rarity: 'mythic',
+            description: 'Đạo Quả thượng cổ ngưng tụ sức mạnh nguyên thủy, dùng để tăng vĩnh viễn +25 ATK.',
+            stats: JSON.stringify({ add_atk_perm: 25 }),
+            value_ha_pham: 50000,
+            usable: 1,
+            equipable: 0
+        },
+        {
+            id: 'fruit_dao_truong',
+            name: 'Đạo Quả Trường Sinh',
+            type: 'pill',
+            rarity: 'mythic',
+            description: 'Đạo Quả thượng cổ chứa tinh hoa trường sinh, dùng để tăng vĩnh viễn +250 HP.',
+            stats: JSON.stringify({ add_hp_perm: 250 }),
+            value_ha_pham: 50000,
+            usable: 1,
+            equipable: 0
+        },
+        {
+            id: 'fruit_dao_kien',
+            name: 'Đạo Quả Kiên Cố',
+            type: 'pill',
+            rarity: 'mythic',
+            description: 'Đạo Quả thượng cổ kết tinh từ linh mạch, dùng để tăng vĩnh viễn +25 DEF.',
+            stats: JSON.stringify({ add_def_perm: 25 }),
+            value_ha_pham: 50000,
+            usable: 1,
+            equipable: 0
+        },
     ];
     const stmt = db.prepare(`
     INSERT INTO items (id, name, type, rarity, description, stats, value_ha_pham, usable, equipable)

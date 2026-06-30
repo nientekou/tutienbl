@@ -14,6 +14,7 @@ const ExplorationService_1 = require("../../services/ExplorationService");
 const EncounterService_1 = require("../../services/EncounterService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const linhdien_1 = require("../../commands/life/linhdien");
+const luyenkhi_1 = require("../../commands/life/luyenkhi");
 const chetao_1 = require("../../commands/life/chetao");
 const khampha_1 = require("../../commands/general/khampha");
 const nhiemvu_1 = require("../../commands/general/nhiemvu");
@@ -24,6 +25,8 @@ const luyendan_1 = __importDefault(require("../../commands/general/luyendan"));
 const database_1 = __importDefault(require("../../database/database"));
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const BlacksmithService_1 = require("../../services/BlacksmithService");
+const v2Components_1 = require("../../utils/v2Components");
+const constants_1 = require("../../utils/constants");
 class LifeQuestHandler {
     static async handle(interaction, action, parts, userId) {
         try {
@@ -190,6 +193,16 @@ class LifeQuestHandler {
                 }
                 await (0, uiSystem_1.safeV2Update)(interaction, [embed], row);
             }
+            // --- Nút: ĐI ĐẾN LUYỆN KHÍ (từ hồ sơ) ---
+            else if (action === 'luyenkhinav') {
+                const embed = (0, luyenkhi_1.getLuyenKhiEmbed)(targetUserId);
+                if (!embed) {
+                    await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', flags: discord_js_1.MessageFlags.Ephemeral });
+                    return;
+                }
+                const components = (0, luyenkhi_1.getLuyenKhiComponents)(targetUserId);
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
+            }
             // --- Nút: ĐI ĐẾN CHẾ TẠO (từ hồ sơ) ---
             else if (action === 'chetaonav') {
                 const embed = (0, chetao_1.getCraftingEmbed)(targetUserId);
@@ -203,14 +216,14 @@ class LifeQuestHandler {
             // --- Nút: ĐI ĐẾN LÀM VIỆC (từ hồ sơ) ---
             else if (action === 'lamviecnav') {
                 const user = UserRepository_1.userRepository.get(targetUserId);
-                const embed = new discord_js_1.EmbedBuilder()
-                    .setTitle('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch')
-                    .setColor(uiSystem_2.EMBED_COLORS.NEUTRAL)
-                    .setDescription(`Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.\n\n` +
-                    `⏰ **Hồi chiêu:** 60 giây (mỗi lần làm việc)\n` +
-                    `🧘 **Yêu cầu:** Cần ít nhất **10** Thể Lực (Hiện có: **${user.stamina}/500**)\n\n` +
-                    `*Chọn một công việc bên dưới để bắt đầu lao động ngay!*`)
-                    .setTimestamp();
+                const embed = (0, v2Components_1.container)(v2Components_1.V2_COLORS.dark, [
+                    (0, v2Components_1.header)('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch', 'Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.'),
+                    (0, v2Components_1.separator)(),
+                    (0, v2Components_1.body)(`⏰ **Hồi chiêu:** 60 giây (mỗi lần làm việc)\n` +
+                        `🧘 **Yêu cầu:** Cần ít nhất **10** Thể Lực (Hiện có: **${user.stamina}/500**)\n└ ${(0, constants_1.getProgressBar)(user.stamina, 500, 8)}`),
+                    (0, v2Components_1.separator)(),
+                    (0, v2Components_1.body)(`*Chọn một công việc bên dưới để bắt đầu lao động ngay!*`)
+                ]);
                 const workRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
                     .setCustomId(`lamviecwork_mining_${targetUserId}`)
                     .setLabel('⚒️ Khai Thác')
@@ -246,14 +259,14 @@ class LifeQuestHandler {
                 }
                 // Cập nhật lại menu làm việc với thể lực mới
                 const refreshedUser = UserRepository_1.userRepository.get(workTargetId);
-                const embed = new discord_js_1.EmbedBuilder()
-                    .setTitle('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch')
-                    .setColor(uiSystem_2.EMBED_COLORS.NEUTRAL)
-                    .setDescription(`Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.\n\n` +
-                    `⏰ **Hồi chiêu:** 60 giây (mỗi lần làm việc)\n` +
-                    `🧘 **Yêu cầu:** Cần ít nhất **10** Thể Lực (Hiện có: **${refreshedUser.stamina}/500**)\n\n` +
-                    `*Chọn một công việc bên dưới để tiếp tục lao động!*`)
-                    .setTimestamp();
+                const embed = (0, v2Components_1.container)(v2Components_1.V2_COLORS.dark, [
+                    (0, v2Components_1.header)('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch', 'Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.'),
+                    (0, v2Components_1.separator)(),
+                    (0, v2Components_1.body)(`⏰ **Hồi chiêu:** 60 giây (mỗi lần làm việc)\n` +
+                        `🧘 **Yêu cầu:** Cần ít nhất **10** Thể Lực (Hiện có: **${refreshedUser.stamina}/500**)\n└ ${(0, constants_1.getProgressBar)(refreshedUser.stamina, 500, 8)}`),
+                    (0, v2Components_1.separator)(),
+                    (0, v2Components_1.body)(`*Chọn một công việc bên dưới để tiếp tục lao động!*`)
+                ]);
                 const workRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
                     .setCustomId(`lamviecwork_mining_${workTargetId}`)
                     .setLabel('⚒️ Khai Thác')
@@ -442,7 +455,8 @@ class LifeQuestHandler {
                 if (rewardTexts.length > 0) {
                     embed.addFields({ name: '🎁 Biến Động Thuộc Tính', value: rewardTexts.join('\n') });
                 }
-                await (0, uiSystem_1.safeV2Update)(interaction, [embed], []);
+                const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${userIdFromParts}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], [backRow]);
             }
             // --- Select Menu: GIEO HẠT LINH ĐIỀN ---
             else if (action === 'linhdiengieoselect' && interaction.isStringSelectMenu()) {

@@ -3,6 +3,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { prestigeService } from '../../services/PrestigeService';
+import { skillTreeService } from '../../services/SkillTreeService';
 import db from '../../database/database';
 import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
 
@@ -71,6 +72,37 @@ export default class KyNangCommand extends Command {
                   { name: 'Slot 2', value: 2 },
                   { name: 'Slot 3', value: 3 }
                 )
+            )
+        )
+        // V16 A-03: Skill Tree
+        .addSubcommand(sub =>
+          sub
+            .setName('cay')
+            .setDescription('Xem cây kỹ năng.')
+            .addStringOption(opt =>
+              opt
+                .setName('nguyen_to')
+                .setDescription('Chọn nguyên tố muốn xem (mặc định: toàn bộ).')
+                .setRequired(false)
+                .addChoices(
+                  { name: 'Hỏa', value: 'Hỏa' },
+                  { name: 'Thủy', value: 'Thủy' },
+                  { name: 'Mộc', value: 'Mộc' },
+                  { name: 'Kim', value: 'Kim' },
+                  { name: 'Thổ', value: 'Thổ' },
+                  { name: 'Phong', value: 'Phong' },
+                )
+            )
+        )
+        .addSubcommand(sub =>
+          sub
+            .setName('unlock')
+            .setDescription('Mở khóa nút trên cây kỹ năng.')
+            .addStringOption(opt =>
+              opt
+                .setName('node_id')
+                .setDescription('Mã nút (vd: fire_off_1, water_def_3).')
+                .setRequired(true)
             )
         )
     );
@@ -193,6 +225,37 @@ export default class KyNangCommand extends Command {
           content: `❌ Không có kỹ năng nào đang trang bị ở **Ô số ${slot}** để tháo.`
         });
       }
+      return;
+    }
+
+    // V16 A-03: Skill Tree
+    if (sub === 'cay') {
+      const element = interaction.options.getString('nguyen_to') || '';
+      const allElements = ['Hỏa', 'Thủy', 'Mộc', 'Kim', 'Thổ', 'Phong'];
+
+      if (element && allElements.includes(element)) {
+        await interaction.editReply({ content: skillTreeService.getTreeDescription(userId, element) });
+      } else {
+        let msg = '🌳 **Cây Kỹ Năng Nguyên Tố**\n\n';
+        const totalPoints = skillTreeService.getSkillPoints(userId);
+        msg += `📊 Điểm kỹ năng: **${totalPoints}**\n\n`;
+        for (const el of allElements) {
+          const nodes = skillTreeService.getNodesByElement(el);
+          const userNodes = skillTreeService.getUserNodes(userId);
+          const unlocked = nodes.filter(n => userNodes[n.id] === 1).length;
+          msg += `${el}: **${unlocked}/${nodes.length}** nút (xem: \`/kynang cay ${el}\`)\n`;
+        }
+        msg += '\n*Dùng `/kynang cay <nguyen_to>` để xem chi tiết.*';
+        await interaction.editReply({ content: msg });
+      }
+      return;
+    }
+
+    if (sub === 'unlock') {
+      const nodeId = interaction.options.getString('node_id', true);
+      const result = skillTreeService.unlockNode(userId, nodeId);
+      await interaction.editReply({ content: result.message });
+      return;
     }
   }
 }

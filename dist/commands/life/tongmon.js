@@ -8,55 +8,45 @@ const SectService_1 = require("../../services/SectService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const constants_1 = require("../../utils/constants");
 const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 /**
  * Tạo Embed hiển thị thông tin Tông Môn
  */
 function getSectEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
-        return new discord_js_1.EmbedBuilder()
-            .setTitle('❌ Lỗi')
-            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
-            .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
+        return (0, v2Components_1.container)(v2Components_1.V2_COLORS.danger, [
+            (0, v2Components_1.header)('❌ Lỗi', 'Đạo hữu chưa khởi tạo nhân vật.')
+        ]);
     }
     // TRƯỜNG HỢP: CHƯA CÓ TÔNG MÔN
     if (!user.sect_id) {
-        const embed = new discord_js_1.EmbedBuilder()
-            .setTitle('☯️ Tiên Giới Tông Môn - Tán Tu Chí Lộ')
-            .setDescription(`Đạo hữu hiện đang là một **Tán Tu** tự do tự tại, chưa gia nhập môn phái nào.\n\n` +
-            `Gia nhập Tông Môn giúp đạo hữu kết giao đồng đạo, cống hiến xây dựng môn phái và tăng cấp uy danh môn hạ!`)
-            .setColor(uiSystem_1.EMBED_COLORS.NEUTRAL)
-            .setTimestamp();
+        const content = [
+            (0, v2Components_1.header)('☯️ Tiên Giới Tông Môn — Tán Tu Chí Lộ', 'Đạo hữu hiện đang là một Tán Tu tự do tự tại, chưa gia nhập môn phái nào.\n\nGia nhập Tông Môn giúp đạo hữu kết giao đồng đạo, cống hiến xây dựng môn phái và tăng cấp uy danh môn hạ!')
+        ];
         const topSects = SectService_1.sectService.getTopSects();
+        content.push((0, v2Components_1.separator)());
         if (topSects.length > 0) {
             const listText = topSects
                 .map((s, i) => `🔹 **${s.name}** (Cấp ${s.level}) — Trưởng môn: *${s.master_name}* (${s.member_count}/${s.member_limit} đệ tử)`)
                 .join('\n');
-            embed.addFields({ name: '🌟 Các Tông Môn Đang Tuyển Đệ Tử', value: listText });
+            content.push((0, v2Components_1.body)(`🌟 **Các Tông Môn Đang Tuyển Đệ Tử:**\n${listText}`));
         }
         else {
-            embed.addFields({ name: '🌟 Các Tông Môn Đang Tuyển Đệ Tử', value: '*Hiện chưa có Tông Môn nào được sáng lập trong server.*' });
+            content.push((0, v2Components_1.body)('🌟 **Các Tông Môn Đang Tuyển Đệ Tử:**\n*Hiện chưa có Tông Môn nào được sáng lập trong server.*'));
         }
-        embed.addFields({ name: '🪙 Chi Phí Sáng Lập Môn Phái', value: '💵 **500 Linh Thạch Hạ Phẩm**' });
-        return embed;
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)('🪙 **Chi Phí Sáng Lập Môn Phái:**\n💵 **500 Linh Thạch Hạ Phẩm**'));
+        return (0, v2Components_1.container)(v2Components_1.V2_COLORS.dark, content);
     }
     // TRƯỜNG HỢP: ĐÃ CÓ TÔNG MÔN
     const sect = SectService_1.sectService.getSectDetails(user.sect_id);
     if (!sect) {
-        // Khôi phục an toàn
-        return new discord_js_1.EmbedBuilder()
-            .setTitle('❌ Lỗi')
-            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
-            .setDescription('Không thể truy vấn thông tin Tông Môn.');
+        return (0, v2Components_1.container)(v2Components_1.V2_COLORS.danger, [
+            (0, v2Components_1.header)('❌ Lỗi', 'Không thể truy vấn thông tin Tông Môn.')
+        ]);
     }
     const expBar = (0, constants_1.getProgressBar)(sect.exp, sect.level * 1000, 10);
-    const embed = new discord_js_1.EmbedBuilder()
-        .setTitle(`☯️ Môn Phái: ${sect.name} (Cấp ${sect.level})`)
-        .setDescription(`*"${sect.description}"*`)
-        .setColor(uiSystem_1.EMBED_COLORS.INFO)
-        .addFields({ name: '👤 Tông Chủ', value: sect.master_name, inline: true }, { name: '👥 Thành Viên', value: `**${sect.member_count}/${sect.member_limit}** đệ tử`, inline: true }, { name: '🪙 Ngân Khố Môn Phái', value: `**${sect.resources}** Linh Thạch`, inline: true }, { name: '🏰 Cơ Sở Vật Chất Tông Môn', value: `• **Tụ Linh Trận:** Cấp **${sect.tu_linh_level}/5** (+${sect.tu_linh_level * 5}% EXP Tu Luyện)\n• **Luyện Đan Đường:** Cấp **${sect.dan_duong_level}/5** (+${sect.dan_duong_level * 2}% Tỷ lệ Luyện Đan)` }, { name: '✨ Tiến Trình Thăng Cấp', value: `${expBar} (${sect.exp}/${sect.level * 1000} XP)` }, { name: '🏵️ Điểm Cống Hiến Cá Nhân', value: `⭐ **${user.sect_contribution}** điểm cống hiến` })
-        .setTimestamp();
-    // Hiển thị danh sách thành viên (tối đa 10 người)
     const memberList = sect.members
         .slice(0, 10)
         .map((m, i) => {
@@ -65,8 +55,22 @@ function getSectEmbed(userId) {
         return `${i + 1}. ${role} **${m.name}** (Cấp ${m.level}) — Cống hiến: **${m.sect_contribution}**`;
     })
         .join('\n');
-    embed.addFields({ name: '📜 Danh Sách Đệ Tử Tông Môn', value: memberList || '*Không có thành viên.*' });
-    return embed;
+    return (0, v2Components_1.container)(v2Components_1.V2_COLORS.primary, [
+        (0, v2Components_1.header)(`☯️ Môn Phái: ${sect.name} (Cấp ${sect.level})`, `*"${sect.description}"*`),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)(`👤 **Tông Chủ:** ${sect.master_name}\n` +
+            `👥 **Thành Viên:** **${sect.member_count}/${sect.member_limit}** đệ tử\n` +
+            `🪙 **Ngân Khố Môn Phái:** **${sect.resources}** Linh Thạch\n` +
+            `🏵️ **Cơ Duyên Bản Thân:** ⭐ **${user.sect_contribution}** cống hiến`),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)(`🏰 **Cơ Sở Vật Chất Tông Môn:**\n` +
+            `• **Tụ Linh Trận:** Cấp **${sect.tu_linh_level}/5** (+${sect.tu_linh_level * 5}% EXP Tu Luyện)\n` +
+            `• **Luyện Đan Đường:** Cấp **${sect.dan_duong_level}/5** (+${sect.dan_duong_level * 2}% Tỷ lệ Luyện Đan)`),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)(`✨ **Tiến Trình Thăng Cấp:**\n${expBar} (${sect.exp}/${sect.level * 1000} XP)`),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)(`📜 **Danh Sách Đệ Tử Tông Môn:**\n${memberList || '*Không có thành viên.*'}`)
+    ]);
 }
 /**
  * Tạo các Component tương tác cho Tông Môn
@@ -78,14 +82,12 @@ function getSectComponents(userId) {
         return rows;
     // TRƯỜNG HỢP: CHƯA CÓ TÔNG MÔN
     if (!user.sect_id) {
-        // 1. Nút sáng lập Tông Môn
         const btnRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
             .setCustomId(`sectestablishnav_${userId}`)
             .setLabel('🆕 Sáng Lập Tông Môn (500 LThạch)')
             .setStyle(discord_js_1.ButtonStyle.Primary)
             .setDisabled(user.coin_ha_pham < 500));
         rows.push(btnRow);
-        // 2. Dropdown xin gia nhập Tông môn
         const sects = SectService_1.sectService.getTopSects();
         if (sects.length > 0) {
             const selectMenu = new discord_js_1.StringSelectMenuBuilder()
@@ -104,7 +106,6 @@ function getSectComponents(userId) {
     else {
         const sect = SectService_1.sectService.getSectDetails(user.sect_id);
         const isMaster = sect ? sect.master_id === userId : false;
-        // 1. Dropdown quyên góp Linh Thạch
         const donateSelect = new discord_js_1.StringSelectMenuBuilder()
             .setCustomId(`sectdonateselect_${userId}`)
             .setPlaceholder('🪙 Cống hiến Linh Thạch vào Ngân khố...');
@@ -113,7 +114,6 @@ function getSectComponents(userId) {
             donateSelect.setDisabled(true).setPlaceholder('🪙 Không đủ Linh Thạch để cống hiến (Tối thiểu 50)');
         }
         rows.push(new discord_js_1.ActionRowBuilder().addComponents(donateSelect));
-        // 2. Nút nâng cấp công trình (Chỉ dành cho Tông Chủ)
         if (isMaster && sect) {
             const upgradeRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
                 .setCustomId(`sectupgrade_tuling_${userId}`)
@@ -126,7 +126,6 @@ function getSectComponents(userId) {
                 .setDisabled(sect.dan_duong_level >= 5));
             rows.push(upgradeRow);
         }
-        // 3. Nút rời tông môn / Giải tán, Làm mới
         const btnRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
             .setCustomId(`sectleave_${userId}`)
             .setLabel(isMaster ? '💥 Giải Tán Tông Môn' : '🔙 Rời Tông Môn')

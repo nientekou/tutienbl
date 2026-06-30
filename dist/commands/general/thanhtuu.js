@@ -8,6 +8,7 @@ const UserRepository_1 = require("../../database/repositories/UserRepository");
 const AchievementService_1 = require("../../services/AchievementService");
 const constants_1 = require("../../utils/constants");
 const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 const ITEMS_PER_PAGE = 5;
 function getAchievementCategoryEmbed(userId, category, page) {
     const userAchievements = AchievementService_1.achievementService.getUserAchievements(userId).filter(a => a.category === category);
@@ -17,33 +18,33 @@ function getAchievementCategoryEmbed(userId, category, page) {
     const pageItems = userAchievements.slice(offset, offset + ITEMS_PER_PAGE);
     const completedCount = userAchievements.filter(a => a.is_completed).length;
     const catInfo = CATEGORY_LABELS[category];
-    const embed = new discord_js_1.EmbedBuilder()
-        .setTitle(`🏆 THÀNH TỰU TU SĨ - ${catInfo?.emoji} ${catInfo?.name}`)
-        .setColor(uiSystem_1.EMBED_COLORS.GOLD)
-        .setDescription([
-        `📊 **Tiến độ:** ${completedCount}/${userAchievements.length} thành tựu`,
-        `*Hoàn thành thành tựu để nhận danh hiệu đặc biệt, EXP và Linh Thạch!*`,
-        userAchievements.length > ITEMS_PER_PAGE ? `\n*Trang ${cappedPage}/${totalPages} (${userAchievements.length} thành tựu)*` : '',
-    ].filter(Boolean).join('\n'))
-        .setFooter({ text: `Danh hiệu hiện tại: ${UserRepository_1.userRepository.get(userId)?.title || 'Tán Tu'} | Dùng /thanhtuu danhhieu để xem tất cả danh hiệu.` })
-        .setTimestamp();
+    const content = [
+        (0, v2Components_1.header)(`🏆 THÀNH TỰU TU SĨ — ${catInfo?.emoji} ${catInfo?.name}`, `📊 Tiến độ: **${completedCount}/${userAchievements.length}** thành tựu\n*Hoàn thành thành tựu để nhận danh hiệu đặc biệt, EXP và Linh Thạch!*`)
+    ];
     for (const a of pageItems) {
         const status = a.is_completed
             ? '✅ **HOÀN THÀNH**'
             : `📊 ${(0, constants_1.getProgressBar)(a.progress, a.target_value, 8)} (${a.progress}/${a.target_value})`;
-        const titleBonus = a.reward_title ? `\n🏅 Danh hiệu: **${a.reward_title}**` : '';
+        const titleBonus = a.reward_title ? `\n• 🏅 Danh hiệu: **${a.reward_title}**` : '';
         const rewardText = [];
         if (a.reward_exp > 0)
             rewardText.push(`+${a.reward_exp} Tu Vi`);
         if (a.reward_coins > 0)
             rewardText.push(`+${a.reward_coins} LT`);
-        const rewardStr = rewardText.length > 0 ? ` • *Thưởng: ${rewardText.join(', ')}*` : '';
-        embed.addFields({
-            name: `${a.icon} **${a.name}** — ${status}`,
-            value: `📖 ${a.description}${titleBonus}${rewardStr}`,
-            inline: false
-        });
+        const rewardStr = rewardText.length > 0 ? ` │ Thưởng: ${rewardText.join(', ')}` : '';
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)(`${a.icon} **${a.name}**\n` +
+            `└ *${a.description}*\n` +
+            `└ Trạng thái: ${status}${rewardStr}${titleBonus}`));
     }
+    if (userAchievements.length > ITEMS_PER_PAGE) {
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)(`*Trang ${cappedPage}/${totalPages} (${userAchievements.length} thành tựu)*`));
+    }
+    const user = UserRepository_1.userRepository.get(userId);
+    content.push((0, v2Components_1.separator)());
+    content.push((0, v2Components_1.body)(`*Danh hiệu hiện tại: **${user?.title || 'Tán Tu'}** • Dùng /thanhtuu danhhieu để thay đổi.*`));
+    const embed = (0, v2Components_1.container)(v2Components_1.V2_COLORS.gold, content);
     return { embed, totalPages };
 }
 function getAchievementCategoryComponents(userId, category, page, totalPages) {
@@ -84,7 +85,6 @@ class ThanhTuuCommand extends Command_1.Command {
             return;
         }
         const sub = interaction.options.getSubcommand();
-        // Tính lại thành tựu Ý Cảnh khi xem (fix progress không update)
         AchievementService_1.achievementService.recalculateYCanhAchievement(userId);
         if (sub === 'xem') {
             await this.handleXem(interaction, userId);
@@ -99,9 +99,6 @@ class ThanhTuuCommand extends Command_1.Command {
             await this.handleFix(interaction, userId);
         }
     }
-    /**
-     * Xem thành tựu theo danh mục (hoặc tất cả)
-     */
     async handleXem(interaction, userId) {
         const category = interaction.options.getString('danh_muc') || undefined;
         let userAchievements;
@@ -113,57 +110,38 @@ class ThanhTuuCommand extends Command_1.Command {
         }
         const totalAchievements = userAchievements.length;
         const completedCount = userAchievements.filter(a => a.is_completed).length;
-        const embed = new discord_js_1.EmbedBuilder()
-            .setTitle('🏆 THÀNH TỰU TU SĨ' + (category ? ` - ${CATEGORY_LABELS[category]?.emoji} ${CATEGORY_LABELS[category]?.name}` : ''))
-            .setColor(uiSystem_1.EMBED_COLORS.GOLD)
-            .setDescription([
-            `📊 **Tiến độ:** ${completedCount}/${totalAchievements} thành tựu`,
-            `*Hoàn thành thành tựu để nhận danh hiệu đặc biệt, EXP và Linh Thạch!*`,
-        ].join('\n'))
-            .setTimestamp();
-        // Nhóm theo category nếu xem tất cả
-        if (!category) {
-            const categories = ['tu_luyen', 'chien_dau', 'pvp', 'sung_thu', 'sinh_hoat'];
-            for (const cat of categories) {
-                const catAchievements = userAchievements.filter(a => a.category === cat);
-                const catCompleted = catAchievements.filter(a => a.is_completed).length;
-                if (catAchievements.length > 0) {
-                    const catInfo = CATEGORY_LABELS[cat];
-                    embed.addFields({
-                        name: `${catInfo.emoji} ${catInfo.name} (${catCompleted}/${catAchievements.length})`,
-                        value: this.buildCategoryProgress(catAchievements),
-                        inline: false
-                    });
-                }
-            }
-        }
-        else {
+        if (category) {
             const { embed: categoryEmbed, totalPages } = getAchievementCategoryEmbed(userId, category, 1);
             const components = getAchievementCategoryComponents(userId, category, 1, totalPages);
             await interaction.editReply((0, uiSystem_1.toV2Payload)([categoryEmbed], components));
             return;
         }
-        embed.setFooter({ text: `Danh hiệu hiện tại: ${UserRepository_1.userRepository.get(userId)?.title || 'Tán Tu'} | Dùng /thanhtuu danhhieu để xem tất cả danh hiệu.` });
+        const content = [
+            (0, v2Components_1.header)('🏆 THÀNH TỰU TU SĨ', `📊 Tiến độ tổng: **${completedCount}/${totalAchievements}** thành tựu\n*Hoàn thành thành tựu để nhận danh hiệu đặc biệt, EXP và Linh Thạch!*`)
+        ];
+        const categories = ['tu_luyen', 'chien_dau', 'pvp', 'sung_thu', 'sinh_hoat'];
+        for (const cat of categories) {
+            const catAchievements = userAchievements.filter(a => a.category === cat);
+            const catCompleted = catAchievements.filter(a => a.is_completed).length;
+            if (catAchievements.length > 0) {
+                const catInfo = CATEGORY_LABELS[cat];
+                content.push((0, v2Components_1.separator)());
+                content.push((0, v2Components_1.body)(`${catInfo.emoji} **${catInfo.name}** (${catCompleted}/${catAchievements.length})\n${this.buildCategoryProgress(catAchievements)}`));
+            }
+        }
+        const user = UserRepository_1.userRepository.get(userId);
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)(`*Danh hiệu hiện tại: **${user?.title || 'Tán Tu'}** • Dùng /thanhtuu danhhieu để thay đổi.*`));
+        const embed = (0, v2Components_1.container)(v2Components_1.V2_COLORS.gold, content);
         await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
-    /**
-     * Xem tổng quan tất cả thành tựu
-     */
     async handleDanhSach(interaction, userId) {
         const achievements = AchievementService_1.achievementService.getUserAchievements(userId);
         const completed = achievements.filter(a => a.is_completed);
         const total = achievements.length;
-        const embed = new discord_js_1.EmbedBuilder()
-            .setTitle('🏆 TỔNG QUAN THÀNH TỰU')
-            .setColor(uiSystem_1.EMBED_COLORS.GOLD)
-            .setDescription([
-            `**${interaction.user.username}** — Tu sĩ đạo hiệu: **${UserRepository_1.userRepository.get(userId)?.name || '?'}**`,
-            ``,
-            `📊 **Tiến độ**: ${completed.length}/${total} (${Math.round((completed.length / total) * 100)}%)`,
-            ``,
-        ].join('\n'))
-            .setTimestamp();
-        // Thống kê theo danh mục
+        const content = [
+            (0, v2Components_1.header)('🏆 TỔNG QUAN THÀNH TỰU', `**${interaction.user.username}** — Tu sĩ đạo hiệu: **${UserRepository_1.userRepository.get(userId)?.name || '?'}**\n📊 Tiến độ tổng: **${completed.length}/${total}** (${Math.round((completed.length / total) * 100)}%)`)
+        ];
         const categories = ['tu_luyen', 'chien_dau', 'pvp', 'sung_thu', 'sinh_hoat'];
         let statsText = '';
         for (const cat of categories) {
@@ -172,8 +150,8 @@ class ThanhTuuCommand extends Command_1.Command {
             const catInfo = CATEGORY_LABELS[cat];
             statsText += `${catInfo.emoji} **${catInfo.name}**: ${catCompleted}/${catAchievements.length}\n`;
         }
-        embed.addFields({ name: '📈 Thống kê', value: statsText, inline: false });
-        // Thành tựu gần đây
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)(`📈 **Thống kê phân loại:**\n${statsText}`));
         const recentCompleted = completed
             .sort((a, b) => (b.completed_at || 0) - (a.completed_at || 0))
             .slice(0, 5);
@@ -181,16 +159,16 @@ class ThanhTuuCommand extends Command_1.Command {
             let recentText = '';
             for (const rc of recentCompleted) {
                 const date = rc.completed_at ? new Date(rc.completed_at * 1000).toLocaleDateString('vi-VN') : '?';
-                recentText += `${rc.icon} **${rc.name}** — ${date}\n`;
+                recentText += `${rc.icon} **${rc.name}** — *${date}*\n`;
             }
-            embed.addFields({ name: '🆕 Gần đây nhất', value: recentText, inline: false });
+            content.push((0, v2Components_1.separator)());
+            content.push((0, v2Components_1.body)(`🆕 **Thành tựu đạt được gần đây:**\n${recentText}`));
         }
-        embed.setFooter({ text: 'Dùng /thanhtuu xem để xem chi tiết từng danh mục.' });
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)(`*Mẹo: Dùng /thanhtuu xem để xem chi tiết từng danh mục.*`));
+        const embed = (0, v2Components_1.container)(v2Components_1.V2_COLORS.gold, content);
         await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
     }
-    /**
-     * Xem danh hiệu đã mở khóa
-     */
     async handleDanhHieu(interaction, userId) {
         const user = UserRepository_1.userRepository.get(userId);
         const titles = AchievementService_1.achievementService.getUserTitles(userId);
@@ -198,15 +176,10 @@ class ThanhTuuCommand extends Command_1.Command {
         const lockedTitles = allAchievements
             .filter(a => !a.is_completed && a.reward_title)
             .map(a => a.reward_title);
-        const embed = new discord_js_1.EmbedBuilder()
-            .setTitle(`🏅 DANH HIỆU - ${user.name}`)
-            .setColor(uiSystem_1.EMBED_COLORS.ORANGE)
-            .setDescription([
-            `**Danh hiệu đang sử dụng:** **${user.title}**`,
-            ``,
-            `📚 Đã mở khóa: **${titles.length}** danh hiệu`,
-        ].join('\n'))
-            .setTimestamp();
+        const content = [
+            (0, v2Components_1.header)(`🏅 DANH HIỆU TU SĨ — ${user.name}`, `**Danh hiệu đang sử dụng:** **${user.title || 'Tán Tu'}**\n📚 Đã mở khóa: **${titles.length}** danh hiệu`)
+        ];
+        content.push((0, v2Components_1.separator)());
         if (titles.length > 0) {
             let unlockedText = '';
             for (const t of titles) {
@@ -214,10 +187,10 @@ class ThanhTuuCommand extends Command_1.Command {
                 const isActive = t.title === user.title ? ' ⭐ **(ĐANG DÙNG)**' : '';
                 unlockedText += `• **${t.title}**${isActive} (${date})\n`;
             }
-            embed.addFields({ name: '✅ Đã mở khóa', value: unlockedText, inline: false });
+            content.push((0, v2Components_1.body)(`✅ **Đã mở khóa:**\n${unlockedText}`));
         }
         else {
-            embed.addFields({ name: '✅ Đã mở khóa', value: '*Chưa có danh hiệu nào. Hoàn thành thành tựu để nhận danh hiệu!*' });
+            content.push((0, v2Components_1.body)('✅ **Đã mở khóa:**\n*Chưa có danh hiệu nào. Hoàn thành thành tựu để nhận danh hiệu!*'));
         }
         if (lockedTitles.length > 0) {
             let lockedText = '';
@@ -227,9 +200,12 @@ class ThanhTuuCommand extends Command_1.Command {
             if (lockedTitles.length > 8) {
                 lockedText += `*...và ${lockedTitles.length - 8} danh hiệu khác*`;
             }
-            embed.addFields({ name: '🔒 Chưa mở khóa', value: lockedText, inline: false });
+            content.push((0, v2Components_1.separator)());
+            content.push((0, v2Components_1.body)(`🔒 **Chưa mở khóa:**\n${lockedText}`));
         }
-        embed.setFooter({ text: 'Nhấn nút bên dưới để đổi danh hiệu!' });
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)(`*Nhấn nút bên dưới để chuyển đổi sử dụng danh hiệu.*`));
+        const embed = (0, v2Components_1.container)(v2Components_1.V2_COLORS.gold, content);
         const components = [];
         if (titles.length > 0) {
             const rows = [];
@@ -254,9 +230,6 @@ class ThanhTuuCommand extends Command_1.Command {
         }
         await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], components));
     }
-    /**
-     * Fix thành tựu bị kẹt
-     */
     async handleFix(interaction, userId) {
         const fixed = AchievementService_1.achievementService.fixStuckAchievements(userId);
         if (fixed.length === 0) {
@@ -276,9 +249,6 @@ class ThanhTuuCommand extends Command_1.Command {
         }
         await interaction.editReply({ content: msg });
     }
-    /**
-     * Xây dựng thanh tiến trình cho danh mục
-     */
     buildCategoryProgress(achievements) {
         const completed = achievements.filter(a => a.is_completed).length;
         const total = achievements.length;

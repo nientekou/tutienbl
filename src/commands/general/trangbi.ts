@@ -1,16 +1,17 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { equipmentService } from '../../services/EquipmentService';
+import { EMBED_COLORS } from '../../utils/uiSystem';
 
 export default class TrangBiCommand extends Command {
   constructor() {
     super(
       new SlashCommandBuilder()
         .setName('trangbi')
-        .setDescription('Quản lý trang bị: Giám định, Phân giải, Nâng sao, Ghép.')
+        .setDescription('Quản lý trang bị: Giám định, Phân giải, Nâng sao, Ghép, Auto-dress.')
         .addSubcommand(sub =>
           sub
             .setName('giamdinh')
@@ -94,6 +95,11 @@ export default class TrangBiCommand extends Command {
                   { name: 'Legendary (Phẩm Truyền Thuyết)', value: 'legendary' }
                 )
             )
+        )
+        .addSubcommand(sub =>
+          sub
+            .setName('autodress')
+            .setDescription('Tự động trang bị trang bị tốt nhất cho các slot trống.')
         )
     );
   }
@@ -193,6 +199,20 @@ export default class TrangBiCommand extends Command {
         await interaction.editReply({ content: res.message });
       } else {
         await interaction.editReply({ content: `❌ Thất bại: ${res.message}`});
+      }
+      return;
+    }
+
+    if (sub === 'autodress') {
+      const res = equipmentService.autoEquip(userId);
+      if (res.success) {
+        const embed = new EmbedBuilder()
+          .setTitle('✅ Auto-Equip Thành Công')
+          .setColor(EMBED_COLORS.SUCCESS)
+          .setDescription(`Đã tự động trang bị ${res.equipped.length} món:\n${res.equipped.map(e => `• ${e}`).join('\n')}`);
+        await interaction.editReply({ embeds: [embed] });
+      } else {
+        await interaction.editReply({ content: res.message });
       }
       return;
     }

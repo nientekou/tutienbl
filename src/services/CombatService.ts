@@ -3,6 +3,7 @@ import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
 import { inventoryService } from './InventoryService';
 import { eventService } from './EventService';
+import { eventCalendarService } from './EventCalendarService';
 import { achievementService } from './AchievementService';
 import { bloodlineService } from './BloodlineService';
 import { leylineService } from './LeylineService';
@@ -45,6 +46,7 @@ export interface BossStatus {
   atk: number;
   def: number;
   level: number;
+  phase: number;
   status: string;
   defeatedBy: string | null;
   respawnTimeRemaining?: number; // seconds
@@ -86,6 +88,7 @@ export class CombatService {
         atk: updatedBoss.atk,
         def: updatedBoss.def,
         level: updatedBoss.level,
+        phase: updatedBoss.phase || 1,
         status: updatedBoss.status,
         defeatedBy: null
       };
@@ -117,6 +120,7 @@ export class CombatService {
           atk: updatedBoss.atk,
           def: updatedBoss.def,
           level: updatedBoss.level,
+          phase: updatedBoss.phase || 1,
           status: updatedBoss.status,
           defeatedBy: null
         };
@@ -128,6 +132,7 @@ export class CombatService {
           atk: boss.atk,
           def: boss.def,
           level: boss.level,
+          phase: boss.phase || 1,
           status: 'defeated',
           defeatedBy: boss.defeated_by,
           respawnTimeRemaining: respawnCooldown - elapsed
@@ -142,6 +147,7 @@ export class CombatService {
       atk: boss.atk,
       def: boss.def,
       level: boss.level,
+      phase: boss.phase || 1,
       status: boss.status,
       defeatedBy: null
     };
@@ -238,6 +244,12 @@ export class CombatService {
         diffMultAtk = 1.8;
         diffMultDef = 1.8;
         diffRewardMult = 2.5;
+        break;
+      case 'cực_hạn':
+        diffMultHp = 3.0;
+        diffMultAtk = 2.5;
+        diffMultDef = 2.5;
+        diffRewardMult = 4.0;
         break;
       case 'thường':
       default:
@@ -430,11 +442,15 @@ export class CombatService {
       const loots: Array<{ id: string; name: string; quantity: number }> = [];
       const itemsToAdd: Array<{ userId: string; itemId: string; quantity: number; customStats?: string | null }> = [];
       
+      // BIG UPDATE §5: Global event loot bonus
+      const lootEventBonus = eventService.getActiveBonus('loot_bonus');
+
       for (const loot of dungeon.rewards.loots) {
         // Tăng nhẹ tỷ lệ rơi đồ theo độ khó khó/ác mộng
         let activeRate = loot.rate;
         if (difficulty === 'khó') activeRate *= 1.25;
         if (difficulty === 'ác_mộng') activeRate *= 1.5;
+        if (lootEventBonus > 0) activeRate *= (1 + lootEventBonus);
 
         if (Math.random() < activeRate) {
           const item = db.prepare('SELECT name FROM items WHERE id = ?').get(loot.itemId) as { name: string } | undefined;
@@ -473,6 +489,27 @@ export class CombatService {
             quantity: 1
           });
         }
+      }
+
+      // BIG UPDATE §4: Soul drop from monster
+      const soulDropRate: Record<string, number> = { dễ: 0.10, thường: 0.20, khó: 0.35, ác_mộng: 0.50 };
+      let soulDropChance = soulDropRate[difficulty] || 0.10;
+      if (lootEventBonus > 0) soulDropChance *= (1 + lootEventBonus);
+      if (Math.random() < soulDropChance) {
+        const soulTiers = [
+          { id: 'soul_holy', rate: 0.05, maxDiff: 'ác_mộng' },
+          { id: 'soul_fierce', rate: 0.20, maxDiff: 'khó' },
+          { id: 'soul_spirit', rate: 0.35, maxDiff: 'thường' },
+          { id: 'soul_mortal', rate: 1.00, maxDiff: 'dễ' },
+        ];
+        const eligible = soulTiers.filter(s => {
+          const diffOrder = ['dễ', 'thường', 'khó', 'ác_mộng'];
+          return diffOrder.indexOf(difficulty) >= diffOrder.indexOf(s.maxDiff) && Math.random() < s.rate;
+        });
+        const chosen = eligible.length > 0 ? eligible[0] : soulTiers[soulTiers.length - 1];
+        itemsToAdd.push({ userId, itemId: chosen.id, quantity: 1 });
+        const soulItem = db.prepare('SELECT name FROM items WHERE id = ?').get(chosen.id) as { name: string } | undefined;
+        if (soulItem) loots.push({ id: chosen.id, name: `💀 ${soulItem.name}`, quantity: 1 });
       }
 
       if (itemsToAdd.length > 0) {
@@ -964,9 +1001,13 @@ export class CombatService {
       let gainedKnb = 0;
       const itemsGained: string[] = [];
 
+      // ── 0. Seasonal event bonus ──
+      const seasonalExpBonus = eventCalendarService.getSeasonalEffect('exp_bonus');
+      const seasonalCoinBonus = eventCalendarService.getSeasonalEffect('drop_bonus');
+
       // ── 1. Thưởng tham gia (ai cũng nhận) ──
-      gainedExp = Math.round(500 * factor);
-      gainedCoins = Math.round(150 * factor); // ponytail: giảm participation reward (trước 250)
+      gainedExp = Math.round(500 * factor * (1 + seasonalExpBonus));
+      gainedCoins = Math.round(150 * factor * (1 + seasonalCoinBonus)); // ponytail: giảm participation reward (trước 250)
       gainedBossPoints = 5;
 
       // ── 2. Thưởng theo % đóng góp (log + soft cap) ──

@@ -84,7 +84,10 @@ export class BlacksmithService {
     }
 
     const levelBonus = userForgingLevel * 0.01; // +1% thành công mỗi cấp Luyện Khí Sư
-    const finalSuccessRate = Math.min(0.95, baseSuccess + levelBonus + sectBonus);
+    // BIG UPDATE §5: Global event craft bonus
+    let eventBonus = 0;
+    try { const { eventService } = require('./EventService'); eventBonus = eventService.getActiveBonus('craft_bonus'); } catch {}
+    const finalSuccessRate = Math.min(0.95, baseSuccess + levelBonus + sectBonus + eventBonus);
 
     const roll = Math.random();
     const isSuccess = roll <= finalSuccessRate;

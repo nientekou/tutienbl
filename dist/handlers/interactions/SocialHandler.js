@@ -20,6 +20,10 @@ const bicanh_1 = require("../../commands/combat/bicanh");
 const sungthu_1 = require("../../commands/general/sungthu");
 const sanyeuthu_1 = require("../../commands/general/sanyeuthu");
 const leothap_1 = require("../../commands/general/leothap");
+const toaky_1 = require("../../commands/general/toaky");
+const arena_1 = require("../../commands/combat/arena");
+const ArenaService_1 = require("../../services/ArenaService");
+const v2Components_1 = require("../../utils/v2Components");
 const CombatLogsCache_1 = require("./CombatLogsCache");
 const uiSystem_1 = require("../../utils/uiSystem");
 const uiSystem_2 = require("../../utils/uiSystem");
@@ -512,32 +516,30 @@ class SocialHandler {
             }
             // --- Nút: ĐI ĐẾN TỌA KỴ (từ hồ sơ) ---
             else if (action === 'toakynav') {
+                const user = UserRepository_1.userRepository.get(targetUserId);
+                if (!user) {
+                    await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', flags: discord_js_1.MessageFlags.Ephemeral });
+                    return;
+                }
                 const mounts = MountService_1.mountService.getMounts(targetUserId);
                 const active = MountService_1.mountService.getActiveMount(targetUserId);
-                let desc = 'Quản lý tọa kỵ - giảm cooldown làm việc và tiết kiệm thể lực.';
-                if (active) {
-                    desc = `🐎 Đang cưỡi: **${active.name}** (Tốc độ +${Math.round(active.speed_bonus * 100)}% / Tiết kiệm +${Math.round(active.stamina_save * 100)}%)`;
-                }
-                const embed = new discord_js_1.EmbedBuilder()
-                    .setTitle('🐎 TỌA KỴ')
-                    .setColor(uiSystem_2.EMBED_COLORS.ORANGE)
-                    .setDescription(desc);
-                if (mounts.length > 0) {
-                    for (const m of mounts.slice(0, 5)) {
-                        embed.addFields({
-                            name: `#${m.id} ${m.name} (Cấp ${m.level}) [${m.rarity}]${m.is_active ? ' ✅' : ''}`,
-                            value: `Tốc độ: +${Math.round(m.speed_bonus * 100)}% | Tiết kiệm: +${Math.round(m.stamina_save * 100)}%`,
-                        });
-                    }
-                }
-                else {
-                    embed.addFields({ name: '📭 Danh sách trống', value: 'Chưa có tọa kỵ nào.' });
-                }
-                const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
+                const ropeInv = database_1.default.prepare('SELECT quantity FROM inventories WHERE user_id = ? AND item_id = ?').get(targetUserId, 'thung_bat_thu');
+                const ropesCount = ropeInv ? ropeInv.quantity : 0;
+                const feedableItems = database_1.default.prepare(`
+          SELECT i.id as inv_id, i.item_id, item.name, item.rarity, i.quantity
+          FROM inventories i
+          JOIN items item ON i.item_id = item.id
+          WHERE i.user_id = ? AND (item.type = 'material' OR item.type = 'pill')
+          ORDER BY i.quantity DESC
+          LIMIT 5
+        `).all(targetUserId);
+                const { embed, totalPages } = (0, toaky_1.getMountListEmbed)(user, mounts, active, ropesCount, feedableItems, 1);
+                const components = (0, toaky_1.getMountListComponents)(targetUserId, 1, totalPages);
+                const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
                     .setCustomId(`hosoback_${targetUserId}`)
                     .setLabel('🔙 Quay Lại Hồ Sơ')
                     .setStyle(discord_js_1.ButtonStyle.Secondary));
-                await (0, uiSystem_1.safeV2Update)(interaction, [embed], [row]);
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], [...components, backRow]);
             }
             // --- Nút: SỬA CHỮA TRANG BỊ (từ /suachua danhsach) ---
             else if (action === 'suachua') {
@@ -637,6 +639,174 @@ class SocialHandler {
                 const components = (0, tongmon_1.getSectComponents)(targetUserId);
                 await (0, uiSystem_1.safeV2Update)(interaction, [embed], components);
                 await interaction.followUp({ content: result.message, flags: discord_js_1.MessageFlags.Ephemeral });
+            }
+            // --- Nút: ĐI ĐẾN ĐẤU TRƯỜNG (từ hồ sơ) ---
+            else if (action === 'arenanav') {
+                const embed = (0, arena_1.getArenaProfileEmbed)(targetUserId);
+                if (!embed) {
+                    await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy dùng `/taonhanvat`.', flags: discord_js_1.MessageFlags.Ephemeral });
+                    return;
+                }
+                const comps = (0, arena_1.getArenaProfileComponents)(targetUserId);
+                await (0, uiSystem_1.safeV2Update)(interaction, [embed], comps);
+            }
+            // --- Nút: TÌM ĐỐI THỦ ĐẤU TRƯỜNG ---
+            else if (action === 'arena_find') {
+                const opponentId = ArenaService_1.arenaService.getMatchmaking(targetUserId);
+                if (!opponentId) {
+                    await interaction.reply({ content: '❌ Đấu trường hiện tại vắng lặng, không tìm thấy đối thủ nào! Hãy quay lại sau.', flags: discord_js_1.MessageFlags.Ephemeral });
+                    return;
+                }
+                const oUser = UserRepository_1.userRepository.get(opponentId);
+                if (!oUser) {
+                    await interaction.reply({ content: '❌ Đối thủ bỗng nhiên bốc hơi, vui lòng thử lại.', flags: discord_js_1.MessageFlags.Ephemeral });
+                    return;
+                }
+                const user = UserRepository_1.userRepository.get(targetUserId);
+                const oldChallengerProfile = ArenaService_1.arenaService.getProfile(targetUserId);
+                const oldOpponentProfile = ArenaService_1.arenaService.getProfile(opponentId);
+                const matchResult = ArenaService_1.arenaService.challenge(targetUserId, opponentId);
+                if (!matchResult.success || !matchResult.result) {
+                    await interaction.reply({ content: `❌ ${matchResult.message || 'Lỗi khiêu chiến!'}`, flags: discord_js_1.MessageFlags.Ephemeral });
+                    return;
+                }
+                const newChallengerProfile = ArenaService_1.arenaService.getProfile(targetUserId);
+                const eloDiff = newChallengerProfile.elo - oldChallengerProfile.elo;
+                const isWin = matchResult.result.winner === 'player';
+                const logText = matchResult.result.log.join('\n');
+                const attachment = new discord_js_1.AttachmentBuilder(Buffer.from(logText, 'utf-8'), { name: 'combat_log.txt' });
+                let resultText = '';
+                if (isWin) {
+                    resultText = `🎉 **CHIẾN THẮNG!** Đạo hữu đã đánh bại **${oUser.name}**.\n📈 **ELO:** ${oldChallengerProfile.elo} ➔ **${newChallengerProfile.elo}** (+${eloDiff})`;
+                    if (matchResult.artifactMessage) {
+                        resultText += `\n\n${matchResult.artifactMessage}`;
+                    }
+                }
+                else {
+                    resultText = `💀 **THẤT BẠI!** Đạo hữu đã gục ngã trước **${oUser.name}**.\n📉 **ELO:** ${oldChallengerProfile.elo} ➔ **${newChallengerProfile.elo}** (${eloDiff})`;
+                }
+                const comp = (0, v2Components_1.container)(isWin ? v2Components_1.V2_COLORS.success : v2Components_1.V2_COLORS.danger, [
+                    (0, v2Components_1.header)('⚔️ KẾT QUẢ ĐẤU TRƯỜNG'),
+                    (0, v2Components_1.body)(`**${user.name}** (ELO: ${oldChallengerProfile.elo}) 🆚 **${oUser.name}** (ELO: ${oldOpponentProfile.elo})\n\n${resultText}`),
+                    (0, v2Components_1.separator)(),
+                    (0, v2Components_1.body)([
+                        (0, v2Components_1.statLine)('Trận chiến kéo dài', `${matchResult.result.rounds} hiệp`),
+                        (0, v2Components_1.statLine)('Tổng sát thương', `${matchResult.result.totalDamageDealt}`),
+                    ].join('\n')),
+                    (0, v2Components_1.separator)(),
+                    (0, v2Components_1.body)('Chi tiết trận đấu được đính kèm trong file.'),
+                ]);
+                const nextRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`arena_find_${targetUserId}`).setLabel('⚡ Tìm Tiếp').setStyle(discord_js_1.ButtonStyle.Success), new discord_js_1.ButtonBuilder().setCustomId(`arenanav_${targetUserId}`).setLabel('🔙 Đấu Trường').setStyle(discord_js_1.ButtonStyle.Primary), new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Danger));
+                if (interaction.deferred || interaction.replied) {
+                    await interaction.followUp({ embeds: [comp], components: [nextRow], files: [attachment] });
+                }
+                else {
+                    await interaction.reply({ embeds: [comp], components: [nextRow], files: [attachment] });
+                }
+            }
+            // --- Nút: LỊCH SỬ ĐẤU TRƯỜNG ---
+            else if (action === 'arena_history') {
+                const history = database_1.default.prepare(`
+          SELECT * FROM arena_history 
+          WHERE challenger_id = ? OR opponent_id = ?
+          ORDER BY created_at DESC 
+          LIMIT 5
+        `).all(targetUserId, targetUserId);
+                if (history.length === 0) {
+                    await interaction.reply({ content: '📭 Đạo hữu chưa tham gia trận đấu nào.', flags: discord_js_1.MessageFlags.Ephemeral });
+                    return;
+                }
+                let desc = '';
+                for (const h of history) {
+                    const isChallenger = h.challenger_id === targetUserId;
+                    const isWin = h.winner_id === targetUserId;
+                    const opponentId = isChallenger ? h.opponent_id : h.challenger_id;
+                    const oUser = UserRepository_1.userRepository.get(opponentId);
+                    const oName = oUser ? oUser.name : 'Vô Danh';
+                    const resultIcon = isWin ? '✅ Thắng' : '❌ Thua';
+                    const eloMod = isWin ? `+${h.elo_change}` : `-${h.elo_change}`;
+                    const timeStr = `<t:${h.created_at}:R>`;
+                    desc += `**${resultIcon}** vs **${oName}** (${eloMod} ELO) - ${timeStr}\n`;
+                }
+                const comp = (0, v2Components_1.container)(v2Components_1.V2_COLORS.mystic, [
+                    (0, v2Components_1.header)('📜 Lịch Sử Đấu Trường (5 Trận Gần Nhất)'),
+                    (0, v2Components_1.body)(desc),
+                ]);
+                const nextRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`arenanav_${targetUserId}`).setLabel('🔙 Đấu Trường').setStyle(discord_js_1.ButtonStyle.Primary), new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Danger));
+                await (0, uiSystem_1.safeV2Update)(interaction, [comp], [nextRow]);
+            }
+            // --- Nút: BẢNG XẾP HẠNG ĐẤU TRƯỜNG ---
+            else if (action === 'arena_top') {
+                const topPlayers = ArenaService_1.arenaService.getLeaderboard(10);
+                if (topPlayers.length === 0) {
+                    await interaction.reply({ content: '📭 Bảng xếp hạng Đấu Trường hiện tại trống rỗng.', flags: discord_js_1.MessageFlags.Ephemeral });
+                    return;
+                }
+                let description = '';
+                topPlayers.forEach((p, index) => {
+                    let rankIcon = '🏅';
+                    if (index === 0)
+                        rankIcon = '🥇';
+                    else if (index === 1)
+                        rankIcon = '🥈';
+                    else if (index === 2)
+                        rankIcon = '🥉';
+                    description += `**${rankIcon} #${index + 1}** | **${p.name}**\n`;
+                    description += `└─ 🏆 ELO: **${p.elo}** | ⚔️ W/L: ${p.wins}/${p.losses} | 🔥 Chuỗi: ${p.win_streak}\n\n`;
+                });
+                const comp = (0, v2Components_1.container)(v2Components_1.V2_COLORS.gold, [
+                    (0, v2Components_1.header)('🏆 BẢNG XẾP HẠNG ĐẤU TRƯỜNG (TOP 10)'),
+                    (0, v2Components_1.body)(description),
+                ]);
+                const nextRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`arenanav_${targetUserId}`).setLabel('🔙 Đấu Trường').setStyle(discord_js_1.ButtonStyle.Primary), new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Danger));
+                await (0, uiSystem_1.safeV2Update)(interaction, [comp], [nextRow]);
+            }
+            // --- Nút: CHỌN THẺ CHÚC PHÚC LEO THÁP (Card Draft) ---
+            else if (action === 'leothapcard') {
+                // customId: leothapcard_cardId_here_userId → reconstruct cardId from parts[1..end-1]
+                const cardId = parts.slice(1, parts.length - 1).join('_');
+                const res = (0, leothap_1.selectTowerCard)(targetUserId, cardId);
+                if (res.success) {
+                    const comps = (0, leothap_1.getTowerComponents)(targetUserId);
+                    const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [res.embed], [...comps, backRow]);
+                }
+                else {
+                    await (0, uiSystem_1.safeV2Update)(interaction, [res.embed], []);
+                }
+            }
+            // --- Nút: TƯƠNG TÁC LEO THÁP (Khiêu Chiến & Khởi Đầu) ---
+            else if (action === 'leothap') {
+                const subAction = parts[1]; // 'khieuchien' or 'khoidau'
+                if (subAction === 'khieuchien') {
+                    const res = (0, leothap_1.performTowerChallenge)(targetUserId);
+                    const comps = (0, leothap_1.getTowerComponents)(targetUserId);
+                    const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
+                    if (res.draftCards && res.draftCards.length > 0) {
+                        // BIG UPDATE §1: Show card draft buttons
+                        const cardRow = new discord_js_1.ActionRowBuilder();
+                        for (const card of res.draftCards) {
+                            cardRow.addComponents(new discord_js_1.ButtonBuilder()
+                                .setCustomId(`leothapcard_${card.id}_${targetUserId}`)
+                                .setLabel(`${card.emoji} ${card.name}`)
+                                .setStyle(discord_js_1.ButtonStyle.Primary));
+                        }
+                        await (0, uiSystem_1.safeV2Update)(interaction, [res.embed], [cardRow]);
+                    }
+                    else if (res.message && (res.message.includes('Suối Linh') || res.message.includes('Lễ Hộp') || res.message.includes('Tiệm Tỳ Bà') || res.message.includes('Cờ Tỷ Phú'))) {
+                        const nextRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`leothapnav_${targetUserId}`).setLabel('➡️ Tiếp Tục Tháp').setStyle(discord_js_1.ButtonStyle.Primary), new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
+                        await (0, uiSystem_1.safeV2Update)(interaction, [res.embed], [nextRow]);
+                    }
+                    else {
+                        await (0, uiSystem_1.safeV2Update)(interaction, [res.embed], [...comps, backRow]);
+                    }
+                }
+                else if (subAction === 'khoidau') {
+                    const res = (0, leothap_1.performTowerReset)(targetUserId);
+                    const comps = (0, leothap_1.getTowerComponents)(targetUserId);
+                    const backRow = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId(`hosoback_${targetUserId}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(discord_js_1.ButtonStyle.Secondary));
+                    await (0, uiSystem_1.safeV2Update)(interaction, [res.embed], [...comps, backRow]);
+                }
             }
         }
         catch (error) {

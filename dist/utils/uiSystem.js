@@ -20,6 +20,7 @@ exports.toLegacyUpdate = toLegacyUpdate;
 exports.safeV2Update = safeV2Update;
 exports.safeV2TextUpdate = safeV2TextUpdate;
 exports.safeV2EditReply = safeV2EditReply;
+exports.convertPayloadToV2 = convertPayloadToV2;
 const discord_js_1 = require("discord.js");
 // ==================== COLOR SYSTEM ====================
 exports.UI_COLORS = {
@@ -298,6 +299,48 @@ async function safeV2EditReply(interaction, embeds, rows) {
     const components = [...embeds.map(e => e instanceof discord_js_1.ContainerBuilder ? e : embedToV2(e)), ...(rows ?? [])];
     interaction.replied = true; // ponytail: set before POST (see safeV2Update)
     await interaction.client.rest.patch(discord_js_1.Routes.webhookMessage(interaction.client.user.id, interaction.token, '@original'), { body: { components, flags: exports.V2_FLAG } });
+}
+/** Convert a standard discord.js message options payload into a Components V2 payload.
+ *  Checks if already converted or flagged to prevent double-conversion.
+ *  ponytail: handles strings, embeds, components, and other message options.
+ */
+function convertPayloadToV2(options) {
+    if (!options)
+        return options;
+    if (typeof options === 'string') {
+        return toV2TextPayload(options);
+    }
+    const flags = options.flags || 0;
+    const isV2Flags = (flags & exports.V2_FLAG) !== 0;
+    const hasContainer = options.components?.some((c) => c instanceof discord_js_1.ContainerBuilder || c?.constructor?.name === 'ContainerBuilder');
+    if (isV2Flags || hasContainer) {
+        return options;
+    }
+    const content = options.content;
+    const embeds = options.embeds || [];
+    const components = options.components || [];
+    if (!content && embeds.length === 0 && components.length === 0) {
+        return options;
+    }
+    const v2Components = [];
+    if (content) {
+        v2Components.push(textToV2(content));
+    }
+    for (const embed of embeds) {
+        v2Components.push(embed instanceof discord_js_1.ContainerBuilder ? embed : embedToV2(embed));
+    }
+    v2Components.push(...components);
+    const payload = {
+        components: v2Components,
+        flags: exports.V2_FLAG | (options.ephemeral ? discord_js_1.MessageFlags.Ephemeral : 0) | (options.flags || 0)
+    };
+    if (options.files)
+        payload.files = options.files;
+    if (options.allowedMentions)
+        payload.allowedMentions = options.allowedMentions;
+    if (options.tts)
+        payload.tts = options.tts;
+    return payload;
 }
 // ==================== EMBED COMPAT HELPERS ====================
 exports.EMBED_COLORS = {

@@ -51,7 +51,11 @@ export function getYCanhComponents(userId: string): ActionRowBuilder<ButtonBuild
     new ButtonBuilder()
       .setCustomId(`ycanhawaken_${userId}`)
       .setLabel('🧘 Ngộ Ý Cảnh')
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(`hosoback_${userId}`)
+      .setLabel('🔙 Quay Lại Hồ Sơ')
+      .setStyle(ButtonStyle.Secondary)
   );
 }
 

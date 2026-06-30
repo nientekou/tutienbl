@@ -3,6 +3,7 @@ import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
 import { achievementService } from './AchievementService';
 import { ITEMS } from '../config/itemConstants';
+import { inventoryService } from './InventoryService';
 
 export interface AlchemyRecipe {
   id: string;
@@ -330,6 +331,21 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     requiredAlchemyLevel: 4,
     baseSuccessRate: 0.35,
     expGained: 150
+  },
+  {
+    id: 'recipe_than_dan',
+    name: 'Thần Đan Thượng Cổ',
+    targetPillId: ITEMS.PILL_THAN_DAN,
+    requiredMaterials: [
+      { itemId: ITEMS.MATERIAL_VOID_HERB, quantity: 10 },
+      { itemId: ITEMS.MATERIAL_NGODONG, quantity: 5 },
+      { itemId: ITEMS.MATERIAL_BLOOD_FLOWER, quantity: 5 }
+    ],
+    costCoin: 50000,
+    staminaCost: 80,
+    requiredAlchemyLevel: 10,
+    baseSuccessRate: 0.15,
+    expGained: 5000
   }
 ];
 
@@ -456,7 +472,10 @@ export class AlchemyService {
       const { rareFireService } = require('./RareFireService');
       rareFireBonus = rareFireService.getEquippedBonus(userId).alchemyBonus;
     } catch {}
-    const finalSuccessRate = Math.min(0.95, recipe.baseSuccessRate + successBonus + levelBonus + sectBonus + hoaBonus + rareFireBonus);
+    // BIG UPDATE §5: Global event craft bonus
+    let eventCraftBonus = 0;
+    try { const { eventService } = require('./EventService'); eventCraftBonus = eventService.getActiveBonus('craft_bonus'); } catch {}
+    const finalSuccessRate = Math.min(0.95, recipe.baseSuccessRate + successBonus + levelBonus + sectBonus + hoaBonus + rareFireBonus + eventCraftBonus);
 
     // Trừ Thể Lực và Linh Thạch trước
     const postStamina = user.stamina - totalStaminaCost;
@@ -477,6 +496,21 @@ export class AlchemyService {
         if (Math.random() < 0.05) {
           evolvedCount++;
         }
+      }
+    }
+
+    // BIG UPDATE §3: Đan Kiếp Lôi Phạt cho Thần Đan Thượng Cổ
+    let tribulationFailed = false;
+    if (recipe.id === 'recipe_than_dan' && successCount > 0) {
+      const stats = inventoryService.getActiveStats(userId);
+      const playerDef = stats ? stats.def : 0;
+      const tribPassRate = Math.min(0.95, playerDef / (recipe.requiredAlchemyLevel * 250));
+      if (Math.random() >= tribPassRate) {
+        tribulationFailed = true;
+        successCount = 0;
+        const injuryDuration = recipe.requiredAlchemyLevel * 15 * 60;
+        const injuryEnd = now + injuryDuration;
+        userRepository.update(userId, { injury_end_time: injuryEnd });
       }
     }
 
@@ -535,6 +569,13 @@ export class AlchemyService {
       }
 
       return { success: true, message: responseMsg, isLevelUp, evolved: evolvedCount > 0 };
+    } else if (tribulationFailed) {
+      // Đan Kiếp thất bại
+      const injuryMinutes = recipe.requiredAlchemyLevel * 15;
+      return {
+        success: false,
+        message: `⚡ **ĐAN KIẾP LÔI PHẠT THẤT BẠI!** ⚡\n\nSau khi luyện chế thành công, lôi kiếp từ trời giáng xuống đan lô! Thực lực đạo hữu (DEF: **${inventoryService.getActiveStats(userId)?.def || 0}**) không đủ để chống đỡ, thần đan vỡ tan!\n😵 Đạo hữu bị lôi lực phản phệ, trọng thương **${injuryMinutes} phút**.`.trim()
+      };
     } else {
       // Thất bại hoàn toàn -> Nổ lò!
       // Trọng thương tỷ lệ thuận với cấp độ yêu cầu của công thức (15, 30, 45, 60 phút)

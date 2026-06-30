@@ -15,7 +15,7 @@ class BangNghiaVuCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.' });
             return;
         }
         const cards = BountyBoardService_1.bountyBoardService.getTodayCards(userId, user.level);
@@ -47,10 +47,10 @@ class BangNghiaVuCommand extends Command_1.Command {
                 .setLabel('Hoàn Thành Hôm Nay')
                 .setStyle(discord_js_1.ButtonStyle.Success)
                 .setEmoji('✅'));
-            await interaction.reply((0, uiSystem_1.toV2Payload)([embed], [row]));
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], [row]));
         }
         else {
-            await interaction.reply((0, uiSystem_1.toV2Payload)([embed]));
+            await interaction.editReply((0, uiSystem_1.toV2Payload)([embed]));
         }
     }
 }

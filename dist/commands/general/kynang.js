@@ -7,6 +7,7 @@ const discord_js_1 = require("discord.js");
 const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const PrestigeService_1 = require("../../services/PrestigeService");
+const SkillTreeService_1 = require("../../services/SkillTreeService");
 const database_1 = __importDefault(require("../../database/database"));
 const uiSystem_1 = require("../../utils/uiSystem");
 const SKILL_DETAILS = {
@@ -44,7 +45,23 @@ class KyNangCommand extends Command_1.Command {
             .setName('slot')
             .setDescription('Ô cần tháo kỹ năng (1 đến 3).')
             .setRequired(true)
-            .addChoices({ name: 'Slot 1', value: 1 }, { name: 'Slot 2', value: 2 }, { name: 'Slot 3', value: 3 }))));
+            .addChoices({ name: 'Slot 1', value: 1 }, { name: 'Slot 2', value: 2 }, { name: 'Slot 3', value: 3 })))
+            // V16 A-03: Skill Tree
+            .addSubcommand(sub => sub
+            .setName('cay')
+            .setDescription('Xem cây kỹ năng.')
+            .addStringOption(opt => opt
+            .setName('nguyen_to')
+            .setDescription('Chọn nguyên tố muốn xem (mặc định: toàn bộ).')
+            .setRequired(false)
+            .addChoices({ name: 'Hỏa', value: 'Hỏa' }, { name: 'Thủy', value: 'Thủy' }, { name: 'Mộc', value: 'Mộc' }, { name: 'Kim', value: 'Kim' }, { name: 'Thổ', value: 'Thổ' }, { name: 'Phong', value: 'Phong' })))
+            .addSubcommand(sub => sub
+            .setName('unlock')
+            .setDescription('Mở khóa nút trên cây kỹ năng.')
+            .addStringOption(opt => opt
+            .setName('node_id')
+            .setDescription('Mã nút (vd: fire_off_1, water_def_3).')
+            .setRequired(true))));
     }
     async execute(client, interaction) {
         const userId = interaction.user.id;
@@ -140,6 +157,35 @@ class KyNangCommand extends Command_1.Command {
                     content: `❌ Không có kỹ năng nào đang trang bị ở **Ô số ${slot}** để tháo.`
                 });
             }
+            return;
+        }
+        // V16 A-03: Skill Tree
+        if (sub === 'cay') {
+            const element = interaction.options.getString('nguyen_to') || '';
+            const allElements = ['Hỏa', 'Thủy', 'Mộc', 'Kim', 'Thổ', 'Phong'];
+            if (element && allElements.includes(element)) {
+                await interaction.editReply({ content: SkillTreeService_1.skillTreeService.getTreeDescription(userId, element) });
+            }
+            else {
+                let msg = '🌳 **Cây Kỹ Năng Nguyên Tố**\n\n';
+                const totalPoints = SkillTreeService_1.skillTreeService.getSkillPoints(userId);
+                msg += `📊 Điểm kỹ năng: **${totalPoints}**\n\n`;
+                for (const el of allElements) {
+                    const nodes = SkillTreeService_1.skillTreeService.getNodesByElement(el);
+                    const userNodes = SkillTreeService_1.skillTreeService.getUserNodes(userId);
+                    const unlocked = nodes.filter(n => userNodes[n.id] === 1).length;
+                    msg += `${el}: **${unlocked}/${nodes.length}** nút (xem: \`/kynang cay ${el}\`)\n`;
+                }
+                msg += '\n*Dùng `/kynang cay <nguyen_to>` để xem chi tiết.*';
+                await interaction.editReply({ content: msg });
+            }
+            return;
+        }
+        if (sub === 'unlock') {
+            const nodeId = interaction.options.getString('node_id', true);
+            const result = SkillTreeService_1.skillTreeService.unlockNode(userId, nodeId);
+            await interaction.editReply({ content: result.message });
+            return;
         }
     }
 }

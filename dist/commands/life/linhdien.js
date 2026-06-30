@@ -14,27 +14,29 @@ const database_1 = __importDefault(require("../../database/database"));
 const constants_1 = require("../../utils/constants");
 const itemConstants_1 = require("../../config/itemConstants");
 const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 /**
- * Tạo Embed hiển thị trạng thái Linh Điền
+ * Tạo V2 Container hiển thị trạng thái Linh Điền
  */
 function getLinhDienEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
-        return new discord_js_1.EmbedBuilder()
-            .setTitle('❌ Lỗi')
-            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
-            .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
+        return (0, v2Components_1.container)(v2Components_1.V2_COLORS.danger, [
+            (0, v2Components_1.header)('❌ Lỗi'),
+            (0, v2Components_1.body)('Đạo hữu chưa khởi tạo nhân vật.')
+        ]);
     }
     const plots = FarmingService_1.farmingService.getPlots(userId);
     const unlockedCount = plots.length;
     const costList = [100, 250, 500, 1000, 2000];
-    const embed = new discord_js_1.EmbedBuilder()
-        .setTitle(`🌱 Linh Điền Trồng Trọt - ${user.name}`)
-        .setDescription('Đại Đạo Vô Biên, trồng trọt thu hoạch thảo dược rèn đan luyện linh khí.')
-        .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
-        .setTimestamp();
-    const fields = [];
+    const content = [
+        (0, v2Components_1.header)(`🌱 Linh Điền Trồng Trọt - ${user.name}`, 'Đại Đạo Vô Biên, trồng trọt thu hoạch thảo dược rèn đan luyện linh khí.'),
+        (0, v2Components_1.separator)()
+    ];
     for (let i = 0; i < 6; i++) {
+        if (i > 0 && i % 2 === 0) {
+            content.push((0, v2Components_1.separator)());
+        }
         if (i < unlockedCount) {
             const p = plots[i];
             let name = `🌱 Ô Đất Số ${i + 1}`;
@@ -45,7 +47,7 @@ function getLinhDienEmbed(userId) {
             }
             else {
                 const remaining = p.timeRemaining || 0;
-                let detailsText = `💧 Ẩm: **${p.moisture}/5** | 🪱 Dinh dưỡng: **${p.nutrition}/6** | 🐛 Sâu: **${p.pests === 0 ? 'Không' : 'Có ⚠️'}**`;
+                let detailsText = `💧 Ẩm: **${p.moisture}/5** │ 🪱 Dinh dưỡng: **${p.nutrition}/6** │ 🐛 Sâu: **${p.pests === 0 ? 'Không' : 'Có ⚠️'}**`;
                 let speedText = '⚡ Tốc độ: 100%';
                 if (p.pests > 0 || p.moisture < 3 || p.nutrition < 3) {
                     speedText = '🐢 Tốc độ: 50% (Kém)';
@@ -79,19 +81,16 @@ function getLinhDienEmbed(userId) {
                     value = `${growthBar} (Còn \`${min}m ${sec}s\`)\n└ ${detailsText}\n└ ${speedText}`;
                 }
             }
-            fields.push({ name, value, inline: true });
+            content.push((0, v2Components_1.body)(`**${name}**\n${value}`));
         }
         else {
             const cost = costList[i - 1];
-            fields.push({
-                name: `🔒 Ô Đất Số ${i + 1}`,
-                value: `*Chưa khai khẩn*\n└ Phí mở: **${cost}** Linh Thạch`,
-                inline: true
-            });
+            content.push((0, v2Components_1.body)(`**🔒 Ô Đất Số ${i + 1}**\n*Chưa khai khẩn* (Phí mở: **${cost}** Linh Thạch)`));
         }
     }
-    embed.addFields(...fields, { name: '💼 Tài sản', value: `🟤 **${user.coin_ha_pham}** Linh Thạch Hạ Phẩm`, inline: false });
-    return embed;
+    content.push((0, v2Components_1.separator)());
+    content.push((0, v2Components_1.body)(`💼 Tài sản: 🟤 **${user.coin_ha_pham.toLocaleString()}** Linh Thạch Hạ Phẩm`));
+    return (0, v2Components_1.container)(v2Components_1.V2_COLORS.success, content);
 }
 /**
  * Tạo các Component tương tác cho Linh Điền
@@ -201,6 +200,9 @@ function getLinhDienComponents(userId) {
         .setDisabled(isMaxedPlots), new discord_js_1.ButtonBuilder()
         .setCustomId(`linhdienrefresh_${userId}`)
         .setLabel('🔄 Làm Mới')
+        .setStyle(discord_js_1.ButtonStyle.Secondary), new discord_js_1.ButtonBuilder()
+        .setCustomId(`hosoback_${userId}`)
+        .setLabel('🔙 Quay Lại Hồ Sơ')
         .setStyle(discord_js_1.ButtonStyle.Secondary));
     rows.push(btnRow);
     return rows;

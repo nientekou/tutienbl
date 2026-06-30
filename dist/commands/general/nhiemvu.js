@@ -12,6 +12,7 @@ const QuestChainService_1 = require("../../services/QuestChainService");
 const CommunityQuestService_1 = require("../../services/CommunityQuestService");
 const constants_1 = require("../../utils/constants");
 const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 const CATEGORY_EMOJI = {
     combat: '⚔️',
     life: '🌿',
@@ -24,7 +25,9 @@ const CATEGORY_EMOJI = {
 function getNhiemVuEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
-        return new discord_js_1.EmbedBuilder().setTitle('❌ Lỗi').setColor(uiSystem_1.EMBED_COLORS.ERROR).setDescription('Đạo hữu chưa khởi tạo nhân vật.');
+        return (0, v2Components_1.container)(v2Components_1.V2_COLORS.danger, [
+            (0, v2Components_1.header)('❌ Lỗi', 'Đạo hữu chưa khởi tạo nhân vật.')
+        ]);
     }
     const quests = DailyQuestService_1.dailyQuestService.getOrAssignQuests(userId);
     const resetSecs = DailyQuestService_1.dailyQuestService.getSecondsToReset();
@@ -32,13 +35,9 @@ function getNhiemVuEmbed(userId) {
     const resetMins = Math.floor((resetSecs % 3600) / 60);
     const completedCount = quests.filter(q => q.progress >= q.required).length;
     const claimedCount = quests.filter(q => q.is_claimed === 1).length;
-    const embed = new discord_js_1.EmbedBuilder()
-        .setTitle('📜 THIÊN CƠ CÁC - NHIỆM VỤ HÀNG NGÀY')
-        .setColor(uiSystem_1.EMBED_COLORS.MYSTIC)
-        .setDescription(`Tu sĩ tu hành chân chính không chỉ tịnh tọa trong động phủ. Thiên Cơ Các mỗi ngày giao phó 3 nhiệm vụ cho các đạo hữu trong thiên hạ.\n\n` +
-        `🎖️ **Đã hoàn thành:** ${completedCount}/3 | ✅ **Đã nhận thưởng:** ${claimedCount}/3\n` +
-        `⏰ **Nhiệm vụ reset sau:** ${resetHours}h ${resetMins}p`)
-        .setTimestamp();
+    const content = [
+        (0, v2Components_1.header)('📜 THIÊN CƠ CÁC — NHIỆM VỤ HÀNG NGÀY', `🎖️ Đã hoàn thành: **${completedCount}/3** │ ✅ Đã nhận thưởng: **${claimedCount}/3**\n⏰ Reset sau: **${resetHours}h ${resetMins}p**`)
+    ];
     for (const quest of quests) {
         const def = quest.definition;
         if (!def)
@@ -49,27 +48,30 @@ function getNhiemVuEmbed(userId) {
         const statusText = isClaimed
             ? '✅ **ĐÃ NHẬN THƯỞNG**'
             : isComplete
-                ? '🎁 **HOÀN THÀNH - Nhấn Nhận Thưởng!**'
+                ? '🎁 **HOÀN THÀNH — Nhấp nhận thưởng bên dưới!**'
                 : `⏳ Tiến trình: ${progressBar} (${quest.progress}/${quest.required})`;
-        const rewardText = `🟤 ${def.rewardCoin} Linh Thạch | 🌿 ${def.rewardTuVi} Tu Vi | 🧘 ${def.rewardNgotinh} Ngộ Tính`;
-        embed.addFields({
-            name: `${def.emoji} ${def.name} ${CATEGORY_EMOJI[def.category] || ''}`,
-            value: `${def.description}\n${statusText}\n💰 **Phần thưởng:** ${rewardText}`,
-            inline: false
-        });
+        const rewardText = `🟤 ${def.rewardCoin} Linh Thạch │ 🌿 ${def.rewardTuVi} Tu Vi │ 🧘 ${def.rewardNgotinh} Ngộ Tính`;
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)(`🔹 **${def.emoji} ${def.name}** ${CATEGORY_EMOJI[def.category] || ''}\n` +
+            `└ *${def.description}*\n` +
+            `└ ${statusText}\n` +
+            `└ 💰 Phần thưởng: ${rewardText}`));
     }
     const communityData = CommunityQuestService_1.communityQuestService.getActiveQuestWithParticipant(userId);
     if (communityData.quest) {
         const q = communityData.quest;
         const progressBar = (0, constants_1.getProgressBar)(q.current_progress, q.total_required);
-        embed.addFields({
-            name: `🌍 **NHIỆM VỤ CỘNG ĐỒNG: ${q.name}**`,
-            value: `📖 ${q.description}\n${progressBar} (${q.current_progress}/${q.total_required})\n👤 **Đóng góp của bạn:** ${communityData.contribution}\n⏳ Còn lại: <t:${q.ends_at}:R>\n💰 Thưởng: 🟤 ${q.reward_coins} Linh Thạch | 🌿 ${q.reward_exp} Tu Vi`,
-            inline: false
-        });
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)(`🌍 **NHIỆM VỤ CỘNG ĐỒNG: ${q.name}**\n` +
+            `└ *${q.description}*\n` +
+            `└ Tiến trình: ${progressBar} (${q.current_progress}/${q.total_required})\n` +
+            `└ Đóng góp của bạn: **${communityData.contribution}**\n` +
+            `└ Hạn chót: <t:${q.ends_at}:R>\n` +
+            `└ 💰 Phần thưởng: 🟤 ${q.reward_coins} Linh Thạch │ 🌿 ${q.reward_exp} Tu Vi`));
     }
-    embed.setFooter({ text: 'Tiến trình tự động cập nhật khi đạo hữu thực hiện các hoạt động tương ứng.' });
-    return embed;
+    content.push((0, v2Components_1.separator)());
+    content.push((0, v2Components_1.body)(`*Tiến trình tự động cập nhật khi đạo hữu thực hiện các hoạt động tương ứng.*`));
+    return (0, v2Components_1.container)(v2Components_1.V2_COLORS.mystic, content);
 }
 /**
  * Tạo Components nhiệm vụ hàng ngày
@@ -106,29 +108,31 @@ function getNhiemVuComponents(userId) {
 function getQuestChainEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
-        return new discord_js_1.EmbedBuilder().setTitle('❌ Lỗi').setColor(uiSystem_1.EMBED_COLORS.ERROR).setDescription('Đạo hữu chưa khởi tạo nhân vật.');
+        return (0, v2Components_1.container)(v2Components_1.V2_COLORS.danger, [
+            (0, v2Components_1.header)('❌ Lỗi', 'Đạo hữu chưa khởi tạo nhân vật.')
+        ]);
     }
     const progressData = QuestChainService_1.questChainService.getDetailedProgress(userId);
     const availableChains = QuestChainService_1.questChainService.getAvailableChains(userId);
-    const embed = new discord_js_1.EmbedBuilder()
-        .setTitle('⚔️ NHIỆM VỤ CHUỖI - TU TIÊN LỘ')
-        .setColor(uiSystem_1.EMBED_COLORS.WARNING)
-        .setDescription('Những thử thách tu tiên trải dài theo từng bước. Hoàn thành tất cả bước trong một chuỗi để nhận phần thưởng cuối cùng!')
-        .setTimestamp();
     if (progressData.length === 0 && availableChains.length === 0) {
-        embed.setDescription('🎉 Đạo hữu đã hoàn thành tất cả chuỗi nhiệm vụ hiện có!');
-        return embed;
+        return (0, v2Components_1.container)(v2Components_1.V2_COLORS.warning, [
+            (0, v2Components_1.header)('⚔️ NHIỆM VỤ CHUỖI — TU TIÊN LỘ', 'Những thử thách tu tiên trải dài theo từng bước.'),
+            (0, v2Components_1.separator)(),
+            (0, v2Components_1.body)('🎉 *Đạo hữu đã hoàn thành tất cả chuỗi nhiệm vụ hiện có!*')
+        ]);
     }
+    const content = [
+        (0, v2Components_1.header)('⚔️ NHIỆM VỤ CHUỖI — TU TIÊN LỘ', 'Những thử thách tu tiên trải dài theo từng bước. Hoàn thành tất cả bước trong một chuỗi để nhận phần thưởng cuối cùng!')
+    ];
     for (const chain of QuestChainService_1.QUEST_CHAINS) {
         const progress = progressData.find(p => p.chain_id === chain.id);
         const isCompleted = progress?.completed === 1;
         const isStarted = !!progress;
+        content.push((0, v2Components_1.separator)());
         if (isCompleted) {
-            embed.addFields({
-                name: `✅ ${chain.name}`,
-                value: `📖 ${chain.description}\n🏁 **Đã hoàn thành!**`,
-                inline: false
-            });
+            content.push((0, v2Components_1.body)(`✅ **${chain.name}**\n` +
+                `└ *${chain.description}*\n` +
+                `└ 🏁 **Đã hoàn thành!**`));
             continue;
         }
         const stepIndex = progress?.step_index ?? 0;
@@ -145,13 +149,12 @@ function getQuestChainEmbed(userId) {
             }
             return `   🔒 **${step.name}** - ${step.description}`;
         }).join('\n');
-        embed.addFields({
-            name: `${isStarted ? '⏳' : '📋'} ${chain.name}`,
-            value: `📖 ${chain.description}\n${stepLines}\n🎁 Thưởng cuối: 🟤 ${chain.finalRewardCoins} Linh Thạch | 🌿 ${chain.finalRewardExp} Tu Vi${chain.finalRewardTitle ? ` | 🏅 Danh hiệu: ${chain.finalRewardTitle}` : ''}`,
-            inline: false
-        });
+        content.push((0, v2Components_1.body)(`${isStarted ? '⏳' : '📋'} **${chain.name}**\n` +
+            `└ *${chain.description}*\n` +
+            `${stepLines}\n` +
+            `└ 🎁 Thưởng cuối: 🟤 ${chain.finalRewardCoins} Linh Thạch │ 🌿 ${chain.finalRewardExp} Tu Vi${chain.finalRewardTitle ? ` │ 🏅 Danh hiệu: ${chain.finalRewardTitle}` : ''}`));
     }
-    return embed;
+    return (0, v2Components_1.container)(v2Components_1.V2_COLORS.warning, content);
 }
 function getQuestChainComponents(userId) {
     const progressData = QuestChainService_1.questChainService.getDetailedProgress(userId);
@@ -194,7 +197,7 @@ class NhiemVuCommand extends Command_1.Command {
         super(new discord_js_1.SlashCommandBuilder()
             .setName('nhiemvu')
             .setDescription('Xem nhiệm vụ, nhiệm vụ chuỗi và nhiệm vụ cộng đồng.')
-            .addSubcommand(sub => sub.setName('hàng-ngày')
+            .addSubcommand(sub => sub.setName('hang-ngay')
             .setDescription('Xem nhiệm vụ hàng ngày từ Thiên Cơ Các.'))
             .addSubcommand(sub => sub.setName('chuong-trinh')
             .setDescription('Xem tiến trình nhiệm vụ chuỗi (Quest Chain).')));

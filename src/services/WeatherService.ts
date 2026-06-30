@@ -52,12 +52,19 @@ class WeatherService {
   /**
    * B-06: Get weather effects as stat bonuses
    */
+  // ponytail: non-combat effects (alchemy, drop, tribulation, exploration) bypass the combat cap
+  private readonly NON_COMBAT_EFFECTS = new Set(['alchemy_bonus', 'drop_bonus', 'tribulation_exp_bonus', 'exploration_speed_bonus']);
+
   public getWeatherEffects(guildId: string): Record<string, number> {
     const weather = this.getCurrentWeather(guildId);
     const effects: Record<string, number> = {};
 
     for (const eff of weather.effects) {
-      effects[eff.stat] = Math.max(-WEATHER_EFFECT_CAP, Math.min(WEATHER_EFFECT_CAP, eff.value));
+      if (this.NON_COMBAT_EFFECTS.has(eff.stat)) {
+        effects[eff.stat] = eff.value;
+      } else {
+        effects[eff.stat] = Math.max(-WEATHER_EFFECT_CAP, Math.min(WEATHER_EFFECT_CAP, eff.value));
+      }
     }
 
     return effects;

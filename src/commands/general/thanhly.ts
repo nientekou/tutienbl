@@ -3,6 +3,7 @@ import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
+import { equipmentService } from '../../services/EquipmentService';
 import { systemConfigService } from '../../services/SystemConfigService';
 import db from '../../database/database';
 import { formatNumber } from '../../utils/constants';
@@ -83,6 +84,23 @@ export default class ThanhLyCommand extends Command {
           sub
             .setName('danhsach')
             .setDescription('Xem danh sách vật phẩm NPC thu mua và giá.')
+        )
+        .addSubcommand(sub =>
+          sub
+            .setName('quick')
+            .setDescription('Phân giải nhanh trang bị phẩm thấp thành Huyền Thiết Sa.')
+            .addStringOption(opt =>
+              opt.setName('phamchat')
+                .setDescription('Phẩm chất tối đa muốn phân giải')
+                .setRequired(true)
+                .addChoices(
+                  { name: 'Common (F)', value: 'F' },
+                  { name: 'Uncommon (D)', value: 'D' },
+                  { name: 'Rare (C)', value: 'C' },
+                  { name: 'Epic (B)', value: 'B' },
+                  { name: 'Legendary (A)', value: 'A' }
+                )
+            )
         )
     );
   }
@@ -170,6 +188,41 @@ export default class ThanhLyCommand extends Command {
             .setTimestamp()
         ]
       });
+    }
+
+    if (sub === 'quick') {
+      const maxGrade = interaction.options.getString('phamchat', true).toLowerCase();
+      const gradeOrder: Record<string, number> = { 'f': 0, 'd': 1, 'c': 2, 'b': 3, 'a': 4 };
+      const maxGradeNum = gradeOrder[maxGrade];
+      if (maxGradeNum === undefined) {
+        await interaction.editReply({ content: '❌ Phẩm chất không hợp lệ.' });
+        return;
+      }
+
+      const inventory = inventoryRepository.getUserInventory(userId);
+      const toSalvage = inventory.filter(i =>
+        i.equipable === 1 &&
+        i.is_equipped !== 1 &&
+        (gradeOrder[i.item_id.split('_').pop()?.toLowerCase() || 'f'] ?? 0) <= maxGradeNum
+      );
+
+      if (toSalvage.length === 0) {
+        await interaction.editReply({ content: '❌ Không có trang bị nào phù hợp để phân giải.' });
+        return;
+      }
+
+      let salvaged = 0;
+      for (const item of toSalvage) {
+        const result = equipmentService.salvageEquipment(userId, item.id, item.quantity);
+        if (result.success) salvaged += item.quantity;
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle('⚡ Thanh Lý Nhanh')
+        .setColor(EMBED_COLORS.SUCCESS)
+        .setDescription(`Đã thanh lý **${salvaged}** trang bị phẩm ${maxGrade.toUpperCase()} trở xuống thành tài nguyên.`);
+      await interaction.editReply({ embeds: [embed] });
+      return;
     }
   }
 

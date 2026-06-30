@@ -396,7 +396,60 @@ export async function safeV2EditReply(
   );
 }
 
+/** Convert a standard discord.js message options payload into a Components V2 payload.
+ *  Checks if already converted or flagged to prevent double-conversion.
+ *  ponytail: handles strings, embeds, components, and other message options.
+ */
+export function convertPayloadToV2(options: any): any {
+  if (!options) return options;
+  if (typeof options === 'string') {
+    return toV2TextPayload(options);
+  }
+
+  const flags = options.flags || 0;
+  const isV2Flags = (flags & V2_FLAG) !== 0;
+  const hasContainer = options.components?.some(
+    (c: any) => c instanceof ContainerBuilder || c?.constructor?.name === 'ContainerBuilder'
+  );
+
+  if (isV2Flags || hasContainer) {
+    return options;
+  }
+
+  const content = options.content;
+  const embeds = options.embeds || [];
+  const components = options.components || [];
+
+  if (!content && embeds.length === 0 && components.length === 0) {
+    return options;
+  }
+
+  const v2Components: any[] = [];
+
+  if (content) {
+    v2Components.push(textToV2(content));
+  }
+
+  for (const embed of embeds) {
+    v2Components.push(embed instanceof ContainerBuilder ? embed : embedToV2(embed));
+  }
+
+  v2Components.push(...components);
+
+  const payload: any = {
+    components: v2Components,
+    flags: V2_FLAG | (options.ephemeral ? MessageFlags.Ephemeral : 0) | (options.flags || 0)
+  };
+
+  if (options.files) payload.files = options.files;
+  if (options.allowedMentions) payload.allowedMentions = options.allowedMentions;
+  if (options.tts) payload.tts = options.tts;
+
+  return payload;
+}
+
 // ==================== EMBED COMPAT HELPERS ====================
+
 
 export const EMBED_COLORS = {
   ERROR: '#e74c3c',

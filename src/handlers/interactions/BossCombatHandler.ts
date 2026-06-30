@@ -7,6 +7,7 @@ import { bossSpawnService } from '../../services/BossSpawnService';
 import { bossSeasonService } from '../../services/BossSeasonService';
 import { dailyQuestService } from '../../services/DailyQuestService';
 import { autoBalanceService } from '../../services/AutoBalanceService';
+import { worldBossReworkService } from '../../services/WorldBossReworkService';
 import { ITEMS } from '../../config/itemConstants';
 import { buildWorldBossContainer, getBossShopEmbed, getBossShopComponents, handleBossShopPurchase } from '../../commands/combat/worldboss';
 import { EMBED_COLORS, toV2Payload, toV2TextUpdate, safeV2Update, safeV2TextUpdate } from '../../utils/uiSystem';
@@ -123,6 +124,38 @@ export async function handleBossCombatAction(interaction: BossCombatInteraction,
 
       const { boss: currentBossData, isCrit, totalDmg, isDefeated, pet, petDmg, isEnraged } = txResult;
 
+      // === V16 B-02: Phase transition + V2 mechanics ===
+      worldBossReworkService.checkPhaseTransition('world_boss_current');
+      const bossAfterPhase = db.prepare("SELECT * FROM world_boss WHERE id = 'world_boss_current'").get() as any;
+      const currentPhase = bossAfterPhase?.phase || 1;
+      worldBossReworkService.recordPhaseDamage(interaction.user.id, 'world_boss_current', currentPhase, totalDmg);
+
+      const hpPct = bossAfterPhase ? bossAfterPhase.hp / bossAfterPhase.max_hp : 0;
+      const phaseEffects = worldBossReworkService.applyPhaseMechanics(bossAfterPhase || currentBossData, hpPct);
+
+      // Apply phase 3 heal after damage
+      if (phaseEffects.healAmount > 0 && !isDefeated) {
+        const healedHp = Math.min(bossAfterPhase.max_hp, bossAfterPhase.hp + phaseEffects.healAmount);
+        db.prepare("UPDATE world_boss SET hp = ? WHERE id = 'world_boss_current'").run(healedHp);
+      }
+
+      // Apply phase 4 absorb — reduce damage
+      let absorbed = false;
+      if (phaseEffects.absorbPct > 0 && !isDefeated) {
+        // ponytail: simple check — if player element matches phase weakness, absorb
+        const userElement = db.prepare("SELECT element FROM users WHERE discord_id = ?").get(interaction.user.id) as any;
+        const phaseData = require('../../config/worldBossReworkConstants').BOSS_PHASES.find((p: any) => p.phase === currentPhase);
+        if (userElement && phaseData && userElement.element === phaseData.weakness) {
+          absorbed = true;
+        }
+      }
+
+      // Apply phase 5 one-shot: if 5+ attacks in phase 5, reflect 999999 damage
+      let phase5OneShot = false;
+      if (phaseEffects.phase5Attacks >= 5 && !isDefeated) {
+        phase5OneShot = true;
+      }
+
       const allContribs = db.prepare("SELECT user_id, damage FROM world_boss_contributions WHERE boss_id = 'world_boss_current' ORDER BY damage DESC")
         .all() as { user_id: string; damage: number }[];
       const currentRank = allContribs.findIndex(c => c.user_id === interaction.user.id) + 1;
@@ -132,12 +165,15 @@ export async function handleBossCombatAction(interaction: BossCombatInteraction,
       const playerMaxHp = activeStats.hp;
       const hpPercent = playerMaxHp > 0 ? playerCurHp / playerMaxHp : 1;
       const rankReflectMulti = Math.max(0.5, 1.5 - currentRank * 0.1);
-      const reflectDmg = Math.round(playerMaxHp * hpPercent * 0.12 * rankReflectMulti);
+
+      // Phase 5: one-shot reflect
+      const phase5Reflect = phase5OneShot ? playerMaxHp * 10 : 0;
+      const reflectDmg = Math.round((playerMaxHp * hpPercent * 0.12 * rankReflectMulti) + phase5Reflect);
 
       const baseInjuryChance = activeStats.hp < (currentBossData.atk * 5) ? 0.30 : 0.12;
-      const injuryChance = Math.min(0.60, baseInjuryChance + bossLevel * 0.02);
+      const injuryChance = phase5OneShot ? 1.0 : Math.min(0.60, baseInjuryChance + bossLevel * 0.02);
       const isInjured = Math.random() < injuryChance;
-      const injuryDuration = 600;
+      const injuryDuration = phase5OneShot ? 3600 : 600;
 
       const ngoTinhBonus = currentRank <= 3 ? 5 : 3;
 
@@ -186,16 +222,21 @@ export async function handleBossCombatAction(interaction: BossCombatInteraction,
         }
       }
 
+      const phaseName = ['', 'Sơ Khởi', 'Phẫn Nộ', 'Hồi Phục', 'Thôn Tính', 'Tuyệt Vọng'][currentPhase] || '';
+      const healText = phaseEffects.healAmount > 0 && !isDefeated ? `\n🩹 **Hồi Phục:** Boss hồi **+${phaseEffects.healAmount.toLocaleString()}** HP!` : '';
+      const absorbText = absorbed ? `\n🔮 **Thôn Tính:** Nguyên tố bị hấp thụ, sát thương giảm!` : '';
+      const phase5Text = phase5OneShot ? `\n💀 **TUYỆT VỌNG:** Boss tung đòn hủy diệt, đạo hữu trọng thương!` : '';
       const petText = pet ? ` (Sủng thú **${pet.name}** phụ trợ +${petDmg})` : '';
       const critText = isCrit ? ' **[BẠO KÍCH]** 💥' : '';
       const rankText = ` 🏆 **(Hạng #${currentRank})**`;
       const enrageText = isEnraged ? '\n🔴 **MA KHÍ BỪNG SỨC!** Boss đã Enrage — ATK tăng 30%!' : '';
+      const phaseInfoText = currentPhase > 1 ? `\n🌀 **Bước sang Giai Đoạn ${currentPhase}: ${phaseName}**` : '';
       const reflectText = `\n⚡ **Phản Phệ:** Đạo hữu chịu **-${reflectDmg}** sát thương phản chấn từ Boss (Lv.${bossLevel})!`;
       const injuryMin = Math.floor(injuryDuration / 60);
       const injuryText = isInjured ? `\n🚨 **Chấn Thương:** Phản phệ chấn động kinh mạch, bị **Trọng Thương trong ${injuryMin} phút**!` : '';
 
       await interaction.reply({
-        content: `💥 Đạo hữu **${updatedUser.name}** vung đòn tấn công Boss thế giới, gây **-${totalDmg}** sát thương lên Boss${critText}${rankText}!${petText}${enrageText}${reflectText}${injuryText}\n🧘 Nhận được **+${ngoTinhBonus}** Điểm Ngộ Tính!${rewardsText}`
+        content: `💥 Đạo hữu **${updatedUser.name}** vung đòn tấn công Boss thế giới, gây **-${totalDmg}** sát thương lên Boss${critText}${rankText}!${petText}${enrageText}${phaseInfoText}${healText}${absorbText}${phase5Text}${reflectText}${injuryText}\n🧘 Nhận được **+${ngoTinhBonus}** Điểm Ngộ Tính!${rewardsText}`
       });
       return;
     }

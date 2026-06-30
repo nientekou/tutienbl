@@ -1,29 +1,25 @@
 import {
   ChatInputCommandInteraction,
-  EmbedBuilder,
   SlashCommandBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  ContainerBuilder
 } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { explorationService, EXPLORATION_LOCATIONS } from '../../services/ExplorationService';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { toV2Payload } from '../../utils/uiSystem';
 import { getRealmDetails } from '../../utils/constants';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 
 /**
- * Tạo Embed hiển thị bản đồ dã ngoại
+ * Tạo V2 Container hiển thị bản đồ dã ngoại
  */
-export function getKhamPhaEmbed(userId: string): EmbedBuilder {
+export function getKhamPhaEmbed(userId: string): ContainerBuilder {
   const user = userRepository.get(userId);
   const active = explorationService.getActiveExploration(userId);
-
-  const embed = new EmbedBuilder()
-    .setTitle('🗺️ BẢN ĐỒ DÃ NGOẠI - KHÁM PHÁ TIÊN GIỚI')
-    .setColor(EMBED_COLORS.ORANGE)
-    .setTimestamp();
 
   if (active) {
     const now = Math.floor(Date.now() / 1000);
@@ -33,24 +29,29 @@ export function getKhamPhaEmbed(userId: string): EmbedBuilder {
     const secs = remaining % 60;
     const status = active.status === 'event_pending' ? '⚡ Đang chờ xử lý kỳ ngộ!' : `⏳ Còn **${mins}p ${secs}s** nữa trở về`;
 
-    embed.setDescription(
-      `Đạo hữu đang trên hành trình thám hiểm...\n\n` +
-      `📍 **Điểm đến:** ${loc?.emoji || '🗺️'} **${loc?.name || active.location_id}**\n` +
-      `${status}\n\n` +
-      `*Sử dụng nút ✅ Về Lấy Thưởng khi hành trình hoàn thành.*`
-    );
-    return embed;
+    return container(V2_COLORS.dark, [
+      header('🗺️ BẢN ĐỒ DÃ NGOẠI - KHÁM PHÁ TIÊN GIỚI', 'Đạo hữu đang trên hành trình thám hiểm hoang dã...'),
+      separator(),
+      body(
+        `📍 **Điểm đến:** ${loc?.emoji || '🗺️'} **${loc?.name || active.location_id}**\n` +
+        `${status}\n\n` +
+        `*Sử dụng nút ✅ Về Lấy Thưởng khi hành trình hoàn thành.*`
+      )
+    ]);
   }
 
   const realmInfo = user ? getRealmDetails(user.level) : null;
   const stamina = user?.stamina || 0;
 
-  embed.setDescription(
-    `Ngoài cửa tông môn, thiên địa bao la chứa đựng vô số cơ duyên đang chờ đợi đạo hữu khám phá!\n\n` +
-    `🧘 **Thể Lực hiện có:** **${stamina}/500**\n` +
-    `🏔️ **Cảnh giới:** ${realmInfo?.fullName || 'Không xác định'}\n\n` +
-    `*Chọn địa điểm muốn thám hiểm từ các nút bên dưới.*`
-  );
+  const content: any[] = [
+    header('🗺️ BẢN ĐỒ DÃ NGOẠI - KHÁM PHÁ TIÊN GIỚI', 'Ngoài cửa tông môn, thiên địa bao la chứa đựng vô số cơ duyên đang chờ đợi đạo hữu khám phá!'),
+    separator(),
+    body(
+      `🧘 **Thể Lực hiện có:** **${stamina}/500**\n` +
+      `🏔️ **Cảnh giới:** ${realmInfo?.fullName || 'Không xác định'}\n\n` +
+      `*Chọn địa điểm muốn thám hiểm từ các nút bên dưới.*`
+    )
+  ];
 
   // Liệt kê các địa điểm
   for (const loc of Object.values(EXPLORATION_LOCATIONS)) {
@@ -60,15 +61,18 @@ export function getKhamPhaEmbed(userId: string): EmbedBuilder {
       : !canExplore ? ` *(Không đủ thể lực)*` : '';
     const timeText = `${Math.floor(loc.travelTime / 60)} phút`;
 
-    embed.addFields({
-      name: `${loc.emoji} ${loc.name}${lockText}`,
-      value: `${loc.description}\n⏳ **${timeText}** | 🧘 **-${loc.staminaCost}** Thể Lực | ☠️ Rủi ro: **${Math.round(loc.dangerRate * 100)}%**`,
-      inline: false
-    });
+    content.push(separator());
+    content.push(body(
+      `**${loc.emoji} ${loc.name}${lockText}**\n` +
+      `${loc.description}\n` +
+      `⏳ **${timeText}** │ 🧘 **-${loc.staminaCost}** Thể Lực │ ☠️ Rủi ro: **${Math.round(loc.dangerRate * 100)}%**`
+    ));
   }
 
-  embed.setFooter({ text: 'Mỗi hành trình chỉ có thể thực hiện một địa điểm. Thể Lực hồi phục tự động theo thời gian.' });
-  return embed;
+  content.push(separator());
+  content.push(body(`*Mỗi hành trình chỉ có thể thực hiện một địa điểm. Thể Lực hồi phục tự động theo thời gian.*`));
+
+  return container(V2_COLORS.dark, content);
 }
 
 /**
@@ -99,7 +103,6 @@ export function getKhamPhaComponents(userId: string): ActionRowBuilder<ButtonBui
     return rows;
   }
 
-  // Chia các địa điểm thành 2 hàng (max 5 nút mỗi hàng)
   const locs = Object.values(EXPLORATION_LOCATIONS);
   const row1 = new ActionRowBuilder<ButtonBuilder>();
   const row2 = new ActionRowBuilder<ButtonBuilder>();
@@ -117,7 +120,7 @@ export function getKhamPhaComponents(userId: string): ActionRowBuilder<ButtonBui
 
   if (row1.components.length > 0) rows.push(row1);
   if (row2.components.length > 0) rows.push(row2);
-  // Back button in its own row (always, to avoid >5 buttons per row)
+
   const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(`hosoback_${userId}`)
@@ -169,7 +172,7 @@ export default class KhamPhaCommand extends Command {
     if (subcmd === 'bando') {
       const embed = getKhamPhaEmbed(userId);
       const rows = getKhamPhaComponents(userId);
-      await interaction.editReply(toV2Payload([embed], rows ));
+      await interaction.editReply(toV2Payload([embed], rows));
     } 
     else if (subcmd === 'tangbaodo') {
       const { treasureMapService } = require('../../services/TreasureMapService');
@@ -180,13 +183,15 @@ export default class KhamPhaCommand extends Command {
         return;
       }
 
-      const embed = new EmbedBuilder()
-        .setTitle('🗺️ Danh Sách Tàng Bảo Đồ')
-        .setColor(EMBED_COLORS.GOLD)
-        .setDescription('Danh sách các tọa độ kho báu đạo hữu đang nắm giữ:\n\n' + 
+      const embed = container(V2_COLORS.gold, [
+        header('🗺️ Danh Sách Tàng Bảo Đồ', 'Danh sách các tọa độ kho báu đạo hữu đang nắm giữ:'),
+        separator(),
+        body(
           maps.map((m: any, i: number) => `**${i+1}.** Tọa độ: **[X: ${m.coord_x}, Y: ${m.coord_y}]** (Độ hiếm: ${m.rarity.toUpperCase()})`).join('\n')
-        )
-        .setFooter({ text: 'Dùng lệnh /khampha toado [x] [y] để tiến hành đào!' });
+        ),
+        separator(),
+        body(`*Dùng lệnh /khampha toado [x] [y] để tiến hành đào!*`)
+      ]);
       
       await interaction.editReply(toV2Payload([embed]));
     }

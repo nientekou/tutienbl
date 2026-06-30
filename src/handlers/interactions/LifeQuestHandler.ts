@@ -8,6 +8,7 @@ import { explorationService } from '../../services/ExplorationService';
 import { encounterService } from '../../services/EncounterService';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { getLinhDienEmbed, getLinhDienComponents } from '../../commands/life/linhdien';
+import { getLuyenKhiEmbed, getLuyenKhiComponents } from '../../commands/life/luyenkhi';
 import { getCraftingEmbed, getCraftingComponents } from '../../commands/life/chetao';
 import { getKhamPhaEmbed, getKhamPhaComponents } from '../../commands/general/khampha';
 import { getNhiemVuEmbed, getNhiemVuComponents, getQuestChainEmbed, getQuestChainComponents } from '../../commands/general/nhiemvu';
@@ -18,7 +19,9 @@ import LuyenDanCommand from '../../commands/general/luyendan';
 import db from '../../database/database';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import { blacksmithService } from '../../services/BlacksmithService';
-import { EmbedBuilder as DiscordEmbedBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
+import { EmbedBuilder as DiscordEmbedBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ContainerBuilder } from 'discord.js';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
+import { getProgressBar } from '../../utils/constants';
 
 export class LifeQuestHandler {
   public static async handle(
@@ -217,6 +220,17 @@ export class LifeQuestHandler {
         await safeV2Update(interaction, [embed], row);
       }
 
+      // --- Nút: ĐI ĐẾN LUYỆN KHÍ (từ hồ sơ) ---
+      else if (action === 'luyenkhinav') {
+        const embed = getLuyenKhiEmbed(targetUserId);
+        if (!embed) {
+          await interaction.reply({ content: '❌ Đạo hữu chưa tạo nhân vật!', flags: MessageFlags.Ephemeral });
+          return;
+        }
+        const components = getLuyenKhiComponents(targetUserId);
+        await safeV2Update(interaction, [embed], components);
+      }
+
       // --- Nút: ĐI ĐẾN CHẾ TẠO (từ hồ sơ) ---
       else if (action === 'chetaonav') {
         const embed = getCraftingEmbed(targetUserId);
@@ -233,16 +247,16 @@ export class LifeQuestHandler {
       // --- Nút: ĐI ĐẾN LÀM VIỆC (từ hồ sơ) ---
       else if (action === 'lamviecnav') {
         const user = userRepository.get(targetUserId)!;
-        const embed = new EmbedBuilder()
-          .setTitle('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch')
-          .setColor(EMBED_COLORS.NEUTRAL)
-          .setDescription(
-            `Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.\n\n` +
+        const embed = container(V2_COLORS.dark, [
+          header('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch', 'Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.'),
+          separator(),
+          body(
             `⏰ **Hồi chiêu:** 60 giây (mỗi lần làm việc)\n` +
-            `🧘 **Yêu cầu:** Cần ít nhất **10** Thể Lực (Hiện có: **${user.stamina}/500**)\n\n` +
-            `*Chọn một công việc bên dưới để bắt đầu lao động ngay!*`
-          )
-          .setTimestamp();
+            `🧘 **Yêu cầu:** Cần ít nhất **10** Thể Lực (Hiện có: **${user.stamina}/500**)\n└ ${getProgressBar(user.stamina, 500, 8)}`
+          ),
+          separator(),
+          body(`*Chọn một công việc bên dưới để bắt đầu lao động ngay!*`)
+        ]);
 
         const workRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
@@ -290,16 +304,16 @@ export class LifeQuestHandler {
 
         // Cập nhật lại menu làm việc với thể lực mới
         const refreshedUser = userRepository.get(workTargetId)!;
-        const embed = new EmbedBuilder()
-          .setTitle('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch')
-          .setColor(EMBED_COLORS.NEUTRAL)
-          .setDescription(
-            `Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.\n\n` +
+        const embed = container(V2_COLORS.dark, [
+          header('⛏️ LÀM VIỆC LINH TÍNH - Kiếm Linh Thạch', 'Đạo hữu lao động cần cù để tích lũy Hạ Phẩm Linh Thạch và cơ duyên vật phẩm.'),
+          separator(),
+          body(
             `⏰ **Hồi chiêu:** 60 giây (mỗi lần làm việc)\n` +
-            `🧘 **Yêu cầu:** Cần ít nhất **10** Thể Lực (Hiện có: **${refreshedUser.stamina}/500**)\n\n` +
-            `*Chọn một công việc bên dưới để tiếp tục lao động!*`
-          )
-          .setTimestamp();
+            `🧘 **Yêu cầu:** Cần ít nhất **10** Thể Lực (Hiện có: **${refreshedUser.stamina}/500**)\n└ ${getProgressBar(refreshedUser.stamina, 500, 8)}`
+          ),
+          separator(),
+          body(`*Chọn một công việc bên dưới để tiếp tục lao động!*`)
+        ]);
 
         const workRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
@@ -518,12 +532,14 @@ export class LifeQuestHandler {
         if (result.rewards.items) rewardTexts.push(`• Vật Phẩm: Nhận vật phẩm cơ duyên x**${result.rewards.items}** 🎁`);
         if (result.rewards.pet_received) rewardTexts.push(`• Linh Thú: Thu phục thần thú cơ duyên 🦄`);
         if (result.rewards.farming_acceleration) rewardTexts.push(`• Linh Điền: Gia tốc sinh trưởng **+${result.rewards.farming_acceleration} giờ** 🌧️`);
-        
         if (rewardTexts.length > 0) {
           embed.addFields({ name: '🎁 Biến Động Thuộc Tính', value: rewardTexts.join('\n') });
         }
 
-        await safeV2Update(interaction, [embed], []);
+        const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder().setCustomId(`hosoback_${userIdFromParts}`).setLabel('🔙 Quay Lại Hồ Sơ').setStyle(ButtonStyle.Secondary)
+        );
+        await safeV2Update(interaction, [embed], [backRow]);
       }
 
       // --- Select Menu: GIEO HẠT LINH ĐIỀN ---

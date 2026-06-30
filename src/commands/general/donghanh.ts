@@ -1,9 +1,10 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, ContainerBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { companionService } from '../../services/CompanionService';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 
 export default class DongHanhCommand extends Command {
   constructor() {
@@ -34,7 +35,7 @@ export default class DongHanhCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.' });
       return;
     }
 
@@ -42,47 +43,47 @@ export default class DongHanhCommand extends Command {
 
     if (subcommand === 'list') {
       const desc = companionService.getDescription(userId);
-      const embed = new EmbedBuilder()
-        .setTitle('🐉 Đồng Hành')
-        .setColor(EMBED_COLORS.CAVE)
-        .setDescription(desc)
-        .setTimestamp();
-
+      const content = [
+        header('🐉 Đồng Hành Chi Lộ', 'Đồng hành tu tiên trợ chiến gia tăng công kích lực và hộ thân cường độ.'),
+        separator(),
+        body(desc)
+      ];
       const equipped = companionService.getEquipped(userId);
       if (equipped) {
-        embed.setFooter({ text: `Đang trang bị: ${equipped.name}` });
+        content.push(separator());
+        content.push(body(`🛡️ **Đang xuất chiến:** ${equipped.name}`));
       }
+      const embed = container(V2_COLORS.mystic, content);
 
-      await interaction.reply(toV2Payload([embed]));
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
     if (subcommand === 'equip') {
       const type = interaction.options.getString('type', true);
       const result = companionService.equip(userId, type);
-      await interaction.reply({ content: result.message, ephemeral: !result.success });
+      await interaction.editReply({ content: result.message });
       return;
     }
 
     if (subcommand === 'info') {
       const equipped = companionService.getEquipped(userId);
       if (!equipped) {
-        await interaction.reply({ content: '❌ Chưa trang bị Đồng Hành nào. Dùng `/donghanh list` để xem danh sách.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Chưa trang bị Đồng Hành nào. Dùng `/donghanh list` để xem danh sách.' });
         return;
       }
 
       const passive = companionService.getCombatPassive(userId);
-      const embed = new EmbedBuilder()
-        .setTitle(`🐉 ${equipped.name}`)
-        .setColor(EMBED_COLORS.CAVE)
-        .setDescription(
-          `**Hệ:** ${equipped.element}\n` +
-          `**Passive:** ${equipped.passiveDesc}\n` +
-          (passive ? `**Giá trị hiện tại:** ${Math.round(passive.value * 100)}%` : '')
+      const embed = container(V2_COLORS.mystic, [
+        header(`🐉 Đồng Hành: ${equipped.name}`, `Hệ nguyên tố: **${equipped.element}**`),
+        separator(),
+        body(
+          `• **Nội tại:** ${equipped.passiveDesc}\n` +
+          (passive ? `• **Giá trị cường độ hiện tại:** **${Math.round(passive.value * 100)}%**` : '')
         )
-        .setTimestamp();
+      ]);
 
-      await interaction.reply(toV2Payload([embed]));
+      await interaction.editReply(toV2Payload([embed]));
     }
   }
 }

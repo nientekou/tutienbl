@@ -47,7 +47,10 @@ function getYCanhComponents(userId) {
     return new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder()
         .setCustomId(`ycanhawaken_${userId}`)
         .setLabel('🧘 Ngộ Ý Cảnh')
-        .setStyle(discord_js_1.ButtonStyle.Primary));
+        .setStyle(discord_js_1.ButtonStyle.Primary), new discord_js_1.ButtonBuilder()
+        .setCustomId(`hosoback_${userId}`)
+        .setLabel('🔙 Quay Lại Hồ Sơ')
+        .setStyle(discord_js_1.ButtonStyle.Secondary));
 }
 class YCanhCommand extends Command_1.Command {
     constructor() {

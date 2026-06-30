@@ -9,6 +9,7 @@ const UserRepository_1 = require("../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../database/repositories/InventoryRepository");
 const AchievementService_1 = require("./AchievementService");
 const itemConstants_1 = require("../config/itemConstants");
+const InventoryService_1 = require("./InventoryService");
 // ponytail: tăng base success rate 5-15% so với trước để expected profit >= 0
 // Công thức: expected output value >= material cost + coin cost
 exports.ALCHEMY_RECIPES = [
@@ -323,6 +324,21 @@ exports.ALCHEMY_RECIPES = [
         requiredAlchemyLevel: 4,
         baseSuccessRate: 0.35,
         expGained: 150
+    },
+    {
+        id: 'recipe_than_dan',
+        name: 'Thần Đan Thượng Cổ',
+        targetPillId: itemConstants_1.ITEMS.PILL_THAN_DAN,
+        requiredMaterials: [
+            { itemId: itemConstants_1.ITEMS.MATERIAL_VOID_HERB, quantity: 10 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_NGODONG, quantity: 5 },
+            { itemId: itemConstants_1.ITEMS.MATERIAL_BLOOD_FLOWER, quantity: 5 }
+        ],
+        costCoin: 50000,
+        staminaCost: 80,
+        requiredAlchemyLevel: 10,
+        baseSuccessRate: 0.15,
+        expGained: 5000
     }
 ];
 class AlchemyService {
@@ -436,7 +452,14 @@ class AlchemyService {
             rareFireBonus = rareFireService.getEquippedBonus(userId).alchemyBonus;
         }
         catch { }
-        const finalSuccessRate = Math.min(0.95, recipe.baseSuccessRate + successBonus + levelBonus + sectBonus + hoaBonus + rareFireBonus);
+        // BIG UPDATE §5: Global event craft bonus
+        let eventCraftBonus = 0;
+        try {
+            const { eventService } = require('./EventService');
+            eventCraftBonus = eventService.getActiveBonus('craft_bonus');
+        }
+        catch { }
+        const finalSuccessRate = Math.min(0.95, recipe.baseSuccessRate + successBonus + levelBonus + sectBonus + hoaBonus + rareFireBonus + eventCraftBonus);
         // Trừ Thể Lực và Linh Thạch trước
         const postStamina = user.stamina - totalStaminaCost;
         const postCoin = user.coin_ha_pham - totalCostCoin;
@@ -454,6 +477,20 @@ class AlchemyService {
                 if (Math.random() < 0.05) {
                     evolvedCount++;
                 }
+            }
+        }
+        // BIG UPDATE §3: Đan Kiếp Lôi Phạt cho Thần Đan Thượng Cổ
+        let tribulationFailed = false;
+        if (recipe.id === 'recipe_than_dan' && successCount > 0) {
+            const stats = InventoryService_1.inventoryService.getActiveStats(userId);
+            const playerDef = stats ? stats.def : 0;
+            const tribPassRate = Math.min(0.95, playerDef / (recipe.requiredAlchemyLevel * 250));
+            if (Math.random() >= tribPassRate) {
+                tribulationFailed = true;
+                successCount = 0;
+                const injuryDuration = recipe.requiredAlchemyLevel * 15 * 60;
+                const injuryEnd = now + injuryDuration;
+                UserRepository_1.userRepository.update(userId, { injury_end_time: injuryEnd });
             }
         }
         const staticPill = database_1.default.prepare('SELECT name FROM items WHERE id = ?').get(recipe.targetPillId);
@@ -499,6 +536,14 @@ class AlchemyService {
                 responseMsg += `\n🌟 **Chúc mừng!** Đạo hữu đột phá Luyện Đan Thuật thăng lên **Cấp ${currentLevel} Luyện Đan Sư**!`;
             }
             return { success: true, message: responseMsg, isLevelUp, evolved: evolvedCount > 0 };
+        }
+        else if (tribulationFailed) {
+            // Đan Kiếp thất bại
+            const injuryMinutes = recipe.requiredAlchemyLevel * 15;
+            return {
+                success: false,
+                message: `⚡ **ĐAN KIẾP LÔI PHẠT THẤT BẠI!** ⚡\n\nSau khi luyện chế thành công, lôi kiếp từ trời giáng xuống đan lô! Thực lực đạo hữu (DEF: **${InventoryService_1.inventoryService.getActiveStats(userId)?.def || 0}**) không đủ để chống đỡ, thần đan vỡ tan!\n😵 Đạo hữu bị lôi lực phản phệ, trọng thương **${injuryMinutes} phút**.`.trim()
+            };
         }
         else {
             // Thất bại hoàn toàn -> Nổ lò!

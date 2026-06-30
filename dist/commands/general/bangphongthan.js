@@ -10,6 +10,7 @@ const Command_1 = require("../../structures/Command");
 const LeaderboardService_1 = require("../../services/LeaderboardService");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 exports.LABELS = {
     combatPower: {
         name: 'Lực Chiến',
@@ -67,10 +68,9 @@ function buildLeaderboardEmbed(userId, category, page) {
     const getData = typeMap[category];
     const info = exports.LABELS[category];
     if (!getData || !info) {
-        return new discord_js_1.EmbedBuilder()
-            .setTitle('👑 Bảng Phong Thần')
-            .setColor(uiSystem_1.EMBED_COLORS.GOLD)
-            .setDescription('❌ Danh mục không hợp lệ.');
+        return (0, v2Components_1.container)(v2Components_1.V2_COLORS.danger, [
+            (0, v2Components_1.header)('👑 Bảng Phong Thần', '❌ Danh mục không hợp lệ.')
+        ]);
     }
     const entries = getData();
     const userRank = LeaderboardService_1.leaderboardService.getUserRank(category, userId);
@@ -85,23 +85,20 @@ function buildLeaderboardEmbed(userId, category, page) {
         const extraLine = e.extra ? `\n└─ *${e.extra}*` : '';
         return `${medal} **${e.name}**${isYou} — **${e.displayValue}**${extraLine}`;
     });
-    const embed = new discord_js_1.EmbedBuilder()
-        .setTitle(`👑 Bảng Phong Thần — ${info.name}`)
-        .setColor(info.color)
-        .setDescription(`**${info.emoji} ${info.description}**\n*(Cập nhật mỗi 5 phút)*\n\n` +
-        (lines.length > 0 ? lines.join('\n\n') : '*Hiện chưa có tu sĩ nào lọt vào bảng xếp hạng này.*'))
-        .setTimestamp();
+    let footerText = '';
     if (userRank) {
-        embed.setFooter({
-            text: `📍 Hạng của bạn: #${userRank.rank} / ${userRank.total} | Trang ${currentPage}/${totalPages}`
-        });
+        footerText = `📍 Hạng của bạn: #${userRank.rank} / ${userRank.total} │ Trang ${currentPage}/${totalPages}`;
     }
     else {
-        embed.setFooter({
-            text: `📍 Đạo hữu chưa có dữ liệu trong bảng này | Trang ${currentPage}/${totalPages}`
-        });
+        footerText = `📍 Đạo hữu chưa có dữ liệu trong bảng này │ Trang ${currentPage}/${totalPages}`;
     }
-    return embed;
+    return (0, v2Components_1.container)(info.color, [
+        (0, v2Components_1.header)(`👑 Bảng Phong Thần — ${info.name}`, `${info.emoji} ${info.description}\n*(Cập nhật mỗi 5 phút)*`),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)(lines.length > 0 ? lines.join('\n\n') : '*Hiện chưa có tu sĩ nào lọt vào bảng xếp hạng này.*'),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)(`*${footerText}*`)
+    ]);
 }
 function buildLeaderboardComponents(userId, category, page, totalEntries) {
     const pageSize = 10;

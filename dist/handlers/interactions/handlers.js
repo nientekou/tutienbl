@@ -47,11 +47,12 @@ InteractionRegistry_1.registry.on(['thanhtuu', 'achieveclaim', 'titleselect', 'd
 InteractionRegistry_1.registry.on(['sectestablishnav', 'sectleave', 'sectrefresh', 'sectupgrade',
     'bicanhnaav', 'bicanhselect', 'bicanhreact', 'bicanhlogs', 'bicanhback',
     'ycanhnaav', 'luanhoinnav', 'sungthunaav', 'sungthu', 'sanyeuthunaav',
-    'trangbinaav', 'quyetau', 'leothapnav',
+    'trangbinaav', 'quyetau', 'leothapnav', 'leothap', 'leothapcard',
     'marriageaccept', 'marriagerefuse', 'guildwar', 'sectwarattack', 'sectwarrefresh',
     'toakynav', 'suachua', 'spiritinteract', 'spiritnav',
     'sectjoinselect', 'sectdonateselect', 'sectcreate',
-    'anky_select'], wrap(SocialHandler_1.SocialHandler));
+    'anky_select',
+    'arenanav', 'arena_find', 'arena_top', 'arena_history'], wrap(SocialHandler_1.SocialHandler));
 // Navigation & Profile — ~15 actions
 InteractionRegistry_1.registry.on(['hosotab', 'hosoback', 'hosolb', 'tuido', 'invprev', 'invnext',
     'invselect', 'mountprev', 'mountnext',
@@ -77,6 +78,7 @@ InteractionRegistry_1.registry.on([
     'linhdienharvest', 'linhdienunlock', 'linhdienrefresh', 'linhdiennav',
     'dongphuspring', 'dongphuupgrade',
     'chetaonav', 'craftclaim', 'craftrefresh', 'luyendannav',
+    'luyenkhinav',
     'lamviecnav', 'lamviecwork',
     'nhiemvunav', 'nhiemvuclaim',
     'chainstart', 'chainclaim',

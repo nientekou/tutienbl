@@ -23,7 +23,7 @@ class SachYeuKhoaCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.' });
       return;
     }
 
@@ -36,7 +36,7 @@ class SachYeuKhoaCommand extends Command {
         .setColor(EMBED_COLORS.INFO)
         .setDescription('Chưa ghi nhận enemy nào. Hãy đi chiến đấu để thu thập thông tin!')
         .setTimestamp();
-      await interaction.reply(toV2Payload([embed]));
+      await interaction.editReply(toV2Payload([embed]));
       return;
     }
 
@@ -69,7 +69,7 @@ class SachYeuKhoaCommand extends Command {
       .setDescription(desc.slice(0, 4000))
       .setTimestamp();
 
-    await interaction.reply(toV2Payload([embed]));
+    await interaction.editReply(toV2Payload([embed]));
   }
 }
 

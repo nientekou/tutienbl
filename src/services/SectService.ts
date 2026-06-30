@@ -105,6 +105,15 @@ export class SectService {
       return { success: false, message: 'Tông Môn này không tồn tại hoặc đã bị giải tán.' };
     }
 
+    // BIG UPDATE §2: Karma sect joining restriction
+    try {
+      const { karmaService } = require('./KarmaService');
+      const check = karmaService.canJoinSect(userId, sectId);
+      if (!check.allowed) {
+        return { success: false, message: check.reason || 'Không thể gia nhập tông môn này.' };
+      }
+    } catch {}
+
     // Giới hạn đệ tử = 5 * Cấp Tông Môn
     const memberCount = db.prepare('SELECT COUNT(*) as count FROM users WHERE sect_id = ?').get(sectId) as { count: number };
     const limit = sect.level * 5;

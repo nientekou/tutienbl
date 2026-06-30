@@ -463,6 +463,20 @@ export class InventoryService {
       if (daoBonuses.mp_regen) stats.mp_regen = (stats.mp_regen || 0) + daoBonuses.mp_regen;
     } catch (e) {}
 
+    // V16 A-03: Skill Tree passive bonuses
+    try {
+      const { skillTreeService } = require('./SkillTreeService');
+      const treeBonuses = skillTreeService.getPassiveBonuses(userId);
+      if (treeBonuses.atk_bonus) multipliers.atk += treeBonuses.atk_bonus;
+      if (treeBonuses.def_bonus) multipliers.def += treeBonuses.def_bonus;
+      if (treeBonuses.hp_bonus) multipliers.hp += treeBonuses.hp_bonus;
+      if (treeBonuses.speed_bonus) multipliers.speed += treeBonuses.speed_bonus;
+      if (treeBonuses.crit_bonus) stats.crit += treeBonuses.crit_bonus;
+      if (treeBonuses.dodge_bonus) stats.dodge += treeBonuses.dodge_bonus;
+      if (treeBonuses.block_bonus) stats.block_chance = Math.min(1, (stats.block_chance || 0) + treeBonuses.block_bonus);
+      if (treeBonuses.regen_bonus) (stats as any).mp_regen = ((stats as any).mp_regen || 0) + treeBonuses.regen_bonus;
+    } catch (e) {}
+
     // --- Power Cap Enforcement (A-07) ---
     // ponytail: clamp multiplier max 3x, warn if any system > 35%
     const POWER_CAP = 3.0;

@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ButtonInteraction } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
@@ -7,7 +7,8 @@ import { caveEnhancementService } from '../../services/CaveEnhancementService';
 import { inventoryRepository } from '../../database/repositories/InventoryRepository';
 import db from '../../database/database';
 import { getProgressBar } from '../../utils/constants';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 
 const CAVE_RANKS = [
   'Bình Thường',
@@ -18,7 +19,7 @@ const CAVE_RANKS = [
   'Vạn Thế Tiên Cung'
 ];
 
-export function buildDongPhuEmbed(userId: string): EmbedBuilder {
+export function buildDongPhuEmbed(userId: string): ContainerBuilder {
   const user = userRepository.get(userId)!;
   const cave = caveService.getCave(userId) as any;
 
@@ -33,40 +34,31 @@ export function buildDongPhuEmbed(userId: string): EmbedBuilder {
 
   const rankName = CAVE_RANKS[Math.min(cave.level, CAVE_RANKS.length - 1)];
 
-  const embed = new EmbedBuilder()
-    .setTitle(`🏰 ĐỘNG PHỦ TIÊN GIA - ${user.name}`)
-    .setColor(EMBED_COLORS.CAVE)
-    .setDescription(
-      `*Nơi tụ hội linh khí thiên địa, bồi đắp căn cơ và khai thác tiên thạch tự nhiên của tu sĩ.*\n\n` +
-      `🏛️ **Phẩm cấp Động Phủ:** **Cấp ${cave.level} — ${rankName}**\n` +
-      `🟤 **Linh Thạch hiện có:** **${user.coin_ha_pham.toLocaleString()}** LT\n`
-    )
-    .addFields(
-      {
-        name: `🌊 Linh Tuyền (Cấp ${springLvl}/10)`,
-        value: `• Hiệu quả: **+${(springLvl * 2)}%** EXP Tu Luyện Nhàn Rỗi.\n` +
-               `• Lượt tắm hôm nay: **${cave.spring_available}** lượt.\n` +
-               (springLvl < 10 ? `• Nâng cấp: **${nextSpringCost.lt.toLocaleString()}** LT + **${nextSpringCost.shards}** Mảnh Tinh Thạch.` : '`Đã đạt cấp tối đa`'),
-        inline: false
-      },
-      {
-        name: `⚡ Linh Mạch (Cấp ${meridianLvl}/10)`,
-        value: `• Hiệu quả: Tự sinh **+${(meridianLvl * 50)}** Linh Thạch / giờ.\n` +
-               `• Tích lũy hiện tại: **${pending.amount.toLocaleString()}** Linh Thạch (Tích lũy ${pending.hours} giờ).\n` +
-               (meridianLvl < 10 ? `• Nâng cấp: **${nextMeridianCost.lt.toLocaleString()}** LT + **${nextMeridianCost.shards}** Mảnh Tinh Thạch.` : '`Đã đạt cấp tối đa`'),
-        inline: false
-      },
-      {
-        name: `🛡️ Hộ Pháp Trận (Cấp ${arrayLvl}/10)`,
-        value: `• Hiệu quả: Giảm **-${(arrayLvl * 5)}%** sát thương Thiên Kiếp khi đột phá.\n` +
-               (arrayLvl < 10 ? `• Nâng cấp: **${nextArrayCost.lt.toLocaleString()}** LT + **${nextArrayCost.shards}** Mảnh Tinh Thạch.` : '`Đã đạt cấp tối đa`'),
-        inline: false
-      }
-    )
-    .setFooter({ text: 'Dùng các nút tương tác bên dưới để quản lý Động Phủ.' })
-    .setTimestamp();
-
-  return embed;
+  return container(V2_COLORS.mystic, [
+    header(`🏰 ĐỘNG PHỦ TIÊN GIA — ${user.name}`, `*Nơi tụ hội linh khí thiên địa, bồi đắp căn cơ và khai thác tiên thạch tự nhiên của tu sĩ.*\n\n🏛️ Phẩm cấp Động Phủ: **Cấp ${cave.level} — ${rankName}**\n🟤 Linh Thạch hiện có: **${user.coin_ha_pham.toLocaleString()}** LT`),
+    separator(),
+    body(
+      `🌊 **Linh Tuyền (Cấp ${springLvl}/10):**\n` +
+      `• Hiệu quả: **+${(springLvl * 2)}%** EXP Tu Luyện Nhàn Rỗi.\n` +
+      `• Lượt tắm hôm nay: **${cave.spring_available}** lượt.\n` +
+      (springLvl < 10 ? `• Nâng cấp: **${nextSpringCost.lt.toLocaleString()}** LT + **${nextSpringCost.shards}** Mảnh Tinh Thạch.` : '`Đã đạt cấp tối đa`')
+    ),
+    separator(),
+    body(
+      `⚡ **Linh Mạch (Cấp ${meridianLvl}/10):**\n` +
+      `• Hiệu quả: Tự sinh **+${(meridianLvl * 50)}** Linh Thạch / giờ.\n` +
+      `• Tích lũy hiện tại: **${pending.amount.toLocaleString()}** Linh Thạch (Tích lũy ${pending.hours} giờ).\n` +
+      (meridianLvl < 10 ? `• Nâng cấp: **${nextMeridianCost.lt.toLocaleString()}** LT + **${nextMeridianCost.shards}** Mảnh Tinh Thạch.` : '`Đã đạt cấp tối đa`')
+    ),
+    separator(),
+    body(
+      `🛡️ **Hộ Pháp Trận (Cấp ${arrayLvl}/10):**\n` +
+      `• Hiệu quả: Giảm **-${(arrayLvl * 5)}%** sát thương Thiên Kiếp khi đột phá.\n` +
+      (arrayLvl < 10 ? `• Nâng cấp: **${nextArrayCost.lt.toLocaleString()}** LT + **${nextArrayCost.shards}** Mảnh Tinh Thạch.` : '`Đã đạt cấp tối đa`')
+    ),
+    separator(),
+    body('*Dùng các nút tương tác bên dưới để quản lý Động Phủ.*')
+  ]);
 }
 
 export function buildDongPhuComponents(userId: string): ActionRowBuilder<ButtonBuilder>[] {
@@ -86,7 +78,11 @@ export function buildDongPhuComponents(userId: string): ActionRowBuilder<ButtonB
       .setCustomId(`dongphu_harvest_${userId}`)
       .setLabel('🪙 Thu Hoạch Linh Mạch')
       .setStyle(ButtonStyle.Success)
-      .setDisabled(meridianLvl <= 0)
+      .setDisabled(meridianLvl <= 0),
+    new ButtonBuilder()
+      .setCustomId(`hosoback_${userId}`)
+      .setLabel('🔙 Quay Lại Hồ Sơ')
+      .setStyle(ButtonStyle.Secondary)
   );
 
   const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -110,46 +106,35 @@ export function buildDongPhuComponents(userId: string): ActionRowBuilder<ButtonB
   return [row1, row2];
 }
 
-export function buildCaveEmbed(userId: string): EmbedBuilder {
+export function buildCaveEmbed(userId: string): ContainerBuilder {
   const user = userRepository.get(userId);
   if (!user) {
-    return new EmbedBuilder()
-      .setTitle('❌ Lỗi')
-      .setColor(EMBED_COLORS.ERROR)
-      .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
+    return container(V2_COLORS.danger, [
+      header('❌ Lỗi', 'Đạo hữu chưa khởi tạo nhân vật.')
+    ]);
   }
 
   const cave = caveService.getCave(userId);
   
-  // Tính toán buff tu vi
   let expBuff = 1;
   if (cave.level === 2) expBuff = 2;
   if (cave.level === 3) expBuff = 4;
   if (cave.level === 4) expBuff = 6;
   if (cave.level >= 5) expBuff = 10;
 
-  // Hồi phục Linh Tuyền tối đa hàng ngày để hiển thị thông tin
   let maxSpring = 1;
   if (cave.level === 2) maxSpring = 2;
   else if (cave.level === 3) maxSpring = 2;
   else if (cave.level === 4) maxSpring = 3;
   else if (cave.level >= 5) maxSpring = 3;
 
-  const embed = new EmbedBuilder()
-    .setTitle(`🏔️ ĐỘNG PHỦ CÁ NHÂN - ${user.name}`)
-    .setDescription(`Đây là không gian thiền định và hấp thụ tinh hoa linh khí của đạo hữu. Nâng cấp động phủ giúp tăng tốc độ hấp thu linh khí và số lần ngâm mình Linh Tuyền.`)
-    .setColor(EMBED_COLORS.SUCCESS)
-    .setTimestamp();
+  const content: any[] = [
+    header(`🏔️ ĐỘNG PHỦ CÁ NHÂN — ${user.name}`, `Đây là không gian thiền định và hấp thụ tinh hoa linh khí của đạo hữu. Nâng cấp động phủ giúp tăng tốc độ hấp thu linh khí và số lần ngâm mình Linh Tuyền.\n\n• Cấp Động Phủ: Lv.${cave.level}/5\n• Hiệu Ứng Tu Luyện: +${expBuff}% Tu Vi khi Thiền Định\n• Linh Tuyền Hằng Ngày: 💧 **${cave.spring_available}/${maxSpring}** lượt hôm nay`)
+  ];
 
-  embed.addFields([
-    { name: 'Cấp Động Phủ', value: `Lv.${cave.level}/5`, inline: true },
-    { name: 'Hiệu Ứng Tu Luyện', value: `+${expBuff}% Tu Vi khi Thiền Định`, inline: true },
-    { name: 'Linh Tuyền Hằng Ngày', value: `💧 **${cave.spring_available}/${maxSpring}** lượt hôm nay`, inline: true }
-  ]);
-
-  // Nâng Cấp Yêu Cầu
   const nextLevel = cave.level + 1;
   const cost = caveService.getUpgradeCost(cave.level);
+  content.push(separator());
   if (cost) {
     const inv = inventoryRepository.getUserInventory(userId);
     let upgradeReqText = '';
@@ -168,12 +153,12 @@ export function buildCaveEmbed(userId: string): EmbedBuilder {
     } else {
       upgradeReqText += `• Không yêu cầu nguyên liệu đặc biệt.\n`;
     }
-    embed.addFields({ name: `⬆️ Yêu Cầu Nâng Cấp Động Phủ (Lên Cấp ${nextLevel})`, value: upgradeReqText, inline: false });
+    content.push(body(`⬆️ **Yêu Cầu Nâng Cấp Động Phủ (Lên Cấp ${nextLevel}):**\n${upgradeReqText}`));
   } else {
-    embed.addFields({ name: `⬆️ Yêu Cầu Nâng Cấp`, value: `🎉 **Động Phủ đã đạt cấp tối đa (Cấp 5)!** Linh khí sung túc, tịnh thất tối cao.`, inline: false });
+    content.push(body(`⬆️ **Yêu Cầu Nâng Cấp:**\n🎉 **Động Phủ đã đạt cấp tối đa (Cấp 5)!** Linh khí sung túc, tịnh thất tối cao.`));
   }
 
-  return embed;
+  return container(V2_COLORS.success, content);
 }
 
 export function buildCaveComponents(userId: string): ActionRowBuilder<ButtonBuilder>[] {
@@ -190,7 +175,11 @@ export function buildCaveComponents(userId: string): ActionRowBuilder<ButtonBuil
       .setCustomId(`dongphuupgrade_${userId}`)
       .setLabel('⬆️ Nâng Cấp')
       .setStyle(ButtonStyle.Success)
-      .setDisabled(!cost)
+      .setDisabled(!cost),
+    new ButtonBuilder()
+      .setCustomId(`hosoback_${userId}`)
+      .setLabel('🔙 Quay Lại Hồ Sơ')
+      .setStyle(ButtonStyle.Secondary)
   );
 
   return [row];

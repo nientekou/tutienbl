@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, AttachmentBuilder } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { arenaService } from '../../services/ArenaService';
@@ -52,48 +52,15 @@ export default class ArenaCommand extends Command {
     if (subcommand === 'profile') {
       const targetUser = interaction.options.getUser('target') || interaction.user;
       const targetId = targetUser.id;
-      const targetProfile = userRepository.get(targetId);
+      const comp = getArenaProfileEmbed(targetId);
 
-      if (!targetProfile) {
+      if (!comp) {
         await interaction.editReply({ content: '❌ Người chơi này chưa tạo nhân vật.'});
         return;
       }
 
-      const profile = arenaService.getProfile(targetId);
-      const totalMatches = profile.wins + profile.losses;
-      const winRate = totalMatches > 0 ? ((profile.wins / totalMatches) * 100).toFixed(1) : '0.0';
-
-      let shieldText = '';
-      if (arenaService.isShielded(targetId)) {
-        try {
-          const yCanh = JSON.parse(targetProfile.y_canh || '{}');
-          if (yCanh.shield_until) {
-            const diff = yCanh.shield_until - Math.floor(Date.now() / 1000);
-            if (diff > 0) {
-              const minutes = Math.ceil(diff / 60);
-              shieldText = `🛡️ **Hộ Giới Bài:** Đang kích hoạt (Còn **${minutes}** phút bảo hộ)`;
-            }
-          }
-        } catch (e) {}
-      }
-
-      const comp = container(V2_COLORS.warning, [
-        header(`⚔️ Hồ Sơ Đấu Trường: ${targetProfile.name}`),
-        ...(shieldText ? [body(shieldText)] : []),
-        separator(),
-        body([
-          statLine('🏆 Điểm ELO', `**${profile.elo}**`),
-          statLine('🔥 Chuỗi Thắng', `${profile.win_streak}`),
-          statLine('📈 ELO Kỷ Lục', `${profile.highest_elo}`),
-          statLine('⚔️ Trận Đấu', `Thắng: ${profile.wins} | Thua: ${profile.losses}`),
-          statLine('📊 Tỉ Lệ Thắng', `${winRate}%`),
-          statLine('🏅 Xếp Hạng Mùa Trước', profile.last_season_rank > 0 ? `#${profile.last_season_rank}` : 'Chưa xếp hạng'),
-        ].join('\n')),
-        separator(),
-        body(`Mùa Giải: ${profile.season_id}`),
-      ]);
-
-      await interaction.editReply(toV2Payload([comp]));
+      const comps = getArenaProfileComponents(interaction.user.id);
+      await interaction.editReply(toV2Payload([comp], comps));
     }
     
     else if (subcommand === 'find') {
@@ -216,4 +183,67 @@ export default class ArenaCommand extends Command {
       await interaction.editReply(toV2Payload([comp]));
     }
   }
+}
+
+export function getArenaProfileEmbed(targetId: string) {
+  const targetProfile = userRepository.get(targetId);
+  if (!targetProfile) return null;
+
+  const profile = arenaService.getProfile(targetId);
+  const totalMatches = profile.wins + profile.losses;
+  const winRate = totalMatches > 0 ? ((profile.wins / totalMatches) * 100).toFixed(1) : '0.0';
+
+  let shieldText = '';
+  if (arenaService.isShielded(targetId)) {
+    try {
+      const yCanh = JSON.parse(targetProfile.y_canh || '{}');
+      if (yCanh.shield_until) {
+        const diff = yCanh.shield_until - Math.floor(Date.now() / 1000);
+        if (diff > 0) {
+          const minutes = Math.ceil(diff / 60);
+          shieldText = `🛡️ **Hộ Giới Bài:** Đang kích hoạt (Còn **${minutes}** phút bảo hộ)`;
+        }
+      }
+    } catch (e) {}
+  }
+
+  const comp = container(V2_COLORS.warning, [
+    header(`⚔️ Hồ Sơ Đấu Trường: ${targetProfile.name}`),
+    ...(shieldText ? [body(shieldText)] : []),
+    separator(),
+    body([
+      statLine('🏆 Điểm ELO', `**${profile.elo}**`),
+      statLine('🔥 Chuỗi Thắng', `${profile.win_streak}`),
+      statLine('📈 ELO Kỷ Lục', `${profile.highest_elo}`),
+      statLine('⚔️ Trận Đấu', `Thắng: ${profile.wins} | Thua: ${profile.losses}`),
+      statLine('📊 Tỉ Lệ Thắng', `${winRate}%`),
+      statLine('🏅 Xếp Hạng Mùa Trước', profile.last_season_rank > 0 ? `#${profile.last_season_rank}` : 'Chưa xếp hạng'),
+    ].join('\n')),
+    separator(),
+    body(`Mùa Giải: ${profile.season_id}`),
+  ]);
+
+  return comp;
+}
+
+export function getArenaProfileComponents(userId: string): ActionRowBuilder<ButtonBuilder>[] {
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`arena_find_${userId}`)
+      .setLabel('⚡ Tìm Đối Thủ')
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId(`arena_history_${userId}`)
+      .setLabel('📜 Lịch Sử Đấu')
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(`arena_top_${userId}`)
+      .setLabel('🏆 Bảng Xếp Hạng')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`hosoback_${userId}`)
+      .setLabel('🔙 Quay Lại Hồ Sơ')
+      .setStyle(ButtonStyle.Danger)
+  );
+  return [row];
 }

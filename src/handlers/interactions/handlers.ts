@@ -71,11 +71,12 @@ registry.on(
   ['sectestablishnav', 'sectleave', 'sectrefresh', 'sectupgrade',
    'bicanhnaav', 'bicanhselect', 'bicanhreact', 'bicanhlogs', 'bicanhback',
    'ycanhnaav', 'luanhoinnav', 'sungthunaav', 'sungthu', 'sanyeuthunaav',
-   'trangbinaav', 'quyetau', 'leothapnav',
+   'trangbinaav', 'quyetau', 'leothapnav', 'leothap', 'leothapcard',
    'marriageaccept', 'marriagerefuse', 'guildwar', 'sectwarattack', 'sectwarrefresh',
    'toakynav', 'suachua', 'spiritinteract', 'spiritnav',
    'sectjoinselect', 'sectdonateselect', 'sectcreate',
-   'anky_select'],
+   'anky_select',
+   'arenanav', 'arena_find', 'arena_top', 'arena_history'],
   wrap(SocialHandler)
 );
 
@@ -116,6 +117,7 @@ registry.on([
   'linhdienharvest', 'linhdienunlock', 'linhdienrefresh', 'linhdiennav',
   'dongphuspring', 'dongphuupgrade',
   'chetaonav', 'craftclaim', 'craftrefresh', 'luyendannav',
+  'luyenkhinav',
   'lamviecnav', 'lamviecwork',
   'nhiemvunav', 'nhiemvuclaim',
   'chainstart', 'chainclaim',

@@ -15,6 +15,7 @@ const LeylineService_1 = require("../../services/LeylineService");
 const database_1 = __importDefault(require("../../database/database"));
 const constants_1 = require("../../utils/constants");
 const itemConstants_1 = require("../../config/itemConstants");
+const v2Components_1 = require("../../utils/v2Components");
 // Lưu trữ thời gian chạy lệnh cuối cùng của từng tu sĩ trong bộ nhớ đệm
 const workCooldowns = new Map();
 const COOLDOWN_MS = 60000; // 60 giây
@@ -236,37 +237,36 @@ function performWork(discordId, workType) {
     }
     const updatedUser = UserRepository_1.userRepository.get(discordId);
     const staminaBar = (0, constants_1.getProgressBar)(updatedUser.stamina, 500, 8);
-    const embed = new discord_js_1.EmbedBuilder()
-        .setTitle(isAccident ? '💥 Tai Nạn Lao Động' : '⚒️ Kết Quả Lao Động Tu Hành')
-        .setColor(isAccident ? '#c0392b' : '#27ae60')
-        .setDescription(actionDescription)
-        .addFields({ name: '🪙 Linh Thạch Kiếm Được', value: isAccident ? '🟤 **+0** (Lao động thất bại)' : `🟤 **+${earnedCoins}** Hạ Phẩm Linh Thạch`, inline: true })
-        .setTimestamp();
+    const content = [
+        (0, v2Components_1.header)(isAccident ? '💥 Tai Nạn Lao Động' : '⚒️ Kết Quả Lao Động Tu Hành', actionDescription),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)(isAccident ? '🪙 **Linh Thạch Kiếm Được:** 🟤 **+0** (Lao động thất bại)' : `🪙 **Linh Thạch Kiếm Được:** 🟤 **+${earnedCoins}** Hạ Phẩm Linh Thạch`)
+    ];
     if (isAccident) {
-        embed.addFields({ name: '💔 Trạng Thái Thương Tích', value: '🚨 **Trọng Thương trong 15 phút** (không thể thiền định, làm việc, rèn đúc...)', inline: true });
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)('💔 **Trạng Thái Thương Tích:**\n🚨 **Trọng Thương trong 15 phút** (không thể thiền định, làm việc, rèn đúc...)'));
     }
     if (rewardItem && !isAccident) {
-        embed.addFields({ name: '🎁 Cơ Duyên Rơi Đồ', value: `Nhận được **1x ${rewardItem.name}**!`, inline: true });
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)(`🎁 **Cơ Duyên Rơi Đồ:** Nhận được **1x ${rewardItem.name}**!`));
     }
     if (apprenticeBonusExp > 0) {
-        embed.addFields({
-            name: '👨‍🏫 Sư Đồ Giáo Hóa',
-            value: `• Nhận **+${apprenticeBonusExp}** Tu Vi (+5% Sư đồ bonus)\n• Sư phụ nhận **+${mentorGainedExp}** Tu Vi & **+${mentorGainedCoins}** Linh Thạch`,
-            inline: false
-        });
+        content.push((0, v2Components_1.separator)());
+        content.push((0, v2Components_1.body)(`👨‍🏫 **Sư Đồ Giáo Hóa:**\n• Nhận **+${apprenticeBonusExp}** Tu Vi (+5% Sư đồ bonus)\n• Sư phụ nhận **+${mentorGainedExp}** Tu Vi & **+${mentorGainedCoins}** Linh Thạch`));
     }
-    embed.addFields({ name: '⚡ Thể Lực Tiêu Hao', value: `**-${staminaCost}** Thể Lực\n└ Còn lại: **${updatedUser.stamina}/500**\n└ ${staminaBar}`, inline: false }, { name: '💼 Số Dư Hiện Tại', value: `🟤 **${updatedUser.coin_ha_pham}** Hạ Phẩm Linh Thạch`, inline: false });
-    // Kiểm tra Kỳ Ngộ (15%) - Chỉ roll nếu không có tai nạn
+    content.push((0, v2Components_1.separator)());
+    content.push((0, v2Components_1.body)(`⚡ **Thể Lực Tiêu Hao:** **-${staminaCost}** Thể Lực (Còn lại: **${updatedUser.stamina}/500**)\n${staminaBar}\n\n` +
+        `💼 **Số Dư Hiện Tại:** 🟤 **${updatedUser.coin_ha_pham}** Hạ Phẩm Linh Thạch`));
     let encounter = null;
     if (!isAccident) {
         encounter = EncounterService_1.encounterService.rollEncounter('lamviec');
         if (encounter) {
-            embed.addFields({
-                name: `🌟 Kỳ Ngộ: ${encounter.title}`,
-                value: `${encounter.description}\n\n**Lựa chọn:**\n${encounter.choices.map((c, i) => `**${i + 1}.** ${c.text} (${Math.round(c.successRate * 100)}% thành công)`).join('\n')}`,
-            });
+            content.push((0, v2Components_1.separator)());
+            content.push((0, v2Components_1.body)(`**🌟 Kỳ Ngộ: ${encounter.title}**\n${encounter.description}\n\n` +
+                `**Lựa chọn:**\n${encounter.choices.map((c, i) => `**${i + 1}.** ${c.text} (${Math.round(c.successRate * 100)}% thành công)`).join('\n')}`));
         }
     }
+    const embed = (0, v2Components_1.container)(isAccident ? v2Components_1.V2_COLORS.danger : v2Components_1.V2_COLORS.success, content);
     return { success: true, embed, encounter };
 }
 class LamViecCommand extends Command_1.Command {

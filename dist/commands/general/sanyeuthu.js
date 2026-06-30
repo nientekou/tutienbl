@@ -19,6 +19,7 @@ const constants_1 = require("../../utils/constants");
 const database_1 = __importDefault(require("../../database/database"));
 const sungthu_1 = require("./sungthu");
 const uiSystem_1 = require("../../utils/uiSystem");
+const v2Components_1 = require("../../utils/v2Components");
 /**
  * Thực thi săn yêu thú cho đạo hữu (được dùng từ cả lệnh và button hoso)
  */
@@ -229,7 +230,7 @@ function performHunt(userId) {
     };
     const combatResult = CombatEngine_1.CombatEngine.run(playerCombatant, enemyCombatant, activePet ? { name: activePet.name, atk: activePet.atk, skills: activePet.skills } : null, 30);
     const isWin = combatResult.winner === 'player';
-    const embed = new discord_js_1.EmbedBuilder().setTimestamp();
+    let embed;
     if (isWin) {
         let goldMultiplier = 1.0;
         if (activePet && activePet.skills && activePet.skills.includes('gold_blessing')) {
@@ -362,32 +363,34 @@ function performHunt(userId) {
         if (artifactRes && artifactRes.message) {
             artifactMsg = `\n\n${artifactRes.message}`;
         }
-        embed.setTitle(`🌲 CHIẾN THẮNG DÃ NGOẠI - ĐẢ THẢO TIỂU ĐIỀN`)
-            .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
-            .setDescription(`Đạo hữu đã thảo phạt thành công **${monster.name}** sau **${combatResult.rounds}** hiệp đấu!\n\n` +
-            `🌿 **Tu vi cộng hưởng:** **+${actualGainedExp}** Tu Vi\n` +
-            `${(0, constants_1.getProgressBar)(cappedNewTuVi, user.exp_needed, 10)} *(${cappedNewTuVi}/${user.exp_needed})*\n\n` +
-            `🟤 **Linh thạch nhặt được:** **+${coinEarned}** Hạ Phẩm Linh Thạch${goldBonusText}\n\n` +
-            `⚡ **Thể lực hao tổn:** **-${staminaCost}** Thể Lực *(Còn lại: ${user.stamina - staminaCost}/500)*\n` +
-            `${(0, constants_1.getProgressBar)(user.stamina - staminaCost, 500, 10)}` +
-            artifactMsg +
-            petLevelUpMsg);
+        const content = [
+            (0, v2Components_1.header)(`🌲 CHIẾN THẮNG DÃ NGOẠI - ĐẢ THẢO TIỂU ĐIỀN`, 'Thảo phạt thành công quái thú hoang dã.'),
+            (0, v2Components_1.separator)(),
+            (0, v2Components_1.body)(`Đạo hữu đã thảo phạt thành công **${monster.name}** sau **${combatResult.rounds}** hiệp đấu!\n\n` +
+                `🌿 **Tu vi cộng hưởng:** **+${actualGainedExp}** Tu Vi\n` +
+                `${(0, constants_1.getProgressBar)(cappedNewTuVi, user.exp_needed, 10)} *(${cappedNewTuVi}/${user.exp_needed})*\n\n` +
+                `🟤 **Linh thạch nhặt được:** **+${coinEarned}** Hạ Phẩm Linh Thạch${goldBonusText}\n\n` +
+                `⚡ **Thể lực hao tổn:** **-${staminaCost}** Thể Lực *(Còn lại: ${user.stamina - staminaCost}/500)*\n` +
+                `${(0, constants_1.getProgressBar)(user.stamina - staminaCost, 500, 10)}` +
+                artifactMsg +
+                petLevelUpMsg)
+        ];
         if (isCaptured) {
-            embed.addFields({
-                name: '🎉 CƠ DUYÊN THU PHỤC LINH THÚ 🎉',
-                value: `Linh khí hội tụ, yêu thú **${monster.name}** cảm phục trước thần uy của đạo hữu, cam tâm tình nguyện đi theo hộ vệ! Đã lưu sủng vật vào Tàng Thú Các (\`/sungthu danhsach\`).`
-            });
+            content.push((0, v2Components_1.separator)());
+            content.push((0, v2Components_1.body)(`**🎉 CƠ DUYÊN THU PHỤC LINH THÚ 🎉**\n` +
+                `Linh khí hội tụ, yêu thú **${monster.name}** cảm phục trước thần uy của đạo hữu, cam tâm tình nguyện đi theo hộ vệ! Đã lưu sủng vật vào Tàng Thú Các (\`/sungthu danhsach\`).`));
         }
         else {
-            embed.setFooter({ text: 'Mách nhỏ: Linh thú sau khi bị đánh bại đã chấn kinh chạy mất dạng.' });
+            content.push((0, v2Components_1.separator)());
+            content.push((0, v2Components_1.body)(`*Mách nhỏ: Linh thú sau khi bị đánh bại đã chấn kinh chạy mất dạng.*`));
         }
         // Kiểm tra Kỳ Ngộ (10%)
         rolledEncounter = EncounterService_1.encounterService.rollEncounter('sanyeuthu');
         if (rolledEncounter) {
-            embed.addFields({
-                name: `🌟 Kỳ Ngộ: ${rolledEncounter.title}`,
-                value: `${rolledEncounter.description}\n\n**Lựa chọn:**\n${rolledEncounter.choices.map((c, i) => `**${i + 1}.** ${c.text} (${Math.round(c.successRate * 100)}% thành công)`).join('\n')}`,
-            });
+            content.push((0, v2Components_1.separator)());
+            content.push((0, v2Components_1.body)(`**🌟 Kỳ Ngộ: ${rolledEncounter.title}**\n` +
+                `${rolledEncounter.description}\n\n` +
+                `**Lựa chọn:**\n${rolledEncounter.choices.map((c, i) => `**${i + 1}.** ${c.text} (${Math.round(c.successRate * 100)}% thành công)`).join('\n')}`));
         }
         // Cơ hội bắt Tọa Kỵ (5%)
         if (Math.random() < 0.05) {
@@ -402,22 +405,23 @@ function performHunt(userId) {
         INSERT INTO mounts (user_id, name, template_id, rarity, level, exp, speed_bonus, stamina_save, created_at)
         VALUES (?, ?, ?, ?, 1, 0, ?, ?, ?)
       `).run(userId, tmpl.name, tmpl.id, tmpl.rarity, tmpl.speed, tmpl.stamina, now);
-            embed.addFields({
-                name: '🐎 CƠ DUYÊN THU PHỤC TỌA KỴ!',
-                value: `Đạo hữu đã thu phục được **${tmpl.name}** [${tmpl.rarity.toUpperCase()}]! Dùng \`/toaky danhsach\` để xem chi tiết.`,
-            });
+            content.push((0, v2Components_1.separator)());
+            content.push((0, v2Components_1.body)(`**🐎 CƠ DUYÊN THU PHỤC TỌA KKi!**\nĐạo hữu đã thu phục được **${tmpl.name}** [${tmpl.rarity.toUpperCase()}]! Dùng \`/toaky danhsach\` để xem chi tiết.`));
         }
+        embed = (0, v2Components_1.container)(v2Components_1.V2_COLORS.success, content);
     }
     else {
         database_1.default.transaction(() => {
             UserRepository_1.userRepository.update(userId, { stamina: user.stamina - staminaCost });
         })();
-        embed.setTitle(`💀 THẤT BẠI DÃ NGOẠI`)
-            .setColor(uiSystem_1.EMBED_COLORS.ERROR)
-            .setDescription(`Đạo hữu cự địch bất thành, kiệt sức tháo lui trước sức mạnh hoang dại của **${monster.name}** sau **${combatResult.rounds}** hiệp đấu!\n\n` +
-            `⚡ **Thể lực hao tổn:** **-${staminaCost}** Thể Lực *(Còn lại: ${user.stamina - staminaCost}/500)*\n` +
-            `${(0, constants_1.getProgressBar)(user.stamina - staminaCost, 500, 10)}\n\n` +
-            `💡 *Lời khuyên: Tĩnh tọa tu luyện tăng cấp, tẩy tủy linh căn hoặc trang bị giáp mạnh trước khi phục thù.*`);
+        embed = (0, v2Components_1.container)(v2Components_1.V2_COLORS.danger, [
+            (0, v2Components_1.header)(`💀 THẤT BẠI DÃ NGOẠI`, 'Chiến lực bất túc, đành phải bại lui.'),
+            (0, v2Components_1.separator)(),
+            (0, v2Components_1.body)(`Đạo hữu cự địch bất thành, kiệt sức tháo lui trước sức mạnh hoang dại của **${monster.name}** sau **${combatResult.rounds}** hiệp đấu!\n\n` +
+                `⚡ **Thể lực hao tổn:** **-${staminaCost}** Thể Lực *(Còn lại: ${user.stamina - staminaCost}/500)*\n` +
+                `${(0, constants_1.getProgressBar)(user.stamina - staminaCost, 500, 10)}\n\n` +
+                `💡 *Lời khuyên: Tĩnh tọa tu luyện tăng cấp, tẩy tủy linh căn hoặc trang bị giáp mạnh trước khi phục thù.*`)
+        ]);
     }
     // Ghi log săn yêu thú và cập nhật thành tựu
     try {
@@ -493,45 +497,46 @@ function getSanYeuThuComponents(userId) {
 function getSanYeuThuEmbed(userId) {
     const user = UserRepository_1.userRepository.get(userId);
     if (!user) {
-        return new discord_js_1.EmbedBuilder().setTitle('❌ Lỗi').setColor(uiSystem_1.EMBED_COLORS.ERROR).setDescription('Không tìm thấy nhân vật.');
+        return (0, v2Components_1.container)(v2Components_1.V2_COLORS.danger, [(0, v2Components_1.header)('❌ Lỗi'), (0, v2Components_1.body)('Không tìm thấy nhân vật.')]);
     }
     let tier = 'Luyện Khí';
     let rateText = '30% (Thường)';
-    let monstersText = `• **U Linh Thử 🐭** (HP: 80 | Công: 12 | Thủ: 5)\n` +
-        `• **Thiết Nhận Thỏ 🐰** (HP: 100 | Công: 15 | Thủ: 6)\n` +
-        `• **Tiểu Hoa Miêu 🐱** (HP: 120 | Công: 18 | Thủ: 7)`;
+    let monstersText = `• **U Linh Thử 🐭** (HP: 80 │ Công: 12 │ Thủ: 5)\n` +
+        `• **Thiết Nhận Thỏ 🐰** (HP: 100 │ Công: 15 │ Thủ: 6)\n` +
+        `• **Tiểu Hoa Miêu 🐱** (HP: 120 │ Công: 18 │ Thủ: 7)`;
     if (user.level > 76) {
         tier = 'Kim Đan';
         rateText = '5% (Truyền Thuyết)';
         monstersText =
-            `• **Thanh Minh Hổ 🐯** (HP: 4000 | Công: 280 | Thủ: 180)\n` +
-                `• **Xích Diễm Hầu 🐵** (HP: 4500 | Công: 300 | Thủ: 190)\n` +
-                `• **Băng Hồn Hồ 🦊** (HP: 5000 | Công: 320 | Thủ: 200)`;
+            `• **Thanh Minh Hổ 🐯** (HP: 4000 │ Công: 280 │ Thủ: 180)\n` +
+                `• **Xích Diễm Hầu 🐵** (HP: 4500 │ Công: 300 │ Thủ: 190)\n` +
+                `• **Băng Hồn Hồ 🦊** (HP: 5000 │ Công: 320 │ Thủ: 200)`;
     }
     else if (user.level > 38) {
         tier = 'Trúc Cơ';
         rateText = '15% (Hiếm)';
         monstersText =
-            `• **Tật Phong Lang 🐺** (HP: 800 | Công: 75 | Thủ: 45)\n` +
-                `• **Hỏa Nham Trư 🐗** (HP: 1000 | Công: 85 | Thủ: 55)\n` +
-                `• **Kim Sí Ưng 🦅** (HP: 1200 | Công: 95 | Thủ: 65)`;
+            `• **Tật Phong Lang 🐺** (HP: 800 │ Công: 75 │ Thủ: 45)\n` +
+                `• **Hỏa Nham Trư 🐗** (HP: 1000 │ Công: 85 │ Thủ: 55)\n` +
+                `• **Kim Sí Ưng 🦅** (HP: 1200 │ Công: 95 │ Thủ: 65)`;
     }
-    return new discord_js_1.EmbedBuilder()
-        .setTitle(`🐺 SĂN YÊU THÚ DÃ NGOẠI`)
-        .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
-        .setDescription(`Ngoài hoang dã bao la, yêu thú tứ phương hội tụ. Đạo hữu với **${user.stamina}/500** Thể Lực có thể phiêu du đả thảo tiểu điền để tìm cơ duyên.\n` +
-        `${(0, constants_1.getProgressBar)(user.stamina, 500, 10)}\n\n` +
-        `🏔️ **Cảnh Giới Hiện Tại:** **${tier}** (Cấp ${user.level})\n` +
-        `⚡ **Thể Lực Tiêu Hao:** **15** mỗi lần săn\n\n` +
-        `🎯 **Linh Thú Xuất Hiện Tại Khu Vực:**\n${monstersText}\n` +
-        `✨ **Tỷ lệ thu phục thành công:** **${rateText}**\n\n` +
-        `🍀 **Yêu Thú Đặc Biệt (17.5% tổng):**\n` +
-        `🟡 **Huyền Thoại:** Kỳ Lân Bạch Ngọc 🦄(0.5%) | Côn Bằng 🦅(0.5%) | Thao Thiết 🐉(1%) | Kỳ Lân 🦄(0.5%) | Phượng Hoàng 🦚(1%)\n` +
-        `🟣 **Sử Thi:** Hắc Long Tử 🐲(1.5%) | Phượng Hoàng Lửa 🦩(2%) | Tỳ Hưu 🦁(1.5%) | Linh Khuyển 🐕(2%)\n` +
-        `🔵 **Hiếm:** Cửu Thiên Huyền Điểu 🐦(3%) | Thiên Hồ Cửu Vĩ 🦊(4%)\n\n` +
-        `*Bấm nút bên dưới để xuất phát săn bắn ngay!*`)
-        .setFooter({ text: 'Đạo hữu cần ít nhất 15 Thể Lực để thực hiện săn bắt yêu thú.' })
-        .setTimestamp();
+    const hpBar = (0, constants_1.getProgressBar)(user.stamina, 500, 10);
+    return (0, v2Components_1.container)(v2Components_1.V2_COLORS.success, [
+        (0, v2Components_1.header)(`🐺 SĂN YÊU THÚ DÃ NGOẠI - ${user.name}`, 'Ngoài hoang dã bao la, yêu thú tứ phương hội tụ. Đạo hữu có thể phiêu du đả thảo tiểu điền để tìm cơ duyên.'),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)(`🔋 **Thể Lực Hiện Tại:** **${user.stamina}/500** Thể Lực\n${hpBar}\n\n` +
+            `🏔️ **Cảnh Giới Hiện Tại:** **${tier}** (Cấp ${user.level})\n` +
+            `⚡ **Thể Lực Tiêu Hao:** **15** mỗi lần săn`),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)(`🎯 **Linh Thú Xuất Hiện Tại Khu Vực:**\n${monstersText}\n\n✨ **Tỷ lệ thu phục thành công:** **${rateText}**`),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)(`🍀 **Yêu Thú Đặc Biệt (17.5% tổng):**\n` +
+            `🟡 **Huyền Thoại:** Kỳ Lân Bạch Ngọc 🦄(0.5%) │ Côn Bằng 🦅(0.5%) │ Thao Thiết 🐉(1%) │ Kỳ Lân 🦄(0.5%) │ Phượng Hoàng 🦚(1%)\n` +
+            `🟣 **Sử Thi:** Hắc Long Tử 🐲(1.5%) │ Phượng Hoàng Lửa 🦩(2%) │ Tỳ Hưu 🦁(1.5%) │ Linh Khuyển 🐕(2%)\n` +
+            `🔵 **Hiếm:** Cửu Thiên Huyền Điểu 🐦(3%) │ Thiên Hồ Cửu Vĩ 🦊(4%)`),
+        (0, v2Components_1.separator)(),
+        (0, v2Components_1.body)(`*Đạo hữu cần ít nhất 15 Thể Lực để thực hiện săn bắt yêu thú.*`)
+    ]);
 }
 class SanYeuThuCommand extends Command_1.Command {
     constructor() {

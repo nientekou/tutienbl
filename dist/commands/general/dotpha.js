@@ -34,7 +34,13 @@ class DotPhaCommand extends Command_1.Command {
         const isMajor = minorLevel === 38;
         if (!isMajor) {
             // Đột phá cấp cảnh giới nhỏ -> Hiện bảng xác nhận và tuỳ chọn đan dược
-            const totalRate = CultivationService_1.CultivationService.getBreakthroughRate(majorIndex, user.base_luck);
+            let totalRate = CultivationService_1.CultivationService.getBreakthroughRate(majorIndex, user.base_luck);
+            // BIG UPDATE §2: Karma breakthrough bonus
+            try {
+                const { karmaService } = require('../../services/KarmaService');
+                totalRate += karmaService.getBreakthroughBonus(userId) * 100;
+            }
+            catch { }
             const inv = InventoryRepository_1.inventoryRepository.getUserInventory(userId);
             const getQty = (itemId) => inv.find(i => i.item_id === itemId)?.quantity || 0;
             const q1 = getQty(itemConstants_1.ITEMS.PILL_BREAK_MINOR_1);

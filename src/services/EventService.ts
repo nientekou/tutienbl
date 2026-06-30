@@ -7,7 +7,7 @@ import { ITEMS } from '../config/itemConstants';
 export interface GameEvent {
   id: string;
   name: string;
-  type: 'weekly_boss' | 'double_exp' | 'seasonal' | 'mini_game';
+  type: 'weekly_boss' | 'double_exp' | 'seasonal' | 'mini_game' | 'loot_bonus' | 'craft_bonus' | 'boss_invasion';
   description: string;
   started_at: number;
   ended_at: number;
@@ -84,6 +84,34 @@ export const EVENT_TEMPLATES: EventConfig[] = [
       { type: 'item', itemId: ITEMS.ITEM_FRAGMENT, amount: 20 }
     ],
     repeatable: 'monthly'
+  },
+  // BIG UPDATE §5: New event types
+  {
+    id: 'loot_bonus_weekly',
+    name: 'Lộc Từ Trời',
+    type: 'loot_bonus',
+    description: '🍀 Linh khí thiên địa dồi dào, tỷ lệ rơi đồ từ Bí Cảnh và Thám Hiểm tăng 50%!',
+    durationHours: 48,
+    rewards: [],
+    repeatable: 'weekly'
+  },
+  {
+    id: 'craft_bonus_weekly',
+    name: 'Hỏa Diệu Lô',
+    type: 'craft_bonus',
+    description: '🔥 Lửa đạo linh lực thăng hoa, tất cả tỷ lệ chế tác Luyện Đan và Luyện Khí tăng 10%!',
+    durationHours: 48,
+    rewards: [],
+    repeatable: 'weekly'
+  },
+  {
+    id: 'boss_invasion_weekly',
+    name: 'Ma Vương Giáng Thế',
+    type: 'boss_invasion',
+    description: '👾 Ma Vương thức tỉnh, Boss Thế Giới nhận thêm 50% phần thưởng!',
+    durationHours: 48,
+    rewards: [],
+    repeatable: 'weekly'
   }
 ];
 
@@ -232,6 +260,23 @@ class EventService {
    */
   isDoubleExpActive(): boolean {
     return this.doubleExpActive;
+  }
+
+  /**
+   * BIG UPDATE §5: Get active bonus value for an event type
+   * Returns the bonus multiplier (e.g. 0.5 for +50%) or 0 if no active event of that type.
+   */
+  getActiveBonus(type: string): number {
+    const active = Array.from(this.eventCache.values()).find(e => e.type === type && e.status === 'active');
+    if (!active) return 0;
+    // Bonus values per event type
+    const bonuses: Record<string, number> = {
+      loot_bonus: 0.50,  // +50% loot rate
+      craft_bonus: 0.10, // +10% craft success
+      boss_invasion: 0.50, // +50% boss rewards
+      double_exp: 1.00,   // +100% exp (used separately)
+    };
+    return bonuses[type] || 0;
   }
 
   /**

@@ -1,9 +1,10 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { secretRealmService } from '../../services/SecretRealmService';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 
 export default class BiKinhSongHanhCommand extends Command {
   constructor() {
@@ -18,7 +19,7 @@ export default class BiKinhSongHanhCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.' });
       return;
     }
 
@@ -26,25 +27,27 @@ export default class BiKinhSongHanhCommand extends Command {
     const config = secretRealmService.getConfig();
     const entries = secretRealmService.getEntriesThisWeek(userId);
 
-    let desc = `🌀 **Bí Cảnh Song Hành** — ${config.name}\n`;
-    desc += `${config.description}\n\n`;
-    desc += `🎫 Lượt: **${entries}/${config.maxEntries}**/tuần\n`;
-    desc += `💰 Phí: **${config.entryCost}** Thể Lực\n\n`;
+    const descContent = [
+      `🎫 Lượt tuần này: **${entries}/${config.maxEntries}**`,
+      `💰 Phí tổn: **${config.entryCost}** Thể Lực`
+    ];
 
     if (!canEnter.eligible) {
-      desc += `❌ ${canEnter.reason}`;
+      descContent.push(`\n❌ **Điều kiện chưa đạt:** ${canEnter.reason}`);
     } else {
-      desc += `Cần partner online. Thưởng đồng bộ:\n`;
-      desc += `• Cùng hệ: +15% sát thương\n`;
-      desc += `• Khắc hệ: +25% sát thương\n`;
-      desc += `• Đạo lữ: +10% toàn chỉ số\n`;
+      descContent.push(
+        `\n👥 **Thưởng Đồng Bộ Hợp Tác:**\n` +
+        `• 🔥 Cùng hệ: **+15%** sát thương\n` +
+        `• ⚡ Khắc hệ: **+25%** sát thương\n` +
+        `• 💖 Đạo lữ: **+10%** toàn bộ chỉ số`
+      );
     }
 
-    const embed = new EmbedBuilder()
-      .setTitle('🌀 Bí Cảnh Song Hành')
-      .setColor(EMBED_COLORS.MYSTIC)
-      .setDescription(desc)
-      .setTimestamp();
+    const embed = container(V2_COLORS.mystic, [
+      header(`🌀 Bí Cảnh Song Hành — ${config.name}`, config.description),
+      separator(),
+      body(descContent.join('\n'))
+    ]);
 
     if (canEnter.eligible) {
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -54,9 +57,9 @@ export default class BiKinhSongHanhCommand extends Command {
           .setStyle(ButtonStyle.Primary)
           .setEmoji('🌀'),
       );
-      await interaction.reply(toV2Payload([embed], [row]));
+      await interaction.editReply(toV2Payload([embed], [row]));
     } else {
-      await interaction.reply(toV2Payload([embed]));
+      await interaction.editReply(toV2Payload([embed]));
     }
   }
 }

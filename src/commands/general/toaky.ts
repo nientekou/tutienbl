@@ -1,65 +1,59 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, AutocompleteInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, AutocompleteInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { mountService } from '../../services/MountService';
 import db from '../../database/database';
 import { getProgressBar } from '../../utils/constants';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 
 const ITEMS_PER_PAGE = 5;
 
-export function getMountListEmbed(user: { name: string }, mounts: any[], active: any, ropesCount: number, feedableItems: any[], page: number): { embed: EmbedBuilder; totalPages: number } {
+export function getMountListEmbed(user: { name: string }, mounts: any[], active: any, ropesCount: number, feedableItems: any[], page: number): { embed: ContainerBuilder; totalPages: number } {
   const totalPages = Math.max(Math.ceil(mounts.length / ITEMS_PER_PAGE), 1);
   const cappedPage = Math.min(Math.max(page, 1), totalPages);
   const offset = (cappedPage - 1) * ITEMS_PER_PAGE;
   const pageMounts = mounts.slice(offset, offset + ITEMS_PER_PAGE);
 
-  const embed = new EmbedBuilder()
-    .setTitle(`🐎 TỌA KỴ CÁC - ${user.name}`)
-    .setColor(EMBED_COLORS.ORANGE)
-    .setDescription(
-      `Đang cưỡi: **${active ? active.name : 'Không có'}**\n` +
-      `🎒 Số lượng Thừng Bắt Thú: **${ropesCount}** chiếc` +
-      (mounts.length > ITEMS_PER_PAGE ? `\n*Trang ${cappedPage}/${totalPages} (${mounts.length} tọa kỵ)*` : '')
-    );
-
-  for (const m of pageMounts) {
-    const rarityEmoji: Record<string, string> = { common: '⚪', uncommon: '🟢', rare: '🔵', epic: '🟣', legendary: '🟡' };
-    const activeMark = m.is_active ? ' ✅' : '';
-    const tamedMark = m.is_tamed ? '' : ' **[Hoang Dại]**';
-    const progress = mountService.calculateExpProgress(m);
-    const bar = getProgressBar(progress.current, progress.needed, 10);
-
-    embed.addFields({
-      name: `${rarityEmoji[m.rarity] || '⚪'} ${m.name} (ID: ${m.id}, Cấp ${m.level}) [${m.rarity.toUpperCase()}]${tamedMark}${activeMark}`,
-      value: [
-        m.is_tamed ? `Tốc độ: **+${Math.round(m.speed_bonus * 100)}%** cooldown làm việc` : '',
-        m.is_tamed ? `Tiết kiệm: **+${Math.round(m.stamina_save * 100)}%** thể lực` : '',
-        `EXP: ${bar} *(${progress.current}/${progress.needed})*`,
-        (!m.is_tamed) ? `Dùng \`/toaky nuoiduong mount_id:${m.id} nguyenlieu:[Mã Nguyên Liệu]\` để thuần hóa.` : (m.is_active ? '' : `Dùng \`/toaky cuoi mount_id:${m.id}\` để cưỡi.`),
-      ].filter(Boolean).join('\n'),
-    });
-  }
+  const content: any[] = [
+    header(`🐎 TỌA KỴ CÁC - ${user.name}`, `Đang cưỡi: **${active ? active.name : 'Không có'}**\n🎒 Số lượng Thừng Bắt Thú: **${ropesCount}** chiếc`)
+  ];
 
   if (mounts.length === 0) {
-    embed.setDescription(
-      `🐎 Đạo hữu chưa có tọa kỵ nào! Hãy đi săn yêu thú (\`/sanyeuthu\`) hoặc dùng thừng để bắt.\n\n` +
-      `🎒 Số lượng Thừng Bắt Thú: **${ropesCount}** chiếc`
-    );
-    embed.addFields({
-      name: '🎯 Cơ Hội Đi Săn Tọa Kỵ',
-      value:
-        `• Dùng lệnh \`/toaky bat\` để đi săn lùng tọa kỵ ngoài hoang dã.\n` +
-        `• Phí tổn: Tiêu hao **1** Thừng Bắt Thú (\`thung_bat_thu\`).\n` +
-        `• **Danh sách tọa kỵ có thể gặp & Tỷ lệ thuần phục:**\n` +
-        `  - **Huyết Hãn Mã** [COMMON] (Gặp: 50% | Bắt: 80%)\n` +
-        `  - **U Minh Lang** [UNCOMMON] (Gặp: 30% | Bắt: 60%)\n` +
-        `  - **Xích Viêm Hổ** [RARE] (Gặp: 15% | Bắt: 40%)\n` +
-        `  - **Giao Long** [EPIC] (Gặp: 4% | Bắt: 20%)\n` +
-        `  - **Hỏa Kỳ Lân** [LEGENDARY] (Gặp: 1% | Bắt: 5%)`
-    });
+    content.push(separator());
+    content.push(body(
+      `🐎 Đạo hữu chưa sở hữu tọa kỵ nào! Hãy đi săn yêu thú (\`/sanyeuthu\`) hoặc dùng thừng để bắt.\n\n` +
+      `🎯 **Cơ Hội Đi Săn Tọa Kỵ:**\n` +
+      `• Dùng lệnh \`/toaky bat\` để đi săn lùng tọa kỵ ngoài hoang dã.\n` +
+      `• Phí tổn: Tiêu hao **1** Thừng Bắt Thú (\`thung_bat_thu\`).\n` +
+      `• **Danh sách tọa kỵ có thể gặp & Tỷ lệ thuần phục:**\n` +
+      `  - **Huyết Hãn Mã** [COMMON] (Gặp: 50% │ Bắt: 80%)\n` +
+      `  - **U Minh Lang** [UNCOMMON] (Gặp: 30% │ Bắt: 60%)\n` +
+      `  - **Xích Viêm Hổ** [RARE] (Gặp: 15% │ Bắt: 40%)\n` +
+      `  - **Giao Long** [EPIC] (Gặp: 4% │ Bắt: 20%)\n` +
+      `  - **Hỏa Kỳ Lân** [LEGENDARY] (Gặp: 1% │ Bắt: 5%)`
+    ));
   } else {
+    for (const m of pageMounts) {
+      const rarityEmoji: Record<string, string> = { common: '⚪', uncommon: '🟢', rare: '🔵', epic: '🟣', legendary: '🟡' };
+      const activeMark = m.is_active ? ' ✅' : '';
+      const tamedMark = m.is_tamed ? '' : ' **[Hoang Dại]**';
+      const progress = mountService.calculateExpProgress(m);
+      const bar = getProgressBar(progress.current, progress.needed, 10);
+
+      content.push(separator());
+      content.push(body(
+        `${rarityEmoji[m.rarity] || '⚪'} **${m.name}** (ID: \`${m.id}\`, Cấp ${m.level}) [${m.rarity.toUpperCase()}]${tamedMark}${activeMark}\n` +
+        [
+          m.is_tamed ? `├ Tốc độ: **+${Math.round(m.speed_bonus * 100)}%** cooldown làm việc` : '',
+          m.is_tamed ? `├ Tiết kiệm: **+${Math.round(m.stamina_save * 100)}%** thể lực` : '',
+          `├ EXP: ${bar} *(${progress.current}/${progress.needed})*`,
+          (!m.is_tamed) ? `└ Dùng \`/toaky nuoiduong mount_id:${m.id} nguyenlieu:[Mã Nguyên Liệu]\` để thuần hóa.` : (m.is_active ? '' : `└ Dùng \`/toaky cuoi mount_id:${m.id}\` để cưỡi.`),
+        ].filter(Boolean).join('\n')
+      ));
+    }
+
     let feedableText = '';
     if (feedableItems.length > 0) {
       const rarityExp: Record<string, number> = { common: 15, uncommon: 30, rare: 50, epic: 80, legendary: 150 };
@@ -71,24 +65,28 @@ export function getMountListEmbed(user: { name: string }, mounts: any[], active:
       feedableText = '• *Không tìm thấy nguyên liệu/đan dược phù hợp trong túi đồ.*';
     }
 
-    embed.addFields(
-      {
-        name: '🎒 Nguyên Liệu Nuôi Dưỡng Khả Dụng',
-        value: feedableText + '\n\n*Mẹo: Dùng `/toaky nuoiduong [ID Tọa Kỵ] [Mã Nguyên Liệu]` để tăng cấp hoặc thuần hóa.*'
-      },
-      {
-        name: '🎯 Cơ Hội Đi Săn Tọa Kỵ',
-        value:
-          `• Dùng lệnh \`/toaky bat\` để đi săn lùng tọa kỵ ngoài hoang dã.\n` +
-          `• **Danh sách tọa kỵ có thể gặp & Tỷ lệ thuần phục:**\n` +
-          `  - **Huyết Hãn Mã** [COMMON] (Gặp: 50% | Bắt: 80%)\n` +
-          `  - **U Minh Lang** [UNCOMMON] (Gặp: 30% | Bắt: 60%)\n` +
-          `  - **Xích Viêm Hổ** [RARE] (Gặp: 15% | Bắt: 40%)\n` +
-          `  - **Giao Long** [EPIC] (Gặp: 4% | Bắt: 20%)\n` +
-          `  - **Hỏa Kỳ Lân** [LEGENDARY] (Gặp: 1% | Bắt: 5%)`
-      }
-    );
+    content.push(separator());
+    content.push(body(`🎒 **Nguyên Liệu Nuôi Dưỡng Khả Dụng:**\n${feedableText}\n\n*Mẹo: Dùng \`/toaky nuoiduong [ID Tọa Kỵ] [Mã Nguyên Liệu]\` để nuôi dưỡng.*`));
+
+    content.push(separator());
+    content.push(body(
+      `🎯 **Cơ Hội Đi Săn Tọa Kỵ:**\n` +
+      `• Dùng lệnh \`/toaky bat\` để đi săn lùng tọa kỵ ngoài hoang dã.\n` +
+      `• **Danh sách tọa kỵ có thể gặp & Tỷ lệ thuần phục:**\n` +
+      `  - **Huyết Hãn Mã** [COMMON] (Gặp: 50% │ Bắt: 80%)\n` +
+      `  - **U Minh Lang** [UNCOMMON] (Gặp: 30% │ Bắt: 60%)\n` +
+      `  - **Xích Viêm Hổ** [RARE] (Gặp: 15% │ Bắt: 40%)\n` +
+      `  - **Giao Long** [EPIC] (Gặp: 4% │ Bắt: 20%)\n` +
+      `  - **Hỏa Kỳ Lân** [LEGENDARY] (Gặp: 1% │ Bắt: 5%)`
+    ));
+
+    if (mounts.length > ITEMS_PER_PAGE) {
+      content.push(separator());
+      content.push(body(`*Trang ${cappedPage}/${totalPages} (${mounts.length} tọa kỵ)*`));
+    }
   }
+
+  const embed = container(V2_COLORS.gold, content);
 
   return { embed, totalPages };
 }

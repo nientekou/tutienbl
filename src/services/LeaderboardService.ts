@@ -1,4 +1,5 @@
 import db from '../database/database';
+import { getRealmDetails } from '../utils/constants';
 
 // B-05: Leaderboard System Deep
 
@@ -11,6 +12,7 @@ interface LeaderboardEntry {
   rank: number;
   level?: number;
   sectContribution?: number;
+  displayValue?: string;
 }
 
 class LeaderboardService {
@@ -27,49 +29,77 @@ class LeaderboardService {
               u.base_crit * 1000 + u.base_crit_res * 1000 + u.base_luck * 10 +
               u.base_speed * 10 + u.base_dodge * 1000) as score
       FROM users u ORDER BY score DESC LIMIT ?
-    `).all(limit).map((r: any, i: number) => ({ ...r, rank: i + 1 }));
+    `).all(limit).map((r: any, i: number) => ({
+      ...r,
+      rank: i + 1,
+      displayValue: `${r.score.toLocaleString()}`
+    }));
   }
 
   getTopRealm(limit: number = 100): LeaderboardEntry[] {
     return db.prepare(`
       SELECT u.discord_id as userId, u.name, u.level, u.level as score
       FROM users u ORDER BY u.level DESC LIMIT ?
-    `).all(limit).map((r: any, i: number) => ({ ...r, rank: i + 1 }));
+    `).all(limit).map((r: any, i: number) => ({
+      ...r,
+      rank: i + 1,
+      displayValue: getRealmDetails(r.score).fullName
+    }));
   }
 
   getTopWealth(limit: number = 100): LeaderboardEntry[] {
     return db.prepare(`
       SELECT u.discord_id as userId, u.name, (u.coin_ha_pham + u.coin_trung_pham * 100) as score
       FROM users u ORDER BY score DESC LIMIT ?
-    `).all(limit).map((r: any, i: number) => ({ ...r, rank: i + 1 }));
+    `).all(limit).map((r: any, i: number) => ({
+      ...r,
+      rank: i + 1,
+      displayValue: `${r.score.toLocaleString()} LT`
+    }));
   }
 
   getTopSectContribution(limit: number = 100): LeaderboardEntry[] {
     return db.prepare(`
       SELECT u.discord_id as userId, u.name, u.sect_contribution as sectContribution, u.sect_contribution as score
       FROM users u WHERE u.sect_id IS NOT NULL ORDER BY u.sect_contribution DESC LIMIT ?
-    `).all(limit).map((r: any, i: number) => ({ ...r, rank: i + 1 }));
+    `).all(limit).map((r: any, i: number) => ({
+      ...r,
+      rank: i + 1,
+      displayValue: `${r.score.toLocaleString()} điểm`
+    }));
   }
 
   getTopArena(limit: number = 100): LeaderboardEntry[] {
     return db.prepare(`
       SELECT u.discord_id as userId, u.name, u.pvp_points as score
       FROM users u ORDER BY u.pvp_points DESC LIMIT ?
-    `).all(limit).map((r: any, i: number) => ({ ...r, rank: i + 1 }));
+    `).all(limit).map((r: any, i: number) => ({
+      ...r,
+      rank: i + 1,
+      displayValue: `${r.score.toLocaleString()} ELO`
+    }));
   }
 
   getTopAlchemy(limit: number = 100): LeaderboardEntry[] {
     return db.prepare(`
       SELECT u.discord_id as userId, u.name, u.alchemy_level as score
       FROM users u ORDER BY u.alchemy_level DESC LIMIT ?
-    `).all(limit).map((r: any, i: number) => ({ ...r, rank: i + 1 }));
+    `).all(limit).map((r: any, i: number) => ({
+      ...r,
+      rank: i + 1,
+      displayValue: `Cấp ${r.score}`
+    }));
   }
 
   getTopForging(limit: number = 100): LeaderboardEntry[] {
     return db.prepare(`
       SELECT u.discord_id as userId, u.name, u.forging_level as score
       FROM users u ORDER BY u.forging_level DESC LIMIT ?
-    `).all(limit).map((r: any, i: number) => ({ ...r, rank: i + 1 }));
+    `).all(limit).map((r: any, i: number) => ({
+      ...r,
+      rank: i + 1,
+      displayValue: `Cấp ${r.score}`
+    }));
   }
 
   // === B-05: Enhanced leaderboard methods ===

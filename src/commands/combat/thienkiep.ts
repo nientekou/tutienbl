@@ -1,10 +1,11 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { infiniteTribulationService } from '../../services/InfiniteTribulationService';
 import { skillMasteryService } from '../../services/SkillMasteryService';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 
 export default class ThienKiepCommand extends Command {
   constructor() {
@@ -29,7 +30,7 @@ export default class ThienKiepCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.' });
       return;
     }
 
@@ -37,11 +38,11 @@ export default class ThienKiepCommand extends Command {
 
     if (subcommand === 'info') {
       const desc = infiniteTribulationService.getDescription(userId);
-      const embed = new EmbedBuilder()
-        .setTitle('⚡ Thiên Kiếp Vô Cực')
-        .setColor(EMBED_COLORS.MYSTIC)
-        .setDescription(desc)
-        .setTimestamp();
+      const embed = container(V2_COLORS.mystic, [
+        header('⚡ Thiên Kiếp Vô Cực', 'Chinh phạt thiên kiếp để rèn luyện căn cơ, phá vỡ xiềng xích võ học.'),
+        separator(),
+        body(desc)
+      ]);
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
@@ -51,32 +52,32 @@ export default class ThienKiepCommand extends Command {
           .setEmoji('⚡'),
       );
 
-      await interaction.reply(toV2Payload([embed], [row]));
+      await interaction.editReply(toV2Payload([embed], [row]));
       return;
     }
 
     if (subcommand === 'start') {
       const canEnter = infiniteTribulationService.canEnter(userId);
       if (!canEnter.eligible) {
-        await interaction.reply({ content: `❌ ${canEnter.reason}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${canEnter.reason}` });
         return;
       }
 
       const prog = infiniteTribulationService.getProgress(userId);
       const enemy = infiniteTribulationService.getEnemyForFloor(prog.tier, prog.floor);
 
-      const embed = new EmbedBuilder()
-        .setTitle(`⚡ Thiên Kiếp — Tier ${prog.tier} / Floor ${prog.floor}`)
-        .setColor(EMBED_COLORS.MYSTIC)
-        .setDescription(
-          `**${enemy.modifier.name}**: ${enemy.modifier.description}\n\n` +
+      const embed = container(V2_COLORS.mystic, [
+        header(`⚡ Thiên Kiếp — Tier ${prog.tier} / Floor ${prog.floor}`, `**${enemy.modifier.name}**: ${enemy.modifier.description}`),
+        separator(),
+        body(
           `👹 **Kẻ thù:**\n` +
-          `❤️ HP: ${enemy.hp.toLocaleString()}\n` +
-          `⚔️ ATK: ${enemy.atk.toLocaleString()}\n` +
-          `🛡️ DEF: ${enemy.def.toLocaleString()}\n\n` +
-          `🎫 Lượt còn lại: **${prog.attemptsLeft}**/5`
-        )
-        .setTimestamp();
+          `• ❤️ HP: **${enemy.hp.toLocaleString()}**\n` +
+          `• ⚔️ ATK: **${enemy.atk.toLocaleString()}**\n` +
+          `• 🛡️ DEF: **${enemy.def.toLocaleString()}**`
+        ),
+        separator(),
+        body(`🎫 Lượt còn lại: **${prog.attemptsLeft}**/5`)
+      ]);
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
@@ -96,13 +97,13 @@ export default class ThienKiepCommand extends Command {
           .setEmoji('🏃'),
       );
 
-      await interaction.reply(toV2Payload([embed], [row]));
+      await interaction.editReply(toV2Payload([embed], [row]));
     }
 
     if (subcommand === 'chien-dau') {
       const canEnter = infiniteTribulationService.canEnter(userId);
       if (!canEnter.eligible) {
-        await interaction.reply({ content: `❌ ${canEnter.reason}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${canEnter.reason}` });
         return;
       }
 
@@ -110,7 +111,6 @@ export default class ThienKiepCommand extends Command {
       const enemy = infiniteTribulationService.getEnemyForFloor(prog.tier, prog.floor);
       const skillIndex = interaction.options.getInteger('skill') ?? 0;
 
-      // Build skill selection if player has equipped skills
       let skillText = 'Auto-cycle';
       try {
         const user = userRepository.get(userId);
@@ -120,16 +120,18 @@ export default class ThienKiepCommand extends Command {
         }
       } catch {}
 
-      const embed = new EmbedBuilder()
-        .setTitle(`⚡ Thiên Kiếp — Tier ${prog.tier} / Floor ${prog.floor}`)
-        .setColor(EMBED_COLORS.MYSTIC)
-        .setDescription(
-          `**${enemy.modifier.name}**: ${enemy.modifier.description}\n\n` +
-          `👹 **Kẻ thù:** HP ${enemy.hp.toLocaleString()} | ATK ${enemy.atk.toLocaleString()} | DEF ${enemy.def.toLocaleString()}\n` +
-          `🎯 **Skill:** ${skillText}\n` +
+      const embed = container(V2_COLORS.mystic, [
+        header(`⚡ Thiên Kiếp — Tier ${prog.tier} / Floor ${prog.floor}`, `**${enemy.modifier.name}**: ${enemy.modifier.description}`),
+        separator(),
+        body(
+          `👹 **Kẻ thù:** HP ${enemy.hp.toLocaleString()} │ ATK ${enemy.atk.toLocaleString()} │ DEF ${enemy.def.toLocaleString()}`
+        ),
+        separator(),
+        body(
+          `🎯 **Kỹ năng đã chọn:** ${skillText}\n` +
           `🎫 Lượt còn lại: **${prog.attemptsLeft}**/5`
         )
-        .setTimestamp();
+      ]);
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
@@ -144,7 +146,7 @@ export default class ThienKiepCommand extends Command {
           .setEmoji('🏃'),
       );
 
-      await interaction.reply(toV2Payload([embed], [row]));
+      await interaction.editReply(toV2Payload([embed], [row]));
     }
   }
 }

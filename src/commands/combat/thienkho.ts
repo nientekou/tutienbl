@@ -1,9 +1,10 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { userRepository } from '../../database/repositories/UserRepository';
 import { treasureVaultService } from '../../services/TreasureVaultService';
-import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 
 export default class ThienKhoCommand extends Command {
   constructor() {
@@ -24,7 +25,7 @@ export default class ThienKhoCommand extends Command {
     const userId = interaction.user.id;
     const user = userRepository.get(userId);
     if (!user) {
-      await interaction.reply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.', ephemeral: true });
+      await interaction.editReply({ content: '❌ Đạo hữu chưa khởi tạo nhân vật.' });
       return;
     }
 
@@ -32,11 +33,11 @@ export default class ThienKhoCommand extends Command {
 
     if (subcommand === 'info') {
       const desc = treasureVaultService.getDescription(userId);
-      const embed = new EmbedBuilder()
-        .setTitle('📦 Thiên Kho Bảo Vật')
-        .setColor(EMBED_COLORS.DUNGEON)
-        .setDescription(desc)
-        .setTimestamp();
+      const embed = container(V2_COLORS.mystic, [
+        header('📦 Thiên Kho Bảo Vật', 'Thử thách Roguelike vượt ải chọn buff mỗi tầng để nhận bảo vật viễn cổ.'),
+        separator(),
+        body(desc)
+      ]);
 
       const canEnter = treasureVaultService.canEnter(userId);
       if (canEnter.eligible) {
@@ -47,39 +48,38 @@ export default class ThienKhoCommand extends Command {
             .setStyle(ButtonStyle.Primary)
             .setEmoji('📦'),
         );
-        await interaction.reply(toV2Payload([embed], [row]));
+        await interaction.editReply(toV2Payload([embed], [row]));
       } else {
-        await interaction.reply(toV2Payload([embed]));
+        await interaction.editReply(toV2Payload([embed]));
       }
       return;
     }
 
     if (subcommand === 'start') {
       if (user.level < 50) {
-        await interaction.reply({ content: '❌ Cần cấp 50+ để vào Thiên Kho.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Cần cấp 50+ để vào Thiên Kho.' });
         return;
       }
 
       const canEnter = treasureVaultService.canEnter(userId);
       if (!canEnter.eligible) {
-        await interaction.reply({ content: `❌ ${canEnter.reason}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ ${canEnter.reason}` });
         return;
       }
 
-      // Check stamina
       if ((user.stamina || 0) < 100) {
-        await interaction.reply({ content: '❌ Cần 100 Thể Lực để vào Thiên Kho.', ephemeral: true });
+        await interaction.editReply({ content: '❌ Cần 100 Thể Lực để vào Thiên Kho.' });
         return;
       }
 
       const { floor } = treasureVaultService.start(userId);
       const buffs = treasureVaultService.getRandomBuffs(3);
 
-      const embed = new EmbedBuilder()
-        .setTitle('📦 Thiên Kho Bảo Vật — Tầng 1')
-        .setColor(EMBED_COLORS.DUNGEON)
-        .setDescription('Chọn 1 trong 3 chỉ số tăng cường để nhận:')
-        .setTimestamp();
+      const embed = container(V2_COLORS.mystic, [
+        header('📦 Thiên Kho Bảo Vật — Tầng 1', 'Chọn 1 trong 3 chỉ số tăng cường bên dưới để nhận buff cho hành trình:'),
+        separator(),
+        body('• Tăng cường năng lực chiến đấu vượt ải.\n• Chọn lựa thông thái sẽ giúp tiến xa hơn.')
+      ]);
 
       const row = new ActionRowBuilder<ButtonBuilder>();
       for (let i = 0; i < buffs.length; i++) {
@@ -92,7 +92,7 @@ export default class ThienKhoCommand extends Command {
         );
       }
 
-      await interaction.reply(toV2Payload([embed], [row]));
+      await interaction.editReply(toV2Payload([embed], [row]));
     }
   }
 }

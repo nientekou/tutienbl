@@ -22,6 +22,8 @@ interface CombatAnalysis {
   efficiencyRating: 'S' | 'A' | 'B' | 'C' | 'D';
   tips: string[];
   roundBreakdown: RoundAnalysis[];
+  damageAbsorbed: number;
+  damageMitigated: number;
 }
 
 class CombatReplayService {
@@ -58,6 +60,8 @@ class CombatReplayService {
     let dodgeCount = 0;
     let blockCount = 0;
     let playerDamageTaken = 0;
+    let damageAbsorbed = 0;
+    let damageMitigated = 0;
     const roundBreakdown: RoundAnalysis[] = [];
 
     // Parse log for per-round data
@@ -73,10 +77,18 @@ class CombatReplayService {
       const dodges = (section.match(/né tránh| dodge/gi) || []).length;
       const blocks = (section.match(/Chặn| block/gi) || []).length;
 
+      // V17 E-02: Track damage absorbed from shields / Khí Linh / pet aura / bloodline
+      const absorptions = (section.match(/hấp thụ \*\*(\d+)\*\*/g) || [])
+        .reduce((sum, m) => sum + parseInt(m.match(/\d+/)?.[0] || '0'), 0);
+      const mitigations = (section.match(/giảm \*\*-?(\d+)\*\* sát thương/g) || [])
+        .reduce((sum, m) => sum + parseInt(m.match(/\d+/)?.[0] || '0'), 0);
+
       critCount += crits;
       dodgeCount += dodges;
       blockCount += blocks;
       playerDamageTaken += enemyDmg;
+      damageAbsorbed += absorptions;
+      damageMitigated += mitigations;
 
       roundBreakdown.push({
         round: roundNum,
@@ -122,7 +134,29 @@ class CombatReplayService {
       efficiencyRating: rating,
       tips,
       roundBreakdown,
+      damageAbsorbed,
+      damageMitigated,
     };
+  }
+
+  /**
+   * V17 E-02: Text-based damage chart per round
+   */
+  private getDamageChart(breakdown: RoundAnalysis[]): string {
+    if (breakdown.length === 0) return '';
+    const maxVal = Math.max(...breakdown.map(r => Math.max(r.playerDamageDealt, r.playerDamageTaken)), 1);
+    const barMax = 15;
+    let chart = '```\n📊 Diễn Biến Sát Thương:\n';
+    for (const r of breakdown) {
+      const dealtBars = Math.round((r.playerDamageDealt / maxVal) * barMax);
+      const takenBars = Math.round((r.playerDamageTaken / maxVal) * barMax);
+      chart += `Hiệp ${String(r.round).padStart(2, ' ')} |`;
+      chart += '🟢'.repeat(dealtBars) + '🔴'.repeat(takenBars);
+      if (dealtBars + takenBars === 0) chart += '⏸️';
+      chart += `| ${r.playerDamageDealt.toLocaleString()} / ${r.playerDamageTaken.toLocaleString()}\n`;
+    }
+    chart += '🟢 = ST gây, 🔴 = ST nhận\n```';
+    return chart;
   }
 
   public getReplayDescription(analysis: CombatAnalysis): string {
@@ -130,6 +164,10 @@ class CombatReplayService {
     msg += `⚔️ Damage gây: **${analysis.totalDamageDealt.toLocaleString()}** | Damage nhận: **${analysis.totalDamageTaken.toLocaleString()}**\n`;
     msg += `📈 TB Damage/hit: **${analysis.avgDamagePerRound.toLocaleString()}**\n`;
     msg += `💥 Chí mạng: **${analysis.critRate}%** | Né: **${analysis.dodgeCount}** | Chặn: **${analysis.blockCount}**\n`;
+    msg += `🛡️ Damage hấp thụ: **${analysis.damageAbsorbed.toLocaleString()}** | Giảm trừ: **${analysis.damageMitigated.toLocaleString()}**\n`;
+
+    // V17 E-02: Text chart
+    msg += this.getDamageChart(analysis.roundBreakdown);
 
     if (analysis.tips.length > 0) {
       msg += `\n**Gợi Ý:**\n`;

@@ -5,11 +5,12 @@ const Command_1 = require("../../structures/Command");
 const UserRepository_1 = require("../../database/repositories/UserRepository");
 const InventoryRepository_1 = require("../../database/repositories/InventoryRepository");
 const EquipmentService_1 = require("../../services/EquipmentService");
+const uiSystem_1 = require("../../utils/uiSystem");
 class TrangBiCommand extends Command_1.Command {
     constructor() {
         super(new discord_js_1.SlashCommandBuilder()
             .setName('trangbi')
-            .setDescription('Quản lý trang bị: Giám định, Phân giải, Nâng sao, Ghép.')
+            .setDescription('Quản lý trang bị: Giám định, Phân giải, Nâng sao, Ghép, Auto-dress.')
             .addSubcommand(sub => sub
             .setName('giamdinh')
             .setDescription('Giám định phôi rèn đúc thành trang bị thực tế (phí 50 Linh thạch).')
@@ -57,7 +58,10 @@ class TrangBiCommand extends Command_1.Command {
             .setName('rarity')
             .setDescription('Phẩm chất cao nhất muốn phân giải (ví dụ: rare).')
             .setRequired(true)
-            .addChoices({ name: 'Common (Phẩm Thường)', value: 'common' }, { name: 'Uncommon (Phẩm Nhã)', value: 'uncommon' }, { name: 'Rare (Phẩm Tốt)', value: 'rare' }, { name: 'Epic (Phẩm Kỷ Vật)', value: 'epic' }, { name: 'Legendary (Phẩm Truyền Thuyết)', value: 'legendary' }))));
+            .addChoices({ name: 'Common (Phẩm Thường)', value: 'common' }, { name: 'Uncommon (Phẩm Nhã)', value: 'uncommon' }, { name: 'Rare (Phẩm Tốt)', value: 'rare' }, { name: 'Epic (Phẩm Kỷ Vật)', value: 'epic' }, { name: 'Legendary (Phẩm Truyền Thuyết)', value: 'legendary' })))
+            .addSubcommand(sub => sub
+            .setName('autodress')
+            .setDescription('Tự động trang bị trang bị tốt nhất cho các slot trống.')));
     }
     async execute(client, interaction) {
         const userId = interaction.user.id;
@@ -146,6 +150,20 @@ class TrangBiCommand extends Command_1.Command {
             }
             else {
                 await interaction.editReply({ content: `❌ Thất bại: ${res.message}` });
+            }
+            return;
+        }
+        if (sub === 'autodress') {
+            const res = EquipmentService_1.equipmentService.autoEquip(userId);
+            if (res.success) {
+                const embed = new discord_js_1.EmbedBuilder()
+                    .setTitle('✅ Auto-Equip Thành Công')
+                    .setColor(uiSystem_1.EMBED_COLORS.SUCCESS)
+                    .setDescription(`Đã tự động trang bị ${res.equipped.length} món:\n${res.equipped.map(e => `• ${e}`).join('\n')}`);
+                await interaction.editReply({ embeds: [embed] });
+            }
+            else {
+                await interaction.editReply({ content: res.message });
             }
             return;
         }

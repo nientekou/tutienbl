@@ -15,7 +15,7 @@ class HoiDongCommand extends Command_1.Command {
         const userId = interaction.user.id;
         const user = UserRepository_1.userRepository.get(userId);
         if (!user || !user.sect_id) {
-            await interaction.reply({ content: '❌ Đạo hữu chưa gia nhập tông môn.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Đạo hữu chưa gia nhập tông môn.' });
             return;
         }
         const voting = SectCouncilService_1.sectCouncilService.getVotingPolicy(user.sect_id);
@@ -28,7 +28,7 @@ class HoiDongCommand extends Command_1.Command {
             desc += `⏰ Kết thúc: <t:${voting.endTime}:R>\n`;
         }
         else if (active) {
-            desc += `✅ **Chính sách đang active:** ${active.name}\n`;
+            desc += `✅ **Chính sách đang hoạt động:** ${active.name}\n`;
             desc += `${active.description}\n`;
         }
         else {
@@ -49,7 +49,7 @@ class HoiDongCommand extends Command_1.Command {
                 .setLabel('👎 Bỏ Phiếu')
                 .setStyle(discord_js_1.ButtonStyle.Secondary));
         }
-        await interaction.reply((0, uiSystem_1.toV2Payload)([embed], row.components.length > 0 ? [row] : []));
+        await interaction.editReply((0, uiSystem_1.toV2Payload)([embed], row.components.length > 0 ? [row] : []));
     }
 }
 exports.default = HoiDongCommand;

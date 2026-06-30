@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, SlashCommandBuilder, ContainerBuilder } from 'discord.js';
 import { Command } from '../../structures/Command';
 import { TuTienClient } from '../../client/TuTienClient';
 import { farmingService, FarmingPlot } from '../../services/FarmingService';
@@ -8,31 +8,33 @@ import db from '../../database/database';
 import { getProgressBar } from '../../utils/constants';
 import { ITEMS } from '../../config/itemConstants';
 import { EMBED_COLORS, toV2Payload } from '../../utils/uiSystem';
+import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 
 /**
- * Tạo Embed hiển thị trạng thái Linh Điền
+ * Tạo V2 Container hiển thị trạng thái Linh Điền
  */
-export function getLinhDienEmbed(userId: string): EmbedBuilder {
+export function getLinhDienEmbed(userId: string): ContainerBuilder {
   const user = userRepository.get(userId);
   if (!user) {
-    return new EmbedBuilder()
-      .setTitle('❌ Lỗi')
-      .setColor(EMBED_COLORS.ERROR)
-      .setDescription('Đạo hữu chưa khởi tạo nhân vật.');
+    return container(V2_COLORS.danger, [
+      header('❌ Lỗi'),
+      body('Đạo hữu chưa khởi tạo nhân vật.')
+    ]);
   }
 
   const plots = farmingService.getPlots(userId);
   const unlockedCount = plots.length;
   const costList = [100, 250, 500, 1000, 2000];
 
-  const embed = new EmbedBuilder()
-    .setTitle(`🌱 Linh Điền Trồng Trọt - ${user.name}`)
-    .setDescription('Đại Đạo Vô Biên, trồng trọt thu hoạch thảo dược rèn đan luyện linh khí.')
-    .setColor(EMBED_COLORS.SUCCESS)
-    .setTimestamp();
+  const content: any[] = [
+    header(`🌱 Linh Điền Trồng Trọt - ${user.name}`, 'Đại Đạo Vô Biên, trồng trọt thu hoạch thảo dược rèn đan luyện linh khí.'),
+    separator()
+  ];
 
-  const fields: { name: string; value: string; inline?: boolean }[] = [];
   for (let i = 0; i < 6; i++) {
+    if (i > 0 && i % 2 === 0) {
+      content.push(separator());
+    }
     if (i < unlockedCount) {
       const p = plots[i];
       let name = `🌱 Ô Đất Số ${i + 1}`;
@@ -42,7 +44,7 @@ export function getLinhDienEmbed(userId: string): EmbedBuilder {
         value = `*Đất trống trải*`;
       } else {
         const remaining = p.timeRemaining || 0;
-        let detailsText = `💧 Ẩm: **${p.moisture}/5** | 🪱 Dinh dưỡng: **${p.nutrition}/6** | 🐛 Sâu: **${p.pests === 0 ? 'Không' : 'Có ⚠️'}**`;
+        let detailsText = `💧 Ẩm: **${p.moisture}/5** │ 🪱 Dinh dưỡng: **${p.nutrition}/6** │ 🐛 Sâu: **${p.pests === 0 ? 'Không' : 'Có ⚠️'}**`;
         
         let speedText = '⚡ Tốc độ: 100%';
         if (p.pests > 0 || p.moisture < 3 || p.nutrition < 3) {
@@ -76,23 +78,17 @@ export function getLinhDienEmbed(userId: string): EmbedBuilder {
           value = `${growthBar} (Còn \`${min}m ${sec}s\`)\n└ ${detailsText}\n└ ${speedText}`;
         }
       }
-      fields.push({ name, value, inline: true });
+      content.push(body(`**${name}**\n${value}`));
     } else {
       const cost = costList[i - 1];
-      fields.push({
-        name: `🔒 Ô Đất Số ${i + 1}`,
-        value: `*Chưa khai khẩn*\n└ Phí mở: **${cost}** Linh Thạch`,
-        inline: true
-      });
+      content.push(body(`**🔒 Ô Đất Số ${i + 1}**\n*Chưa khai khẩn* (Phí mở: **${cost}** Linh Thạch)`));
     }
   }
 
-  embed.addFields(
-    ...fields,
-    { name: '💼 Tài sản', value: `🟤 **${user.coin_ha_pham}** Linh Thạch Hạ Phẩm`, inline: false }
-  );
+  content.push(separator());
+  content.push(body(`💼 Tài sản: 🟤 **${user.coin_ha_pham.toLocaleString()}** Linh Thạch Hạ Phẩm`));
 
-  return embed;
+  return container(V2_COLORS.success, content);
 }
 
 /**
@@ -230,6 +226,11 @@ export function getLinhDienComponents(userId: string): any[] {
     new ButtonBuilder()
       .setCustomId(`linhdienrefresh_${userId}`)
       .setLabel('🔄 Làm Mới')
+      .setStyle(ButtonStyle.Secondary),
+
+    new ButtonBuilder()
+      .setCustomId(`hosoback_${userId}`)
+      .setLabel('🔙 Quay Lại Hồ Sơ')
       .setStyle(ButtonStyle.Secondary)
   );
   rows.push(btnRow);

@@ -3,12 +3,12 @@ import { InteractionLock } from '../services/InteractionLock';
 import { systemConfigService } from '../services/SystemConfigService';
 import { TuTienClient } from '../client/TuTienClient';
 import db from '../database/database';
-import { Interaction, MessageFlags } from 'discord.js';
+import { Interaction, MessageFlags, ContainerBuilder, Routes } from 'discord.js';
 import { userRepository } from '../database/repositories/UserRepository';
 import { inventoryRepository } from '../database/repositories/InventoryRepository';
 import { sectService } from '../services/SectService';
 import { getSectEmbed, getSectComponents } from '../commands/life/tongmon';
-import { safeV2Update, safeV2TextUpdate, toV2Payload } from '../utils/uiSystem';
+import { safeV2Update, safeV2TextUpdate, toV2Payload, convertPayloadToV2, V2_FLAG } from '../utils/uiSystem';
 import { getShopEmbed, getShopComponents, SHOP_ITEMS, checkAndUpdateWeeklyLimit } from '../commands/general/shop';
 import { ITEMS } from '../config/itemConstants';
 
@@ -58,6 +58,64 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
       return;
     }
 
+    if (interaction.isRepliable()) {
+      const anyInteraction = interaction as any;
+
+      // 1. Wrap reply
+      const originalReply = anyInteraction.reply;
+      anyInteraction.reply = async function (options: any) {
+        return originalReply.call(this, convertPayloadToV2(options));
+      };
+
+      // 2. Wrap followUp
+      const originalFollowUp = anyInteraction.followUp;
+      anyInteraction.followUp = async function (options: any) {
+        return originalFollowUp.call(this, convertPayloadToV2(options));
+      };
+
+      // 3. Wrap editReply (bypasses discord.js serializer bug using REST API patch)
+      const originalEditReply = anyInteraction.editReply;
+      anyInteraction.editReply = async function (options: any) {
+        const v2Payload = convertPayloadToV2(options);
+        if (v2Payload && v2Payload.components) {
+          try {
+            await anyInteraction.client.rest.patch(
+              Routes.webhookMessage(anyInteraction.client.user.id, anyInteraction.token, '@original'),
+              { body: { components: v2Payload.components, flags: V2_FLAG } }
+            );
+            anyInteraction.replied = true;
+            return anyInteraction;
+          } catch (err) {
+            console.error('[V2 EditReply Patch Error]', err);
+            return originalEditReply.call(this, options);
+          }
+        }
+        return originalEditReply.call(this, options);
+      };
+
+      // 4. Wrap update if present (bypasses discord.js serializer bug using REST API callback POST)
+      if (anyInteraction.update) {
+        const originalUpdate = anyInteraction.update;
+        anyInteraction.update = async function (options: any) {
+          const v2Payload = convertPayloadToV2(options);
+          if (v2Payload && v2Payload.components) {
+            try {
+              await anyInteraction.client.rest.post(
+                Routes.interactionCallback(anyInteraction.id, anyInteraction.token),
+                { body: { type: 7, data: { components: v2Payload.components, flags: V2_FLAG } } }
+              );
+              anyInteraction.replied = true;
+              return anyInteraction;
+            } catch (err) {
+              console.error('[V2 Update Post Error]', err);
+              return originalUpdate.call(this, options);
+            }
+          }
+          return originalUpdate.call(this, options);
+        };
+      }
+    }
+
     const userId = interaction.user.id;
 
     let acquired = false;
@@ -73,6 +131,16 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         }
         return;
       }
+
+      // BIG UPDATE §2: Thiên Phạt cho kẻ ác duyên (3% mỗi lần dùng lệnh)
+      try {
+        const { karmaService } = require('../services/KarmaService');
+        const tp = karmaService.rollThienPhat(userId);
+        if (tp.punished && tp.message && interaction.isRepliable()) {
+          await interaction.reply({ content: tp.message, flags: MessageFlags.Ephemeral });
+          return;
+        }
+      } catch {}
 
       // Cập nhật điểm hoạt động của server (Guild Activity Tracking)
       if (interaction.guildId) {
@@ -446,7 +514,13 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           return;
         }
 
-        const totalCost = item.price * qty;
+        // BIG UPDATE §2: Karma shop discount (10% for good alignment)
+        let discount = 0;
+        try {
+          const { karmaService } = require('../services/KarmaService');
+          discount = karmaService.getShopDiscount(targetUserId);
+        } catch {}
+        const totalCost = Math.round(item.price * qty * (1 - discount));
 
         if (item.currency === 'knb') {
           let realItemId = item.id;

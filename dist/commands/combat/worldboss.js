@@ -76,9 +76,14 @@ function buildWorldBossContainer(userId) {
         else {
             container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`📋 **Nhật ký chiến đấu mới nhất:**\n*Chưa có tấn công nào trong vòng này.*`));
         }
+        // ── V2 Phase Info ──
+        const phaseNames = ['', 'Sơ Khởi', 'Phẫn Nộ', 'Hồi Phục', 'Thôn Tính', 'Tuyệt Vọng'];
+        const currentPhase = boss.phase || 1;
+        const phaseName = phaseNames[currentPhase] || stageName;
+        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`🌀 **Giai Đoạn ${currentPhase}/5: ${phaseName}**`));
         // ── Stats Row ──
         container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
-        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`⚔️ **Sát lực:** ${boss.atk.toLocaleString()} │ 🛡️ **Phòng Thủ:** ${boss.def.toLocaleString()} │ 🌀 **Trạng thái:** Giai đoạn ${stageName}`));
+        container.addTextDisplayComponents(new discord_js_1.TextDisplayBuilder().setContent(`⚔️ **Sát lực:** ${boss.atk.toLocaleString()} │ 🛡️ **Phòng Thủ:** ${boss.def.toLocaleString()} │ 🌀 **Trạng thái:** ${stageName}`));
         // ── Player Status ──
         container.addSeparatorComponents(new discord_js_1.SeparatorBuilder().setDivider(true).setSpacing(1));
         const activeStats = InventoryService_1.inventoryService.getActiveStats(userId);

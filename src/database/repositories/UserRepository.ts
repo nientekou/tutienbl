@@ -61,6 +61,7 @@ export interface UserEntity {
   alignment: string;
   qi_deviation_until: number;
   consecutive_fails: number;
+  karma: number;
   created_at: number;
   updated_at: number;
 }
