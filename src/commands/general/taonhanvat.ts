@@ -233,22 +233,11 @@ export default class TaoNhanVatCommand extends Command {
     const embed = new EmbedBuilder()
       .setTitle('Bước 2: Định Mệnh Của Ngươi')
       .setColor(EMBED_COLORS.ERROR)
-      .setDescription(`Xuất thân chỉ nói cho ngươi biết mình từ đâu mà đến.\n` +
-  `Còn từ đây, con đường sẽ do chính ngươi chọn lấy.\n\n` +
-  `Có những con đường nhìn tưởng bằng phẳng, nhưng phía cuối chưa chắc có lối ra.` +
-  ` Có những con đường đầy chông gai, vậy mà lại dẫn đến nơi người khác cả đời cũng chẳng thể đặt chân tới.\n\n` +
-  `Đạo Hữu hãy chọn cho mình một Định Mệnh.`)
+      .setDescription(`Dù xuất thân là **${background.name}**, con đường phía trước còn tùy thuộc vào định mệnh ngươi chọn.\n\nMỗi định mệnh ban tặng ưu thế — nhưng cũng kèm theo thách thức.`)
       .addFields(
         ...DESTINIES.map(d => ({
           name: `${d.emoji} ${d.name}`,
-          value:       
-            `${d.description}\n` +
-            `✨ ${Object.entries(d.bonuses)
-              .map(([k, v]) => `+${v}% ${k.replace('Percent', '').replace('Rate', '')}`)
-              .join(', ')}\n` +
-            `⚠️ ${Object.entries(d.penalties)
-              .map(([k, v]) => `-${v}% ${k.replace('Percent', '').replace('Rate', '')}`)
-              .join(', ')}`,
+          value: `${d.description}\n✨ ${Object.entries(d.bonuses).map(([k, v]) => `+${v}% ${k.replace('Percent', '').replace('Rate', '')}`).join(', ')}\n⚠️ ${Object.entries(d.penalties).map(([k, v]) => `-${v}% ${k.replace('Percent', '').replace('Rate', '')}`).join(', ')}`,
         }))
       )
       .setFooter({ text: 'Hãy chọn định mệnh — không thể thay đổi sau khởi tạo.' });
