@@ -80,14 +80,14 @@ export default class CamNangCommand extends Command {
 
   public async execute(client: TuTienClient, interaction: ChatInputCommandInteraction): Promise<void> {
     const embed = new EmbedBuilder()
-      .setTitle('📖 CẨM NẠNG TIÊN LỘ')
+      .setTitle('<:sotay:1547883761776197632> CẨM NANG TIÊN LỘ')
       .setColor(EMBED_COLORS.INFO)
       .setDescription(
         'Chào mừng đạo hữu đến với **Điển Tịch Cẩm Nang Tiên Lộ**!\n\n' +
         'Hãy chọn một chương thư tịch từ menu bên dưới để tìm hiểu về thế giới tu chân huyền bí:\n\n' +
-        '🌱 **Chương I: Phàm Nhân Hướng Đạo** — Linh Căn, Huyết Mạch, Thiền Định\n' +
-        '🔮 **Chương II: Pháp Bảo Thần Thông** — Đúc Rèn, Khảm Ngọc, Khí Linh, Tâm Pháp\n' +
-        '⚡ **Chương III: Kiếp Số Nhân Quả** — Thiên Kiếp, Ý Cảnh, Luân Hồi, Đạo Lữ'
+        '<:tvngoc:1547899787918053376> **Chương I: Phàm Nhân Hướng Đạo** — Linh Căn, Huyết Mạch, Thiền Định\n' +
+        '<:ipk:1547865972415791215> **Chương II: Pháp Bảo Thần Thông** — Đúc Rèn, Khảm Ngọc, Khí Linh, Tâm Pháp\n' +
+        '<:idrole:1547865936848101456> **Chương III: Kiếp Số Nhân Quả** — Thiên Kiếp, Ý Cảnh, Luân Hồi, Đạo Lữ'
       )
       .setFooter({ text: 'Hãy lựa chọn điển tịch tương ứng bên dưới.' })
       .setTimestamp();
@@ -95,11 +95,11 @@ export default class CamNangCommand extends Command {
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
       new StringSelectMenuBuilder()
         .setCustomId(`camnang_${interaction.user.id}`)
-        .setPlaceholder('📖 Chọn chương điển tịch...')
+        .setPlaceholder('<:sotay:1547883761776197632> Chọn chương điển tịch...')
         .addOptions(
-          new StringSelectMenuOptionBuilder().setLabel('🌱 Chương I: Phàm Nhân Hướng Đạo').setValue('chuong1').setDescription('Linh Căn, Huyết Mạch, Thiền Định'),
-          new StringSelectMenuOptionBuilder().setLabel('🔮 Chương II: Pháp Bảo Thần Thông').setValue('chuong2').setDescription('Đúc Rèn, Khảm Ngọc, Khí Linh, Tâm Pháp'),
-          new StringSelectMenuOptionBuilder().setLabel('⚡ Chương III: Kiếp Số Nhân Quả').setValue('chuong3').setDescription('Lôi Kiếp, Ý Cảnh, Luân Hồi, Đạo Lữ'),
+          new StringSelectMenuOptionBuilder().setLabel('<:tvngoc:1547899787918053376> Chương I: Phàm Nhân Hướng Đạo').setValue('chuong1').setDescription('Linh Căn, Huyết Mạch, Thiền Định'),
+          new StringSelectMenuOptionBuilder().setLabel('<:ipk:1547865972415791215> Chương II: Pháp Bảo Thần Thông').setValue('chuong2').setDescription('Đúc Rèn, Khảm Ngọc, Khí Linh, Tâm Pháp'),
+          new StringSelectMenuOptionBuilder().setLabel('<:idrole:1547865936848101456> Chương III: Kiếp Số Nhân Quả').setValue('chuong3').setDescription('Lôi Kiếp, Ý Cảnh, Luân Hồi, Đạo Lữ'),
         )
     );
 
@@ -111,7 +111,7 @@ export function getCamNangEmbed(topic: string): EmbedBuilder {
   const guide = CAMNANG_DATA[topic];
   if (!guide) {
     return new EmbedBuilder()
-      .setTitle('📖 CẨM NẠNG TIÊN LỘ')
+      .setTitle('<:sotay:1547883761776197632> CẨM NANG TIÊN LỘ')
       .setColor(EMBED_COLORS.INFO)
       .setDescription('Chương thư tịch không tồn tại.');
   }
@@ -128,11 +128,11 @@ export function buildCamNangMenu(userId: string): ActionRowBuilder<StringSelectM
   return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(`camnang_${userId}`)
-      .setPlaceholder('📖 Chọn chương điển tịch...')
+      .setPlaceholder('<:sotay:1547883761776197632> Chọn chương điển tịch...')
       .addOptions(
-        new StringSelectMenuOptionBuilder().setLabel('🌱 Chương I: Phàm Nhân Hướng Đạo').setValue('chuong1').setDescription('Linh Căn, Huyết Mạch, Thiền Định'),
-        new StringSelectMenuOptionBuilder().setLabel('🔮 Chương II: Pháp Bảo Thần Thông').setValue('chuong2').setDescription('Đúc Rèn, Khảm Ngọc, Khí Linh, Tâm Pháp'),
-        new StringSelectMenuOptionBuilder().setLabel('⚡ Chương III: Kiếp Số Nhân Quả').setValue('chuong3').setDescription('Lôi Kiếp, Ý Cảnh, Luân Hồi, Đạo Lữ'),
+        new StringSelectMenuOptionBuilder().setLabel('<:tvngoc:1547899787918053376> Chương I: Phàm Nhân Hướng Đạo').setValue('chuong1').setDescription('Linh Căn, Huyết Mạch, Thiền Định'),
+        new StringSelectMenuOptionBuilder().setLabel('<:ipk:1547865972415791215> Chương II: Pháp Bảo Thần Thông').setValue('chuong2').setDescription('Đúc Rèn, Khảm Ngọc, Khí Linh, Tâm Pháp'),
+        new StringSelectMenuOptionBuilder().setLabel('<:idrole:1547865936848101456> Chương III: Kiếp Số Nhân Quả').setValue('chuong3').setDescription('Lôi Kiếp, Ý Cảnh, Luân Hồi, Đạo Lữ'),
       )
   );
 }
