@@ -28,7 +28,7 @@ export default class BangNghiaVuCommand extends Command {
 
     const tierEmoji: Record<string, string> = { common: '⚪', elite: '🟢', legendary: '🟡' };
 
-    let desc = `📋 **Bảng Nghĩa Vụ** — Chọn 3 nhiệm vụ\n`;
+    let desc = `<:thienthu:1547875509919289465> **Bảng Nghĩa Vụ** — Chọn 3 nhiệm vụ\n`;
     desc += `🔥 Streak: ${streak}/5 ngày${streak >= 5 ? ' (Guaranteed Legendary!)' : ''}\n`;
     desc += isCompleted ? `✅ Đã hoàn thành hôm nay` : `⏳ Chưa hoàn thành\n\n`;
 
@@ -37,14 +37,14 @@ export default class BangNghiaVuCommand extends Command {
       for (let i = 0; i < cards.length; i++) {
         const c = cards[i];
         desc += `${tierEmoji[c.tier]} **${c.name}** — ${c.description}\n`;
-        desc += `  📊 ${c.requirement}: 0/${c.target} | 🎁 ${c.rewardExp} EXP, ${c.rewardCoins} LT`;
-        if (c.rewardKnb > 0) desc += `, ${c.rewardKnb} KNB`;
+        desc += `  <:tin4:1547875508174327828> ${c.requirement}: 0/${c.target} | <:qua4:1547881540372009021> ${c.rewardExp} EXP, ${c.rewardCoins} <:lt1:1547866122123218945> LT`;
+        if (c.rewardKnb > 0) desc += `, ${c.rewardKnb} <:lt2:1547866118817845309> CPLT`;
         desc += '\n';
       }
     }
 
     const embed = new EmbedBuilder()
-      .setTitle('📋 Bảng Nghĩa Vụ')
+      .setTitle('<:thienthu:1547875509919289465> Bảng Nghĩa Vụ')
       .setColor(EMBED_COLORS.MYSTIC)
       .setDescription(desc)
       .setTimestamp();
