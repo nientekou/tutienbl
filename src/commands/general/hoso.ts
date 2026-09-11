@@ -338,7 +338,7 @@ function getChienTichTabEmbed(user: UserEntity): EmbedBuilder {
       },
       // W9-03: Extended stats
       {
-        name: '### <:sotay:1547883761776197632> Thống Kê Mở Rộng\n',
+        name: '### <:sotay:1547883761776197632> Thống Kê Mở Rộng',
         value: (() => {
           const stats: string[] = [];
           // Tower
