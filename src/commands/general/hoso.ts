@@ -16,13 +16,13 @@ import db from '../../database/database';
 export type HoSoTab = 'chiso' | 'taisan' | 'chientich' | 'trangbi' | 'linhthu' | 'somenh' | 'bangxephang' | 'thongke';
 
 const TAB_LABELS: Record<HoSoTab, { name: string; emoji: string }> = {
-  chiso: { name: 'Chỉ Số', emoji: '<:sotay:1547883761776197632>' },
-  taisan: { name: 'Tài Sản', emoji: '<:tvp1:1547866133242056704>' },
+  chiso: { name: 'Chỉ Số', emoji: '📊' },
+  taisan: { name: 'Tài Sản', emoji: '🪙' },
   chientich: { name: 'Chiến Tích', emoji: '🏆' },
-  trangbi: { name: 'Trang Bị', emoji: '<:itp:1547883759527792710>' },
-  linhthu: { name: 'Linh Thú', emoji: '<:ilt:1547950632562982994>' },
-  somenh: { name: 'Số Mệnh', emoji: '<:sotay:1547883761776197632>' },
-  bangxephang: { name: 'Bảng Phong Thần', emoji: '<:thienthu:1547875509919289465>' },
+  trangbi: { name: 'Trang Bị', emoji: '⚔️' },
+  linhthu: { name: 'Linh Thú', emoji: '🐉' },
+  somenh: { name: 'Số Mệnh', emoji: '📜' },
+  bangxephang: { name: 'Bảng Phong Thần', emoji: '👑' },
   thongke: { name: 'Thống Kê', emoji: '📈' },
 };
 
@@ -139,8 +139,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
         inline: true,
       },
       {
-        name: '☯️ Căn Cơ Linh Căn
-          ',
+        name: '☯️ Căn Cơ Linh Căn,
         value: formattedLinhCan,
         inline: true,
       },
