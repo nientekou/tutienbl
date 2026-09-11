@@ -208,12 +208,12 @@ export function getDestinyLine(destinyId: string): string {
 }
 
 export const HEIRLOOMS = [
-  { id: 'manh_ngoc_bich', name: 'Mảnh Ngọc Bích Vỡ', icon: '💚', description: 'Mảnh ngọc duy nhất còn sót lại từ gia tộc thần bí. Nghe nói ghép đủ 6 mảnh sẽ mở ra bí mật kinh thiên.', effect: '+1% Luck' },
-  { id: 'la_ban_ri_set', name: 'La Bàn Rỉ Sét', icon: '🧭', description: 'Chiếc la bàn cổ, kim luôn chỉ về một hướng. Có thể nó dẫn đến kho báu... hoặc cái bẫy.', effect: 'Gợi ý kỳ ngộ ẩn' },
-  { id: 'linh_hoa_kho', name: 'Linh Hoa Khô', icon: '🌸', description: 'Đóa hoa từng nở rực rỡ trong vườn thượng cổ. Dù khô héo, nó vẫn tỏa ra linh khí nhè nhẹ.', effect: '+1% Drop Rate' },
-  { id: 'dong_xu_ma_co', name: 'Đồng Xu Ma Cổ', icon: '🪙', description: 'Khắc hình yêu thú cổ đại, tỏa ra hơi thở ma khí nhẹ. Có người muốn mua nó giá cao.', effect: '+1% ATK' },
-  { id: 'long_vu_phuong_hoang', name: 'Lông Vũ Phượng Hoàng', icon: '🔥', description: 'Sưởi ấm kỳ lạ, như có ngọn lửa chảy trong từng sợi lông. Tin đồn nó thuộc về Phượng Hoàng cuối cùng.', effect: '+1% Speed' },
-  { id: 'vay_rong_den', name: 'Vảy Rồng Đen', icon: '🛡️', description: 'Còn sót lại từ trận chiến giữa Tiên và Ma 3000 năm trước. Mảnh vảy này đã chứng kiến đại chiến.', effect: '+1% DEF' }
+  { id: 'manh_ngoc_bich', name: 'Thiên Khuyết Ngọc', icon: '<:tvngoc:1547899787918053376>', description: 'Một mảnh cổ ngọc khuyết mất một phần, tương truyền là chìa khóa mở ra một cánh cửa đã biến mất khỏi Thương Mang Thiên Hạ.', effect: '+1% Luck' },
+  { id: 'la_ban_ri_set', name: 'Tinh Hải La Bàn', icon: '<:tvlaban:1547899793131438120>', description: 'Chiếc la bàn cũ kỹ không còn chỉ phương hướng của nhân gian. Mỗi khi tinh tượng đổi dời, kim bàn lại khẽ rung, dường như đang tìm kiếm một nơi chưa từng xuất hiện trên địa đồ.', effect: 'Gợi ý kỳ ngộ ẩn' },
+  { id: 'linh_hoa_kho', name: 'Sở Tư Tàn Hoa', icon: '<:tvtanhoa:1547906520921149470>', description: 'Một đóa hoa đã héo từ rất lâu nhưng chưa từng mục nát. Cánh hoa giữ nguyên sắc đỏ như ngày vừa nở, mang theo một đoạn nhân quả chưa được khép lại.', effect: '+1% Drop Rate' },
+  { id: 'dong_xu_ma_co', name: 'Cổ Ma Tiền', icon: '<:tvtien:1547899790774247465>', description: 'Đồng tiền cổ đúc từ thứ kim loại không ai nhận ra. Một mặt khắc tiên văn, một mặt khắc ma văn; lưu truyền rằng chỉ khi nhân quả giao nhau, nó mới hiện giá trị thật.', effect: '+1% ATK' },
+  { id: 'long_vu_phuong_hoang', name: 'Phượng Linh Vũ', icon: '<:tvphuong:1547900684106735636>', description: 'Chiếc linh vũ rơi từ một con thiên phượng giữa biển mây. Dẫu trải qua ngàn năm, đầu lông vẫn lưu chuyển ánh hỏa quang nhàn nhạt.', effect: '+1% Speed' },
+  { id: 'vay_rong_den', name: 'Nghịch Lân Cổ Long', icon: '<:tvlong:1547899782641483786>', description: 'Chiếc vảy mọc ngược nơi cổ chân long. Long có nghịch lân, chạm vào tất nổi long uy. Trong vảy vẫn còn lưu lại một tia long tức chưa từng tiêu tán.', effect: '+1% DEF' }
 ];
 
 export function generateHeirloom() {
@@ -223,35 +223,35 @@ export function generateHeirloom() {
 export function generateProphecy(backgroundId: string, destinyId: string, element: string): string {
   const bgTemplates: Record<string, Record<string, string>> = {
     tu_chien_gia_toc: {
-      phuc_tinh: "Dòng máu tổ tông / Phượng hoàng tái thế",
-      sat_tinh: "Gia tộc suy vong / Nghiệp chướng đeo mang",
-      tho_tinh: "Rời xa gia tộc / Ẩn danh giữa đời"
+      phuc_tinh: "Tiên phủ còn hưng, một mạch truyền ba đời",
+      sat_tinh: "Kiếm chỉ huyết thân, gia môn gặp kiếp.",
+      tho_tinh: "Rời tiên phủ, giữ một đời vô danh."
     },
     phan_tran: {
-      phuc_tinh: "Tay trắng dựng cơ đồ / Cơ duyên trời ban",
-      sat_tinh: "Nợ đời chưa trả / Đường gian nan lắm",
-      tho_tinh: "Vô danh tiểu tốt / Lá rụng giữa dòng"
+      phuc_tinh: "Cỏ dại cũng có ngày hóa linh mộc.",
+      sat_tinh: "Một thân phàm cốt, dám nghịch thiên mệnh.",
+      tho_tinh: "Đại đạo vô danh, người đời chẳng nhớ."
     },
     de_tu_tan_tu: {
-      phuc_tinh: "Trời đất bao la / Gặp thời thế tạo",
-      sat_tinh: "Sát khí đầy mình / Nghiệp lực quấn thân",
-      tho_tinh: "Mây bay gió thổi / Chẳng ai biết tên"
+      phuc_tinh: "Trời đất rộng dài, gặp thời ắt dựng nghiệp.",
+      sat_tinh: "Sát khí nhập mệnh, một đời khó tránh phong ba.",
+      tho_tinh: "Mây bay bốn hướng, chẳng ai biết người về đâu."
     },
     ky_ngo_sinh_tu: {
-      phuc_tinh: "Sư môn vinh hiển / Đệ tử xuất chúng",
-      sat_tinh: "Môn quy phá vỡ / Đường về xa xăm",
-      tho_tinh: "Núi sâu ai biết / Ẩn tu một mình"
+      phuc_tinh: "Sư môn còn thịnh, hậu bối ắt có người thành danh.",
+      sat_tinh: "Môn quy một bước phá, đường về vạn dặm xa.",
+      tho_tinh: "Núi sâu chẳng hỏi thế sự, một đời giữ mình tu hành."
     }
   };
 
   const elementSuffix: Record<string, string> = {
-    Kim: "Kiếm khí ngút trời",
-    Mộc: "Cây xanh tỏa bóng",
-    Thủy: "Nước chảy đá mòn",
-    Hỏa: "Lửa thiêu rực rỡ",
-    Thổ: "Núi cao vững chãi",
-    Lôi: "Sấm sét xé trời",
-    Phong: "Gió cuộn mây ngàn"
+    Kim: "Bách luyện thành cương, một kiếm phá vạn pháp.",
+    Mộc: "Một hạt sinh căn, ngày sau ắt thành đại mộc.",
+    Thủy: "Nước theo thế mà chảy, người theo đạo mà hành.",
+    Hỏa: "Một đốm linh hỏa, cũng đủ thiêu tận cửu thiên.",
+    Thổ: "Đất dày mới tải được vạn vật, đường xa mới biết được căn cơ.",
+    Lôi: "Thiên lôi giáng thế, kẻ mang mệnh ấy chẳng phải phàm nhân.",
+    Phong: "Gió đến chẳng báo trước, người này một đời khó chịu trói buộc."
   };
 
   const pool = [
