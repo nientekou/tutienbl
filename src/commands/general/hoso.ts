@@ -154,7 +154,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
           bloodlineLine,
           mountLine,
           spiritLine,
-          `🏰 Động Phủ: **Cấp ${cave.level}** (Linh Tuyền Lvl ${springLvl} | Linh Mạch Lvl ${meridianLvl} | Trận Lvl ${arrayLvl})`
+          `<:dongphu:1547957254341263430> Động Phủ: **Cấp ${cave.level}** (Linh Tuyền Lvl ${springLvl} | Linh Mạch Lvl ${meridianLvl} | Trận Lvl ${arrayLvl})`
         ].join('\n'),
         inline: false,
       }
@@ -644,7 +644,7 @@ export function getHoSoActionMenus(userId: string): ActionRowBuilder<StringSelec
       new StringSelectMenuOptionBuilder().setLabel('<:tmh:1547866418207399986> Chế Tạo Pháp Khí').setValue('chetaonav').setDescription('Rèn phôi chế tạo trang bị'),
       new StringSelectMenuOptionBuilder().setLabel('<:luyendan:1547866018037243954> Rèn Đúc Luyện Khí').setValue('luyenkhinav').setDescription('Rèn đúc trang bị (Luyện Khí Sư)'),
       new StringSelectMenuOptionBuilder().setLabel('🌾 Chăm Sóc Linh Điền').setValue('linhdiennav').setDescription('Gieo hạt trồng trọt thảo mộc'),
-      new StringSelectMenuOptionBuilder().setLabel('🏰 Quản Lý Động Phủ').setValue('dongphunav').setDescription('Quản lý Động Phủ Tiên Gia và Linh Mạch'),
+      new StringSelectMenuOptionBuilder().setLabel('<:dongphu:1547957254341263430> Quản Lý Động Phủ').setValue('dongphunav').setDescription('Quản lý Động Phủ Tiên Gia và Linh Mạch'),
       new StringSelectMenuOptionBuilder().setLabel('☯️ Trở Về Tông Môn').setValue('tonmonnav').setDescription('Bái sư bách nghệ gia nhập tông môn'),
       new StringSelectMenuOptionBuilder().setLabel('<:inpc:1547865947040256100> Ghé Thăm Cửa Hàng').setValue('shopnav').setDescription('Mua sắm dược phẩm và vé khiêu chiến'),
       new StringSelectMenuOptionBuilder().setLabel('<:sotay:1547883761776197632> Tiệm Sách Kỹ Năng').setValue('shopkynangnav').setDescription('Mua sách học kỹ năng chiến đấu'),
