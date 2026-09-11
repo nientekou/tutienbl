@@ -166,7 +166,7 @@ export default class TaoNhanVatCommand extends Command {
 
   private async stepChooseBackground(interaction: ChatInputCommandInteraction, name: string): Promise<(typeof BACKGROUNDS)[number] | null> {
     const embed = new EmbedBuilder()
-      .setTitle('Bước 1: Xuất Thân Của Ngươi')
+      .setTitle('Bước 1: Xuất Thân Của Đạo Hữu')
       .setColor(EMBED_COLORS.MYSTIC)
       .setDescription(`**${name}** — trước khi bước lên tiên lộ, trước hết phải biết mình từ đâu mà đến.\n` +
       `Thương Mang rộng lớn, chúng sinh vạn loại. Có người sinh giữa thế gia, ` +
@@ -176,10 +176,10 @@ export default class TaoNhanVatCommand extends Command {
       .addFields(
         ...BACKGROUNDS.map(b => ({
           name: `${b.emoji} ${b.name}`,
-          value: `${b.description}\n${b.bonuses.hp ? `🩸 +${b.bonuses.hp} HP` : ''}${b.bonuses.atk ? ` ⚔️ +${b.bonuses.atk} ATK` : ''}${b.bonuses.def ? ` 🛡️ +${b.bonuses.def} DEF` : ''}${b.bonuses.expRate ? ` ✨ +${b.bonuses.expRate}% EXP` : ''}${b.bonuses.lt ? ` 🪙 +${b.bonuses.lt} LT` : ''}${b.bonuses.knb ? ` 💎 +${b.bonuses.knb} KNB` : ''}`,
+          value: `${b.description}\n${b.bonuses.hp ? `<:ihp:1547865965998379048> +${b.bonuses.hp} HP` : ''}${b.bonuses.atk ? ` <:iiatk:1547935869602631680> +${b.bonuses.atk} ATK` : ''}${b.bonuses.def ? ` <:idef:1547935867149099083> +${b.bonuses.def} DEF` : ''}${b.bonuses.expRate ? ` <:iexp:1547935874077954078> +${b.bonuses.expRate}% EXP` : ''}${b.bonuses.lt ? ` <:lt1:1547866122123218945> +${b.bonuses.lt} LT` : ''}${b.bonuses.knb ? ` <:lt2:1547866118817845309> +${b.bonuses.knb} CPLT` : ''}`,
         }))
       )
-      .setFooter({ text: 'Hãy chọn một xuất thân — nó sẽ ảnh hưởng đến toàn bộ hành trình của ngươi.' });
+      .setFooter({ text: 'Đạo Hữu hãy chọn đi. Tiên lộ phía trước, tự mình bước lấy.' });
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       ...BACKGROUNDS.map((b, i) =>
@@ -214,7 +214,7 @@ export default class TaoNhanVatCommand extends Command {
       .setTitle(`${background.emoji} ${background.name}`)
       .setColor(EMBED_COLORS.ORANGE)
       .setDescription(background.intro)
-      .setFooter({ text: '— Ngươi đã chọn xuất thân. Hãy bước tiếp...' });
+      .setFooter({ text: '"Xem ra Đạo Hữu đã chọn được con đường mình muốn đi về sau rồi..."' });
     await interaction.editReply(toV2Payload([storyEmbed], [] ));
 
     // Brief delay for dramatic effect
@@ -224,16 +224,16 @@ export default class TaoNhanVatCommand extends Command {
 
   private async stepChooseDestiny(interaction: ChatInputCommandInteraction, name: string, background: (typeof BACKGROUNDS)[number]): Promise<(typeof DESTINIES)[number] | null> {
     const embed = new EmbedBuilder()
-      .setTitle('Bước 2: Định Mệnh Của Ngươi')
+      .setTitle('Bước 2: Định Mệnh Của Đạo Hữu')
       .setColor(EMBED_COLORS.ERROR)
-      .setDescription(`Dù xuất thân là **${background.name}**, con đường phía trước còn tùy thuộc vào định mệnh ngươi chọn.\n\nMỗi định mệnh ban tặng ưu thế — nhưng cũng kèm theo thách thức.`)
+      .setDescription(`**${background.name}**. Xuất thân chỉ nói cho Đạo Hữu biết mình từ đâu mà đến.\nCòn từ đây, con đường sẽ do chính Đạo Hữu chọn lấy.\nCó những con đường nhìn tưởng bằng phẳng, nhưng phía cuối chưa chắc có lối ra.\nCó những con đường đầy chông gai, vậy mà lại dẫn đến nơi người khác cả đời cũng chẳng thể đặt chân tới.\n Vậy tiếp theo, là tới Định Mệnh của Đạo Hữu.`)
       .addFields(
         ...DESTINIES.map(d => ({
           name: `${d.emoji} ${d.name}`,
-          value: `${d.description}\n✨ ${Object.entries(d.bonuses).map(([k, v]) => `+${v}% ${k.replace('Percent', '').replace('Rate', '')}`).join(', ')}\n⚠️ ${Object.entries(d.penalties).map(([k, v]) => `-${v}% ${k.replace('Percent', '').replace('Rate', '')}`).join(', ')}`,
+          value: `${d.description}\n<:iexp:1547935874077954078> ${Object.entries(d.bonuses).map(([k, v]) => `+${v}% ${k.replace('Percent', '').replace('Rate', '')}`).join(', ')}\n⚠️ ${Object.entries(d.penalties).map(([k, v]) => `-${v}% ${k.replace('Percent', '').replace('Rate', '')}`).join(', ')}`,
         }))
       )
-      .setFooter({ text: 'Hãy chọn định mệnh — không thể thay đổi sau khởi tạo.' });
+      .setFooter({ text: 'Định Mệnh một khi đã an bài sẽ vô pháp thay đổi.' });
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       ...DESTINIES.map((d, i) =>
@@ -346,18 +346,18 @@ export default class TaoNhanVatCommand extends Command {
       .setDescription(`__****Thế Giới Tu Chân — Niên Hiệu Linh Hư 358****__\n\n*${openingScene}*\n\n__**${destiny.emoji} Định Mệnh**__\n*"${destinyLine}"*\n\n__**📜 Lá Số Tử Vi**__\n*${prophecy}*`)
         .addFields(
           { name: '👤 Đạo Hiệu', value: `**${name}** (${background.emoji} ${background.name})`, inline: true },
-          { name: '✨ Cảnh Giới', value: 'Luyện Khí Kỳ — Tầng 1/38', inline: true },
+          { name: '<:iexp:1547935874077954078> Cảnh Giới', value: 'Luyện Khí Kỳ — Tầng 1/38', inline: true },
           { name: '☯️ Định Mệnh', value: `${destiny.emoji} ${destiny.name}`, inline: true },
           { name: '📜 Căn Cơ Linh Căn', value: `${formattedLinhCan}\n${linhCanFlavor}` },
-          { name: '📊 Chỉ Số', value: `🩸 HP: **${totalHp}** | 🌀 MP: **${totalMp}**\n⚔️ Công Kích: **${totalAtk}** | 🛡️ Phòng Thủ: **${totalDef}**\n💥 Bạo Kích: **${(totalCrit * 100).toFixed(1)}%** | 🍀 May Mắn: **${baseStats.luck + (background.bonuses.dropRate || 0)}**` },
+          { name: '📊 Chỉ Số', value: `<:ihp:1547865965998379048> HP: **${totalHp}** | 🌀 MP: **${totalMp}**\n<:iiatk:1547935869602631680> Công Kích: **${totalAtk}** | <:idef:1547935867149099083> Phòng Thủ: **${totalDef}**\n💥 Bạo Kích: **${(totalCrit * 100).toFixed(1)}%** | 🍀 May Mắn: **${baseStats.luck + (background.bonuses.dropRate || 0)}**` },
           {
             name: '🎒 Hành Trang Khởi Đầu',
             value: [
-              `🪙 ${startingLt.toLocaleString()} Hạ Phẩm Linh Thạch`,
+              `<:lt1:1547866122123218945> ${startingLt.toLocaleString()} Hạ Phẩm Linh Thạch`,
               background.startingItem ? `📦 **${background.startingItem.name}** — ${background.startingItem.description}` : '',
               `🏺 **${heirloom.name}** — ${heirloom.description} (${heirloom.effect})`,
               combo ? `📜 **Combo:** ${combo.skillName} — ${combo.skillDescription}` : '',
-              startingKnb ? `💎 ${startingKnb} Kim Nguyên Bảo` : '',
+              startingKnb ? `<:lt2:1547866118817845309> ${startingKnb} Kim Nguyên Bảo` : '',
               `\n🎁 *Quà khởi nghiệp: +1000 LT đã được cộng vào hành trang!*`
             ].filter(Boolean).join('\n'),
           },
