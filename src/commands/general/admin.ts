@@ -15,7 +15,7 @@ import { noituService } from '../../services/NoituService';
  * ID Discord của Bot Owner — người DUY NHẤT được phép dùng lệnh /admin
  * Không phân quyền qua guild admin roles để tránh mất cân bằng game
  */
-const BOT_OWNER_ID = '724608013981450351';
+const BOT_OWNER_ID = '765165427315048488';
 export default class AdminCommand extends Command {
   constructor() {
     super(
