@@ -163,12 +163,12 @@ export class CultivationInteractionHandler {
               `❤️ **Trạng thái hiện tại:**\n` +
               `• Sinh Lực tối đa: **${hpText}** HP\n` +
               `• Pháp Lực tối đa: **${mpText}** MP\n\n` +
-              `🎒 **Vật phẩm hộ thân hiện có trong túi:**\n` +
+              `<:tvp1:1547866133242056704> **Vật phẩm hộ thân hiện có trong túi:**\n` +
               `• ${oncomingKiep.pillName} 💊 (khắc chế kiếp, giảm 40%): **${protectPillQty}** viên\n` +
               `• Ngự Lôi Đan 💊 (giảm 30% sát thương): **${antiLoiQty}** viên\n` +
               `• Tị Lôi Phù 📜 (giảm 80% sát thương 1 lượt): **${tiLoiQty}** tấm\n` +
               `• Hồi Huyết Đan trung phẩm ❤️ (hồi 150 HP): **${hp2Qty}** viên\n\n` +
-              `💎 **Bế Quan Đột Phá:** Hao tổn **${bequanMajorCost}** Linh Thạch Hạ Phẩm để đột phá an toàn 100% (bỏ qua lôi kiếp).\n\n` +
+              `<:lt1:1547866122123218945> **Bế Quan Đột Phá:** Hao tổn **${bequanMajorCost}** Linh Thạch Hạ Phẩm để đột phá an toàn 100% (bỏ qua lôi kiếp).\n\n` +
               `⚠️ **Cảnh báo nguy hiểm:** Hãy chắc chắn đạo hữu đang đầy đủ HP/MP. Nếu HP về 0 giữa lôi kiếp, đạo hữu sẽ đột phá thất bại, bị **Trọng Thương (1 giờ)** và tổn thất **-30%** tu vi hiện có!`
             )
             .setFooter({ text: 'Nhấn nút bên dưới để bắt đầu lôi kiếp hoặc chọn Bế Quan!' })
@@ -215,7 +215,7 @@ export class CultivationInteractionHandler {
               .setColor(EMBED_COLORS.ERROR)
               .setDescription(
                 `⚡ **Biến Cố Đột Phá:** Khi đạo hữu chuẩn bị trùng kích bình cảnh, bỗng dưng tâm ma vây kín (hoặc bị một tên tán tu quấy phá)! Đạo tâm lung lay, đan điền chấn động mạnh.\n\n` +
-                `📉 **Ảnh hưởng:** Tỷ lệ đột phá thành công giảm đi **-15%** (Từ **${baseTotalRate.toFixed(1)}%** còn **${reducedRate.toFixed(1)}%**).\n` +
+                `<:xich:1547875512234410095> **Ảnh hưởng:** Tỷ lệ đột phá thành công giảm đi **-15%** (Từ **${baseTotalRate.toFixed(1)}%** còn **${reducedRate.toFixed(1)}%**).\n` +
                 `💀 **Hậu quả nếu thất bại:** Sẽ rơi vào trạng thái **Tẩu Hỏa Nhập Ma trong 30 phút** (giảm 50% hiệu suất tu vi nhàn rỗi và không thể thiền định chủ động trong thời gian này).\n\n` +
                 `Đạo hữu có thể chọn mạo hiểm đột phá, hoặc chi ra **${cost}** Linh Thạch để ổn định tâm thần, khôi phục tỷ lệ thành công ban đầu.`
               )
@@ -292,9 +292,9 @@ export class CultivationInteractionHandler {
           .setColor(EMBED_COLORS.INFO)
           .setDescription('Tẩy tủy sẽ thay đổi Linh Căn cốt cách ngẫu nhiên, tác động trực tiếp tới các thuộc tính chiến đấu và hiệu suất tu luyện.')
           .addFields(
-            { name: '🔮 Linh Căn Hiện Tại', value: formattedLinhCan },
-            { name: '🪙 Chi Phí Tẩy Tủy', value: '💵 **100 Hạ Phẩm Linh Thạch**' },
-            { name: '💼 Số Dư Linh Thạch', value: `🟤 **${user.coin_ha_pham}** Hạ Phẩm Linh Thạch` }
+            { name: '<:lc01:1547878586000875550> Linh Căn Hiện Tại', value: formattedLinhCan },
+            { name: '<:lt1:1547866122123218945> Chi Phí Tẩy Tủy', value: '**100 Hạ Phẩm Linh Thạch**' },
+            { name: '<:lt1:1547866122123218945> Số Dư Linh Thạch', value: `**${user.coin_ha_pham}** Hạ Phẩm Linh Thạch` }
           )
           .setFooter({ text: 'Hãy cân nhắc trước khi tiến hành hoán đổi căn cốt!' })
           .setTimestamp();
@@ -337,8 +337,8 @@ export class CultivationInteractionHandler {
         .setColor(EMBED_COLORS.SUCCESS)
         .setDescription('Căn cốt linh căn đã thay đổi. Các chỉ số cơ bản của đạo hữu đã được tính toán lại theo cơ duyên mới.')
         .addFields(
-          { name: '🔮 Linh Căn Mới', value: formattedLinhCan },
-          { name: '💼 Số Dư Linh Thạch', value: `🟤 **${updatedUser.coin_ha_pham}** Hạ Phẩm Linh Thạch` }
+          { name: '<:lc01:1547878586000875550> Linh Căn Mới', value: formattedLinhCan },
+          { name: '<:lt1:1547866122123218945> Số Dư Linh Thạch', value: `🟤 **${updatedUser.coin_ha_pham}** Hạ Phẩm Linh Thạch` }
         )
         .setTimestamp();
 
@@ -400,22 +400,22 @@ export class CultivationInteractionHandler {
 
     if (action === 'select' && parts[1] === 'alignment') {
       const embed = new EmbedBuilder()
-        .setTitle('🎭 LỰA CHỌN ĐẠO THỐNG: CHÍNH ĐẠO vs MA ĐẠO')
+        .setTitle('<:idrole:1547865936848101456> LỰA CHỌN ĐẠO THỐNG: CHÍNH ĐẠO vs MA ĐẠO')
         .setColor(EMBED_COLORS.MYSTIC)
         .setDescription(
-          `Đạo hữu tu hành tới Trúc Cơ Kỳ, tu vi đã có thành tựu, có thể lựa chọn Đạo thống tương lai của mình. Con đường này sẽ ảnh hưởng tới thuộc tính chiến đấu, tu luyện, và tài phú của đạo hữu!\n\n` +
-          `⚖️ **CHÍNH ĐẠO (Orthodox):**\n` +
-          `• 🛡️ **Tăng 10% Phòng ngự** cơ bản.\n` +
+          `Đạo Hữu đã bước vào Trúc Cơ Kỳ, căn cơ dần vững, tu vi cũng đã có thành tựu.\nTừ đây, tiên lộ sẽ chia thành nhiều nhánh. Đạo Thống mà Đạo Hữu lựa chọn sẽ ảnh hưởng đến chiến đấu, tu luyện và tài phú về sau.\nĐường nào cũng có cái giá của nó.\nĐạo Hữu muốn đi con đường nào?\n\n` +
+          `<:chinhdao:1547974602792247446> **CHÍNH ĐẠO (Orthodox):**\n` +
+          `• <:idef:1547935867149099083> **Tăng 10% Phòng ngự** cơ bản.\n` +
           `• ⚡ **Giảm 10% sát thương** Lôi Kiếp đại cảnh giới.\n` +
-          `• 💎 **Giảm 10% Linh Thạch** chi phí Bế Quan Đột Phá.\n` +
-          `• 🪙 **Tăng 5% Linh Thạch** kiếm được khi làm việc (\`/lamviec\`).\n` +
-          `• 📉 *Hình phạt:* Giảm **5%** Công kích (ATK) trong PvP & Quyết Đấu.\n\n` +
-          `👿 **MA ĐẠO (Demonic):**\n` +
-          `• ⚔️ **Tăng 10% Công kích** cơ bản & **+5% Chí Mạng (Crit)**.\n` +
+          `• <:lt1:1547866122123218945> **Giảm 10% Linh Thạch** chi phí Bế Quan Đột Phá.\n` +
+          `• <:lt1:1547866122123218945> **Tăng 5% Linh Thạch** kiếm được khi làm việc (\`/lamviec\`).\n` +
+          `• <:xich:1547875512234410095> *Hình phạt:* Giảm **5%** Công kích (ATK) trong PvP & Quyết Đấu.\n\n` +
+          `<:madao:1547974606047158372> **MA ĐẠO (Demonic):**\n` +
+          `• <:iiatk:1547935869602631680> **Tăng 10% Công kích** cơ bản & **+5% Chí Mạng (Crit)**.\n` +
           `• 🧘 **Tăng 15% tốc độ tu luyện** (Offline thiền định & Thiền định chủ động).\n` +
           `• 🩸 **Cướp thêm 10% Linh Thạch** của đối thủ khi thắng PvP/Quyết Đấu.\n` +
-          `• 📉 *Hình phạt:* Tăng **15% sát thương** Lôi Kiếp & giảm **5% tỷ lệ đột phá tự nhiên**.\n\n` +
-          `⚠️ **LƯU Ý QUAN TRỌNG:** Một khi đã chọn Đạo Thống, đạo hữu chỉ có thể thay đổi/tẩy sạch sau khi **Luân Hồi Trọng Sinh**! Hãy suy nghĩ thật kỹ.`
+          `• <:iiatk:1547935869602631680> *Hình phạt:* Tăng **15% sát thương** Lôi Kiếp & giảm **5% tỷ lệ đột phá tự nhiên**.\n\n` +
+          `⚠️ **LƯU Ý QUAN TRỌNG:** Một khi đã chọn Đạo Thống, Đạo Hữu chỉ có thể thay đổi/tẩy sạch sau khi **Luân Hồi Trọng Sinh**! Hãy suy nghĩ thật kỹ.`
         )
         .setTimestamp();
 
@@ -465,11 +465,11 @@ export class CultivationInteractionHandler {
 
       const updatedUser = userRepository.get(targetUserId)!;
       const welcomeMsg = chosen === 'orthodox'
-        ? `✨ Đạo tâm kiên định, tà ma thối lui! Chúc mừng đạo hữu **${updatedUser.name}** đã chính thức nhập **Chính Đạo ⚖️**! Chỉ số phòng ngự cơ bản được gia tăng.`
-        : `😈 Huyết mạch thức tỉnh, ngạo thị quần hùng! Chúc mừng đạo hữu **${updatedUser.name}** đã chính thức nhập **Ma Đạo 👿**! Chỉ số công kích và chí mạng được gia tăng.`;
+        ? `Đạo tâm đã định. Chính khí đã thành.\n\n**“Giữ được bản tâm giữa vạn kiếp, mới xứng gọi là tu đạo.”**\n\nTừ hôm nay, Đạo Hữu nhập Chính Đạo <:chinhdao:1547974602792247446> Phòng ngự cơ bản được gia tăng.`
+        : `Huyết mạch đã thức tỉnh. Ma niệm đã sinh.\n\n**“Đạo không hỏi thiện ác. Kẻ mạnh, tự có con đường của kẻ mạnh.”**\n\nTừ hôm nay, Đạo Hữu nhập Ma Đạo <:madao:1547974606047158372> Công kích và chí mạng cơ bản được gia tăng`;
 
       const embed = new EmbedBuilder()
-        .setTitle('🎭 ĐẠO THỐNG ĐÃ XÁC ĐỊNH')
+        .setTitle('<:idrole:1547865936848101456> ĐẠO THỐNG ĐÃ XÁC ĐỊNH')
         .setColor(chosen === 'orthodox' ? EMBED_COLORS.INFO : EMBED_COLORS.ERROR)
         .setDescription(welcomeMsg)
         .setTimestamp();
