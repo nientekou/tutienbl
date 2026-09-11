@@ -139,8 +139,8 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
       },
       {
         name: '### <:lc01:1547878586000875550> Căn Cơ Linh Căn',
-        value: [ '',
-          formattedLinhCan,],
+        value:
+          formattedLinhCan,
         inline: true,
       },
       ...(activeStats?.elementResonance?.resonance ? [{
