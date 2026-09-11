@@ -122,7 +122,7 @@ export default class TaoNhanVatCommand extends Command {
       npcReac = '"Thiên linh căn..."';
       npcStory ='Linh quang trước mặt hồi lâu chưa tan.\n' +
                 '"Đã rất lâu rồi, Thương Mang mới lại có một người như Đạo Hữu."\n' +
-                'Lăng Tiêu không nói tiếp.\n' +
+                '**Lăng Tiêu không nói tiếp.**\n' +
                 'Có vài chuyện, biết sớm hay muộn vốn chẳng khác nhau.\n' +
                  '*Tiên lộ còn dài. Căn cốt chỉ quyết định nơi ngươi bắt đầu.*';
     } else if (maxVal >= 70) {
@@ -130,7 +130,7 @@ export default class TaoNhanVatCommand extends Command {
       npcReac = '"Địa linh căn..."';
       npcStory = 'Linh quang dần lắng xuống, để lại một vệt sáng nhàn nhạt giữa lòng bàn tay.\n' +
                  '"Không tệ. Với căn cốt này, Đạo Hữu có thể đi rất xa."\n' +
-                 'Lăng Tiêu dừng một thoáng, rồi nói tiếp:\n' +
+                 '**Lăng Tiêu dừng một thoáng, rồi nói tiếp:**\n' +
                  '"Chỉ là đường xa hay gần, trước nay đâu phải do người khác định đoạt."\n' +
                  '*Căn cốt tốt là một chuyện. Giữ được mình trên tiên lộ lại là một chuyện khác.*';
     } else if (maxVal >= 40) {
@@ -138,7 +138,7 @@ export default class TaoNhanVatCommand extends Command {
       npcReac = '"Nhân linh căn à..."';
       npcStory = 'Linh quang chỉ lóe lên trong chốc lát rồi trở về bình thường.\n' +
                  '"Bình bình phàm phàm."\n' +
-                 'Không có thất vọng, cũng chẳng có vẻ xem nhẹ.\n' +
+                 '**Lăng Tiêu không có thất vọng, cũng chẳng có vẻ xem nhẹ.**\n' +
                  '"Nhưng Đạo Hữu, tiên lộ vốn chẳng hỏi xuất thân. Có người đi một bước đã ở trước vạn người, cũng có người đi hết nửa đời mới tìm được con đường của mình."\n' +
                  '*Đi được bao xa, cuối cùng vẫn phải tự mình bước.*';
     } else {
@@ -147,7 +147,7 @@ export default class TaoNhanVatCommand extends Command {
       npcStory = 'Linh quang chập chờn hồi lâu mới chịu tan.\n' +
                  'Lăng Tiêu im lặng rất lâu.\n' +
                  '"Đường này của Đạo Hữu sẽ khó đi hơn người khác."\n' +
-                 'Chỉ một câu ấy, không an ủi, cũng chẳng thương hại.\n' +
+                 '**Lăng Tiêu hỉ nói một câu ấy, không an ủi, cũng chẳng thương hại.**\n' +
                  'Một lúc sau, hắn mới nói:\n\n' +
                  '"Nhưng khó đi... không có nghĩa là không thể đi."\n' +
                  '*Cổ sử từng có người bắt đầu từ nơi này.*\n' +
@@ -157,8 +157,8 @@ export default class TaoNhanVatCommand extends Command {
     const embed = new EmbedBuilder()
       .setTitle(`Đài Kiểm Tra Linh Căn`)
       .setColor(color)
-      .setDescription(`Trưởng lão đặt tay lên trán ngươi. Một luồng sáng ${icon} lóe lên!\n\n**${npcReac}**\n*${npcStory}*`)
-      .setFooter({ text: `Ngươi sở hữu ${type} Linh Căn.` });
+      .setDescription(`Trưởng lão đặt tay lên trán Đạo Hữu. Một luồng sáng ${icon} lóe lên!\n\n**${npcReac}**\n*${npcStory}*`)
+      .setFooter({ text: `Đạo Hữu sở hữu ${type} Linh Căn.` });
 
     await interaction.editReply(toV2Payload([embed]));
     await new Promise(r => setTimeout(r, 10000));
@@ -343,22 +343,22 @@ export default class TaoNhanVatCommand extends Command {
       const embed = new EmbedBuilder()
         .setTitle('Nhân Vật Đã Được Khai Sinh!')
       .setColor(EMBED_COLORS.GOLD)
-      .setDescription(`__****Thế Giới Tu Chân — Niên Hiệu Linh Hư 358****__\n\n*${openingScene}*\n\n__**${destiny.emoji} Định Mệnh**__\n*"${destinyLine}"*\n\n__**📜 Lá Số Tử Vi**__\n*${prophecy}*`)
+      .setDescription(`## Thương Mang Thiên Hạ\n\n*${openingScene}*\n\n__**${destiny.emoji} Định Mệnh**__\n*"${destinyLine}"*\n\n__**<:tin4:1547875508174327828> Lá Số Tử Vi**__\n*${prophecy}*`)
         .addFields(
-          { name: '👤 Đạo Hiệu', value: `**${name}** (${background.emoji} ${background.name})`, inline: true },
+          { name: '<:inv:1547865980854599693> Đạo Hiệu', value: `**${name}** (${background.emoji} ${background.name})`, inline: true },
           { name: '<:iexp:1547935874077954078> Cảnh Giới', value: 'Luyện Khí Kỳ — Tầng 1/38', inline: true },
-          { name: '☯️ Định Mệnh', value: `${destiny.emoji} ${destiny.name}`, inline: true },
-          { name: '📜 Căn Cơ Linh Căn', value: `${formattedLinhCan}\n${linhCanFlavor}` },
-          { name: '📊 Chỉ Số', value: `<:ihp:1547865965998379048> HP: **${totalHp}** | 🌀 MP: **${totalMp}**\n<:iiatk:1547935869602631680> Công Kích: **${totalAtk}** | <:idef:1547935867149099083> Phòng Thủ: **${totalDef}**\n💥 Bạo Kích: **${(totalCrit * 100).toFixed(1)}%** | 🍀 May Mắn: **${baseStats.luck + (background.bonuses.dropRate || 0)}**` },
+          { name: '<:idrole:1547865936848101456> Định Mệnh', value: `${destiny.emoji} ${destiny.name}`, inline: true },
+          { name: '<:idp:1547865939574390784> Căn Cơ Linh Căn', value: `${formattedLinhCan}\n${linhCanFlavor}` },
+          { name: '<:tin4:1547875508174327828> Chỉ Số', value: `<:ihp:1547865965998379048> HP: **${totalHp}** | <:lc1:1547866362511368212> MP: **${totalMp}**\n<:iiatk:1547935869602631680> Công Kích: **${totalAtk}** | <:idef:1547935867149099083> Phòng Thủ: **${totalDef}**\n💥 Bạo Kích: **${(totalCrit * 100).toFixed(1)}%** | <:tlt:1547865912538046494> May Mắn: **${baseStats.luck + (background.bonuses.dropRate || 0)}**` },
           {
-            name: '🎒 Hành Trang Khởi Đầu',
+            name: '<:tvp1:1547866133242056704> Hành Trang Khởi Đầu',
             value: [
               `<:lt1:1547866122123218945> ${startingLt.toLocaleString()} Hạ Phẩm Linh Thạch`,
               background.startingItem ? `📦 **${background.startingItem.name}** — ${background.startingItem.description}` : '',
               `🏺 **${heirloom.name}** — ${heirloom.description} (${heirloom.effect})`,
-              combo ? `📜 **Combo:** ${combo.skillName} — ${combo.skillDescription}` : '',
-              startingKnb ? `<:lt2:1547866118817845309> ${startingKnb} Kim Nguyên Bảo` : '',
-              `\n🎁 *Quà khởi nghiệp: +1000 LT đã được cộng vào hành trang!*`
+              combo ? `<:tin4:1547875508174327828> **Combo:** ${combo.skillName} — ${combo.skillDescription}` : '',
+              startingKnb ? `<:lt2:1547866118817845309> ${startingKnb} Cực Phẩm Linh Thạch` : '',
+              `\n<:qua4:1547881540372009021> *Quà khởi nghiệp: +1000 LT <:lt1:1547866122123218945> đã được cộng vào hành trang!*`
             ].filter(Boolean).join('\n'),
           },
           {
@@ -371,7 +371,7 @@ export default class TaoNhanVatCommand extends Command {
             ].join('\n'),
           },
         )
-        .setFooter({ text: '📖 Hãy dùng lệnh /camnang để xem Cẩm Nang Tiên Lộ hướng dẫn tân thủ!' })
+        .setFooter({ text: '<:sotay:1547883761776197632> Hãy dùng lệnh /camnang để xem Cẩm Nang Tiên Lộ hướng dẫn tân thủ!' })
         .setTimestamp();
 
       await interaction.editReply(toV2Payload([embed]));
