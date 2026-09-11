@@ -949,9 +949,9 @@ function getThongKeTabEmbed(user: UserEntity): EmbedBuilder {
       `<:iiatk:1547935869602631680> **Chiến đấu:** ${wins} thắng / ${losses} thua (${winRate}% win rate)\n` +
       `🌀 **Tháp sâu nhất:** ${bestFloor > 0 ? `Tầng ${bestFloor}` : 'Chưa rõ'}\n` +
       `⚡ **Thiên Kiếp:** ${tribBest}\n` +
-      `<:ilt:1547950632562982994> **Companion:** ${companionInfo}\n` +
-      `✨ **Destiny giác tĩnh:** ${awakenedDest}/3\n` +
-      `<:sotay:1547883761776197632> **Bestiary:** ${bestiaryCount} enemy đã hạ\n` +
+      `<:ilt:1547950632562982994> **Linh Thú:** ${companionInfo}\n` +
+      `✨ **Mệnh Cách Thức Tỉnh:** ${awakenedDest}/3\n` +
+      `<:sotay:1547883761776197632> **Yêu Thú Chí:** ${bestiaryCount} yêu thú đã hạ\n` +
       `🏆 **Danh hiệu:** ${user.title || 'Tán Tu'}`
     )
     .setFooter({ text: `Đại cảnh giới: ${getRealmDetails(user.level).realmName}` })
