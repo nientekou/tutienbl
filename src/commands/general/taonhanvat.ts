@@ -168,25 +168,14 @@ export default class TaoNhanVatCommand extends Command {
     const embed = new EmbedBuilder()
       .setTitle('Bước 1: Xuất Thân Của Ngươi')
       .setColor(EMBED_COLORS.MYSTIC)
-      .setDescription(`**${name}** — trước khi bước lên tiên lộ, trước hết phải biết mình từ đâu mà đến.\n` +
-      `Thương Mang rộng lớn, chúng sinh vạn loại. Có người sinh giữa thế gia, ` +
-      `có người bái nhập sư môn, cũng có kẻ chỉ mang một thân phàm cốt mà bước vào hồng trần.\n` +
-      `Xuất thân không quyết định Đạo Hữu sẽ trở thành ai.\n` +
-      `Nhưng con đường đã chọn, sẽ theo Đạo Hữu rất lâu.`)
+      .setDescription(`**${name}** — trước khi bước vào con đường tu tiên, hãy chọn xuất thân của ngươi.\n\nMỗi xuất thân mang cho ngươi câu chuyện riêng và ưu thế khởi đầu khác nhau.`)
       .addFields(
         ...BACKGROUNDS.map(b => ({
           name: `${b.emoji} ${b.name}`,
-          value: 
-          `${b.description}\n` +
-          `${b.bonuses.hp ? `<:ihp:1547865965998379048> +${b.bonuses.hp} HP` : ''}` +
-          `${b.bonuses.atk ? ` <:iiatk:1547935869602631680> +${b.bonuses.atk} ATK` : ''}` +
-          `${b.bonuses.def ? ` <:idef:1547935867149099083> +${b.bonuses.def} DEF` : ''}` +
-          `${b.bonuses.expRate ? ` <:iexp:1547935874077954078> +${b.bonuses.expRate}% EXP` : ''}` +
-          `${b.bonuses.lt ? ` <:lt1:1547866122123218945> +${b.bonuses.lt} LT` : ''}` +
-          `${b.bonuses.knb ? ` <:lt2:1547866118817845309> +${b.bonuses.knb} CPLT` : ''}`,,
+          value: `${b.description}\n${b.bonuses.hp ? `🩸 +${b.bonuses.hp} HP` : ''}${b.bonuses.atk ? ` ⚔️ +${b.bonuses.atk} ATK` : ''}${b.bonuses.def ? ` 🛡️ +${b.bonuses.def} DEF` : ''}${b.bonuses.expRate ? ` ✨ +${b.bonuses.expRate}% EXP` : ''}${b.bonuses.lt ? ` 🪙 +${b.bonuses.lt} LT` : ''}${b.bonuses.knb ? ` 💎 +${b.bonuses.knb} KNB` : ''}`,
         }))
       )
-      .setFooter({ text: 'Đạo Hữu hãy chọn đi. Tiên lộ phía trước, tự mình bước lấy.' });
+      .setFooter({ text: 'Hãy chọn một xuất thân — nó sẽ ảnh hưởng đến toàn bộ hành trình của ngươi.' });
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       ...BACKGROUNDS.map((b, i) =>
@@ -221,7 +210,7 @@ export default class TaoNhanVatCommand extends Command {
       .setTitle(`${background.emoji} ${background.name}`)
       .setColor(EMBED_COLORS.ORANGE)
       .setDescription(background.intro)
-      .setFooter({ text: '— Xem ra Đạo Hữu đã chọn được con đường mình muốn đi về sau rồi...' });
+      .setFooter({ text: '— Ngươi đã chọn xuất thân. Hãy bước tiếp...' });
     await interaction.editReply(toV2Payload([storyEmbed], [] ));
 
     // Brief delay for dramatic effect
