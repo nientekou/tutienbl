@@ -61,7 +61,7 @@ export default class AutoBattleCommand extends Command {
     if (sub === 'xem') {
       const settings = CombatEngine.getAutoBattleSettings(userId);
       const embed = new EmbedBuilder()
-        .setTitle('<:iatk:1547865969488306258> Cài Đặt Auto-Battle')
+        .setTitle('<:iauto:1547887626655240222> Cài Đặt Auto-Battle')
         .setColor(EMBED_COLORS.INFO)
         .setDescription(`Cấu hình chiến đấu tự động cho **${user.name}**`)
         .addFields(
