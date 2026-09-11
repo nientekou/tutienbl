@@ -129,7 +129,6 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
       {
         name: '✨ Trạng Thái',
         value: [
-          ``,
           `Cảnh giới: **${realmInfo.fullName}**`,
           `Đạo Thống: **${alignmentStr}**`,
           `Ngộ Tính: **${user.ngotinh}**`,
