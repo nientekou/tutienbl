@@ -128,7 +128,7 @@ export function buildCamNangMenu(userId: string): ActionRowBuilder<StringSelectM
   return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(`camnang_${userId}`)
-      .setPlaceholder('<:sotay:1547883761776197632> Chọn chương điển tịch...')
+      .setPlaceholder('Chọn chương điển tịch...')
       .addOptions(
         new StringSelectMenuOptionBuilder().setLabel('Chương I: Phàm Nhân Hướng Đạo').setValue('chuong1').setDescription('Linh Căn, Huyết Mạch, Thiền Định'),
         new StringSelectMenuOptionBuilder().setLabel('Chương II: Pháp Bảo Thần Thông').setValue('chuong2').setDescription('Đúc Rèn, Khảm Ngọc, Khí Linh, Tâm Pháp'),
