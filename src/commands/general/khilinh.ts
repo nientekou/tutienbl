@@ -28,7 +28,7 @@ export function getSpiritListEmbed(userId: string, user: any, spiritWeapons: any
     const affinityBar = '❤️'.repeat(Math.min(Math.floor(sw.affinity / 20), 5)) + '🖤'.repeat(Math.max(0, 5 - Math.floor(sw.affinity / 20)));
 
     embed.addFields({
-      name: `🔮 ${sw.spirit_name} (#${sw.id})`,
+      name: `<:ngotinh:1547877042232496138> ${sw.spirit_name} (#${sw.id})`,
       value: `• **Pháp Bảo ký chủ:** **${itemInfo?.name || sw.item_id}** [${itemInfo?.rarity.toUpperCase() || 'KHÔNG RÕ'}]\n` +
              `• **Cấp độ:** Cấp **${sw.level}** (EXP: ${expBar} - ${sw.exp}/${sw.level * 50})\n` +
              `• **Thân mật:** ${affinityBar} (${sw.affinity}/100)\n` +
@@ -130,14 +130,14 @@ export default class KhiLinhCommand extends Command {
         .setColor(EMBED_COLORS.DARK_PURPLE)
         .setDescription(
           `*Từ trong thần phong sắc bén của pháp bảo, một tia linh trí bỗng chốc thức tỉnh...*\n\n` +
-          `🔮 **Khí Linh:** **${spirit.spirit_name}** (#${spirit.id})\n` +
+          `<:ngotinh:1547877042232496138> **Khí Linh:** **${spirit.spirit_name}** (#${spirit.id})\n` +
           `⚔️ **Ký Chủ Pháp Bảo:** **${itemInfo?.name || spirit.item_id}** [${itemInfo?.rarity.toUpperCase()}]\n` +
-          `⚡ **Cấp Độ:** Cấp **${spirit.level}**\n` +
+          `<:ipk:1547865972415791215> **Cấp Độ:** Cấp **${spirit.level}**\n` +
           `   └ Tiến trình EXP: ${expBar} *(${spirit.exp}/${spirit.level * 50} EXP)*\n` +
           `❤️ **Độ Thân Thiết:** ${affinityBar} *(${spirit.affinity}/100)*\n`
         )
         .addFields({
-          name: '🔮 Kỹ Năng Bản Mệnh Ngộ Ra',
+          name: '<:ngotinh:1547877042232496138> Kỹ Năng Bản Mệnh Ngộ Ra',
           value: skill 
             ? `**${skill.name}**\n└ *${skill.description}*` 
             : '*Chưa ngộ ra kỹ năng nào.*'
@@ -183,7 +183,7 @@ export default class KhiLinhCommand extends Command {
       if (res.newSkillName) {
         embed.addFields({
           name: '✨ Kỹ Năng Mới Lĩnh Ngộ!',
-          value: `🔮 Khí linh bừng tỉnh thần thông, ngộ được kỹ năng: **${res.newSkillName}**`
+          value: `<:ngotinh:1547877042232496138> Khí linh bừng tỉnh thần thông, ngộ được kỹ năng: **${res.newSkillName}**`
         });
       }
 
@@ -241,7 +241,7 @@ export default class KhiLinhCommand extends Command {
         .setColor(EMBED_COLORS.MYSTIC)
         .setDescription(
           `*Thiên địa bỗng hiện ngũ sắc tường vân, linh khí bàng bạc hội tụ giáng xuống pháp bảo...*\n\n` +
-          `🔥 Khí linh **${res.oldName}** đã lột xác niết bàn, tiến hóa thăng hoa thành:\n` +
+          `<:ngotinh:1547877042232496138> Khí linh **${res.oldName}** đã lột xác niết bàn, tiến hóa thăng hoa thành:\n` +
           `✨ 👉 **${res.newName}** 👈 ✨\n\n` +
           `*Phong ấn sức mạnh tối cổ đã được giải trừ, khí lực bừng bừng bộc phát!*`
         )
@@ -267,7 +267,7 @@ export default class KhiLinhCommand extends Command {
         .setTitle(`✨ Thông Tin Khí Linh: ${spirit.spirit_name} (#${spirit.id})`)
         .setColor(EMBED_COLORS.DARK_PURPLE)
         .setDescription(
-          `⚔️ **Pháp Bảo Ký Chủ:** **${itemInfo?.name || spirit.item_id}** [${itemInfo?.rarity.toUpperCase()}]\n\n` +
+          `<:ipk:1547865972415791215> **Pháp Bảo Ký Chủ:** **${itemInfo?.name || spirit.item_id}** [${itemInfo?.rarity.toUpperCase()}]\n\n` +
           `⚡ **Cấp Độ:** Cấp **${spirit.level}**\n` +
           `   └ Tiến trình EXP: ${expBar} *(${spirit.exp}/${spirit.level * 50} EXP)*\n\n` +
           `❤️ **Độ Thân Thiết:** ${affinityBar} *(${spirit.affinity}/100)*\n`
