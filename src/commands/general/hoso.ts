@@ -129,7 +129,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
       {
         name: '✨ Trạng Thái',
         value: [
-          `Cảnh giới: **${realmInfo.fullName}**`,
+          `\nCảnh giới: **${realmInfo.fullName}**`,
           `Đạo Thống: **${alignmentStr}**`,
           `Ngộ Tính: **${user.ngotinh}**`,
           `Thể Lực: **${user.stamina}/500**`,
@@ -150,6 +150,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
       {
         name: '<:idrole:1547865936848101456> Đồng Hành & Động Phủ',
         value: [
+          '',
           petLine,
           bloodlineLine,
           mountLine,
@@ -175,13 +176,13 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
     embed.spliceFields(0, 0, {
       name: '<:sotay:1547883761776197632> Chỉ Số Chiến Đấu (Cơ Bản → Kèm Đồ)',
       value: [
-        `**Sinh Mệnh (HP):** ${formatStatDiff(user.base_hp, activeStats.hp)}`,
-        `**Pháp Lực (MP):** ${formatStatDiff(user.base_mp, activeStats.mp)}`,
-        `**Tấn Công (ATK):** ${formatStatDiff(user.base_atk, activeStats.atk)}`,
-        `**Phòng Ngự (DEF):** ${formatStatDiff(user.base_def, activeStats.def)}`,
-        `**Bạo Kích (CRIT):** ${formatStatDiff(Math.round(user.base_crit * 1000) / 10, Math.round(activeStats.crit * 1000) / 10, '%')} | **Kháng Bạo:** ${formatStatDiff(Math.round(user.base_crit_res * 1000) / 10, Math.round(activeStats.critRes * 1000) / 10, '%')}`,
-        `**Tốc Độ (SPD):** ${formatStatDiff(user.base_speed ?? 100, activeStats.speed)} | **Né Tránh:** ${formatStatDiff(Math.round((user.base_dodge ?? 0.05) * 1000) / 10, Math.round(activeStats.dodge * 1000) / 10, '%')}`,
-        `**May Mắn (LUCK):** ${formatStatDiff(user.base_luck, activeStats.luck)}`,
+        `\nSinh Mệnh (HP): ${formatStatDiff(user.base_hp, activeStats.hp)}`,
+        `Pháp Lực (MP): ${formatStatDiff(user.base_mp, activeStats.mp)}`,
+        `Tấn Công (ATK): ${formatStatDiff(user.base_atk, activeStats.atk)}`,
+        `Phòng Ngự (DEF): ${formatStatDiff(user.base_def, activeStats.def)}`,
+        `Bạo Kích (CRIT): ${formatStatDiff(Math.round(user.base_crit * 1000) / 10, Math.round(activeStats.crit * 1000) / 10, '%')} | **Kháng Bạo:** ${formatStatDiff(Math.round(user.base_crit_res * 1000) / 10, Math.round(activeStats.critRes * 1000) / 10, '%')}`,
+        `Tốc Độ (SPD): ${formatStatDiff(user.base_speed ?? 100, activeStats.speed)} | **Né Tránh:** ${formatStatDiff(Math.round((user.base_dodge ?? 0.05) * 1000) / 10, Math.round(activeStats.dodge * 1000) / 10, '%')}`,
+        `May Mắn (LUCK): ${formatStatDiff(user.base_luck, activeStats.luck)}`,
       ].join('\n'),
       inline: false,
     });
