@@ -255,13 +255,37 @@ export function generateProphecy(backgroundId: string, destinyId: string, elemen
   };
 
   const pool = [
-    "Phải chăng tất cả là định mệnh?", "Có ai ngờ được ngày sau...",
-    "Vậy mà ta cứ đi...", "Trời cao biết chẳng?", "Luân hồi có lối...",
-    "Vạn sự tùy duyên.", "Bước chân không mỏi.", "Cõi mộng hư vô.",
-    "Kiếp này đành vậy.", "Mệnh trời khó cãi.", "Một niệm thành ma, một niệm thành Phật.",
-    "Sóng gió chưa yên.", "Mưa rơi nặng hạt.", "Ai hát khúc bi ca?",
-    "Người về nơi đâu?", "Chỉ còn tiếng gió.", "Hành trình vô tận.",
-    "Chấp niệm buông xuôi.", "Trăng tàn bóng khuyết.", "Một giấc Nam Kha."
+"Thiên mệnh đã định, lòng người chưa chắc.",
+    "Đường dài vạn dặm, một bước cũng phải tự mình đi.",
+    "Trời cao chẳng nói, nhân quả tự tìm về.",
+    "Một đời tu đạo, được mất vốn chẳng do người.",
+    "Vạn sự tùy duyên, nhưng duyên đến cũng phải tự mình nắm lấy.",
+    "Mệnh có thể định, số lại do người.",
+    "Một niệm thành ma, một niệm thành Phật.",
+    "Đại đạo vô tận, người đời hữu hạn.",
+    "Có duyên ngàn dặm cũng gặp, vô duyên đối diện chẳng thành.",
+    "Nhân quả chưa đến, chẳng có nghĩa là chưa từng gieo.",
+    "Một bước nhập đạo, vạn kiếp chẳng quay đầu.",
+    "Kiếp này đã đến, ắt có con đường phải đi.",
+    "Thiên địa rộng lớn, kẻ vô danh cũng có ngày lưu danh.",
+    "Phong vân chưa động, chẳng biết ai là long.",
+    "Long đong một kiếp, cũng cầu được một lần thuận mệnh.",
+    "Chấp niệm chưa tan, con đường phía trước chưa tận.",
+    "Duyên đến thì tụ, duyên tận thì tan.",
+    "Người có thể đổi, mệnh cũng chưa chắc bất biến.",
+    "Một đời cầu đạo, cuối cùng cầu lại chính mình.",
+    "Đường tu vốn độc hành, tri kỷ khó cầu.",
+    "Núi cao còn có núi cao hơn, đại đạo chẳng có tận cùng.",
+    "Thế gian vạn tượng, chẳng gì thoát khỏi nhân quả.",
+    "Có những chuyện, đến khi ngoảnh lại đã thành tiền duyên.",
+    "Một giấc Nam Kha, tỉnh mộng mới hay một đời đã qua.",
+    "Thiên đạo vô tình, nhân gian hữu tình.",
+    "Được mất trong tay, họa phúc bởi lòng.",
+    "Sóng gió chưa yên, người mang mệnh lớn khó sống một đời bình lặng.",
+    "Nếu đã bước lên con đường này, hà tất hỏi ngày về.",
+    "Chẳng cầu trường sinh bất tử, chỉ cầu một đời không thẹn với lòng.",
+    "Mệnh trời khó cãi, nhưng người tu đạo nào chịu cúi đầu."
+
   ];
 
   const line1 = bgTemplates[backgroundId]?.[destinyId] || "Mệnh trời vô định / Hành trình vô tận";
