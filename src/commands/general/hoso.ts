@@ -696,7 +696,7 @@ export function getHoSoAllComponents(userId: string, activeTab: HoSoTab = 'chiso
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`select_alignment_${userId}`)
-        .setLabel('<:idrole:1547865936848101456> Chọn Đạo Thống (Chính/Ma)')
+        .setLabel('Chọn Đạo Thống (Chính/Ma)')
         .setStyle(ButtonStyle.Success)
     );
     components.push(row);
