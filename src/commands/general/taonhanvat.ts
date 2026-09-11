@@ -14,7 +14,7 @@ export default class TaoNhanVatCommand extends Command {
     super(
       new SlashCommandBuilder()
         .setName('taonhanvat')
-        .setDescription('Khởi tạo nhân vật Tu Tiên với cốt truyện nhập vai.')
+        .setDescription('Khởi tạo nhân vật Tu Tiên tiến vào Thương Mang Thiên Hạ.')
         .addStringOption(option =>
           option
             .setName('ten')
@@ -118,21 +118,40 @@ export default class TaoNhanVatCommand extends Command {
     let npcStory = '';
     
     if (maxVal >= 90) {
-      type = 'Thiên'; color = 0xf1c40f; icon = '✨';
-      npcReac = '"Thiên linh căn... Đã rất lâu rồi, mới lại thấy một người như Đạo Hữu."';
-      npcStory = 'Tư chất chạm đến Thiên phẩm, vạn người khó gặp. Trong cổ sử từng có những người mang căn cốt này, cuối cùng đều bước lên con đường mà hậu thế chỉ dám ngước nhìn.';
+      type = 'Thiên'; color = 0xf1c40f; icon = '<:lcthien:1547929788147040336>';
+      npcReac = '"Thiên linh căn..."';
+      npcStory ='Linh quang trước mặt hồi lâu chưa tan.\n' +
+                '"Đã rất lâu rồi, Thương Mang mới lại có một người như Đạo Hữu."\n' +
+                'Lăng Tiêu không nói tiếp.\n' +
+                'Có vài chuyện, biết sớm hay muộn vốn chẳng khác nhau.\n' +
+                 '*Tiên lộ còn dài. Căn cốt chỉ quyết định nơi ngươi bắt đầu.*';
     } else if (maxVal >= 70) {
-      type = 'Địa'; color = 0x3498db; icon = '🌟';
-      npcReac = '"Địa linh căn. Căn cốt như vậy, đủ để Đạo Hữu đi xa trên tiên lộ."';
-      npcStory = 'Địa linh căn xuất hiện 1 thế hệ 1 lần. Ngươi sẽ làm nên chuyện.';
+      type = 'Địa'; color = 0x3498db; icon = '<:lcdia:1547929786402340935>';
+      npcReac = '"Địa linh căn..."';
+      npcStory = 'Linh quang dần lắng xuống, để lại một vệt sáng nhàn nhạt giữa lòng bàn tay.\n' +
+                 '"Không tệ. Với căn cốt này, Đạo Hữu có thể đi rất xa."\n' +
+                 'Lăng Tiêu dừng một thoáng, rồi nói tiếp:\n' +
+                 '"Chỉ là đường xa hay gần, trước nay đâu phải do người khác định đoạt."\n' +
+                 '*Căn cốt tốt là một chuyện. Giữ được mình trên tiên lộ lại là một chuyện khác.*';
     } else if (maxVal >= 40) {
-      type = 'Nhân'; color = 0xbdc3c7; icon = '💫';
-      npcReac = '"Cũng được. Chịu khó tu luyện là thành tài."';
-      npcStory = 'Nhân linh căn là phổ biến nhất, nhưng đừng coi thường. Người mạnh nhất từng có Nhân linh căn.';
+      type = 'Nhân'; color = 0xbdc3c7; icon = '<:lcnhan:1547929784145813534>';
+      npcReac = '"Nhân linh căn à..."';
+      npcStory = 'Linh quang chỉ lóe lên trong chốc lát rồi trở về bình thường.\n' +
+                 '"Bình bình phàm phàm."\n' +
+                 'Không có thất vọng, cũng chẳng có vẻ xem nhẹ.\n' +
+                 '"Nhưng Đạo Hữu, tiên lộ vốn chẳng hỏi xuất thân. Có người đi một bước đã ở trước vạn người, cũng có người đi hết nửa đời mới tìm được con đường của mình."\n' +
+                 '*Đi được bao xa, cuối cùng vẫn phải tự mình bước.*';
     } else {
-      type = 'Tạp'; color = 0x95a5a6; icon = '⭐';
-      npcReac = '"... (im lặng) Ừm, cố gắng lên. Nỗ lực có thể bù đắp."';
-      npcStory = 'Tạp linh căn khó tu luyện, nhưng đường dài mới biết ngựa hay. Có người từ Tạp linh căn mà phi thăng.';
+      type = 'Tạp'; color = 0x95a5a6; icon = '<:lctap:1547929782191128576>';
+      npcReac = '"Tạp linh căn sao?"';
+      npcStory = 'Linh quang chập chờn hồi lâu mới chịu tan.\n' +
+                 'Lăng Tiêu im lặng rất lâu.\n' +
+                 '"Đường này của Đạo Hữu sẽ khó đi hơn người khác."\n' +
+                 'Chỉ một câu ấy, không an ủi, cũng chẳng thương hại.\n' +
+                 'Một lúc sau, hắn mới nói:\n\n' +
+                 '"Nhưng khó đi... không có nghĩa là không thể đi."\n' +
+                 '*Cổ sử từng có người bắt đầu từ nơi này.*\n' +
+                 '*Chuyện về sau thế nào, Đạo Hữu tự mình viết lấy.*';
     }
 
     const embed = new EmbedBuilder()
