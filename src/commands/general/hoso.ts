@@ -235,7 +235,7 @@ function getTaiSanTabEmbed(user: UserEntity): EmbedBuilder {
     .setDescription(`*Tổng tài sản quy đổi:* **${formatNumber(totalWealth)}** Hạ Phẩm Linh Thạch <:lt1:1547866122123218945> `)
     .addFields(
       {
-        name: '<:tvp1:1547866133242056704> Linh Thạch & Cực Phẩm Linh Thạch',
+        name: '## <:tvp1:1547866133242056704> Linh Thạch & Cực Phẩm Linh Thạch',
         value: [
           `\nㅤ└🟤 Hạ Phẩm: **${formatNumber(user.coin_ha_pham)}** LT`,
           `ㅤ└⚪ Trung Phẩm: **${formatNumber(user.coin_trung_pham)}** LT`,
@@ -245,7 +245,7 @@ function getTaiSanTabEmbed(user: UserEntity): EmbedBuilder {
         inline: true,
       },
       {
-        name: '<:tvp1:1547866133242056704> Hành Trang',
+        name: '## <:tvp1:1547866133242056704> Hành Trang',
         value: [
           `\nㅤ└<:a1:1547866004573392926> **Tổng số:** **${formatNumber(totalItems)}** món`,
           `ㅤ└<:idef:1547935867149099083> **Trang bị mặc:** **${equippedCount}** món`,
@@ -256,7 +256,7 @@ function getTaiSanTabEmbed(user: UserEntity): EmbedBuilder {
         inline: true,
       },
       {
-        name: '<:ilt:1547950632562982994> Linh Thú & Tọa Kỵ',
+        name: '## <:ilt:1547950632562982994> Linh Thú & Tọa Kỵ',
         value: [
           `\nㅤ└<:itoaky:1547955958309847061> **Tọa kỵ:** **${mountCount?.c || 0}** con`,
           `ㅤ└<:ngotinh:1547877042232496138> **Khí linh:** **${spiritCount?.c || 0}** pháp bảo`,
@@ -264,7 +264,7 @@ function getTaiSanTabEmbed(user: UserEntity): EmbedBuilder {
         inline: true,
       },
       {
-        name: '☯️ Tông Môn',
+        name: '## ☯️ Tông Môn',
         value: sectInfo,
         inline: false,
       }
@@ -308,27 +308,27 @@ function getChienTichTabEmbed(user: UserEntity): EmbedBuilder {
     .setDescription(`*Hành trình tu đạo của* **${user.name}** *qua những con số*`)
     .addFields(
       {
-        name: '<:iiatk:1547935869602631680> Chiến Trường PvP',
+        name: '## <:iiatk:1547935869602631680> Chiến Trường PvP',
         value: [
-          `🎖️ **Điểm Phong Thần:** **${formatNumber(user.pvp_points)}**`,
+          `\n🎖️ **Điểm Phong Thần:** **${formatNumber(user.pvp_points)}**`,
           `🔥 **Thắng trận:** **${formatNumber(pvpWins)}** | 💀 **Thất bại:** **${formatNumber(pvpLosses)}**`,
           winRateBar ? `<:sotay:1547883761776197632> **Tỷ lệ thắng:** ${winRateBar}` : '',
         ].filter(Boolean).join('\n'),
         inline: true,
       },
       {
-        name: '🏆 Thành Tựu & Danh Hiệu',
+        name: '## 🏆 Thành Tựu & Danh Hiệu',
         value: [
-          `<:sotay:1547883761776197632> **Tiến độ:** **${completedAchievements}/${totalAchievements}** (${totalAchievements > 0 ? Math.round((completedAchievements / totalAchievements) * 100) : 0}%)`,
+          `\n<:sotay:1547883761776197632> **Tiến độ:** **${completedAchievements}/${totalAchievements}** (${totalAchievements > 0 ? Math.round((completedAchievements / totalAchievements) * 100) : 0}%)`,
           `🎖️ **Danh hiệu đã mở:** **${achievementService.getUserTitles(user.discord_id).length}**`,
           `\n*Dùng \`/thanhtuu\` để xem chi tiết*`,
         ].join('\n'),
         inline: true,
       },
       {
-        name: '🌀 Luân Hồi & Sủng Thú',
+        name: '## 🌀 Luân Hồi & Sủng Thú',
         value: [
-          `🌀 **Luân hồi:** **${user.luan_hoi_count}** lần`,
+          `\n🌀 **Luân hồi:** **${user.luan_hoi_count}** lần`,
           `<:ilt:1547950632562982994> **Linh thú sở hữu:** **${petCount?.c || 0}** con`,
           `<:ilt:1547950632562982994> **Đang xuất chiến:** ${activePetDesc}`,
           `<:lc1:1547866362511368212> **Ngộ Tính tích lũy:** **${formatNumber(user.ngotinh)}** điểm`,
