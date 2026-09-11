@@ -130,11 +130,6 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
         value: `${progressBar}\n🎯 **EXP:** **${formatNumber(user.tu_vi)}** / **${formatNumber(user.exp_needed)}**`,
         inline: false,
       },
-       {
-    name: '────────────────────',
-    value: '\u200B',
-    inline: false,
-  },
       {
         name: '✨ Trạng Thái',
         value: [
