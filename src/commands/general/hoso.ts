@@ -258,8 +258,8 @@ function getTaiSanTabEmbed(user: UserEntity): EmbedBuilder {
       {
         name: '### <:ilt:1547950632562982994> Linh Thú & Tọa Kỵ',
         value: [
-          `\nㅤ└<:itoaky:1547955958309847061> **Tọa kỵ:** **${mountCount?.c || 0}** con`,
-          `ㅤ└<:ngotinh:1547877042232496138> **Khí linh:** **${spiritCount?.c || 0}** pháp bảo`,
+          `<:itoaky:1547955958309847061> **Tọa kỵ:** **${mountCount?.c || 0}** con`,
+          `<:ngotinh:1547877042232496138> **Khí linh:** **${spiritCount?.c || 0}** pháp bảo`,
         ].join('\n'),
         inline: true,
       },
