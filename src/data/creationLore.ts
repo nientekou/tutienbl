@@ -54,11 +54,12 @@ export const BACKGROUNDS: Background[] = [
     id: 'tu_chien_gia_toc',
     name: 'Con Nhà Tu Chân',
     emoji: '🏯',
-    description: 'Sinh ra nơi tiên gia vọng tộc, căn cơ đã được nuôi dưỡng từ thuở lọt lòng.',
-    intro: `Ngươi lớn lên giữa tiếng chuông sơn môn và mùi hương đan dược. Trong tiên phủ, kiếm quyết được học trước cả cách cầm bút, linh khí đã thấm vào từng hơi thở từ thuở còn thơ.
-    Trước ngày rời gia môn, phụ thân chỉ nói một câu:
-    "Kẻ mang họ tộc chỉ là xuất thân. Kẻ giữ được đạo tâm mới có thể một bước đăng đồ."
-    Mang theo thanh kiếm gia truyền, ngươi bước khỏi tiên phủ. Thiên địa mênh mang phía trước, từ hôm nay đều phải tự mình đi qua`,
+    description: 'Sinh ra trong gia tộc tu chân danh giá. Được truyền thụ căn cơ từ nhỏ.',
+    intro: `Từ thuở ấu thơ, ngươi đã quen với mùi đan dược và tiếng kiếm reo trong gia tộc. Cha mẹ là những tu sĩ có danh tiếng, dìu dắt ngươi từng bước trên con đường tu hành. Linh căn trong ngươi được gia tộc bồi dưỡng từ sớm, như một viên ngọc thô được mài giũa.
+
+"Hãy nhớ, con đường tu tiên không chỉ có linh căn. Quan trọng hơn là tâm tính và ý chí." — Lời cha ngươi trước khi bế quan.
+
+Ngươi khoác lên mình thanh bảo kiếm gia truyền, bước ra khỏi lãnh địa gia tộc, đối diện với thế giới tu chân rộng lớn. Một hành trình mới bắt đầu.`,
     bonuses: { hp: 50, atk: 5, lt: 200 },
     startingItem: { id: 'gia_truyen_kiem', name: 'Bảo Kiếm Gia Truyền', description: 'Thanh kiếm đã theo 3 đời gia chủ. Tuy không phải thần khí, nhưng chứa đựng ý chí của tổ tiên.' },
   },
@@ -66,12 +67,14 @@ export const BACKGROUNDS: Background[] = [
     id: 'phan_tran',
     name: 'Kẻ Phàm Trần',
     emoji: '🌾',
-    description: 'Không tiên duyên, không chỗ dựa. Chỉ có một lòng nghịch mệnh.',
-    intro: `Ngươi sinh ra giữa khói bếp và ruộng đồng, cả đời chưa từng chạm đến linh khí.
-            Cho đến một ngày, bầu trời xuất hiện linh quang, kinh mạch trong ngươi bừng tỉnh.
-            Người đời gọi đó là cơ duyên.
-            Ngươi gọi đó là lần đầu tiên số mệnh chịu mở mắt nhìn mình.
-            Không có sư môn, không có gia tộc. Chỉ có một con đường kéo dài đến tận cuối chân trời.`,
+    description: 'Vốn là người thường, nhưng ý chí nghịch thiên cải mệnh.',
+    intro: `Ngươi chẳng có gia thế, chẳng có sư môn. Chỉ có một đôi tay chai sần và một trái tim không bao giờ khuất phục.
+
+Ngày còn bé, ngươi nhìn tiên nhân bay qua đỉnh núi, tự hỏi: "Sao họ làm được?" Hôm nay, câu hỏi ấy đã có câu trả lời. Linh căn trong ngươi vừa thức tỉnh — yếu ớt nhưng đầy tiềm năng.
+
+"Mọi tiên nhân đều từng là phàm nhân. Điều khác biệt là dám bước lên con đường này." — Ngươi tự nhủ.
+
+Không có gia tộc chống lưng, không có sư phụ dẫn dắt, ngươi chỉ có chính mình và linh căn vừa chớm nở. Lên đường thôi, tiền đồ do chính tay ngươi tạo lập.`,
     bonuses: { expRate: 10, lt: 500, crit: 2 },
     startingItem: null,
   },
@@ -79,12 +82,14 @@ export const BACKGROUNDS: Background[] = [
     id: 'ky_ngo_sinh_tu',
     name: 'Kỳ Ngộ Sinh Tử',
     emoji: '⚡',
-    description: 'Một lần chết hụt, đổi lấy một đoạn nhân quả không thuộc về mình.',
-    intro: `Giữa ranh giới sinh tử, có người đã cứu ngươi.
-            Khi tỉnh dậy, động phủ chỉ còn một mảnh ngọc và một dòng chữ đã phai:
-            "Cứu ngươi vì nhân quả."
-            Linh căn tưởng đã tan vỡ lại được nối liền bằng một nguồn linh lực xa lạ.
-            Từ ngày ấy, trong người ngươi luôn tồn tại một khí tức không thuộc về chính mình.`,
+    description: 'Suýt chết, được tiên nhân cứu và truyền linh căn.',
+    intro: `Ngươi nhắm mắt lần cuối, nghĩ rằng mọi chuyện đã kết thúc. Vách núi, cơn lũ, hay con yêu thú — biên niên sử không còn nhớ rõ. Nhưng rồi, một bàn tay ấm áp chạm vào trán ngươi.
+
+"Linh căn của ngươi vừa vụn vỡ, nhưng còn kịp."
+
+Khi tỉnh dậy, ngươi thấy mình nằm trong một động phủ xa lạ. Bên cạnh là mảnh ngọc lấp lánh và một tờ giấy viết vội: "Cứu ngươi vì nhân quả. Đừng tìm ta. Sống tốt."
+
+Ngươi không biết ân nhân là ai, nhưng trong cơ thể, một dòng linh khí mới đang chảy — linh căn thứ hai đã được cấy ghép. Món nợ ân tình này, biết bao giờ trả?`,
     bonuses: { def: 10, lt: 1000 },
     startingItem: { id: 'manh_ngoc_ho_menh', name: 'Mảnh Ngọc Hộ Mệnh', description: 'Khi HP về 0, tự động hồi 50% HP. Hiệu ứng 1 lần.' },
   },
@@ -92,12 +97,16 @@ export const BACKGROUNDS: Background[] = [
     id: 'de_tu_tan_tu',
     name: 'Đệ Tử Tán Tu',
     emoji: '🍃',
-    description: 'TTheo một tán tu học đạo, lấy thiên địa làm sư, lấy nhân gian làm sách.',
-    intro: `Sư phụ chẳng có tông môn, cũng chẳng có danh hiệu.
-            Ông dạy ngươi nhận biết linh thảo trong khe núi, nhìn thiên tượng đoán linh triều, luyện một nồi đan còn quan trọng hơn thuộc một cuốn kiếm phổ.
-            Ngày ông rời đi, chỉ để lại một túi càn khôn cũ cùng một câu nói:
-            "Đừng học cách thành tiên. Học cách sống giữa thiên địa."
-            Thế là ngươi lên đường.`,
+    description: 'Theo một tán tu già học đạo, biết nhiều mẹo vặt trong tu hành.',
+    intro: `Sư phụ ngươi là một tán tu kỳ lạ. Ông sống trong túp lều ven rừng, xung quanh là hàng trăm cuốn bí tịch viết tay — cuốn dạy luyện đan, cuốn dạy bắt yêu thú, cuốn dạy cách phân biệt linh thảo.
+
+"Tu tiên không phải là ngồi thiền cả ngày. Tu tiên là sống." — Sư phụ thường nói thế, khi đang lúi húi nấu một nồi thuốc kỳ lạ.
+
+Giờ đây, sư phụ đã rời đi, tiếp tục cuộc hành trình của riêng ông. Ông để lại cho ngươi mấy cuốn bí tịch và câu nói cuối cùng:
+
+"Đi đi. Học từ cuộc đời, không phải từ sách vở."
+
+Ngươi khép cửa lều, bước vào thế giới rộng lớn — với vốn kiến thức tạp nham nhưng quý giá, và một trái tim đầy háo hức.`,
     bonuses: { speed: 5, mp: 30, lt: 300 },
     startingItem: { id: 'sach_khai_kinh', name: 'Sách Khai Kinh', description: 'Dùng 1 lần: nhân đôi EXP nhận được trong 30 phút.' },
   },
@@ -108,8 +117,8 @@ export const DESTINIES: Destiny[] = [
     id: 'sat_tinh',
     name: 'Sát Tinh',
     emoji: '⚔️',
-    description: 'Mệnh cách chủ sát, lấy chiến dưỡng đạo',
-    line: '"Một thân kiếm ý, lấy sát phạt mở một con đường tiến bước."',
+    description: 'Định mệnh chiến đấu, xông pha.',
+    line: '"Trời sinh ta ắt có dụng. Chiến đấu là bản năng, là lẽ sống của ta."',
     bonuses: { atkPercent: 3, crit: 3 },
     penalties: { hpPercent: 5 },
   },
@@ -117,8 +126,8 @@ export const DESTINIES: Destiny[] = [
     id: 'phuc_tinh',
     name: 'Phúc Tinh',
     emoji: '🍀',
-    description: 'Mệnh cách tụ phúc, cơ duyên thường tự tìm đến.',
-    line: '"Thiên địa có nhân quả, phúc duyên chỉ đến với người biết chờ."',
+    description: 'Định mệnh may mắn, cơ duyên.',
+    line: '"Nhân quả tự có an bài. Việc của ta là đi đúng đường, phần thưởng sẽ đến."',
     bonuses: { expRate: 5, dropRate: 10 },
     penalties: { defPercent: 3 },
   },
@@ -126,58 +135,57 @@ export const DESTINIES: Destiny[] = [
     id: 'tho_tinh',
     name: 'Thọ Tinh',
     emoji: '🐢',
-    description: 'Mệnh cách trường sinh, lấy thời gian thắng thiên địa.',
-    line: '"Ngàn năm cũng chỉ là một lần hít thở với kẻ giữ được đạo tâm."',
+    description: 'Định mệnh trường tồn, kiên nhẫn.',
+    line: '"Chậm mà chắc. Trăm năm chẳng dài với kẻ biết chờ đợi."',
     bonuses: { hpPercent: 10, defPercent: 5 },
     penalties: { atkPercent: 3 },
   },
 ];
 
 export const COMBO_BONUSES: ComboBonus[] = [
-   { backgroundId: 'tu_chien_gia_toc', element: 'Hỏa', skillName: 'Xích Viêm Kiếm Ý', skillDescription: 'Kiếm thế nhiễm Hỏa, thiêu đốt chân nguyên, gây thêm 10% sát thương hệ Hỏa.', skillEffect: '{"type": "elemental_atk", "element": "fire", "bonus": 0.1}' },
-  { backgroundId: 'tu_chien_gia_toc', element: 'Lôi', skillName: 'Kinh Lôi Nhất Trảm', skillDescription: 'Một kiếm dẫn động lôi đình, có 20% khiến mục tiêu choáng 1 hiệp.', skillEffect: '{"type": "stun", "chance": 0.2, "duration": 1}' },
-  { backgroundId: 'phan_tran', element: 'Thổ', skillName: 'Hậu Thổ Ngưng Thân', skillDescription: 'Lấy Thổ khí dưỡng thân, thân pháp vững như sơn nhạc, tăng 5% né tránh vĩnh viễn.', skillEffect: '{"type": "stat_buff", "stat": "dodge", "value": 0.05}' },
-  { backgroundId: 'phan_tran', element: 'Mộc', skillName: 'Thanh Mộc Sinh Cơ', skillDescription: 'Mộc khí không dứt, sinh cơ tự hồi, mỗi hiệp hồi 2% HP.', skillEffect: '{"type": "regen", "value": 0.02}' },
-  { backgroundId: 'ky_ngo_sinh_tu', element: 'Thủy', skillName: 'Linh Tuyền Dưỡng Mạch', skillDescription: 'Dẫn Thủy linh khí dưỡng mạch, mỗi hiệp hồi 5% HP.', skillEffect: '{"type": "regen", "value": 0.05}' },
-  { backgroundId: 'ky_ngo_sinh_tu', element: 'Lôi', skillName: 'Thiên Lôi Hộ Mạch', skillDescription: 'Dẫn thiên lôi hộ thể, phản lại 5% sát thương nhận vào.', skillEffect: '{"type": "reflect", "value": 0.05}' },
-  { backgroundId: 'de_tu_tan_tu', element: 'Thủy', skillName: 'Linh Đan Tụ Hiệu', skillDescription: 'Tinh thông dược lý, khi dùng đan dược, hiệu quả tăng 15%.', skillEffect: '{"type": "potion_boost", "value": 0.15}' },
-  { backgroundId: 'de_tu_tan_tu', element: 'Hỏa', skillName: 'Xích Hỏa Luyện Đan', skillDescription: 'Dùng Hỏa luyện đan, tăng 10% tỷ lệ thành công khi luyện đan.', skillEffect: '{"type": "craft_boost", "skill": "alchemy", "value": 0.1}' },
-  { backgroundId: 'ky_ngo_sinh_tu', element: 'Phong', skillName: 'Vô Ảnh Phong Hành', skillDescription: 'Thân theo gió chuyển, tăng 5% tốc độ vĩnh viễn.', skillEffect: '{"type": "stat_buff", "stat": "speed", "value": 0.05}' },
-  { backgroundId: 'de_tu_tan_tu', element: 'Phong', skillName: 'Ngự Phong Độn Hành', skillDescription: 'Mượn Phong khí giảm thân lực, khi làm việc tiêu hao ít hơn 10% thể lực.', skillEffect: '{"type": "stamina_save", "value": 0.1}' },
-
+  { backgroundId: 'tu_chien_gia_toc', element: 'Hỏa', skillName: 'Hỏa Diễm Kiếm Pháp', skillDescription: 'Tấn công kèm lửa đốt, gây thêm 10% sát thương hệ Hỏa.', skillEffect: '{"type": "elemental_atk", "element": "fire", "bonus": 0.1}' },
+  { backgroundId: 'tu_chien_gia_toc', element: 'Lôi', skillName: 'Lôi Kiếm Chém', skillDescription: 'Chém ra một nhát kiếm mang sấm sét, 20% choáng mục tiêu 1 hiệp.', skillEffect: '{"type": "stun", "chance": 0.2, "duration": 1}' },
+  { backgroundId: 'phan_tran', element: 'Thổ', skillName: 'Hậu Tích Bộ Pháp', skillDescription: 'Thân pháp trầm ổn, +5% né tránh vĩnh viễn.', skillEffect: '{"type": "stat_buff", "stat": "dodge", "value": 0.05}' },
+  { backgroundId: 'phan_tran', element: 'Mộc', skillName: 'Sinh Mệnh Chi Lực', skillDescription: 'Mỗi hiệp hồi 2% HP.', skillEffect: '{"type": "regen", "value": 0.02}' },
+  { backgroundId: 'ky_ngo_sinh_tu', element: 'Thủy', skillName: 'Trị Liệu Chi Thuật', skillDescription: 'Hồi 5% HP mỗi hiệp.', skillEffect: '{"type": "regen", "value": 0.05}' },
+  { backgroundId: 'ky_ngo_sinh_tu', element: 'Lôi', skillName: 'Thiên Lôi Hộ Thể', skillDescription: 'Phản 5% sát thương nhận vào.', skillEffect: '{"type": "reflect", "value": 0.05}' },
+  { backgroundId: 'de_tu_tan_tu', element: 'Thủy', skillName: 'Đan Dược Tinh Thông', skillDescription: 'Khi dùng đan dược, hiệu quả tăng 15%.', skillEffect: '{"type": "potion_boost", "value": 0.15}' },
+  { backgroundId: 'de_tu_tan_tu', element: 'Hỏa', skillName: 'Luyện Đan Thuật Sơ Cấp', skillDescription: 'Tăng 10% tỷ lệ thành công khi luyện đan.', skillEffect: '{"type": "craft_boost", "skill": "alchemy", "value": 0.1}' },
+  { backgroundId: 'ky_ngo_sinh_tu', element: 'Phong', skillName: 'Phong Bộ', skillDescription: '+5% speed vĩnh viễn.', skillEffect: '{"type": "stat_buff", "stat": "speed", "value": 0.05}' },
+  { backgroundId: 'de_tu_tan_tu', element: 'Phong', skillName: 'Phi Độn Thuật', skillDescription: 'Khi làm việc, tốn ít 10% thể lực.', skillEffect: '{"type": "stamina_save", "value": 0.1}' },
 ];
 
 export function getLinhCanFlavorText(element: string, percent: number): string {
   const flavors: Record<string, string[]> = {
     Hỏa: [
-      'Hỏa linh trong đan điền bừng cháy như một vầng dương chưa mọc.',
-      'Kinh mạch nóng rực, linh khí hệ Hỏa tựa dung nham chảy qua huyết mạch.',
-      'Một tia hỏa ý vừa thức tỉnh, dường như chỉ chờ ngày thiêu rụi cửu tiêu.',
+      'Ngọn lửa cuồn cuộn trong đan điền, như muốn thiêu rụi mọi thứ.',
+      'Một nguồn nhiệt vô hình chảy trong kinh mạch, nóng rực như dung nham.',
+      'Linh khí hệ Hỏa quanh ngươi như vũ điệu của những ngọn lửa bất diệt.',
     ],
     Thủy: [
-      'Linh khí chảy như thủy triều, tĩnh lặng nhưng sâu không thấy đáy.',
-      'Trong cơ thể vang lên tiếng nước nhỏ giọt từ vực sâu xa xăm.',
-      'Thủy linh ôn hòa bao phủ kinh mạch, tựa biển lớn nuôi dưỡng vạn vật.',
+      'Dòng nước mát lành luân chuyển trong cơ thể, ôn hòa mà thâm trầm.',
+      'Linh khí tựa dòng suối chảy nhẹ trong kinh mạch, tĩnh lặng mà sâu xa.',
+      'Nước là nguồn sống, và trong ngươi, dòng chảy ấy cuộn trào không ngừng.',
     ],
     Mộc: [
-      'Một sợi mộc ý bén rễ trong đan điền, tựa mầm non xuyên qua đá cứng.',
-      'Linh khí Mộc lan dọc kinh mạch, mang theo hơi thở của cổ lâm ngàn năm.',
-      'Trong huyết mạch phảng phất mùi cỏ cây sau cơn mưa, sinh cơ lặng lẽ nảy nở.',
+      'Sức sống mãnh liệt như cây cổ thụ vươn mình trong nắng sớm.',
+      'Linh khí Mộc trong ngươi mang hơi thở của rừng già, của sự sống sinh sôi.',
+      'Từng tế bào như hút nhựa sống từ lòng đất, mạnh mẽ và dẻo dai.',
     ],
     Thổ: [
-      'Thổ linh trầm xuống đan điền như một ngọn núi cắm rễ giữa thiên địa.',
-      'Linh khí Thổ dày nặng mà ôn hòa, từng tấc kinh mạch đều trở nên vững chãi.',
-      'Ngươi cảm nhận được nhịp thở của đại địa, tựa khoáng mạch ngủ yên dưới Hoang Sơn.',
+      'Vững chãi như núi đá, linh khí trầm lắng chảy trong huyết mạch.',
+      'Ngươi cảm nhận được lòng đất, sự ổn định và sức mạnh kiên cố.',
+      'Thổ khí ôm ấp lấy ngươi như lòng mẹ hiền, che chở và nuôi dưỡng.',
     ],
     Lôi: [
-      'Một tiếng lôi minh vang lên trong đan điền.',
-      'Lôi ý chưa thành hình nhưng đã khiến linh khí quanh người rung chuyển.',
-      'Từng tia điện tím lướt qua kinh mạch, như thiên kiếp còn sót lại.',
+      'Những tia sét xé toạc không gian trong cơ thể, mạnh mẽ và bất kham.',
+      'Linh khí Lôi trong ngươi gầm thét — sức mạnh hủy diệt và tái sinh đồng thời.',
+      'Sấm sét cuộn trào trong huyết mạch, một nguồn năng lượng hoang dã khó thuần.',
     ],
     Phong: [
-      'Phong linh vô hình, nhưng từng hơi thở đều trở nên nhẹ hơn.',
-      'Gió luồn qua kinh mạch, mang theo cảm giác tự do khó nắm bắt.',
-      'Linh khí hệ Phong tựa mây trôi, không hình không tướng.',
+      'Tựa cơn gió nhẹ, thanh thoát mà không gì cản nổi.',
+      'Linh khí Phong luồn lách qua từng thớ thịt, nhẹ nhàng nhưng sắc bén.',
+      'Gió là tự do, và trong ngươi, cơn gió ấy đang chờ được giải phóng.',
     ],
   };
   const options = flavors[element] || ['Linh căn của ngươi chứa một nguồn năng lượng bí ẩn.'];
@@ -186,27 +194,12 @@ export function getLinhCanFlavorText(element: string, percent: number): string {
 
 export function getOpeningScene(name: string, backgroundId: string): string {
   const scenes: Record<string, string> = {
-    tu_chien_gia_toc: `Chuông sơn môn ngân vang ba hồi.
-                      ${name} cúi người trước tổ đường, nhận lấy kiếm gia truyền rồi bước xuống từng bậc đá.
-                      Mây mù tan dần, Thương Mang Thiên Hạ hiện ra dưới chân núi.`,
-    phan_tran: `Bình minh phủ lên dãy Thương Mang.
-                ${name} ngoái nhìn căn nhà tranh lần cuối. Phía trước là thiên hạ rộng lớn, nơi tiên môn dựng giữa mây trời, nơi yêu thú ẩn trong hoang vực, nơi cơ duyên và sát kiếp cùng tồn tại.
-                Một bước chân rời khỏi quê cũ.
-                Từ hôm nay, thiên địa chính là đường đi của ngươi.`,
-    ky_ngo_sinh_tu: `${name} mở mắt giữa một khu rừng chưa từng đặt chân tới.
-                    Sương phủ kín cành lá, trong không khí còn vương một mùi máu rất nhạt. Ký ức trước đó chỉ còn lại một khoảng trống.
-                    Trong đan điền, một luồng linh lực xa lạ đang lặng lẽ lưu chuyển, như vốn đã thuộc về ngươi từ rất lâu.
-                    Ai đã cứu ngươi?
-                    Không có câu trả lời.
-                    Chỉ có con đường phía trước vẫn kéo dài giữa Thương Mang...`,
-    de_tu_tan_tu: `Cánh cửa căn lều khép lại sau lưng ${name}.
-                  Trên chiếc bàn gỗ cũ chỉ còn vài cuốn đạo kinh đã sờn mép, một chiếc túi càn khôn cũ và bếp lửa vừa tắt.
-                  Sư phụ chưa từng nói khi nào sẽ trở về.
-                  Gió lướt qua rừng trúc, mang theo tiếng lá xào xạc.
-                  Từ hôm nay, thiên địa là sư, sơn hải là đường.`,
-
+    tu_chien_gia_toc: `Giữa khu rừng linh khí dày đặc, ${name} đứng trước cổng sơn môn của gia tộc. Phía sau là những tòa lầu các nguy nga, phía trước là thế giới bao la. Một cánh chim bằng lướt qua bầu trời — điềm báo cho một hành trình không giới hạn.`,
+    phan_tran: `Bình minh ló rạng trên ngôi làng nhỏ. ${name} thắt lại bọc hành lý, nhìn lần cuối căn nhà tranh vách đất. Không lưu luyến, chỉ có quyết tâm. Một bước chân — và cả thế giới tu chân mở ra trước mắt.`,
+    ky_ngo_sinh_tu: `${name} tỉnh dậy trong một khu rừng xa lạ. Đầu còn ong ong, nhưng trong cơ thể — một sức mạnh mới đang ùa về. Ai đã cứu mình? Và tại sao? Những câu hỏi đó sẽ còn ở lại, nhưng lúc này, hãy bước tiếp.`,
+    de_tu_tan_tu: `Cánh cửa lều khép lại sau lưng ${name}. Bên trong, những cuốn sách cũ nằm im — nhưng tri thức thì đã đồng hành cùng ngươi ra ngoài kia. Một cơn gió thổi qua, cuốn theo mấy chiếc lá vàng. Hành trình bắt đầu.`,
   };
-  return scenes[backgroundId] || `${name} bước vào Thương Mang Thiên Hạ, nơi sơn hải vô tận, nhân quả đan xen, cơ duyên và sát kiếp cùng tồn tại dưới một bầu trời.`;
+  return scenes[backgroundId] || `${name} bước vào thế giới tu chân rộng lớn, nơi vô vàn kỳ ngộ và thử thách đang chờ đón.`;
 }
 
 export function getDestinyLine(destinyId: string): string {
@@ -215,13 +208,12 @@ export function getDestinyLine(destinyId: string): string {
 }
 
 export const HEIRLOOMS = [
- { id: 'manh_ngoc_bich', name: 'Thiên Khuyết Ngọc', icon: '<:tvngoc:1547899787918053376>', description: 'Một mảnh cổ ngọc khuyết mất một phần, tương truyền là chìa khóa mở ra một cánh cửa đã biến mất khỏi Thương Mang Thiên Hạ.', effect: '+1% Luck' },
-  { id: 'la_ban_ri_set', name: 'Tinh Hải La Bàn', icon: '<:tvlaban:1547899793131438120>', description: 'Chiếc la bàn cũ kỹ không còn chỉ phương hướng của nhân gian. Mỗi khi tinh tượng đổi dời, kim bàn lại khẽ rung, dường như đang tìm kiếm một nơi chưa từng xuất hiện trên địa đồ.', effect: 'Gợi ý kỳ ngộ ẩn' },
-  { id: 'linh_hoa_kho', name: 'Sở Tư Tàn Hoa', icon: '<:tvtanhoa:1547906520921149470>', description: 'Một đóa hoa đã héo từ rất lâu nhưng chưa từng mục nát. Cánh hoa giữ nguyên sắc đỏ như ngày vừa nở, mang theo một đoạn nhân quả chưa được khép lại.', effect: '+1% Drop Rate' },
-  { id: 'dong_xu_ma_co', name: 'Cổ Ma Tiền', icon: '<:tvtien:1547899790774247465>', description: 'Đồng tiền cổ đúc từ thứ kim loại không ai nhận ra. Một mặt khắc tiên văn, một mặt khắc ma văn; lưu truyền rằng chỉ khi nhân quả giao nhau, nó mới hiện giá trị thật.', effect: '+1% ATK' },
-  { id: 'long_vu_phuong_hoang', name: 'Phượng Linh Vũ', icon: '<:tvphuong:1547900684106735636>', description: 'Chiếc linh vũ rơi từ một con thiên phượng giữa biển mây. Dẫu trải qua ngàn năm, đầu lông vẫn lưu chuyển ánh hỏa quang nhàn nhạt.', effect: '+1% Speed' },
-  { id: 'vay_rong_den', name: 'Nghịch Lân Cổ Long', icon: '<:tvlong:1547899782641483786>', description: 'Chiếc vảy mọc ngược nơi cổ chân long. Long có nghịch lân, chạm vào tất nổi long uy. Trong vảy vẫn còn lưu lại một tia long tức chưa từng tiêu tán.', effect: '+1% DEF' }
-
+  { id: 'manh_ngoc_bich', name: 'Mảnh Ngọc Bích Vỡ', icon: '💚', description: 'Mảnh ngọc duy nhất còn sót lại từ gia tộc thần bí. Nghe nói ghép đủ 6 mảnh sẽ mở ra bí mật kinh thiên.', effect: '+1% Luck' },
+  { id: 'la_ban_ri_set', name: 'La Bàn Rỉ Sét', icon: '🧭', description: 'Chiếc la bàn cổ, kim luôn chỉ về một hướng. Có thể nó dẫn đến kho báu... hoặc cái bẫy.', effect: 'Gợi ý kỳ ngộ ẩn' },
+  { id: 'linh_hoa_kho', name: 'Linh Hoa Khô', icon: '🌸', description: 'Đóa hoa từng nở rực rỡ trong vườn thượng cổ. Dù khô héo, nó vẫn tỏa ra linh khí nhè nhẹ.', effect: '+1% Drop Rate' },
+  { id: 'dong_xu_ma_co', name: 'Đồng Xu Ma Cổ', icon: '🪙', description: 'Khắc hình yêu thú cổ đại, tỏa ra hơi thở ma khí nhẹ. Có người muốn mua nó giá cao.', effect: '+1% ATK' },
+  { id: 'long_vu_phuong_hoang', name: 'Lông Vũ Phượng Hoàng', icon: '🔥', description: 'Sưởi ấm kỳ lạ, như có ngọn lửa chảy trong từng sợi lông. Tin đồn nó thuộc về Phượng Hoàng cuối cùng.', effect: '+1% Speed' },
+  { id: 'vay_rong_den', name: 'Vảy Rồng Đen', icon: '🛡️', description: 'Còn sót lại từ trận chiến giữa Tiên và Ma 3000 năm trước. Mảnh vảy này đã chứng kiến đại chiến.', effect: '+1% DEF' }
 ];
 
 export function generateHeirloom() {
@@ -231,71 +223,45 @@ export function generateHeirloom() {
 export function generateProphecy(backgroundId: string, destinyId: string, element: string): string {
   const bgTemplates: Record<string, Record<string, string>> = {
     tu_chien_gia_toc: {
-      phuc_tinh: "Tiên phủ còn hưng, một mạch truyền ba đời",
-      sat_tinh: "Kiếm chỉ huyết thân, gia môn gặp kiếp.",
-      tho_tinh: "Rời tiên phủ, giữ một đời vô danh."
+      phuc_tinh: "Dòng máu tổ tông / Phượng hoàng tái thế",
+      sat_tinh: "Gia tộc suy vong / Nghiệp chướng đeo mang",
+      tho_tinh: "Rời xa gia tộc / Ẩn danh giữa đời"
     },
     phan_tran: {
-      phuc_tinh: "Cỏ dại cũng có ngày hóa linh mộc.",
-      sat_tinh: "Một thân phàm cốt, dám nghịch thiên mệnh.",
-      tho_tinh: "Đại đạo vô danh, người đời chẳng nhớ."
+      phuc_tinh: "Tay trắng dựng cơ đồ / Cơ duyên trời ban",
+      sat_tinh: "Nợ đời chưa trả / Đường gian nan lắm",
+      tho_tinh: "Vô danh tiểu tốt / Lá rụng giữa dòng"
     },
     de_tu_tan_tu: {
-      phuc_tinh: "Trời đất rộng dài, gặp thời ắt dựng nghiệp.",
-      sat_tinh: "Sát khí nhập mệnh, một đời khó tránh phong ba.",
-      tho_tinh: "Mây bay bốn hướng, chẳng ai biết người về đâu."
+      phuc_tinh: "Trời đất bao la / Gặp thời thế tạo",
+      sat_tinh: "Sát khí đầy mình / Nghiệp lực quấn thân",
+      tho_tinh: "Mây bay gió thổi / Chẳng ai biết tên"
     },
     ky_ngo_sinh_tu: {
-      phuc_tinh: "Sư môn còn thịnh, hậu bối ắt có người thành danh.",
-      sat_tinh: "Môn quy một bước phá, đường về vạn dặm xa.",
-      tho_tinh: "Núi sâu chẳng hỏi thế sự, một đời giữ mình tu hành."
+      phuc_tinh: "Sư môn vinh hiển / Đệ tử xuất chúng",
+      sat_tinh: "Môn quy phá vỡ / Đường về xa xăm",
+      tho_tinh: "Núi sâu ai biết / Ẩn tu một mình"
     }
-
   };
 
   const elementSuffix: Record<string, string> = {
-    Kim: "Bách luyện thành cương, một kiếm phá vạn pháp.",
-    Mộc: "Một hạt sinh căn, ngày sau ắt thành đại mộc.",
-    Thủy: "Nước theo thế mà chảy, người theo đạo mà hành.",
-    Hỏa: "Một đốm linh hỏa, cũng đủ thiêu tận cửu thiên.",
-    Thổ: "Đất dày mới tải được vạn vật, đường xa mới biết được căn cơ.",
-    Lôi: "Thiên lôi giáng thế, kẻ mang mệnh ấy chẳng phải phàm nhân.",
-    Phong: "Gió đến chẳng báo trước, người này một đời khó chịu trói buộc."
-
+    Kim: "Kiếm khí ngút trời",
+    Mộc: "Cây xanh tỏa bóng",
+    Thủy: "Nước chảy đá mòn",
+    Hỏa: "Lửa thiêu rực rỡ",
+    Thổ: "Núi cao vững chãi",
+    Lôi: "Sấm sét xé trời",
+    Phong: "Gió cuộn mây ngàn"
   };
 
   const pool = [
-"Thiên mệnh đã định, lòng người chưa chắc.",
-    "Đường dài vạn dặm, một bước cũng phải tự mình đi.",
-    "Trời cao chẳng nói, nhân quả tự tìm về.",
-    "Một đời tu đạo, được mất vốn chẳng do người.",
-    "Vạn sự tùy duyên, nhưng duyên đến cũng phải tự mình nắm lấy.",
-    "Mệnh có thể định, số lại do người.",
-    "Một niệm thành ma, một niệm thành Phật.",
-    "Đại đạo vô tận, người đời hữu hạn.",
-    "Có duyên ngàn dặm cũng gặp, vô duyên đối diện chẳng thành.",
-    "Nhân quả chưa đến, chẳng có nghĩa là chưa từng gieo.",
-    "Một bước nhập đạo, vạn kiếp chẳng quay đầu.",
-    "Kiếp này đã đến, ắt có con đường phải đi.",
-    "Thiên địa rộng lớn, kẻ vô danh cũng có ngày lưu danh.",
-    "Phong vân chưa động, chẳng biết ai là long.",
-    "Long đong một kiếp, cũng cầu được một lần thuận mệnh.",
-    "Chấp niệm chưa tan, con đường phía trước chưa tận.",
-    "Duyên đến thì tụ, duyên tận thì tan.",
-    "Người có thể đổi, mệnh cũng chưa chắc bất biến.",
-    "Một đời cầu đạo, cuối cùng cầu lại chính mình.",
-    "Đường tu vốn độc hành, tri kỷ khó cầu.",
-    "Núi cao còn có núi cao hơn, đại đạo chẳng có tận cùng.",
-    "Thế gian vạn tượng, chẳng gì thoát khỏi nhân quả.",
-    "Có những chuyện, đến khi ngoảnh lại đã thành tiền duyên.",
-    "Một giấc Nam Kha, tỉnh mộng mới hay một đời đã qua.",
-    "Thiên đạo vô tình, nhân gian hữu tình.",
-    "Được mất trong tay, họa phúc bởi lòng.",
-    "Sóng gió chưa yên, người mang mệnh lớn khó sống một đời bình lặng.",
-    "Nếu đã bước lên con đường này, hà tất hỏi ngày về.",
-    "Chẳng cầu trường sinh bất tử, chỉ cầu một đời không thẹn với lòng.",
-    "Mệnh trời khó cãi, nhưng người tu đạo nào chịu cúi đầu."
-
+    "Phải chăng tất cả là định mệnh?", "Có ai ngờ được ngày sau...",
+    "Vậy mà ta cứ đi...", "Trời cao biết chẳng?", "Luân hồi có lối...",
+    "Vạn sự tùy duyên.", "Bước chân không mỏi.", "Cõi mộng hư vô.",
+    "Kiếp này đành vậy.", "Mệnh trời khó cãi.", "Một niệm thành ma, một niệm thành Phật.",
+    "Sóng gió chưa yên.", "Mưa rơi nặng hạt.", "Ai hát khúc bi ca?",
+    "Người về nơi đâu?", "Chỉ còn tiếng gió.", "Hành trình vô tận.",
+    "Chấp niệm buông xuôi.", "Trăng tàn bóng khuyết.", "Một giấc Nam Kha."
   ];
 
   const line1 = bgTemplates[backgroundId]?.[destinyId] || "Mệnh trời vô định / Hành trình vô tận";
