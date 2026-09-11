@@ -10,9 +10,9 @@ import { ITEMS } from '../../config/itemConstants';
 import { EMBED_COLORS, toV2Payload, textToV2 } from '../../utils/uiSystem';
 
 const GROUP_NAMES: Record<string, string> = {
-  'weapon': '⚔️ Bộ Vũ Khí Thượng Cổ',
-  'armor': '🛡️ Bộ Pháp Y Vô Thượng',
-  'accessory': '📿 Bộ Linh Bản Phụ Kiện',
+  'weapon': '<:ipk:1547865972415791215> Bộ Vũ Khí Thượng Cổ',
+  'armor': '<:itp:1547883759527792710> Bộ Pháp Y Vô Thượng',
+  'accessory': '<:its:1547884154727698473> Bộ Linh Bản Phụ Kiện',
   'other': '📦 Bộ Khác'
 };
 
@@ -73,7 +73,7 @@ export function buildImprintListEmbed(userId: string): EmbedBuilder {
   const bar = getProgressBar(imprints.length, 50, 10);
 
   const embed = new EmbedBuilder()
-    .setTitle(`🌟 ĐỀN THỜ ẤN KÝ LINH HỒN - ${user.name}`)
+    .setTitle(`<:ida:1547865990216417392> ĐỀN THỜ ẤN KÝ LINH HỒN - ${user.name}`)
     .setColor(EMBED_COLORS.MYSTIC)
     .setDescription(
       `*Nơi lưu giữ linh hồn của các thần binh bảo giáp đã bị tiêu hủy. Chỉ số của Ấn Ký được cộng dồn vĩnh viễn vào thuộc tính nhân vật, bất kể có trang bị hay không.*\n\n` +
@@ -91,7 +91,7 @@ export function buildImprintListEmbed(userId: string): EmbedBuilder {
         inline: true
       },
       {
-        name: '📜 Danh Sách Ấn Ký Linh Hồn',
+        name: '<:tin4:1547875508174327828> Danh Sách Ấn Ký Linh Hồn',
         value: listText ? (listText.length > 1024 ? listText.substring(0, 1021) + '...' : listText) : '`Chưa có thần khí nào được ấn ký vĩnh viễn.`',
         inline: false
       }
@@ -172,7 +172,7 @@ export default class AnkyCommand extends Command {
 
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId(`anky_select_${discordId}`)
-          .setPlaceholder('🔮 Chọn trang bị 5 Sao để tiến hành Ấn Ký...');
+          .setPlaceholder('<:ida:1547865990216417392> Chọn trang bị 5 Sao để tiến hành Ấn Ký...');
 
         candidates.forEach(c => {
           selectMenu.addOptions(
@@ -184,7 +184,7 @@ export default class AnkyCommand extends Command {
         });
 
         const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-        await interaction.editReply({ components: [textToV2('🧘 **Đúc Luyện Ấn Ký Linh Hồn**\n*Hãy chọn một trang bị 5 Sao bên dưới để tiêu hủy và lưu giữ chỉ số vĩnh viễn (Chi phí: 5,000 LT + 10 Mảnh Trang Bị):*'), row], flags: MessageFlags.IsComponentsV2 });
+        await interaction.editReply({ components: [textToV2('<:luyendan:1547866018037243954> **Đúc Luyện Ấn Ký Linh Hồn**\n*Hãy chọn một trang bị 5 Sao bên dưới để tiêu hủy và lưu giữ chỉ số vĩnh viễn (Chi phí: 5,000 LT + 10 Mảnh Trang Bị):*'), row], flags: MessageFlags.IsComponentsV2 });
       }
     }
 
@@ -193,7 +193,7 @@ export default class AnkyCommand extends Command {
       const collectedIds = new Set(userImprints.map(i => i.item_id));
 
       const embed = new EmbedBuilder()
-        .setTitle(`📖 SỔ TAY THU THẬP ẤN KÝ - ${user.name}`)
+        .setTitle(`<:sotay:1547883761776197632> SỔ TAY THU THẬP ẤN KÝ - ${user.name}`)
         .setColor(EMBED_COLORS.ORANGE)
         .setDescription('*Thu thập đủ các loại trang bị trong từng bộ sưu tập Ấn Ký để nhận thuộc tính ẩn cực mạnh vĩnh viễn.*')
         .setTimestamp();
