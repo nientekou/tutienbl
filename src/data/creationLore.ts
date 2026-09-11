@@ -54,11 +54,12 @@ export const BACKGROUNDS: Background[] = [
     id: 'tu_chien_gia_toc',
     name: 'Con Nhà Tu Chân',
     emoji: '🏯',
-    description: 'Sinh ra nơi tiên gia vọng tộc, căn cơ đã được nuôi dưỡng từ thuở lọt lòng.',
-    intro: `Ngươi lớn lên giữa tiếng chuông sơn môn và mùi hương đan dược. Trong tiên phủ, kiếm quyết được học trước cả cách cầm bút, linh khí đã thấm vào từng hơi thở từ thuở còn thơ.
-    Trước ngày rời gia môn, phụ thân chỉ nói một câu:
-    "Kẻ mang họ tộc chỉ là xuất thân. Kẻ giữ được đạo tâm mới có thể một bước đăng đồ."
-    Mang theo thanh kiếm gia truyền, ngươi bước khỏi tiên phủ. Thiên địa mênh mang phía trước, từ hôm nay đều phải tự mình đi qua.`,
+    description: 'Sinh ra trong gia tộc tu chân danh giá. Được truyền thụ căn cơ từ nhỏ.',
+    intro: `Từ thuở ấu thơ, ngươi đã quen với mùi đan dược và tiếng kiếm reo trong gia tộc. Cha mẹ là những tu sĩ có danh tiếng, dìu dắt ngươi từng bước trên con đường tu hành. Linh căn trong ngươi được gia tộc bồi dưỡng từ sớm, như một viên ngọc thô được mài giũa.
+
+"Hãy nhớ, con đường tu tiên không chỉ có linh căn. Quan trọng hơn là tâm tính và ý chí." — Lời cha ngươi trước khi bế quan.
+
+Ngươi khoác lên mình thanh bảo kiếm gia truyền, bước ra khỏi lãnh địa gia tộc, đối diện với thế giới tu chân rộng lớn. Một hành trình mới bắt đầu.`,
     bonuses: { hp: 50, atk: 5, lt: 200 },
     startingItem: { id: 'gia_truyen_kiem', name: 'Bảo Kiếm Gia Truyền', description: 'Thanh kiếm đã theo 3 đời gia chủ. Tuy không phải thần khí, nhưng chứa đựng ý chí của tổ tiên.' },
   },
@@ -66,12 +67,14 @@ export const BACKGROUNDS: Background[] = [
     id: 'phan_tran',
     name: 'Kẻ Phàm Trần',
     emoji: '🌾',
-    description: 'Không tiên duyên, không chỗ dựa. Chỉ có một lòng nghịch mệnh.',
-    intro: `Ngươi sinh ra giữa khói bếp và ruộng đồng, cả đời chưa từng chạm đến linh khí.
-            Cho đến một ngày, bầu trời xuất hiện linh quang, kinh mạch trong ngươi bừng tỉnh.
-            Người đời gọi đó là cơ duyên.
-            Ngươi gọi đó là lần đầu tiên số mệnh chịu mở mắt nhìn mình.
-            Không có sư môn, không có gia tộc. Chỉ có một con đường kéo dài đến tận cuối chân trời.`,
+    description: 'Vốn là người thường, nhưng ý chí nghịch thiên cải mệnh.',
+    intro: `Ngươi chẳng có gia thế, chẳng có sư môn. Chỉ có một đôi tay chai sần và một trái tim không bao giờ khuất phục.
+
+Ngày còn bé, ngươi nhìn tiên nhân bay qua đỉnh núi, tự hỏi: "Sao họ làm được?" Hôm nay, câu hỏi ấy đã có câu trả lời. Linh căn trong ngươi vừa thức tỉnh — yếu ớt nhưng đầy tiềm năng.
+
+"Mọi tiên nhân đều từng là phàm nhân. Điều khác biệt là dám bước lên con đường này." — Ngươi tự nhủ.
+
+Không có gia tộc chống lưng, không có sư phụ dẫn dắt, ngươi chỉ có chính mình và linh căn vừa chớm nở. Lên đường thôi, tiền đồ do chính tay ngươi tạo lập.`,
     bonuses: { expRate: 10, lt: 500, crit: 2 },
     startingItem: null,
   },
@@ -79,12 +82,14 @@ export const BACKGROUNDS: Background[] = [
     id: 'ky_ngo_sinh_tu',
     name: 'Kỳ Ngộ Sinh Tử',
     emoji: '⚡',
-    description: 'Một lần chết hụt, đổi lấy một đoạn nhân quả không thuộc về mình.',
-    intro: `Giữa ranh giới sinh tử, có người đã cứu ngươi.
-            Khi tỉnh dậy, động phủ chỉ còn một mảnh ngọc và một dòng chữ đã phai:
-            "Cứu ngươi vì nhân quả."
-            Linh căn tưởng đã tan vỡ lại được nối liền bằng một nguồn linh lực xa lạ.
-            Từ ngày ấy, trong người ngươi luôn tồn tại một khí tức không thuộc về chính mình.,
+    description: 'Suýt chết, được tiên nhân cứu và truyền linh căn.',
+    intro: `Ngươi nhắm mắt lần cuối, nghĩ rằng mọi chuyện đã kết thúc. Vách núi, cơn lũ, hay con yêu thú — biên niên sử không còn nhớ rõ. Nhưng rồi, một bàn tay ấm áp chạm vào trán ngươi.
+
+"Linh căn của ngươi vừa vụn vỡ, nhưng còn kịp."
+
+Khi tỉnh dậy, ngươi thấy mình nằm trong một động phủ xa lạ. Bên cạnh là mảnh ngọc lấp lánh và một tờ giấy viết vội: "Cứu ngươi vì nhân quả. Đừng tìm ta. Sống tốt."
+
+Ngươi không biết ân nhân là ai, nhưng trong cơ thể, một dòng linh khí mới đang chảy — linh căn thứ hai đã được cấy ghép. Món nợ ân tình này, biết bao giờ trả?`,
     bonuses: { def: 10, lt: 1000 },
     startingItem: { id: 'manh_ngoc_ho_menh', name: 'Mảnh Ngọc Hộ Mệnh', description: 'Khi HP về 0, tự động hồi 50% HP. Hiệu ứng 1 lần.' },
   },
@@ -92,12 +97,16 @@ export const BACKGROUNDS: Background[] = [
     id: 'de_tu_tan_tu',
     name: 'Đệ Tử Tán Tu',
     emoji: '🍃',
-    description: 'Theo một tán tu học đạo, lấy thiên địa làm sư, lấy nhân gian làm sách.',
-    intro: `Sư phụ chẳng có tông môn, cũng chẳng có danh hiệu.
-            Ông dạy ngươi nhận biết linh thảo trong khe núi, nhìn thiên tượng đoán linh triều, luyện một nồi đan còn quan trọng hơn thuộc một cuốn kiếm phổ.
-            Ngày ông rời đi, chỉ để lại một túi càn khôn cũ cùng một câu nói:
-            "Đừng học cách thành tiên. Học cách sống giữa thiên địa."
-            Thế là ngươi lên đường.`,
+    description: 'Theo một tán tu già học đạo, biết nhiều mẹo vặt trong tu hành.',
+    intro: `Sư phụ ngươi là một tán tu kỳ lạ. Ông sống trong túp lều ven rừng, xung quanh là hàng trăm cuốn bí tịch viết tay — cuốn dạy luyện đan, cuốn dạy bắt yêu thú, cuốn dạy cách phân biệt linh thảo.
+
+"Tu tiên không phải là ngồi thiền cả ngày. Tu tiên là sống." — Sư phụ thường nói thế, khi đang lúi húi nấu một nồi thuốc kỳ lạ.
+
+Giờ đây, sư phụ đã rời đi, tiếp tục cuộc hành trình của riêng ông. Ông để lại cho ngươi mấy cuốn bí tịch và câu nói cuối cùng:
+
+"Đi đi. Học từ cuộc đời, không phải từ sách vở."
+
+Ngươi khép cửa lều, bước vào thế giới rộng lớn — với vốn kiến thức tạp nham nhưng quý giá, và một trái tim đầy háo hức.`,
     bonuses: { speed: 5, mp: 30, lt: 300 },
     startingItem: { id: 'sach_khai_kinh', name: 'Sách Khai Kinh', description: 'Dùng 1 lần: nhân đôi EXP nhận được trong 30 phút.' },
   },
@@ -108,8 +117,8 @@ export const DESTINIES: Destiny[] = [
     id: 'sat_tinh',
     name: 'Sát Tinh',
     emoji: '⚔️',
-    description: 'Mệnh cách chủ sát, lấy chiến dưỡng đạo',
-    line: '"Một thân kiếm ý, lấy sát phạt mở một con đường tiến bước."',
+    description: 'Định mệnh chiến đấu, xông pha.',
+    line: '"Trời sinh ta ắt có dụng. Chiến đấu là bản năng, là lẽ sống của ta."',
     bonuses: { atkPercent: 3, crit: 3 },
     penalties: { hpPercent: 5 },
   },
@@ -117,8 +126,8 @@ export const DESTINIES: Destiny[] = [
     id: 'phuc_tinh',
     name: 'Phúc Tinh',
     emoji: '🍀',
-    description: 'Mệnh cách tụ phúc, cơ duyên thường tự tìm đến.',
-    line: '"Thiên địa có nhân quả, phúc duyên chỉ đến với người biết chờ."',
+    description: 'Định mệnh may mắn, cơ duyên.',
+    line: '"Nhân quả tự có an bài. Việc của ta là đi đúng đường, phần thưởng sẽ đến."',
     bonuses: { expRate: 5, dropRate: 10 },
     penalties: { defPercent: 3 },
   },
@@ -126,8 +135,8 @@ export const DESTINIES: Destiny[] = [
     id: 'tho_tinh',
     name: 'Thọ Tinh',
     emoji: '🐢',
-    description: 'Mệnh cách trường sinh, lấy thời gian thắng thiên địa.',
-    line: '"Ngàn năm cũng chỉ là một lần hít thở với kẻ giữ được đạo tâm."',
+    description: 'Định mệnh trường tồn, kiên nhẫn.',
+    line: '"Chậm mà chắc. Trăm năm chẳng dài với kẻ biết chờ đợi."',
     bonuses: { hpPercent: 10, defPercent: 5 },
     penalties: { atkPercent: 3 },
   },
@@ -186,10 +195,24 @@ export function getLinhCanFlavorText(element: string, percent: number): string {
 
 export function getOpeningScene(name: string, backgroundId: string): string {
   const scenes: Record<string, string> = {
-    tu_chien_gia_toc: `Giữa khu rừng linh khí dày đặc, ${name} đứng trước cổng sơn môn của gia tộc. Phía sau là những tòa lầu các nguy nga, phía trước là thế giới bao la. Một cánh chim bằng lướt qua bầu trời — điềm báo cho một hành trình không giới hạn.`,
-    phan_tran: `Bình minh ló rạng trên ngôi làng nhỏ. ${name} thắt lại bọc hành lý, nhìn lần cuối căn nhà tranh vách đất. Không lưu luyến, chỉ có quyết tâm. Một bước chân — và cả thế giới tu chân mở ra trước mắt.`,
-    ky_ngo_sinh_tu: `${name} tỉnh dậy trong một khu rừng xa lạ. Đầu còn ong ong, nhưng trong cơ thể — một sức mạnh mới đang ùa về. Ai đã cứu mình? Và tại sao? Những câu hỏi đó sẽ còn ở lại, nhưng lúc này, hãy bước tiếp.`,
-    de_tu_tan_tu: `Cánh cửa lều khép lại sau lưng ${name}. Bên trong, những cuốn sách cũ nằm im — nhưng tri thức thì đã đồng hành cùng ngươi ra ngoài kia. Một cơn gió thổi qua, cuốn theo mấy chiếc lá vàng. Hành trình bắt đầu.`,
+    tu_chien_gia_toc: `Chuông sơn môn ngân vang ba hồi.
+                      ${name} cúi người trước tổ đường, nhận lấy kiếm gia truyền rồi bước xuống từng bậc đá.
+                      Mây mù tan dần, Thương Mang Thiên Hạ hiện ra dưới chân núi.`,
+    phan_tran: `Bình minh phủ lên dãy Thương Mang.
+                ${name} ngoái nhìn căn nhà tranh lần cuối. Phía trước là thiên hạ rộng lớn, nơi tiên môn dựng giữa mây trời, nơi yêu thú ẩn trong hoang vực, nơi cơ duyên và sát kiếp cùng tồn tại.
+                Một bước chân rời khỏi quê cũ.
+                Từ hôm nay, thiên địa chính là đường đi của ngươi.`,
+    ky_ngo_sinh_tu: `${name} mở mắt giữa một khu rừng chưa từng đặt chân tới.
+                    Sương phủ kín cành lá, trong không khí còn vương một mùi máu rất nhạt. Ký ức trước đó chỉ còn lại một khoảng trống.
+                    Trong đan điền, một luồng linh lực xa lạ đang lặng lẽ lưu chuyển, như vốn đã thuộc về ngươi từ rất lâu.
+                    Ai đã cứu ngươi?
+                    Không có câu trả lời.
+                    Chỉ có con đường phía trước vẫn kéo dài giữa Thương Mang...`,
+    de_tu_tan_tu: `Cánh cửa căn lều khép lại sau lưng ${name}.
+                  Trên chiếc bàn gỗ cũ chỉ còn vài cuốn đạo kinh đã sờn mép, một chiếc túi càn khôn cũ và bếp lửa vừa tắt.
+                  Sư phụ chưa từng nói khi nào sẽ trở về.
+                  Gió lướt qua rừng trúc, mang theo tiếng lá xào xạc.
+                  Từ hôm nay, thiên địa là sư, sơn hải là đường.`,
   };
   return scenes[backgroundId] || `${name} bước vào thế giới tu chân rộng lớn, nơi vô vàn kỳ ngộ và thử thách đang chờ đón.`;
 }
