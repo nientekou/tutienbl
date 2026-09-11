@@ -113,6 +113,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
   const embed = new EmbedBuilder()
     .setTitle(`<:lc1:1547866362511368212> HỒ SƠ TU SĨ - ${user.name}`)
     .setColor(EMBED_COLORS.PRIMARY)
+    .setThumbnail(interaction.user.displayAvatarURL({ size: 512 }))
     .setDescription(
       `*${greeting}*\n\n` +
       `<:inv:1547865980854599693> **Đạo hiệu:** **${user.name}**\n` +
