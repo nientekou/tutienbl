@@ -354,8 +354,8 @@ export default class TaoNhanVatCommand extends Command {
             name: '<:tvp1:1547866133242056704> Hành Trang Khởi Đầu',
             value: [
               `<:lt1:1547866122123218945> ${startingLt.toLocaleString()} Hạ Phẩm Linh Thạch`,
-              background.startingItem ? `📦 **${background.startingItem.name}** — ${background.startingItem.description}` : '',
-              `🏺 **${heirloom.name}** — ${heirloom.description} (${heirloom.effect})`,
+              background.startingItem ? `<:a3:1547865998001053726> **${background.startingItem.name}** — ${background.startingItem.description}` : '',
+              `<:ic:1547865958431985714> **${heirloom.name}** — ${heirloom.description} (${heirloom.effect})`,
               combo ? `<:tin4:1547875508174327828> **Combo:** ${combo.skillName} — ${combo.skillDescription}` : '',
               startingKnb ? `<:lt2:1547866118817845309> ${startingKnb} Cực Phẩm Linh Thạch` : '',
               `\n<:qua4:1547881540372009021> *Quà khởi nghiệp: +1000 LT <:lt1:1547866122123218945> đã được cộng vào hành trang!*`
