@@ -187,25 +187,25 @@ export function getLinhCanFlavorText(element: string, percent: number): string {
 export function getOpeningScene(name: string, backgroundId: string): string {
   const scenes: Record<string, string> = {
     tu_chien_gia_toc: `Chuông sơn môn ngân vang ba hồi.
-                      ${name} cúi người trước tổ đường, nhận lấy kiếm gia truyền rồi bước xuống từng bậc đá.
-                      Mây mù tan dần, Thương Mang Thiên Hạ hiện ra dưới chân núi.`,
+${name} cúi người trước tổ đường, nhận lấy kiếm gia truyền rồi bước xuống từng bậc đá.
+Mây mù tan dần, Thương Mang Thiên Hạ hiện ra dưới chân núi.`,
     phan_tran: `Bình minh phủ lên dãy Thương Mang.
-                ${name} ngoái nhìn căn nhà tranh lần cuối. Phía trước là thiên hạ rộng lớn, nơi tiên môn dựng giữa mây trời, nơi yêu thú ẩn trong hoang vực, nơi cơ duyên và sát kiếp cùng tồn tại.
-                Một bước chân rời khỏi quê cũ.
-                Từ hôm nay, thiên địa chính là đường đi của ngươi.`,
+${name} ngoái nhìn căn nhà tranh lần cuối. Phía trước là thiên hạ rộng lớn, nơi tiên môn dựng giữa mây trời, nơi yêu thú ẩn trong hoang vực, nơi cơ duyên và sát kiếp cùng tồn tại.
+Một bước chân rời khỏi quê cũ.
+Từ hôm nay, thiên địa chính là đường đi của ngươi.`,
     ky_ngo_sinh_tu: `${name} mở mắt giữa một khu rừng chưa từng đặt chân tới.
-                    Sương phủ kín cành lá, trong không khí còn vương một mùi máu rất nhạt. Ký ức trước đó chỉ còn lại một khoảng trống.
-                    Trong đan điền, một luồng linh lực xa lạ đang lặng lẽ lưu chuyển, như vốn đã thuộc về ngươi từ rất lâu.
-                    Ai đã cứu ngươi?
-                    Không có câu trả lời.
-                    Chỉ có con đường phía trước vẫn kéo dài giữa Thương Mang...`,
+Sương phủ kín cành lá, trong không khí còn vương một mùi máu rất nhạt. Ký ức trước đó chỉ còn lại một khoảng trống.
+Trong đan điền, một luồng linh lực xa lạ đang lặng lẽ lưu chuyển, như vốn đã thuộc về ngươi từ rất lâu.
+Ai đã cứu ngươi?
+Không có câu trả lời.
+Chỉ có con đường phía trước vẫn kéo dài giữa Thương Mang...`,
     de_tu_tan_tu: `Cánh cửa căn lều khép lại sau lưng ${name}.
-                  Trên chiếc bàn gỗ cũ chỉ còn vài cuốn đạo kinh đã sờn mép, một chiếc túi càn khôn cũ và bếp lửa vừa tắt.
-                  Sư phụ chưa từng nói khi nào sẽ trở về.
-                  Gió lướt qua rừng trúc, mang theo tiếng lá xào xạc.
-                  Từ hôm nay, thiên địa là sư, sơn hải là đường.`,
+Trên chiếc bàn gỗ cũ chỉ còn vài cuốn đạo kinh đã sờn mép, một chiếc túi càn khôn cũ và bếp lửa vừa tắt.
+Sư phụ chưa từng nói khi nào sẽ trở về.
+Gió lướt qua rừng trúc, mang theo tiếng lá xào xạc.
+Từ hôm nay, thiên địa là sư, sơn hải là đường.`,
   };
-  return scenes[backgroundId] || `${name} bước vào thế giới tu chân rộng lớn, nơi vô vàn kỳ ngộ và thử thách đang chờ đón.`;
+  return scenes[backgroundId] || `${name} bước vào Thương Mang Thiên Hạ — nơi sơn hải vô tận, nhân quả đan xen, cơ duyên và sát kiếp cùng tồn tại dưới một bầu trời.`;
 }
 
 export function getDestinyLine(destinyId: string): string {
