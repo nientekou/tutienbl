@@ -61,12 +61,12 @@ export default class AutoBattleCommand extends Command {
     if (sub === 'xem') {
       const settings = CombatEngine.getAutoBattleSettings(userId);
       const embed = new EmbedBuilder()
-        .setTitle('⚔️ Cài Đặt Auto-Battle')
+        .setTitle('<:iatk:1547865969488306258> Cài Đặt Auto-Battle')
         .setColor(EMBED_COLORS.INFO)
         .setDescription(`Cấu hình chiến đấu tự động cho **${user.name}**`)
         .addFields(
-          { name: '🛡️ Tự động guard khi HP < 30%', value: settings.autoGuard ? '✅ Bật' : '❌ Tắt', inline: true },
-          { name: '🎯 Ưu tiên skill', value: this.getSkillPriorityName(settings.autoSkillPriority), inline: true }
+          { name: '<:idp:1547865939574390784> Tự động guard khi HP < 30%', value: settings.autoGuard ? '✅ Bật' : '❌ Tắt', inline: true },
+          { name: '<:iskill:1547885763000016937> Ưu tiên skill', value: this.getSkillPriorityName(settings.autoSkillPriority), inline: true }
         )
         .setFooter({ text: 'Dùng /autobattle để thay đổi cài đặt' });
       await interaction.editReply({ embeds: [embed] });
@@ -76,14 +76,14 @@ export default class AutoBattleCommand extends Command {
     if (sub === 'guard') {
       const state = interaction.options.getString('trangthai', true);
       CombatEngine.setAutoBattleSettings(userId, { autoGuard: state === 'on' });
-      await interaction.editReply({ content: `🛡️ Đã ${state === 'on' ? 'bật' : 'tắt'} tự động guard khi HP < 30%.` });
+      await interaction.editReply({ content: `<:idp:1547865939574390784> Đã ${state === 'on' ? 'bật' : 'tắt'} tự động guard khi HP < 30%.` });
       return;
     }
 
     if (sub === 'skill') {
       const priority = interaction.options.getString('uutien', true);
       CombatEngine.setAutoBattleSettings(userId, { autoSkillPriority: priority });
-      await interaction.editReply({ content: `🎯 Đã đặt ưu tiên skill thành **${this.getSkillPriorityName(priority)}**.` });
+      await interaction.editReply({ content: `<:iskill:1547885763000016937> Đã đặt ưu tiên skill thành **${this.getSkillPriorityName(priority)}**.` });
       return;
     }
   }
