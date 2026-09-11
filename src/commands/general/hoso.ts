@@ -115,9 +115,9 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
     .setColor(EMBED_COLORS.PRIMARY)
     .setDescription(
       `*${greeting}*\n\n` +
-      `<:inv:1547865980854599693> **Đạo hiệu:** **${user.name}**\n` +
+      `<:inv:1547865980854599693> Đạo Hiệu: **${user.name}**\n` +
       `${getTitleLine(user)}\n` +
-      `⚡ **Tiên Lực (Lực Chiến):** 🌌 **${formatNumber(showCp)}**` +
+      `<:ida:1547865990216417392> Tiên Lực (Lực Chiến): **${formatNumber(showCp)}**` +
       (user.luan_hoi_count > 0 ? `\n🌀 **Luân Hồi:** **Chuyển Thế Đời thứ ${user.luan_hoi_count}**` : '')
     )
     .addFields(
@@ -138,9 +138,8 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
         inline: true,
       },
       {
-        name: '☯️ Căn Cơ Linh Căn',
+        name: '☯️ Căn Cơ Linh Căn\n',
         value: 
-          '',
           formattedLinhCan,
         inline: true,
       },
