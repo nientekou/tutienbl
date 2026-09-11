@@ -111,7 +111,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
   else if (user.alignment === 'demonic') alignmentStr = 'Ma Đạo 👿';
 
   const embed = new EmbedBuilder()
-    .setTitle(`<:lc1:1547866362511368212> HỒ SƠ TU SĨ - ${user.name}`)
+    .setTitle(`<:inv:1547865980854599693> HỒ SƠ TU SĨ - ${user.name}`)
     .setColor(EMBED_COLORS.PRIMARY)
     .setDescription(
       `*${greeting}*\n\n` +
@@ -138,7 +138,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
         inline: true,
       },
       {
-        name: '☯️ Căn Cơ Linh Căn\n',
+        name: '<:lc01:1547878586000875550> Căn Cơ Linh Căn\n',
         value: 
           formattedLinhCan,
         inline: true,
