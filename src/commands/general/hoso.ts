@@ -129,6 +129,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
       {
         name: '✨ Trạng Thái',
         value: [
+          ``,
           `Cảnh giới: **${realmInfo.fullName}**`,
           `Đạo Thống: **${alignmentStr}**`,
           `Ngộ Tính: **${user.ngotinh}**`,
@@ -138,7 +139,8 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
         inline: true,
       },
       {
-        name: '☯️ Căn Cơ Linh Căn',
+        name: '☯️ Căn Cơ Linh Căn
+          ',
         value: formattedLinhCan,
         inline: true,
       },
