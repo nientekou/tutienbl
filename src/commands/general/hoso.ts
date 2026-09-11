@@ -112,6 +112,10 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
 
   const embed = new EmbedBuilder()
     .setTitle(`<:lc1:1547866362511368212> HỒ SƠ TU SĨ - ${user.name}`)
+      .setAuthor({
+    name: `Hồ sơ của ${interaction.user.username}`,
+    iconURL: interaction.user.displayAvatarURL({ size: 256 })
+  })
     .setColor(EMBED_COLORS.PRIMARY)
     .setDescription(
       `*${greeting}*\n\n` +
@@ -126,6 +130,11 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
         value: `${progressBar}\n🎯 **EXP:** **${formatNumber(user.tu_vi)}** / **${formatNumber(user.exp_needed)}**`,
         inline: false,
       },
+       {
+    name: '────────────────────',
+    value: '\u200B',
+    inline: false,
+  },
       {
         name: '✨ Trạng Thái',
         value: [
