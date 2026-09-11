@@ -168,7 +168,11 @@ export default class TaoNhanVatCommand extends Command {
     const embed = new EmbedBuilder()
       .setTitle('Bước 1: Xuất Thân Của Ngươi')
       .setColor(EMBED_COLORS.MYSTIC)
-      .setDescription(`**${name}** — trước khi bước vào con đường tu tiên, hãy chọn xuất thân của ngươi.\n\nMỗi xuất thân mang cho ngươi câu chuyện riêng và ưu thế khởi đầu khác nhau.`)
+      .setDescription(`**${name}** — trước khi bước lên tiên lộ, trước hết phải biết mình từ đâu mà đến.\n` +
+      `Thương Mang rộng lớn, chúng sinh vạn loại. Có người sinh giữa thế gia, ` +
+      `có người bái nhập sư môn, cũng có kẻ chỉ mang một thân phàm cốt mà bước vào hồng trần.\n` +
+      `Xuất thân không quyết định Đạo Hữu sẽ trở thành ai.\n` +
+      `Nhưng con đường đã chọn, sẽ theo Đạo Hữu rất lâu.`)
       .addFields(
         ...BACKGROUNDS.map(b => ({
           name: `${b.emoji} ${b.name}`,
