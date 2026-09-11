@@ -138,7 +138,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
         inline: true,
       },
       {
-        name: '☯️ Căn Cơ Linh Căn,
+        name: '☯️ Căn Cơ Linh Căn',
         value: formattedLinhCan,
         inline: true,
       },
@@ -613,42 +613,42 @@ export function getTabNavigationRows(userId: string, activeTab: HoSoTab): Action
 export function getHoSoActionMenus(userId: string): ActionRowBuilder<StringSelectMenuBuilder>[] {
   const selectMenu1 = new StringSelectMenuBuilder()
     .setCustomId(`hosoaction1_${userId}`)
-    .setPlaceholder('<:iiatk:1547935869602631680> Tu Luyện, Vượt Ải & Khiêu Chiến')
+    .setPlaceholder('⚔️ Tu Luyện, Vượt Ải & Khiêu Chiến')
     .addOptions(
       new StringSelectMenuOptionBuilder().setLabel('🧘 Thiền Định (Tu Luyện)').setValue('tuluyen').setDescription('Hấp thu linh khí thiên địa tu luyện'),
       new StringSelectMenuOptionBuilder().setLabel('⚡ Đột Phá Cảnh Giới').setValue('dotpha').setDescription('Bức phá bình cảnh cảnh giới'),
       new StringSelectMenuOptionBuilder().setLabel('🌀 Tẩy Tủy Linh Căn').setValue('taytuynav').setDescription('Đổi ngũ hành linh căn (Tốn 100 LT)'),
       new StringSelectMenuOptionBuilder().setLabel('🌌 Ngộ Ý Cảnh').setValue('ycanhnaav').setDescription('Lĩnh ngộ đại đạo ý cảnh'),
-      new StringSelectMenuOptionBuilder().setLabel('<:sotay:1547883761776197632> Nhiệm Vụ Thiên Cơ Các').setValue('nhiemvunav').setDescription('Kiểm tra nhiệm vụ hàng ngày'),
+      new StringSelectMenuOptionBuilder().setLabel('📜 Nhiệm Vụ Thiên Cơ Các').setValue('nhiemvunav').setDescription('Kiểm tra nhiệm vụ hàng ngày'),
       new StringSelectMenuOptionBuilder().setLabel('🗺️ Khám Phá Địa Đồ').setValue('khambhanav').setDescription('Du ngoạn thám hiểm khắp nơi'),
-      new StringSelectMenuOptionBuilder().setLabel('<:cunglt:1547865885513875496> Săn Bắn Yêu Thú').setValue('sanyeuthunaav').setDescription('Tiêu diệt dã thú nhặt chiến lợi phẩm'),
-      new StringSelectMenuOptionBuilder().setLabel('<:lc1:1547866362511368212> Khiêu Chiến Bí Cảnh').setValue('bicanhnaav').setDescription('Khiêu chiến phó bản bí cảnh viễn cổ'),
-      new StringSelectMenuOptionBuilder().setLabel('<:thap:1547954692116451358> Khiêu Chiến Trấn Yêu Tháp').setValue('leothapnav').setDescription('Leo Tháp Vô Hạn trừ ma'),
-      new StringSelectMenuOptionBuilder().setLabel('<:idef:1547935867149099083> Khiêu Chiến World Boss').setValue('worldbossnav').setDescription('Đại chiến Boss toàn server'),
-      new StringSelectMenuOptionBuilder().setLabel('<:iiatk:1547935869602631680> Quyết Đấu PvP').setValue('quyetau').setDescription('Tỷ thí võ nghệ cướp linh thạch'),
-      new StringSelectMenuOptionBuilder().setLabel('<:iiatk:1547935869602631680> Đấu Trường PvP (Ranked)').setValue('arenanav').setDescription('Khiêu chiến đối thủ ELO nâng cao'),
+      new StringSelectMenuOptionBuilder().setLabel('🐺 Săn Bắn Yêu Thú').setValue('sanyeuthunaav').setDescription('Tiêu diệt dã thú nhặt chiến lợi phẩm'),
+      new StringSelectMenuOptionBuilder().setLabel('🔮 Khiêu Chiến Bí Cảnh').setValue('bicanhnaav').setDescription('Khiêu chiến phó bản bí cảnh viễn cổ'),
+      new StringSelectMenuOptionBuilder().setLabel('🏯 Khiêu Chiến Trấn Yêu Tháp').setValue('leothapnav').setDescription('Leo Tháp Vô Hạn trừ ma'),
+      new StringSelectMenuOptionBuilder().setLabel('🛡️ Khiêu Chiến World Boss').setValue('worldbossnav').setDescription('Đại chiến Boss toàn server'),
+      new StringSelectMenuOptionBuilder().setLabel('⚔️ Quyết Đấu PvP').setValue('quyetau').setDescription('Tỷ thí võ nghệ cướp linh thạch'),
+      new StringSelectMenuOptionBuilder().setLabel('⚔️ Đấu Trường PvP (Ranked)').setValue('arenanav').setDescription('Khiêu chiến đối thủ ELO nâng cao'),
       new StringSelectMenuOptionBuilder().setLabel('🌀 Luân Hồi Trọng Sinh').setValue('luanhoinnav').setDescription('Chuyển thế đầu thai nhận thuộc tính vĩnh viễn')
     );
 
   const selectMenu2 = new StringSelectMenuBuilder()
     .setCustomId(`hosoaction2_${userId}`)
-    .setPlaceholder('<:tvp1:1547866133242056704> Tiên Nghề, Sủng Vật & Giao Dịch')
+    .setPlaceholder('💼 Tiên Nghề, Sủng Vật & Giao Dịch')
     .addOptions(
-      new StringSelectMenuOptionBuilder().setLabel('<:tvp1:1547866133242056704> Mở Túi Đồ (Hành Trang)').setValue('tuido').setDescription('Xem và sử dụng vật phẩm'),
-      new StringSelectMenuOptionBuilder().setLabel('<:ilt:1547950632562982994> Quản Lý Sủng Thú').setValue('sungthunaav').setDescription('Bố trí, huấn luyện linh thú xuất chiến'),
-      new StringSelectMenuOptionBuilder().setLabel('<:itoaky:1547955958309847061> Quản Lý Tọa Kỵ').setValue('toakynav').setDescription('Chăm sóc và nâng cấp thú cưỡi'),
+      new StringSelectMenuOptionBuilder().setLabel('💼 Mở Túi Đồ (Hành Trang)').setValue('tuido').setDescription('Xem và sử dụng vật phẩm'),
+      new StringSelectMenuOptionBuilder().setLabel('🐉 Quản Lý Sủng Thú').setValue('sungthunaav').setDescription('Bố trí, huấn luyện linh thú xuất chiến'),
+      new StringSelectMenuOptionBuilder().setLabel('🐎 Quản Lý Tọa Kỵ').setValue('toakynav').setDescription('Chăm sóc và nâng cấp thú cưỡi'),
       new StringSelectMenuOptionBuilder().setLabel('⚡ Thức Tỉnh Khí Linh').setValue('spiritnav').setDescription('Thức tỉnh linh hồn pháp khí'),
-      new StringSelectMenuOptionBuilder().setLabel('<:idef:1547935867149099083> Quản Lý Trang Bị').setValue('trangbinaav').setDescription('Mặc/Tháo và cường hóa trang bị'),
-      new StringSelectMenuOptionBuilder().setLabel('<:icuoc:1547865924982411284> Làm Việc Kiếm Liệu').setValue('lamviecnav').setDescription('Chặt củi, đào mỏ tích lũy linh tài'),
-      new StringSelectMenuOptionBuilder().setLabel('<:luyendan:1547866018037243954> Luyện Đan Dược').setValue('luyendannav').setDescription('Chế tạo đan dược phụ trợ'),
-      new StringSelectMenuOptionBuilder().setLabel('<:tmh:1547866418207399986> Chế Tạo Pháp Khí').setValue('chetaonav').setDescription('Rèn phôi chế tạo trang bị'),
-      new StringSelectMenuOptionBuilder().setLabel('<:luyendan:1547866018037243954> Rèn Đúc Luyện Khí').setValue('luyenkhinav').setDescription('Rèn đúc trang bị (Luyện Khí Sư)'),
+      new StringSelectMenuOptionBuilder().setLabel('🛡️ Quản Lý Trang Bị').setValue('trangbinaav').setDescription('Mặc/Tháo và cường hóa trang bị'),
+      new StringSelectMenuOptionBuilder().setLabel('⛏️ Làm Việc Kiếm Liệu').setValue('lamviecnav').setDescription('Chặt củi, đào mỏ tích lũy linh tài'),
+      new StringSelectMenuOptionBuilder().setLabel('🌿 Luyện Đan Dược').setValue('luyendannav').setDescription('Chế tạo đan dược phụ trợ'),
+      new StringSelectMenuOptionBuilder().setLabel('🛠️ Chế Tạo Pháp Khí').setValue('chetaonav').setDescription('Rèn phôi chế tạo trang bị'),
+      new StringSelectMenuOptionBuilder().setLabel('⚒️ Rèn Đúc Luyện Khí').setValue('luyenkhinav').setDescription('Rèn đúc trang bị (Luyện Khí Sư)'),
       new StringSelectMenuOptionBuilder().setLabel('🌾 Chăm Sóc Linh Điền').setValue('linhdiennav').setDescription('Gieo hạt trồng trọt thảo mộc'),
-      new StringSelectMenuOptionBuilder().setLabel('<:dongphu:1547957254341263430> Quản Lý Động Phủ').setValue('dongphunav').setDescription('Quản lý Động Phủ Tiên Gia và Linh Mạch'),
+      new StringSelectMenuOptionBuilder().setLabel('🏰 Quản Lý Động Phủ').setValue('dongphunav').setDescription('Quản lý Động Phủ Tiên Gia và Linh Mạch'),
       new StringSelectMenuOptionBuilder().setLabel('☯️ Trở Về Tông Môn').setValue('tonmonnav').setDescription('Bái sư bách nghệ gia nhập tông môn'),
-      new StringSelectMenuOptionBuilder().setLabel('<:inpc:1547865947040256100> Ghé Thăm Cửa Hàng').setValue('shopnav').setDescription('Mua sắm dược phẩm và vé khiêu chiến'),
-      new StringSelectMenuOptionBuilder().setLabel('<:sotay:1547883761776197632> Tiệm Sách Kỹ Năng').setValue('shopkynangnav').setDescription('Mua sách học kỹ năng chiến đấu'),
-      new StringSelectMenuOptionBuilder().setLabel('<:inpc:1547865947040256100> Sàn Giao Dịch Nhất Phẩm Các').setValue('vanbaolaunav').setDescription('Mua bán tự do với tu sĩ khác')
+      new StringSelectMenuOptionBuilder().setLabel('🏪 Ghé Thăm Cửa Hàng').setValue('shopnav').setDescription('Mua sắm dược phẩm và vé khiêu chiến'),
+      new StringSelectMenuOptionBuilder().setLabel('📜 Tiệm Sách Kỹ Năng').setValue('shopkynangnav').setDescription('Mua sách học kỹ năng chiến đấu'),
+      new StringSelectMenuOptionBuilder().setLabel('🏛️ Sàn Giao Dịch Vạn Bảo Lâu').setValue('vanbaolaunav').setDescription('Mua bán tự do với tu sĩ khác')
     );
 
   return [
