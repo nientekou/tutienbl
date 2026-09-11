@@ -106,7 +106,7 @@ export function formatLinhCan(linhCanJson: string): string {
     else { label = '【Ngũ Linh Căn】'; speed = '0.9x'; }
     
     const formatted = sorted.map(([element, percentage]) => {
-      const emoji = ELEMENT_EMOJIS[element] || '🔮';
+      const emoji = ELEMENT_EMOJIS[element] || '<:lc01:1547878586000875550>';
       return `${emoji} ${element} (${percentage}%)`;
     }).join(' | ');
 
