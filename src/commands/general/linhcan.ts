@@ -149,8 +149,8 @@ export default class LinhCanCommand extends Command {
         .setColor(EMBED_COLORS.DARK_PURPLE)
         .setDescription('*Linh Căn phản ánh tư chất thiên địa, quyết định tốc độ hấp thu linh khí và thức tỉnh thiên phú.*')
         .addFields(
-          { name: '👤 Đạo Hữu', value: user.name, inline: true },
-          { name: '✨ Cảnh Giới', value: user.title, inline: true },
+          { name: '<:inv:1547865980854599693> Đạo Hữu', value: user.name, inline: true },
+          { name: '<:lc1:1547866362511368212> Cảnh Giới', value: user.title, inline: true },
           { name: '🚀 Tốc Độ Tu Luyện', value: `⚡ **${speedMult}x** tốc độ hấp thu linh khí cơ sở`, inline: true }
         )
         .setTimestamp();
@@ -174,7 +174,7 @@ export default class LinhCanCommand extends Command {
 
       // Thêm thông tin hướng dẫn
       embed.addFields({
-        name: '📖 Chỉ Dẫn Tu Hành',
+        name: '<:sotay:1547883761776197632> Chỉ Dẫn Tu Hành',
         value: 
           `• **Tẩy Tủy (` + '`/linhcan taytuy`' + `)**: Reroll ngẫu nhiên toàn bộ hệ linh căn (Phí: 100 Hạ Phẩm LT).\n` +
           `• **Tôi Luyện (` + '`/linhcan toiluyen`' + `)**: Tăng **+1%** hệ được chọn và giảm **-1%** hệ lớn nhất còn lại (Phí: 50 Trung Phẩm LT).\n` +
@@ -206,7 +206,7 @@ export default class LinhCanCommand extends Command {
       }
 
       const embed = new EmbedBuilder()
-        .setTitle('✨ TÔI LUYỆN LINH CĂN THÀNH CÔNG')
+        .setTitle('<:lc1:1547866362511368212> TÔI LUYỆN LINH CĂN THÀNH CÔNG')
         .setColor(EMBED_COLORS.SUCCESS)
         .setDescription(result.message)
         .setTimestamp();
@@ -223,9 +223,9 @@ export default class LinhCanCommand extends Command {
         .setColor(EMBED_COLORS.INFO)
         .setDescription('Tẩy tủy sẽ tái tạo ngẫu nhiên Linh Căn cốt cách, tác động trực tiếp tới các thuộc tính chiến đấu và hiệu suất tu luyện.')
         .addFields(
-          { name: '🔮 Linh Căn Hiện Tại', value: formattedLinhCan },
-          { name: '🪙 Chi Phí Tẩy Tủy', value: '💵 **100 Hạ Phẩm Linh Thạch**' },
-          { name: '💼 Số Dư Linh Thạch', value: `🟤 **${user.coin_ha_pham}** Hạ Phẩm Linh Thạch` }
+          { name: '<:lc01:1547878586000875550> Linh Căn Hiện Tại', value: formattedLinhCan },
+          { name: '<:lt1:1547866122123218945> Chi Phí Tẩy Tủy', value: '**100 Hạ Phẩm Linh Thạch**' },
+          { name: '<:lt1:1547866122123218945> Số Dư Linh Thạch', value: `**${user.coin_ha_pham}** Hạ Phẩm Linh Thạch` }
         )
         .setFooter({ text: 'Hãy cân nhắc kỹ trước khi quyết định thay đổi!' })
         .setTimestamp();
@@ -263,9 +263,9 @@ export default class LinhCanCommand extends Command {
         .setColor(EMBED_COLORS.INFO)
         .setDescription('Sử dụng Ngộ Tính để tái tạo Linh Căn, giữ nguyên 1 hệ nếu muốn.')
         .addFields(
-          { name: '🔮 Linh Căn Hiện Tại', value: formattedLinhCan },
+          { name: '<:lc01:1547878586000875550> Linh Căn Hiện Tại', value: formattedLinhCan },
           { name: '💡 Chi Phí', value: `**${totalCost}** NT${lockElement ? ` (bao gồm +10 NT giữ hệ ${lockElement})` : ''}` },
-          { name: '✨ Ngộ Tính Hiện Tại', value: `💡 **${ngotinh}** NT` }
+          { name: '<:lc1:1547866362511368212> Ngộ Tính Hiện Tại', value: `💡 **${ngotinh}** NT` }
         )
         .setFooter({ text: 'Linh Căn mới sẽ được tạo ngẫu nhiên!' })
         .setTimestamp();
