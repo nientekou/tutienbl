@@ -72,26 +72,26 @@ export default class TaoNhanVatCommand extends Command {
 
   private async stepEpicPrologue(interaction: ChatInputCommandInteraction): Promise<void> {
     const prologueData = [
-        {
-          title: 'Chương I: Khai Thiên',
-          text: 'Thuở thiên địa chưa định, vạn vật còn chìm trong một cõi hỗn mang vô tận. Không nhật nguyệt, không sơn hà, không phân âm dương, chỉ có linh khí cùng hư vô đan xen, trôi nổi qua những năm tháng chẳng ai biết đến tận cùng.\\n\\nĐến khi thiên địa sơ khai, thanh khí thăng lên thành trời, trọc khí lắng xuống hóa thành đất. Nhật nguyệt thay phiên, tinh tú vận hành, sơn hà dần thành thế. Linh khí theo đó lưu chuyển khắp Thương Mang, vạn vật bắt đầu sinh trưởng, chúng sinh lần lượt xuất hiện.\\n\\nTừ phàm nhân đến vạn tộc, từ một ngọn cỏ vô danh đến những tồn tại có thể lay chuyển thiên địa, tất cả đều bắt đầu từ cùng một cõi Thương Mang. Đại đạo cũng từ đó mà mở ra. Kẻ cầu trường sinh, kẻ cầu cực đạo, kẻ cầu tự tại giữa hồng trần — mỗi người đều bắt đầu bước lên con đường của riêng mình.',
-          color: 0xf1c40f
-        },
-        {
-          title: 'Chương II: Dấu Mốc',
-          text: 'Sau thuở khai thiên, Thương Mang từng trải qua một thời đại mà hậu thế khó lòng hình dung.\n\nKhi ấy, tiên lộ vẫn chưa có người đặt chân đến tận cùng. Tiên duyên chưa từng được chứng kiến, đại đạo chưa có khuôn thước, mà con đường phía trước cũng chẳng một ai biết sẽ dẫn đến đâu.\n\nĐó là một thời đại không có tiền lệ.\n\nCó những người sinh ra giữa phong vân, lấy thân thử đạo, lấy mệnh hỏi trời. Có những cái tên từng khiến thiên địa đổi sắc, rồi lại biến mất giữa dòng năm tháng. Cũng có những trận chiến, những đạo thống, những cổ địa đã sớm chìm vào lịch sử, chỉ còn đôi ba nét mực trong cổ thư để hậu nhân suy đoán.\n\nKhông ai biết chính xác chuyện gì đã xảy ra trong những năm tháng ấy.\n\nChỉ biết rằng, từ sau thời đại đó, tiên lộ bắt đầu có dấu vết để lần theo. Những giới hạn từng không thể gọi tên dần được chạm tới, những con đường chưa từng có người đặt chân dần được mở ra. Một thời đại mới cũng từ đó mà thành hình.\n\nHậu thế gọi đó là khởi nguyên của Tiên duyên.\n\nNhưng có lẽ, Tiên duyên chỉ là kết quả. Còn cái thật sự được để lại chính là con đường.\n\nMột con đường được mở bằng vô số năm tháng không tên, bằng những kẻ đi trước chưa từng biết mình có thể đi được bao xa.\n\nVà cũng từ nơi ấy, cái nôi của Thương Mang Thiên Hạ ngày nay bắt đầu được hình thành.',
-          color: 0x9b59b6
-        },
-        {
-          title: 'Chương III: Tiên Duyên & Đại Kiếp',
-          text: 'Khi những kẻ đứng trên đỉnh đại đạo lần lượt chạm đến giới hạn, Tiên duyên cuối cùng cũng được xác lập. Từ đó, con đường tu hành của hậu thế có thêm một tầng trời để ngước nhìn, một cảnh giới để truy cầu. Nhưng cũng từ khoảnh khắc ấy, đại thế bắt đầu chuyển mình.\\n\\nNhững tranh đấu kéo dài qua năm tháng cuối cùng hóa thành đại kiếp. Tiên, Ma, Yêu, Nhân cùng vô số thế lực cuốn vào vòng xoáy nhân quả. Cường giả lần lượt xuất thế rồi ngã xuống, đạo thống từng hưng thịnh cũng có ngày hóa thành phế tích. Có những trận chiến làm đổi màu cả một phương thiên địa, có những cái tên từng vang động cửu thiên rồi biến mất khỏi cổ sử.\\n\\nSau đại kiếp, Thương Mang không còn là Thương Mang của năm xưa. Rất nhiều truyền thừa thất lạc, cổ địa bị phong ấn, linh mạch dần suy kiệt. Những người từng đứng trên đỉnh cao cũng lần lượt lui khỏi thế gian. Chỉ còn vô số dấu vết của thời đại cũ nằm lại giữa sơn hà, chờ hậu nhân một ngày tìm thấy.',
-          color: 0xe74c3c
-        },
-        {
-          title: 'Chương IV: Thương Mang Tái Khởi',
-          text: 'Năm tháng trôi qua, thiên địa tưởng như đã trở lại bình lặng. Nhưng dưới lớp bụi của thời gian, những dòng linh mạch từng khô cạn bắt đầu thức tỉnh. Cổ địa lần lượt hiện thế, bí cảnh mở cửa, những truyền thừa từng biến mất từ thời đại ||Tô Tịnh|| cũng bắt đầu xuất hiện trở lại.\\n\\nTông môn dựng cờ, thế gia tranh thế, tán tu tìm cơ duyên. Một thế hệ mới bắt đầu bước lên tiên lộ, mang theo những khát vọng của riêng mình. Không ai biết những gì đã xảy ra trong thời đại trước sẽ một lần nữa tái diễn, cũng không ai biết những bí mật bị chôn vùi bao năm sẽ dẫn thế gian đi về đâu.\\n\\nThương Mang lại nổi phong vân. Tiên duyên không còn là truyền thuyết xa xôi, nhưng con đường đến đó vẫn là một con đường chưa từng dễ đi. Có người sinh ra đã có thiên tư, có người xuất thân thế gia, cũng có kẻ chỉ mang một thân phàm cốt.\\n\\nNhưng tiên lộ vốn chẳng hỏi xuất thân.\\n\\nMột bước nhập đạo, phía trước là vạn dặm sơn hà. Phía sau là hồng trần cố thổ. Cơ duyên, nhân quả, sinh tử, vinh nhục — tất cả đều sẽ trở thành một phần trên con đường của mỗi người.\\n\\nCòn ngươi, cũng chỉ là một người giữa Thương Mang chúng sinh. Không ai biết ngươi sẽ trở thành ai, cũng chẳng ai biết tên ngươi có được lưu lại trong cổ sử hay không.\\n\\nNhưng từ hôm nay, ngươi đã bước lên con đường mà những người như Tô Tịnh từng bước qua.\\n\\n**Thương Mang đã nổi phong vân. Tiên lộ lại mở. Và chương tiếp theo — do chính ngươi viết lấy.**',
-          color: 0x3498db
-        }
+    {
+      title: 'Chương I: Khai Thiên',
+      text: 'Thuở thiên địa chưa định, vạn vật còn chìm trong cõi hỗn mang vô tận.\n\nĐến khi thanh khí hóa trời, trọc khí thành đất, nhật nguyệt vận hành, Thương Mang Thiên Hạ mới chính thức hình thành.\n\nLinh khí lưu chuyển khắp sơn hà, vạn vật sinh sôi, đại đạo cũng từ đó mở ra.\n\nTừ phàm nhân đến vạn tộc, tất cả đều bước lên cùng một tiên lộ — tìm kiếm con đường của riêng mình.',
+      color: 0xf1c40f
+    },
+    {
+      title: 'Chương II: Dấu Mốc',
+      text: 'Sau thuở khai thiên, Thương Mang từng có một thời đại mà hậu thế chỉ còn biết qua những mảnh cổ sử rời rạc.\n\nĐó là thời đại chưa có tiền lệ, khi đại đạo chưa ai đi đến tận cùng và tiên lộ vẫn còn là một vùng sương mù.\n\nCó những người lấy thân hỏi trời, mở ra con đường chưa từng tồn tại trước đó.\n\nKhi thời đại ấy khép lại, một cánh cửa mới của tiên lộ cũng được mở ra, đặt nền móng cho Thương Mang ngày nay.',
+      color: 0x9b59b6
+    },
+    {
+      title: 'Chương III: Đại Kiếp',
+      text: 'Rồi đại kiếp giáng xuống, cuốn Tiên, Ma, Yêu và Nhân vào vòng xoáy nhân quả.\n\nTông môn hưng rồi diệt, cường giả xuất thế rồi biến mất, vô số truyền thừa bị chôn vùi theo năm tháng.\n\nLinh mạch suy kiệt, cổ địa phong ấn, Thương Mang bước vào một thời kỳ dài tĩnh lặng.\n\nNhững gì còn sót lại chỉ là dấu vết của một thời đại đã mất.',
+      color: 0xe74c3c
+    },
+    {
+      title: 'Chương IV: Thương Mang Tái Khởi',
+      text: 'Nay linh mạch dần thức tỉnh, bí cảnh và cổ địa lần lượt hiện thế.\n\nTông môn, thế gia và tán tu đều tranh đoạt cơ duyên giữa một thời đại phong vân mới.\n\nTiên lộ một lần nữa mở ra, nhưng không ai biết điều gì đang chờ phía cuối con đường.\n\nCòn Đạo Hữu, từ hôm nay cũng chính thức bước vào Thương Mang Thiên Hạ. Chương tiếp theo sẽ do Đạo Hữu tự mình viết nên.',
+      color: 0x3498db
+    }
     ];
 
     const embeds = prologueData.map(p => new EmbedBuilder()
