@@ -232,34 +232,34 @@ function getTaiSanTabEmbed(user: UserEntity): EmbedBuilder {
   return new EmbedBuilder()
     .setTitle(`<:tvp1:1547866133242056704> TÀI SẢN - ${user.name}`)
     .setColor(EMBED_COLORS.GOLD)
-    .setDescription(`*Tổng tài sản quy đổi:* <:tvp1:1547866133242056704> **${formatNumber(totalWealth)}** Hạ Phẩm Linh Thạch`)
+    .setDescription(`*Tổng tài sản quy đổi:* **${formatNumber(totalWealth)}** Hạ Phẩm Linh Thạch <:lt1:1547866122123218945> `)
     .addFields(
       {
         name: '<:tvp1:1547866133242056704> Linh Thạch & Cực Phẩm Linh Thạch',
         value: [
-          `🟤 **Hạ Phẩm:** **${formatNumber(user.coin_ha_pham)}** LT`,
-          `⚪ **Trung Phẩm:** **${formatNumber(user.coin_trung_pham)}** LT`,
-          `🟡 **Thượng Phẩm:** **${formatNumber(user.coin_thuong_pham)}** LT`,
-          `<:lt2:1547866118817845309> **Cực Phẩm Linh Thạch:** **${formatNumber(user.knb)}** CPLT`,
+          `\nㅤ└🟤 Hạ Phẩm: **${formatNumber(user.coin_ha_pham)}** LT`,
+          `ㅤ└⚪ Trung Phẩm: **${formatNumber(user.coin_trung_pham)}** LT`,
+          `ㅤ└🟡 Thượng Phẩm: **${formatNumber(user.coin_thuong_pham)}** LT`,
+          `ㅤ└<:lt2:1547866118817845309> **Cực Phẩm Linh Thạch:** **${formatNumber(user.knb)}** CPLT`,
         ].join('\n'),
         inline: true,
       },
       {
         name: '<:tvp1:1547866133242056704> Hành Trang',
         value: [
-          `<:a1:1547866004573392926> **Tổng số:** **${formatNumber(totalItems)}** món`,
-          `<:idef:1547935867149099083> **Trang bị mặc:** **${equippedCount}** món`,
-          `<:tt1:1547866327144734730> **Nguyên liệu:** **${formatNumber(materialCount)}** món`,
-          `<:dan:1547866099339624458> **Đan dược:** **${formatNumber(pillCount)}** món`,
-          `<:a1:1547866004573392926> **Rương đạo cụ:** **${formatNumber(chestCount)}** cái`,
+          `\nㅤ└<:a1:1547866004573392926> **Tổng số:** **${formatNumber(totalItems)}** món`,
+          `ㅤ└<:idef:1547935867149099083> **Trang bị mặc:** **${equippedCount}** món`,
+          `ㅤ└<:tt1:1547866327144734730> **Nguyên liệu:** **${formatNumber(materialCount)}** món`,
+          `ㅤ└<:dan:1547866099339624458> **Đan dược:** **${formatNumber(pillCount)}** món`,
+          `ㅤ└<:a1:1547866004573392926> **Rương đạo cụ:** **${formatNumber(chestCount)}** cái`,
         ].join('\n'),
         inline: true,
       },
       {
         name: '<:ilt:1547950632562982994> Linh Thú & Tọa Kỵ',
         value: [
-          `<:itoaky:1547955958309847061> **Tọa kỵ:** **${mountCount?.c || 0}** con`,
-          `⚡ **Khí linh:** **${spiritCount?.c || 0}** pháp bảo`,
+          `\nㅤ└<:itoaky:1547955958309847061> **Tọa kỵ:** **${mountCount?.c || 0}** con`,
+          `ㅤ└<:ngotinh:1547877042232496138> **Khí linh:** **${spiritCount?.c || 0}** pháp bảo`,
         ].join('\n'),
         inline: true,
       },
