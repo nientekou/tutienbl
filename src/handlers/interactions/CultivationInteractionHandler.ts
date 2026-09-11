@@ -414,7 +414,7 @@ export class CultivationInteractionHandler {
           `• <:iiatk:1547935869602631680> **Tăng 10% Công kích** cơ bản & **+5% Chí Mạng (Crit)**.\n` +
           `• 🧘 **Tăng 15% tốc độ tu luyện** (Offline thiền định & Thiền định chủ động).\n` +
           `• 🩸 **Cướp thêm 10% Linh Thạch** của đối thủ khi thắng PvP/Quyết Đấu.\n` +
-          `• <:iiatk:1547935869602631680> *Hình phạt:* Tăng **15% sát thương** Lôi Kiếp & giảm **5% tỷ lệ đột phá tự nhiên**.\n\n` +
+          `• <:xich:1547875512234410095> *Hình phạt:* Tăng **15% sát thương** Lôi Kiếp & giảm **5% tỷ lệ đột phá tự nhiên**.\n\n` +
           `⚠️ **LƯU Ý QUAN TRỌNG:** Một khi đã chọn Đạo Thống, Đạo Hữu chỉ có thể thay đổi/tẩy sạch sau khi **Luân Hồi Trọng Sinh**! Hãy suy nghĩ thật kỹ.`
         )
         .setTimestamp();
