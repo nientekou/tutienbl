@@ -72,26 +72,26 @@ export default class TaoNhanVatCommand extends Command {
 
   private async stepEpicPrologue(interaction: ChatInputCommandInteraction): Promise<void> {
     const prologueData = [
-      {
-        title: 'Chương 1: Hồng Hoang',
-        text: 'Thuở khai thiên lập địa, chín vị Tiên Tổ từ hư vô bước ra, phân chia trời đất thành Cửu Trùng Thiên. Nhân loại khi ấy chỉ là hạt bụi giữa dòng xoáy hỗn mang.',
-        color: 0xf1c40f
-      },
-      {
-        title: 'Chương 2: Đại Chiến',
-        text: '3000 năm trước, Ma Giới xé toang bức tường không gian. 12 vị Chân Tiên ngã xuống. Long tộc suy vong. Nhưng nhân loại... nhân loại đã đứng lên.',
-        color: 0xe74c3c
-      },
-      {
-        title: 'Chương 3: Thời Đại Mới',
-        text: 'Ngày nay, linh mạch khô cạn, bí cảnh cổ xưa dần hé lộ. Các tông môn tranh giành địa bàn. Một thời đại hỗn loạn và cũng đầy cơ hội.',
-        color: 0x3498db
-      },
-      {
-        title: 'Chương 4: Định Mệnh',
-        text: 'Và ngươi... giữa dòng xoáy của số phận, giữa những mảnh ghép của quá khứ và tương lai... ngươi chính là mảnh ghép còn thiếu. Hãy bắt đầu hành trình của mình.',
-        color: 0x2ecc71
-      }
+        {
+          title: 'Chương I: Khai Thiên',
+          text: 'Thuở thiên địa chưa định, vạn vật còn chìm trong một cõi hỗn mang vô tận. Không nhật nguyệt, không sơn hà, không phân âm dương, chỉ có linh khí cùng hư vô đan xen, trôi nổi qua những năm tháng chẳng ai biết đến tận cùng.\\n\\nĐến khi thiên địa sơ khai, thanh khí thăng lên thành trời, trọc khí lắng xuống hóa thành đất. Nhật nguyệt thay phiên, tinh tú vận hành, sơn hà dần thành thế. Linh khí theo đó lưu chuyển khắp Thương Mang, vạn vật bắt đầu sinh trưởng, chúng sinh lần lượt xuất hiện.\\n\\nTừ phàm nhân đến vạn tộc, từ một ngọn cỏ vô danh đến những tồn tại có thể lay chuyển thiên địa, tất cả đều bắt đầu từ cùng một cõi Thương Mang. Đại đạo cũng từ đó mà mở ra. Kẻ cầu trường sinh, kẻ cầu cực đạo, kẻ cầu tự tại giữa hồng trần — mỗi người đều bắt đầu bước lên con đường của riêng mình.',
+          color: 0xf1c40f
+        },
+        {
+          title: 'Chương II: Dấu Mốc',
+          text: 'Sau thuở khai thiên, Thương Mang từng trải qua một thời đại mà hậu thế khó lòng hình dung.\n\nKhi ấy, tiên lộ vẫn chưa có người đặt chân đến tận cùng. Tiên duyên chưa từng được chứng kiến, đại đạo chưa có khuôn thước, mà con đường phía trước cũng chẳng một ai biết sẽ dẫn đến đâu.\n\nĐó là một thời đại không có tiền lệ.\n\nCó những người sinh ra giữa phong vân, lấy thân thử đạo, lấy mệnh hỏi trời. Có những cái tên từng khiến thiên địa đổi sắc, rồi lại biến mất giữa dòng năm tháng. Cũng có những trận chiến, những đạo thống, những cổ địa đã sớm chìm vào lịch sử, chỉ còn đôi ba nét mực trong cổ thư để hậu nhân suy đoán.\n\nKhông ai biết chính xác chuyện gì đã xảy ra trong những năm tháng ấy.\n\nChỉ biết rằng, từ sau thời đại đó, tiên lộ bắt đầu có dấu vết để lần theo. Những giới hạn từng không thể gọi tên dần được chạm tới, những con đường chưa từng có người đặt chân dần được mở ra. Một thời đại mới cũng từ đó mà thành hình.\n\nHậu thế gọi đó là khởi nguyên của Tiên duyên.\n\nNhưng có lẽ, Tiên duyên chỉ là kết quả. Còn cái thật sự được để lại chính là con đường.\n\nMột con đường được mở bằng vô số năm tháng không tên, bằng những kẻ đi trước chưa từng biết mình có thể đi được bao xa.\n\nVà cũng từ nơi ấy, cái nôi của Thương Mang Thiên Hạ ngày nay bắt đầu được hình thành.',
+          color: 0x9b59b6
+        },
+        {
+          title: 'Chương III: Tiên Duyên & Đại Kiếp',
+          text: 'Khi những kẻ đứng trên đỉnh đại đạo lần lượt chạm đến giới hạn, Tiên duyên cuối cùng cũng được xác lập. Từ đó, con đường tu hành của hậu thế có thêm một tầng trời để ngước nhìn, một cảnh giới để truy cầu. Nhưng cũng từ khoảnh khắc ấy, đại thế bắt đầu chuyển mình.\\n\\nNhững tranh đấu kéo dài qua năm tháng cuối cùng hóa thành đại kiếp. Tiên, Ma, Yêu, Nhân cùng vô số thế lực cuốn vào vòng xoáy nhân quả. Cường giả lần lượt xuất thế rồi ngã xuống, đạo thống từng hưng thịnh cũng có ngày hóa thành phế tích. Có những trận chiến làm đổi màu cả một phương thiên địa, có những cái tên từng vang động cửu thiên rồi biến mất khỏi cổ sử.\\n\\nSau đại kiếp, Thương Mang không còn là Thương Mang của năm xưa. Rất nhiều truyền thừa thất lạc, cổ địa bị phong ấn, linh mạch dần suy kiệt. Những người từng đứng trên đỉnh cao cũng lần lượt lui khỏi thế gian. Chỉ còn vô số dấu vết của thời đại cũ nằm lại giữa sơn hà, chờ hậu nhân một ngày tìm thấy.',
+          color: 0xe74c3c
+        },
+        {
+          title: 'Chương IV: Thương Mang Tái Khởi',
+          text: 'Năm tháng trôi qua, thiên địa tưởng như đã trở lại bình lặng. Nhưng dưới lớp bụi của thời gian, những dòng linh mạch từng khô cạn bắt đầu thức tỉnh. Cổ địa lần lượt hiện thế, bí cảnh mở cửa, những truyền thừa từng biến mất từ thời đại ||Tô Tịnh|| cũng bắt đầu xuất hiện trở lại.\\n\\nTông môn dựng cờ, thế gia tranh thế, tán tu tìm cơ duyên. Một thế hệ mới bắt đầu bước lên tiên lộ, mang theo những khát vọng của riêng mình. Không ai biết những gì đã xảy ra trong thời đại trước sẽ một lần nữa tái diễn, cũng không ai biết những bí mật bị chôn vùi bao năm sẽ dẫn thế gian đi về đâu.\\n\\nThương Mang lại nổi phong vân. Tiên duyên không còn là truyền thuyết xa xôi, nhưng con đường đến đó vẫn là một con đường chưa từng dễ đi. Có người sinh ra đã có thiên tư, có người xuất thân thế gia, cũng có kẻ chỉ mang một thân phàm cốt.\\n\\nNhưng tiên lộ vốn chẳng hỏi xuất thân.\\n\\nMột bước nhập đạo, phía trước là vạn dặm sơn hà. Phía sau là hồng trần cố thổ. Cơ duyên, nhân quả, sinh tử, vinh nhục — tất cả đều sẽ trở thành một phần trên con đường của mỗi người.\\n\\nCòn ngươi, cũng chỉ là một người giữa Thương Mang chúng sinh. Không ai biết ngươi sẽ trở thành ai, cũng chẳng ai biết tên ngươi có được lưu lại trong cổ sử hay không.\\n\\nNhưng từ hôm nay, ngươi đã bước lên con đường mà những người như Tô Tịnh từng bước qua.\\n\\n**Thương Mang đã nổi phong vân. Tiên lộ lại mở. Và chương tiếp theo — do chính ngươi viết lấy.**',
+          color: 0x3498db
+        }
     ];
 
     const embeds = prologueData.map(p => new EmbedBuilder()
@@ -119,11 +119,11 @@ export default class TaoNhanVatCommand extends Command {
     
     if (maxVal >= 90) {
       type = 'Thiên'; color = 0xf1c40f; icon = '✨';
-      npcReac = '"Trời ơi! Linh căn thuần khiết! Ngươi là hy vọng của nhân loại!"';
-      npcStory = 'Xưa nay chỉ có 3 người có Thiên linh căn... tất cả đều phi thăng.';
+      npcReac = '"Thiên linh căn... Đã rất lâu rồi, mới lại thấy một người như Đạo Hữu."';
+      npcStory = 'Tư chất chạm đến Thiên phẩm, vạn người khó gặp. Trong cổ sử từng có những người mang căn cốt này, cuối cùng đều bước lên con đường mà hậu thế chỉ dám ngước nhìn.';
     } else if (maxVal >= 70) {
       type = 'Địa'; color = 0x3498db; icon = '🌟';
-      npcReac = '"Linh căn thượng đẳng. Rất tốt, theo ta."';
+      npcReac = '"Địa linh căn. Căn cốt như vậy, đủ để Đạo Hữu đi xa trên tiên lộ."';
       npcStory = 'Địa linh căn xuất hiện 1 thế hệ 1 lần. Ngươi sẽ làm nên chuyện.';
     } else if (maxVal >= 40) {
       type = 'Nhân'; color = 0xbdc3c7; icon = '💫';
