@@ -16,7 +16,7 @@ import db from '../../database/database';
 export type HoSoTab = 'chiso' | 'taisan' | 'chientich' | 'trangbi' | 'linhthu' | 'somenh' | 'bangxephang' | 'thongke';
 
 const TAB_LABELS: Record<HoSoTab, { name: string; emoji: string }> = {
-  chiso: { name: 'Chỉ Số', emoji: '📊' },
+  chiso: { name: 'Chỉ Số', emoji: '1547875508174327828' },
   taisan: { name: 'Tài Sản', emoji: '🪙' },
   chientich: { name: 'Chiến Tích', emoji: '🏆' },
   trangbi: { name: 'Trang Bị', emoji: '⚔️' },
