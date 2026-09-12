@@ -623,7 +623,7 @@ export function getHoSoActionMenus(userId: string): ActionRowBuilder<StringSelec
       new StringSelectMenuOptionBuilder().setLabel('Đột Phá Cảnh Giới').setValue('dotpha').setDescription('Bức phá bình cảnh cảnh giới').setEmoji('⚡'),
       new StringSelectMenuOptionBuilder().setLabel('Tẩy Tủy Linh Căn').setValue('taytuynav').setDescription('Đổi ngũ hành linh căn (Tốn 100 LT)').setEmoji('🌀'),
       new StringSelectMenuOptionBuilder().setLabel('Ngộ Ý Cảnh').setValue('ycanhnaav').setDescription('Lĩnh ngộ đại đạo ý cảnh').setEmoji('🌌'),
-      new StringSelectMenuOptionBuilder().setLabel('Nhiệm Vụ Trấn Hải Các').setValue('nhiemvunav').setDescription('Kiểm tra nhiệm vụ hàng ngày'.setEmoji({ id: '1548254532700475432', name: 'ithc' })),
+      new StringSelectMenuOptionBuilder().setLabel('Nhiệm Vụ Trấn Hải Các').setValue('nhiemvunav').setDescription('Kiểm tra nhiệm vụ hàng ngày').setEmoji({ id: '1548254532700475432', name: 'ithc' })),
       new StringSelectMenuOptionBuilder().setLabel('Khám Phá Địa Đồ').setValue('khambhanav').setDescription('Du ngoạn thám hiểm khắp nơi').setEmoji('🗺️'),
       new StringSelectMenuOptionBuilder().setLabel('Săn Bắn Yêu Thú').setValue('sanyeuthunaav').setDescription('Tiêu diệt dã thú nhặt chiến lợi phẩm').setEmoji({ id: '1547865885513875496', name: 'cunglt' }),
       new StringSelectMenuOptionBuilder().setLabel('Khiêu Chiến Bí Cảnh').setValue('bicanhnaav').setDescription('Khiêu chiến phó bản bí cảnh viễn cổ').setEmoji({ id: '1548255334546546758', name: 'ibicanh' }),
