@@ -945,7 +945,7 @@ function getThongKeTabEmbed(user: UserEntity): EmbedBuilder {
   } catch {}
 
   return new EmbedBuilder()
-    .setTitle(`📈 Thống Kê — ${user.name || user.discord_id}`)
+    .setTitle(`<:tin4:1547875508174327828> Thống Kê — ${user.name || user.discord_id}`)
     .setColor(EMBED_COLORS.INFO)
     .setDescription(
       `📅 **Ngày tạo:** <t:${Math.floor(joinDate.getTime() / 1000)}:D> (${daysPlayed} ngày)\n` +
@@ -953,7 +953,7 @@ function getThongKeTabEmbed(user: UserEntity): EmbedBuilder {
       `<:ityt:1548254527709515826> **Tháp sâu nhất:** ${bestFloor > 0 ? `Tầng ${bestFloor}` : 'Chưa rõ'}\n` +
       `⚡ **Thiên Kiếp:** ${tribBest}\n` +
       `<:ilt:1547950632562982994> **Linh Thú:** ${companionInfo}\n` +
-      `✨ **Mệnh Cách Thức Tỉnh:** ${awakenedDest}/3\n` +
+      `<:menhcach:1547981230023245834> **Mệnh Cách Thức Tỉnh:** ${awakenedDest}/3\n` +
       `<:sotay:1547883761776197632> **Yêu Thú Chí:** ${bestiaryCount} yêu thú đã hạ\n` +
       `🏆 **Danh hiệu:** ${user.title || 'Tán Tu'}`
     )
@@ -982,7 +982,7 @@ export function getHoSoTabEmbed(userId: string, tab: HoSoTab): EmbedBuilder {
       const embed = new EmbedBuilder()
         .setTitle('<:thienthu:1547875509919289465> Bảng Phong Thần')
         .setColor(EMBED_COLORS.GOLD) // ponytail: gold hex, keep numeric for BXH
-        .setDescription('*Chọn một danh mục bên dưới để xem bảng xếp hạng.*\n\nDữ liệu được cập nhật mỗi **5 phút**.\n\n📋 **Các danh mục:**\n<:iiatk:1547935869602631680> Lực Chiến\n🌀 Cảnh Giới\n<:tvp1:1547866133242056704> Tài Sản\n<:tientrang:1547866014857826354> Cống Hiến Tông Môn')
+        .setDescription('*Chọn một danh mục bên dưới để xem bảng xếp hạng.*\n\nDữ liệu được cập nhật mỗi **5 phút**.\n\n<:tin4:1547875508174327828> **Các Danh Mục:**\n<:iiatk:1547935869602631680> Lực Chiến\n<:lc1:1547866362511368212> Cảnh Giới\n<:tvp1:1547866133242056704> Tài Sản\n<:tientrang:1547866014857826354> Cống Hiến Tông Môn')
         .setFooter({ text: 'Sử dụng các nút bên dưới để chuyển danh mục.' })
         .setTimestamp();
       return embed;
