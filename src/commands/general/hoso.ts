@@ -15,16 +15,15 @@ import db from '../../database/database';
 
 export type HoSoTab = 'chiso' | 'taisan' | 'chientich' | 'trangbi' | 'linhthu' | 'somenh' | 'bangxephang' | 'thongke';
 
-const TAB_LABELS: Record<HoSoTab, { name: string; emoji: { id?: string; name?: string } }
-> = {
-  chiso: { name: 'Chỉ Số', emoji: { id: '1547875508174327828' } },
-  taisan: { name: 'Tài Sản', emoji: { id: '1547875508174327828' } },
-  chientich: { name: 'Chiến Tích', emoji: { id: '1547875508174327828' } },
-  trangbi: { name: 'Trang Bị', emoji: { id: '1547875508174327828' } },
-  linhthu: { name: 'Linh Thú', emoji: { id: '1547875508174327828' } },
-  somenh: { name: 'Số Mệnh', emoji: { id: '1547875508174327828' } },
-  bangxephang: { name: 'Bảng Phong Thần', emoji: { id: '1547875508174327828' } },
-  thongke: { name: 'Thống Kê', emoji: { id: '1547875508174327828' } },
+const TAB_LABELS: Record<HoSoTab, { name: string; emoji: string }> = {
+  chiso: { name: 'Chỉ Số', emoji: '<:tin4:1547875508174327828>' },
+  taisan: { name: 'Tài Sản', emoji: '🪙' },
+  chientich: { name: 'Chiến Tích', emoji: '🏆' },
+  trangbi: { name: 'Trang Bị', emoji: '⚔️' },
+  linhthu: { name: 'Linh Thú', emoji: '🐉' },
+  somenh: { name: 'Số Mệnh', emoji: '📜' },
+  bangxephang: { name: 'Bảng Phong Thần', emoji: '👑' },
+  thongke: { name: 'Thống Kê', emoji: '📈' },
 };
 
 const SLOT_EMOJI: Record<string, string> = {
