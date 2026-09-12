@@ -36,10 +36,10 @@ export interface EventConfig {
 // Định nghĩa các sự kiện mẫu
 export const EVENT_TEMPLATES: EventConfig[] = [
   {
-    id: 'weekly_boss_rush',
-    name: 'Thảo Phạt Ma Vương',
+    id: 'dithu',
+    name: 'Thiên Ngoại Dị Thú',
     type: 'weekly_boss',
-    description: 'Tuần này Ma Vương tái thế! Cả server cùng tham gia thảo phạt để nhận thưởng đặc biệt. Tích lũy sát thương để đạt các mốc phần thưởng!',
+    description: 'Thiên tượng dị biến, hung thú từ ngoài cõi phá giới mà đến. Yêu khí phủ trời, họa loạn một phương. Chư vị Đạo Hữu, hãy cùng hợp lực trấn áp, tích lũy chiến công để mở khóa từng tầng trọng thưởng.',
     durationHours: 168, // 7 ngày
     rewards: [
       { type: 'coin', amount: 5000 },
@@ -50,10 +50,10 @@ export const EVENT_TEMPLATES: EventConfig[] = [
     repeatable: 'weekly'
   },
   {
-    id: 'double_exp_weekend',
-    name: 'Cuồng Phong Tu Luyện',
+    id: 'linhtrieu',
+    name: 'Linh Triều Dâng Thế',
     type: 'double_exp',
-    description: '⚠️ CUỐI TUẦN EXP X2! Trong thời gian diễn ra sự kiện, tất cả Tu Vi nhận được từ thiền định, luyện đan, làm việc và bí cảnh được nhân đôi!',
+    description: '⚠️ CUỐI TUẦN EXP X2! Thiên địa linh khí chợt dâng, linh triều cuồn cuộn khắp Thương Mang. Trong thời gian diễn ra sự kiện, tất cả Tu Vi nhận được từ thiền định, luyện đan, làm việc và bí cảnh được nhân đôi!',
     durationHours: 48, // 2 ngày (thứ 7-CN)
     rewards: [
       { type: 'tuvi', amount: 0 } // 0 = buff multiplier, not direct reward
@@ -64,7 +64,7 @@ export const EVENT_TEMPLATES: EventConfig[] = [
     id: 'mid_autumn_festival',
     name: 'Tết Trung Thu',
     type: 'seasonal',
-    description: '🌕 Lễ hội Trung Thu! Tham gia các hoạt động để nhận Nguyệt Bính và các vật phẩm giới hạn!',
+    description: 'Trăng sáng giữa trời, nguyệt hoa phủ xuống nhân gian. Chư vị Đạo Hữu có thể tham dự các hoạt động trong kỳ hội, tìm kiếm Nguyệt Bính cùng những vật phẩm chỉ xuất hiện trong đêm hội.!',
     durationHours: 72, // 3 ngày
     rewards: [
       { type: 'coin', amount: 10000 },
@@ -73,10 +73,10 @@ export const EVENT_TEMPLATES: EventConfig[] = [
     repeatable: 'once'
   },
   {
-    id: 'mini_game_race',
-    name: 'Đại Hội Linh Thú',
+    id: 'linhthu',
+    name: 'Linh Thú Tranh Phong',
     type: 'mini_game',
-    description: '🏁 Đại Hội Linh Thú hàng tháng! Đua linh thú để giành giải thưởng lớn. Ai có sủng thú mạnh nhất?',
+    description: 'Bách thú tụ hội, linh thú tranh phong. Chư phương mang tọa kỵ và linh sủng của mình tham dự, xem ai có thể vượt qua quần thú, đoạt lấy khôi thủ.',
     durationHours: 24,
     rewards: [
       { type: 'coin', amount: 3000 },
@@ -87,28 +87,28 @@ export const EVENT_TEMPLATES: EventConfig[] = [
   },
   // BIG UPDATE §5: New event types
   {
-    id: 'loot_bonus_weekly',
-    name: 'Lộc Từ Trời',
+    id: 'thienco',
+    name: 'Thiên Cơ Khai Vận',
     type: 'loot_bonus',
-    description: '🍀 Linh khí thiên địa dồi dào, tỷ lệ rơi đồ từ Bí Cảnh và Thám Hiểm tăng 50%!',
+    description: '🍀 Thiên cơ chuyển vận, linh khí tụ hội. Cơ duyên trong Bí Cảnh và những nơi thám du theo đó cũng trở nên dồi dào hơn, tỷ lệ thu hoạch kỳ vật tăng 50%!',
     durationHours: 48,
     rewards: [],
     repeatable: 'weekly'
   },
   {
-    id: 'craft_bonus_weekly',
-    name: 'Hỏa Diệu Lô',
+    id: 'lohoa',
+    name: 'Lô Hỏa Thông Linh',
     type: 'craft_bonus',
-    description: '🔥 Lửa đạo linh lực thăng hoa, tất cả tỷ lệ chế tác Luyện Đan và Luyện Khí tăng 10%!',
+    description: '🔥 Lô hỏa bỗng sinh dị tượng, linh lực trong đan lô và khí lô cộng hưởng. Người hành luyện được thiên địa trợ lực, tỷ lệ thành công khi Luyện Đan và Luyện Khí tăng 10%!',
     durationHours: 48,
     rewards: [],
     repeatable: 'weekly'
   },
   {
-    id: 'boss_invasion_weekly',
-    name: 'Ma Vương Giáng Thế',
+    id: 'hungthu',
+    name: 'Hung Thú Phá Giới',
     type: 'boss_invasion',
-    description: '👾 Ma Vương thức tỉnh, Boss Thế Giới nhận thêm 50% phần thưởng!',
+    description: '👾 Phong ấn rung chuyển, hung thú phá giới mà đến. Dị thú đang hoành hành giữa Thương Mang, mọi chiến công trong cuộc trấn áp lần này đều được thiên địa ban thêm một phần hậu thưởng.',
     durationHours: 48,
     rewards: [],
     repeatable: 'weekly'
@@ -127,7 +127,7 @@ class EventService {
    */
   startScheduler(): void {
     if (this.schedulerInterval) return;
-    console.log('[EventService] ⏳ Khởi động Scheduler quét sự kiện định kỳ...');
+    console.log('[EventService] ⏳ Khởi động quét sự kiện định kỳ...');
     
     // Kiểm tra và tạo sự kiện ngay lập tức khi khởi động
     this.checkEvents();
@@ -300,7 +300,7 @@ class EventService {
       "SELECT id FROM event_participants WHERE event_id = ? AND user_id = ?"
     ).get(eventId, userId) as any;
 
-    if (existing) return { success: false, message: 'Đạo hữu đã tham gia sự kiện này rồi!' };
+    if (existing) return { success: false, message: 'Đạo Hữu đã tham gia sự kiện này rồi!' };
 
     const now = Math.floor(Date.now() / 1000);
     db.prepare(`
@@ -310,7 +310,7 @@ class EventService {
 
     systemConfigService.writeAuditLog(userId, 'event_join', { eventId, eventName: event.name });
 
-    return { success: true, message: `🎉 Đạo hữu đã tham gia sự kiện **${event.name}**! Hãy tích cực hoạt động để nhận thưởng!` };
+    return { success: true, message: `🎉 Đạo Hữu đã tham gia sự kiện **${event.name}**! Hãy tích cực hoạt động để nhận thưởng!` };
   }
 
   /**
@@ -331,14 +331,14 @@ class EventService {
       "SELECT * FROM event_participants WHERE event_id = ? AND user_id = ? AND rewards_claimed = 0"
     ).get(eventId, userId) as any;
 
-    if (!participant) return { success: false, message: 'Đạo hữu chưa tham gia sự kiện này hoặc đã nhận thưởng rồi!' };
+    if (!participant) return { success: false, message: 'Đạo Hữu chưa tham gia sự kiện này hoặc đã nhận thưởng rồi!' };
 
     const event = this.getEvent(eventId);
     if (!event) return { success: false, message: 'Sự kiện không tồn tại!' };
     if (event.status !== 'ended') return { success: false, message: 'Sự kiện chưa kết thúc! Hãy chờ đến khi sự kiện kết thúc để nhận thưởng.' };
 
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
+    if (!user) return { success: false, message: 'Đạo Hữu chưa khởi tạo nhân vật!' };
 
     let rewards: EventReward[];
     try {
