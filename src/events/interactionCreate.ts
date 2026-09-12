@@ -288,6 +288,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
           interaction.customId.startsWith('invselect_') ||
           interaction.customId.startsWith('select_alignment_') ||
           interaction.customId.startsWith('shopbuy_') ||
+          interaction.customId.startsWith('camnang_') ||
           interaction.customId.startsWith('bossshop_buy_') ||
           interaction.customId.startsWith('sknbuy_') ||
           interaction.customId.startsWith('bicanhselect_') ||
