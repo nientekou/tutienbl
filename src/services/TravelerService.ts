@@ -72,7 +72,7 @@ export class TravelerService {
               '*(Lão nhân sẽ rời đi sau 1 giờ hoặc khi kỳ trân trong túi được trao đổi hết.)*'
 )          .setColor(EMBED_COLORS.DARK_PURPLE)
           .addFields(
-            { name: '<:tvp2:1547866124924883044> Kỳ Trân', value: Object.values(inventory).map(i => `- **${i.name}** (Còn: ${i.quantity}) - Giá: ${i.price} LT`).join('\n') }
+            { name: '### <:tvp2:1547866124924883044> Kỳ Trân', value: Object.values(inventory).map(i => `- **${i.name}** (Còn: ${i.quantity}) - Giá: ${i.price} LT`).join('\n') }
           )
           .setFooter({ text: 'Chú ý: Cướp đoạt Lão Nhân có tỷ lệ rớt cấp nếu thất bại!' });
 
