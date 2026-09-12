@@ -37,8 +37,8 @@ export default class BangNghiaVuCommand extends Command {
       for (let i = 0; i < cards.length; i++) {
         const c = cards[i];
         desc += `${tierEmoji[c.tier]} **${c.name}** — ${c.description}\n`;
-        desc += `  <:tin4:1547875508174327828> ${c.requirement}: 0/${c.target} | <:qua4:1547881540372009021> ${c.rewardExp} EXP, ${c.rewardCoins} <:lt1:1547866122123218945> LT`;
-        if (c.rewardKnb > 0) desc += `, ${c.rewardKnb} <:lt2:1547866118817845309> CPLT`;
+        desc += `  <:tin4:1547875508174327828> ${c.requirement}: 0/${c.target} | <:qua4:1547881540372009021> ${c.rewardExp} <:iexp:1547935874077954078>, ${c.rewardCoins} LT <:lt1:1547866122123218945>`;
+        if (c.rewardKnb > 0) desc += `, ${c.rewardKnb} CPLT <:lt2:1547866118817845309>`;
         desc += '\n';
       }
     }
