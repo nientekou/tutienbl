@@ -150,7 +150,7 @@ export class LeylineService {
     if (!this.discordClient) return;
     
     const names: Record<string, string> = {
-      'tuluyen': 'Tu Luyện (+20% Tu Vi)',
+      'tuluyen': 'Tu Luyện (+20% EXP)',
       'chiendau': 'Chiến Đấu (+10% ATK)',
       'thuthap': 'Thu Thập (+25% Tỷ lệ Rơi Đồ)',
       'kinhte': 'Kinh Tế (-10% Phí Chợ Trời)',
@@ -273,7 +273,7 @@ export class LeylineService {
     const isContaminated = Math.random() < 0.10;
     const msg = `⚡ **【LINH TRIỀU DỊ ĐỘNG】** Địa mạch **${names[surgeLeyline]}** chợt sinh dị biến, linh khí cuồn cuộn dâng trào!\n` +
       `✨ **Cống Hiến x2** trong **30 phút**. Thuận thế mà hành, ắt được thiên địa trợ lực.\n` +
-      (isContaminated ? `⚠️ **DỊ BIẾN:** Linh mạch dường như đã nhiễm một luồng uế khí. Dị tượng chưa rõ nguồn, chư vị đạo hữu chớ nên khinh suất:'');
+      (isContaminated ? `⚠️ **DỊ BIẾN:** Linh mạch dường như đã nhiễm một luồng uế khí. Dị tượng chưa rõ nguồn, chư vị đạo hữu chớ nên khinh suất`:'');
 
     try {
       const configs = db.prepare('SELECT guild_id, event_channel_id FROM guild_configs WHERE event_channel_id IS NOT NULL').all() as any[];
@@ -347,7 +347,7 @@ export class LeylineService {
       'kinhte': 'Kinh Tế', 'tongmon': 'Tông Môn'
     };
 
-    let prediction = `**Dự báo Leyline (7 ngày qua):**\n`;
+    let prediction = `**Biến Động Linh Mạch (7 ngày qua):**\n`;
     for (const l of leylines) {
       const pct = Math.round(((counts[l] || 0) / total) * 100);
       const bar = '█'.repeat(Math.round(pct / 5)) + '░'.repeat(20 - Math.round(pct / 5));
