@@ -667,10 +667,10 @@ export function getHoSoAllComponents(userId: string, activeTab: HoSoTab = 'chiso
   // Tab Bảng Phong Thần: hiển thị nút chọn danh mục & nút quay lại, ẩn các menu tab và menu hành động
   if (activeTab === 'bangxephang') {
     const lbTypes = [
-      { id: 'combatPower', label: 'Lực Chiến', emoji: { id: '1547887626655240222', name: 'iauto' }, },
-      { id: 'realm', label: 'Cảnh Giới', emoji: { id: '1547866362511368212', name: 'lc1' }, },
-      { id: 'wealth', label: 'Tài Sản', emoji: { id: '1547866122123218945', name: 'lt1' }, },
-      { id: 'sectContribution', label: 'Cống Hiến', emoji: { id: '1547866014857826354', name: 'tientrang' }, },
+      { id: 'combatPower', label: 'Lực Chiến', emoji: '⚔️' },
+      { id: 'realm', label: 'Cảnh Giới', emoji: '🌀' },
+      { id: 'wealth', label: 'Tài Sản', emoji: '🪙' },
+      { id: 'sectContribution', label: 'Cống Hiến', emoji: '🏛️' },
     ];
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       ...lbTypes.map(t =>
