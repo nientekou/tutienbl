@@ -23,35 +23,35 @@ interface WorldEvent {
 
 const EVENT_DEFINITIONS: Record<EventType, { name: string; description: string; duration: number; rewards: string }> = {
   world_boss: {
-    name: 'Boss Xuất Hiện',
-    description: 'Một Boss hùng mạnh xuất hiện! Tất cả tu sĩ cùng nhau tiêu diệt!',
+    name: 'Thiên Ngoại Dị Thú',
+    description: 'Thiên địa chợt rung chuyển, dị thú từ ngoài cõi giáng thế. Yêu khí cuồn cuộn, sát cơ phủ kín một phương. Chư vị đạo hữu, hãy hợp lực trừ họa!',
     duration: 30 * 60,
-    rewards: 'Top cống hiến: Vật phẩm hiếm + KNB\nTất cả: EXP + Linh Thạch'
+    rewards: 'Người lập đại công: Kỳ trân dị bảo + CPLT\nChư tu sĩ tham chiến: Tu vi + Linh Thạch'
   },
   leyline_surge: {
-    name: 'Linh Mạch Dâng Trào',
-    description: 'Linh mạch địa đồ đang dâng trào! Nhân 3 điểm cống hiến!',
+    name: 'Linh Triều Dâng Thế',
+    description: 'Địa mạch chuyển mình, linh khí trong thiên hạ cuồn cuộn dâng trào. Trong thời khắc này, người thuận thế mà tu, tất được thiên địa trợ lực.',
     duration: 15 * 60,
-    rewards: 'x3 điểm cống hiến cho mọi hoạt động'
+    rewards: 'Mọi hoạt động nhận **x3** Cống Hiến'
   },
   thien_kiep: {
-    name: 'Thiên Kiếp',
-    description: 'Một vị tu sĩ đang trải qua thiên kiếp! Cầu nguyện cho họ!',
+    name: 'Thiên Kiếp Lâm Thế',
+    description: 'Lôi vân tụ đỉnh, thiên uy giáng thế. Có một vị Đạo Hữu đang đứng trước cửa ải sinh tử của mình. Thiên kiếp đã mở, người ngoài không thể thay thế, chỉ có thể đứng bên cầu nguyện.',
     duration: 10 * 60,
-    rewards: 'Nếu vượt qua: +50% EXP trong 1h\nNếu thất bại: -20% EXP trong 30p'
+    rewards: 'Nếu vượt kiếp: Tu vi nhận +50% trong 1 giờ\nNếu độ kiếp thất bại: Tu vi nhận -20% trong 30 phút'
   },
   seasonal: {
-    name: 'Sự Kiện Mùa',
-    description: 'Sự kiện đặc biệt theo mùa đang diễn ra!',
+    name: 'Thiên Thời Luân Chuyển',
+    description: 'Xuân thu thay đổi, thiên thời luân chuyển. Khí vận một phương theo đó mà thịnh, vạn vật cũng được thiên địa ban thêm một phần cơ duyên.',
     duration: 60 * 60,
-    rewards: 'x2 phần thưởng cho mọi hoạt động'
+    rewards: 'Mọi hoạt động nhận **x2** phần thưởng'
   },
   // V16 C-04: Thiên Hạ Đại Chiến — monthly 72-hour server-wide competition
   thien_ha_dai_chien: {
-    name: 'Thiên Hạ Đại Chiến',
-    description: 'Đại hội võ lâm toàn server! Tranh tài giành vinh quang!',
+    name: 'Thiên Hạ Tranh Phong',
+    description: 'Thiên hạ phong vân nổi sóng, chư phương thế lực cùng hội tụ. Một trận tranh phong, luận thực lực, đo khí vận. Ai có thể áp quần hùng, danh chấn Thương Mang?',
     duration: 72 * 60 * 60,
-    rewards: 'Top 1: Danh hiệu "Thiên Hạ Vô Địch" + 500 KNB\nTop 3: 300 KNB + Vật phẩm hiếm\nTop 10: 100 KNB + Nguyên liệu'
+    rewards: 'Đệ Nhất: Danh hiệu "Thiên Hạ Vô Địch" + 500 CPLT\nTam Cường: 300 CPLT + Kỳ trân dị bảo\nThập Cường: 100 CPLT + Thiên tài địa bảo'
   }
 };
 
@@ -247,16 +247,16 @@ class WorldEventService {
    */
   getEventDescription(): string {
     const event = this.getActiveEvent();
-    if (!event) return '🌍 Hiện tại không có sự kiện nào đang diễn ra.';
+    if (!event) return '<:thongbao:1547880257279889450> Hiện tại không có sự kiện nào đang diễn ra.';
 
     const timeLeft = Math.max(0, event.endTime - Math.floor(Date.now() / 1000));
     const minutes = Math.floor(timeLeft / 60);
 
-    let msg = `🌍 **SỰ KIỆN ĐANG DIỄN RA!**\n`;
-    msg += `📢 **${event.name}**\n`;
+    let msg = `<:thongbao:1547880257279889450> **SỰ KIỆN ĐANG DIỄN RA!**\n`;
+    msg += `<:thongbao:1547880257279889450> **${event.name}**\n`;
     msg += `${event.description}\n\n`;
     msg += `⏰ Còn **${minutes}** phút\n`;
-    msg += `🎁 **Phần thưởng:** ${event.rewards}\n`;
+    msg += `<:qua4:1547881540372009021> **Phần thưởng:** ${event.rewards}\n`;
     msg += `\n*Dùng \`/sukien donggop\` để đóng góp!*`;
 
     return msg;
@@ -266,17 +266,17 @@ class WorldEventService {
    * A-01: Announce event to all guilds
    */
   private async announceEvent(event: WorldEvent): Promise<void> {
-    console.log(`🌍 [SỰ KIỆN THẾ GIỚI] ${event.name}: ${event.description}`);
+    console.log(`<:thongbao:1547880257279889450> [SỰ KIỆN THẾ GIỚI] ${event.name}: ${event.description}`);
 
     if (!this.client) return;
 
     const guilds = db.prepare('SELECT guild_id FROM guild_configs WHERE event_channel_id IS NOT NULL OR guide_channel_id IS NOT NULL').all() as any[];
     const embed = new EmbedBuilder()
-      .setTitle(`🌍 ${event.name}`)
+      .setTitle(`<:thongbao:1547880257279889450> ${event.name}`)
       .setDescription(event.description)
       .addFields(
         { name: '⏰ Thời gian', value: `${Math.floor((event.endTime - event.startTime) / 60)} phút`, inline: true },
-        { name: '🎁 Phần thưởng', value: event.rewards, inline: false }
+        { name: '<:qua4:1547881540372009021> Phần thưởng', value: event.rewards, inline: false }
       )
       .setColor(EMBED_COLORS.GOLD)
       .setTimestamp();
@@ -302,11 +302,10 @@ class WorldEventService {
    */
   getMoreEventTypes(): { id: string; name: string; description: string; duration: number; rewards: string }[] {
     return [
-      { id: 'fishing_contest', name: 'Giải Câu Cá', description: 'Câu được con cá lớn nhất!', duration: 60 * 60, rewards: 'Cá + KNB' },
-      { id: 'treasure_hunt', name: 'Săn Kho Báu', description: 'Tìm kho báu ẩn giấu!', duration: 30 * 60, rewards: 'Vật phẩm hiếm + Linh Thạch' },
-      { id: 'pvp_tournament', name: 'Giải Đấu PvP', description: 'Tranh tài vinh quang!', duration: 120 * 60, rewards: 'Danh hiệu + KNB' },
-      { id: 'crafting_marathon', name: 'Điêu Luyện Marathon', description: 'Chế tạo thật nhiều vật phẩm!', duration: 60 * 60, rewards: 'Nguyên liệu chế tạo + EXP' },
-      { id: 'exploration_rush', name: 'Thám Hiểm Cấp Tốc', description: 'Khám phá thật nhiều địa điểm!', duration: 60 * 60, rewards: 'Nguyên liệu hiếm + EXP' },
+      { id: 'fishing_contest', name: 'Triều Sinh Tranh Ngư', description: 'Triều dâng sinh vạn tượng, kỳ ngư theo dòng mà xuất thế. Ai có thể câu được linh ngư lớn nhất, người ấy sẽ đứng đầu bảng hôm nay.', duration: 60 * 60, rewards: 'Cá + CPLT' },
+      { id: 'treasure_hunt', name: 'Tầm Bảo Thiên Cơ', description: 'Thiên cơ chợt hiện, bảo vật thất lạc năm xưa lần lượt lộ dấu. Cơ duyên đã đến, chỉ xem ai đủ bản lĩnh tìm ra trước.!', duration: 30 * 60, rewards: 'Vật phẩm hiếm + Linh Thạch' },
+      { id: 'pvp_tournament', name: 'Quần Hùng Tranh Phong', description: 'Quần hùng hội tụ, chư phương tranh phong. Một trận luận cao thấp, một kiếm định danh giữa Thương Mang.', duration: 120 * 60, rewards: 'Danh hiệu + CPLT' },
+      { id: 'crafting_marathon', name: 'Bách Luyện Đấu Khí', description: 'Lô hỏa không tắt, khí phôi liên thành. Đây là lúc các vị luyện khí sư phô bày tạo nghệ, xem ai có thể luyện thành nhiều pháp vật nhất.', duration: 60 * 60, rewards: 'Nguyên liệu chế tạo + Tu Vi' },
     ];
   }
 
@@ -375,15 +374,15 @@ class WorldEventService {
    * B-06: Get event description for UI
    */
   getEventDeepDescription(): string {
-    let msg = `🌍 **Sự Kiện Thế Giới**\n`;
+    let msg = `<:thongbao:1547880257279889450> **Sự Kiện Thế Giới**\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
 
     const active = this.getActiveEvent();
     if (active) {
       const timeLeft = Math.max(0, active.endTime - Math.floor(Date.now() / 1000));
-      msg += `📢 **Đang hoạt động:** ${active.name} (${Math.floor(timeLeft / 60)}p)\n`;
+      msg += `<:thongbao:1547880257279889450> **Đang hoạt động:** ${active.name} (${Math.floor(timeLeft / 60)}p)\n`;
     } else {
-      msg += `📢 Không có sự kiện nào đang hoạt động\n`;
+      msg += `<:thongbao:1547880257279889450> Không có sự kiện nào đang hoạt động\n`;
     }
 
     msg += `\n**Loại Sự Kiện:**\n`;
