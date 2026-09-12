@@ -676,8 +676,7 @@ export function getHoSoAllComponents(userId: string, activeTab: HoSoTab = 'chiso
       ...lbTypes.map(t =>
         new ButtonBuilder()
           .setCustomId(`hosolb_${t.id}_${userId}`)
-          .setLabel(TAB_LABELS[tab].name)
-          .setEmoji(TAB_LABELS[tab].emoji)
+          .setLabel(`${t.emoji} ${t.label}`)       
           .setStyle(ButtonStyle.Secondary)
       ),
       new ButtonBuilder()
