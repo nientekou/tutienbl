@@ -15,7 +15,7 @@ export const LABELS: Record<string, { name: string; emoji: string; color: number
   },
   realm: {
     name: 'Cảnh Giới',
-    emoji: '<:ngotinh:1547877042232496138>',
+    emoji: '<:lc1:1547866362511368212>',
     color: 0x8A2BE2, // Blue Violet
     description: 'Xếp hạng cảnh giới tu vi của các tu sĩ.'
   },
@@ -181,7 +181,7 @@ export default class BangPhongThanCommand extends Command {
             .setRequired(false)
             .addChoices(
               { name: '<:iatk:1547865969488306258> Lực Chiến', value: 'combatPower' },
-              { name: '<:ngotinh:1547877042232496138> Cảnh Giới', value: 'realm' },
+              { name: '<:lc1:1547866362511368212> Cảnh Giới', value: 'realm' },
               { name: '<:lt1:1547866122123218945> Tài Sản', value: 'wealth' },
               { name: '<:tientrang:1547866014857826354> Cống Hiến Tông Môn', value: 'sectContribution' },
               { name: '<:iauto:1547887626655240222> Đấu Trường PvP', value: 'arena' },
