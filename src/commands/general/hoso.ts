@@ -238,10 +238,10 @@ function getTaiSanTabEmbed(user: UserEntity): EmbedBuilder {
       {
         name: '### <:tvp1:1547866133242056704> Linh Thạch & Cực Phẩm Linh Thạch',
         value: [
-          `\n <:lt1:1547866122123218945> Hạ Phẩm: **${formatNumber(user.coin_ha_pham)}** LT`,
+          `\n<:lt1:1547866122123218945> Hạ Phẩm: **${formatNumber(user.coin_ha_pham)}** LT`,
           `<:lt1:1547866122123218945> Trung Phẩm: **${formatNumber(user.coin_trung_pham)}** LT`,
           `<:lt1:1547866122123218945> Thượng Phẩm: **${formatNumber(user.coin_thuong_pham)}** LT`,
-          `<:lt2:1547866118817845309> **Cực Phẩm Linh Thạch:** **${formatNumber(user.knb)}** CPLT`,
+          `<:lt2:1547866118817845309> Cực Phẩm Linh Thạch: **${formatNumber(user.knb)}** CPLT`,
         ].join('\n'),
         inline: true,
       },
@@ -339,7 +339,7 @@ function getChienTichTabEmbed(user: UserEntity): EmbedBuilder {
       },
       // W9-03: Extended stats
       {
-        name: '### <:sotay:1547883761776197632> Thống Kê Mở Rộng\n',
+        name: '### <:sotay:1547883761776197632> Thống Kê Mở Rộng',
         value: (() => {
           const stats: string[] = [];
           // Tower
@@ -350,7 +350,7 @@ function getChienTichTabEmbed(user: UserEntity): EmbedBuilder {
           // Beast collection
           try {
             const beastCount = db.prepare('SELECT COUNT(DISTINCT beast_type) as c FROM rare_beasts WHERE user_id = ?').get(user.discord_id) as any;
-            if (beastCount) stats.push(`<:ilt:1547950632562982994> **Linh thú hiếm:** **${beastCount.c}** loại`);
+            if (beastCount) stats.push(`\n<:ilt:1547950632562982994> **Linh thú hiếm:** **${beastCount.c}** loại`);
           } catch {}
           // Dream Dust
           stats.push(`✨ **Mộng Cát:** **${formatNumber(user.dream_dust || 0)}**`);
@@ -667,16 +667,17 @@ export function getHoSoAllComponents(userId: string, activeTab: HoSoTab = 'chiso
   // Tab Bảng Phong Thần: hiển thị nút chọn danh mục & nút quay lại, ẩn các menu tab và menu hành động
   if (activeTab === 'bangxephang') {
     const lbTypes = [
-      { id: 'combatPower', label: 'Lực Chiến', emoji: '⚔️' },
-      { id: 'realm', label: 'Cảnh Giới', emoji: '🌀' },
-      { id: 'wealth', label: 'Tài Sản', emoji: '🌀' },
-      { id: 'sectContribution', label: 'Cống Hiến', emoji: '🏛️' },
+      { id: 'combatPower', label: 'Lực Chiến', emoji: '1547935869602631680' },
+      { id: 'realm', label: 'Cảnh Giới', emoji: '1547935874077954078' },
+      { id: 'wealth', label: 'Tài Sản', emoji: '1547866122123218945' },
+      { id: 'sectContribution', label: 'Cống Hiến', emoji: '1547866118817845309' },
     ];
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       ...lbTypes.map(t =>
         new ButtonBuilder()
           .setCustomId(`hosolb_${t.id}_${userId}`)
-          .setLabel(`${t.emoji} ${t.label}`)       
+          .setLabel(t.label)
+          .setEmoji(t.emoji) // ✅ Custom emoji ID    
           .setStyle(ButtonStyle.Secondary)
       ),
       new ButtonBuilder()
