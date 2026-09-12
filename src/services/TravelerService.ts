@@ -21,10 +21,10 @@ export class TravelerService {
   ];
 
   /**
-   * Spawn Lữ Khách Thần Bí ngẫu nhiên
+   * Spawn Lão Nhân Thần Bí ngẫu nhiên
    */
   public async spawnTraveler(client: Client, channelId: string): Promise<boolean> {
-    // Xóa/fled các Lữ khách cũ nếu có
+    // Xóa/fled các Lão Nhân cũ nếu có
     db.prepare("UPDATE traveler_events SET status = 'fled' WHERE status = 'active'").run();
 
     const nowSec = Math.floor(Date.now() / 1000);
@@ -62,13 +62,19 @@ export class TravelerService {
       const channel = (client.channels.cache.get(channelId) ?? await client.channels.fetch(channelId).catch(() => null)) as TextChannel | null;
       if (channel && channel.isTextBased()) {
         const embed = new EmbedBuilder()
-          .setTitle('👺 Lữ Khách Thần Bí Xuất Hiện!')
-          .setDescription('Một gã Lữ Khách bí ẩn mang chiếc mặt nạ quỷ vừa đi ngang qua. Hắn vác theo một túi đồ nặng trĩu. Có vẻ như hắn sẵn sàng bán một số vật phẩm quý hiếm cho những ai trả giá cao!\n\n*(Lữ khách sẽ rời đi sau 1 giờ hoặc khi hết hàng. Đạo hữu cũng có thể liều mạng cướp hàng của hắn!)*')
-          .setColor(EMBED_COLORS.DARK_PURPLE)
+          .setTitle('<:laonhan:1548386545298309140> Thanh Huyền Lão Nhân Xuất Hiện!')
+          .setDescription(
+              'Một lão nhân tóc bạc trắng, thân khoác thanh bào, chẳng rõ từ phương nào mà đến. ' +
+              'Thoạt nhìn chỉ thấy thần thái điềm nhiên, nhưng người có nhãn lực ắt nhận ra đạo vận quanh thân sâu không thể dò.\n\n' +
+              'Lão nhân mang theo một túi càn khôn, bên trong cất giữ không ít kỳ trân dị bảo. ' +
+              'Nghe nói lão chỉ lưu lại nơi này một thời gian ngắn, tìm kiếm những người hữu duyên để trao đổi bảo vật.\n\n' +
+              'Cơ duyên đã gặp, có giữ được hay không còn tùy vào bản lĩnh của mỗi người.\n\n' +
+              '*(Lão nhân sẽ rời đi sau 1 giờ hoặc khi kỳ trân trong túi được trao đổi hết.)*'
+)          .setColor(EMBED_COLORS.DARK_PURPLE)
           .addFields(
-            { name: '💰 Hàng Hoá', value: Object.values(inventory).map(i => `- **${i.name}** (Còn: ${i.quantity}) - Giá: ${i.price} LT`).join('\n') }
+            { name: '<:tvp2:1547866124924883044> Kỳ Trân', value: Object.values(inventory).map(i => `- **${i.name}** (Còn: ${i.quantity}) - Giá: ${i.price} LT`).join('\n') }
           )
-          .setFooter({ text: 'Chú ý: Cướp đoạt Lữ Khách có tỷ lệ rớt cấp nếu thất bại!' });
+          .setFooter({ text: 'Chú ý: Cướp đoạt Lão Nhân có tỷ lệ rớt cấp nếu thất bại!' });
 
         const buyButton = new ButtonBuilder()
           .setCustomId(`traveler_buy_${eventId}`)
@@ -77,7 +83,7 @@ export class TravelerService {
 
         const robButton = new ButtonBuilder()
           .setCustomId(`traveler_rob_${eventId}`)
-          .setLabel('⚔️ Cướp Đoạt')
+          .setLabel('⚔️ Đoạt Bảo')
           .setStyle(ButtonStyle.Danger);
 
         const row = new ActionRowBuilder<ButtonBuilder>().addComponents(buyButton, robButton);
@@ -95,11 +101,11 @@ export class TravelerService {
   }
 
   /**
-   * Mua vật phẩm từ Lữ Khách
+   * Mua vật phẩm từ Lão Nhân
    */
   public buyItem(userId: string, eventId: number, itemId: string, quantity: number): { success: boolean, message: string } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
+    if (!user) return { success: false, message: 'Đạo Hữu chưa khởi tạo nhân vật!' };
 
     // Transaction để đảm bảo tính nguyên vẹn (Race condition)
     let result = { success: false, message: 'Lỗi giao dịch.' };
@@ -107,7 +113,7 @@ export class TravelerService {
     db.transaction(() => {
       const event = db.prepare('SELECT * FROM traveler_events WHERE id = ?').get(eventId) as any;
       if (!event || event.status !== 'active') {
-        result = { success: false, message: 'Lữ Khách đã rời đi hoặc sự kiện đã kết thúc!' };
+        result = { success: false, message: 'Lão Nhân đã rời đi hoặc sự kiện đã kết thúc!' };
         return;
       }
 
@@ -118,18 +124,18 @@ export class TravelerService {
 
       const item = inventory[itemId];
       if (!item) {
-        result = { success: false, message: 'Lữ Khách không bán vật phẩm này!' };
+        result = { success: false, message: 'Lão Nhân không bán vật phẩm này!' };
         return;
       }
 
       if (item.quantity < quantity) {
-        result = { success: false, message: `Lữ Khách chỉ còn lại **${item.quantity}** ${item.name}!` };
+        result = { success: false, message: `Lão Nhân chỉ còn lại **${item.quantity}** ${item.name}!` };
         return;
       }
 
       const totalCost = item.price * quantity;
       if (user.coin_ha_pham < totalCost) {
-        result = { success: false, message: `Đạo hữu không đủ linh thạch! (Cần ${totalCost} LT, hiện có ${user.coin_ha_pham} LT)` };
+        result = { success: false, message: `Đạo Hữu không đủ linh thạch! (Cần ${totalCost} LT, hiện có ${user.coin_ha_pham} LT)` };
         return;
       }
 
@@ -140,7 +146,7 @@ export class TravelerService {
       const { inventoryRepository } = require('../database/repositories/InventoryRepository');
       inventoryRepository.addItem(userId, itemId, quantity);
 
-      // Cập nhật Inventory của Lữ Khách
+      // Cập nhật Inventory của Lão Nhân
       item.quantity -= quantity;
       
       let newStatus = event.status;
@@ -155,7 +161,7 @@ export class TravelerService {
 
       result = { 
         success: true, 
-        message: `Đạo hữu đã mua thành công **${quantity}x ${item.name}** với giá **${totalCost} Linh thạch**!` 
+        message: `Đạo Hữu đã mua thành công **${quantity}x ${item.name}** với giá **${totalCost} Linh thạch**!` 
       };
     })();
 
@@ -163,18 +169,18 @@ export class TravelerService {
   }
 
   /**
-   * Cướp Lữ Khách
+   * Cướp Lão Nhân
    */
   public challengeTraveler(userId: string, eventId: number): { success: boolean, message: string } {
     const user = userRepository.get(userId);
-    if (!user) return { success: false, message: 'Đạo hữu chưa khởi tạo nhân vật!' };
+    if (!user) return { success: false, message: 'Đạo Hữu chưa khởi tạo nhân vật!' };
 
     let result = { success: false, message: 'Lỗi chiến đấu.' };
 
     db.transaction(() => {
       const event = db.prepare('SELECT * FROM traveler_events WHERE id = ?').get(eventId) as any;
       if (!event || event.status !== 'active') {
-        result = { success: false, message: 'Lữ Khách đã không còn ở đây nữa!' };
+        result = { success: false, message: 'Lão Nhân đã không còn ở đây nữa!' };
         return;
       }
 
@@ -201,7 +207,7 @@ export class TravelerService {
 
         result = { 
           success: true, 
-          message: `⚔️ Đạo hữu đã **chiến thắng** Lữ Khách! Hắn vứt lại túi đồ và bỏ chạy.\nNhận được: ${itemsLooted.length > 0 ? itemsLooted.join(', ') : 'Không có gì'}` 
+          message: `⚔️ Đạo Hữu đã **thắng trận**! Thanh Huyền Lão Nhân không nói một lời, chỉ khẽ vuốt râu, để lại túi càn khôn rồi thong thả rời đi. Đến khi định thần nhìn lại, bóng dáng lão nhân đã chẳng còn nơi đây.\nNhận được: ${itemsLooted.length > 0 ? itemsLooted.join(', ') : 'Không có gì'}` 
         };
       } else {
         // Trừ 1 level
@@ -217,7 +223,7 @@ export class TravelerService {
 
         result = {
           success: false,
-          message: `☠️ Đạo hữu bị Lữ Khách đấm trọng thương! Kinh mạch đứt đoạn, tu vi giảm sút.\nCảnh giới rớt xuống **${newRealm.realmName}**!`
+          message: `☠️ Đạo Hữu bị Lão Nhân đấm trọng thương! Kinh mạch đứt đoạn, tu vi giảm sút.\nCảnh giới rớt xuống **${newRealm.realmName}**!`
         };
       }
     })();
