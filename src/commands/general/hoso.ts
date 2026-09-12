@@ -631,7 +631,7 @@ export function getHoSoActionMenus(userId: string): ActionRowBuilder<StringSelec
       new StringSelectMenuOptionBuilder().setLabel('Khiêu Chiến World Boss').setValue('worldbossnav').setDescription('Đại chiến Boss toàn server').setEmoji({ id: '1548256901429469245', name: 'boss' }),
       new StringSelectMenuOptionBuilder().setLabel('Quyết Đấu PvP').setValue('quyetau').setDescription('Tỷ thí võ nghệ cướp linh thạch').setEmoji({ id: '1547887626655240222', name: 'iauto' }),
       new StringSelectMenuOptionBuilder().setLabel('Đấu Trường PvP (Ranked)').setValue('arenanav').setDescription('Khiêu chiến đối thủ ELO nâng cao').setEmoji({ id: '1547887626655240222', name: 'iauto' }),
-      new StringSelectMenuOptionBuilder().setLabel('Luân Hồi Trọng Sinh').setValue('luanhoinnav').setDescription('Chuyển thế đầu thai nhận thuộc tính vĩnh viễn').setEmoji('🌀'))
+      new StringSelectMenuOptionBuilder().setLabel('Luân Hồi Trọng Sinh').setValue('luanhoinnav').setDescription('Chuyển thế đầu thai nhận thuộc tính vĩnh viễn').setEmoji('🌀')
     );
 
   const selectMenu2 = new StringSelectMenuBuilder()
