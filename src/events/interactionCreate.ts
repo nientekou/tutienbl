@@ -413,6 +413,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         return;
       }
 
+        if (
+  interaction.isStringSelectMenu() &&
+  interaction.customId.startsWith('camnang_')
+) {
+  const { handleCamNangSelect } = await import('../commands/general/camnang');
+  await handleCamNangSelect(interaction);
+  return;
+}
       // --- DISPATCH: InteractionRegistry (handles all registered actions) ---
       const registryHandled = await registry.dispatch(interaction, action, parts, targetUserId);
       if (registryHandled) return;
