@@ -668,9 +668,9 @@ export function getHoSoAllComponents(userId: string, activeTab: HoSoTab = 'chiso
   if (activeTab === 'bangxephang') {
     const lbTypes = [
       { id: 'combatPower', label: 'Lực Chiến', emoji: '1547935869602631680' },
-      { id: 'realm', label: 'Cảnh Giới', emoji: '1547935874077954078' },
+      { id: 'realm', label: 'Cảnh Giới', emoji: '1547866362511368212' },
       { id: 'wealth', label: 'Tài Sản', emoji: '1547866122123218945' },
-      { id: 'sectContribution', label: 'Cống Hiến', emoji: '1547866118817845309' },
+      { id: 'sectContribution', label: 'Cống Hiến', emoji: '1547866014857826354' },
     ];
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       ...lbTypes.map(t =>
@@ -950,7 +950,7 @@ function getThongKeTabEmbed(user: UserEntity): EmbedBuilder {
     .setDescription(
       `📅 **Ngày tạo:** <t:${Math.floor(joinDate.getTime() / 1000)}:D> (${daysPlayed} ngày)\n` +
       `<:iiatk:1547935869602631680> **Chiến đấu:** ${wins} thắng / ${losses} thua (${winRate}% win rate)\n` +
-      `🌀 **Tháp sâu nhất:** ${bestFloor > 0 ? `Tầng ${bestFloor}` : 'Chưa rõ'}\n` +
+      `<:ityt:1548254527709515826> **Tháp sâu nhất:** ${bestFloor > 0 ? `Tầng ${bestFloor}` : 'Chưa rõ'}\n` +
       `⚡ **Thiên Kiếp:** ${tribBest}\n` +
       `<:ilt:1547950632562982994> **Linh Thú:** ${companionInfo}\n` +
       `✨ **Mệnh Cách Thức Tỉnh:** ${awakenedDest}/3\n` +
