@@ -347,7 +347,7 @@ export class LeylineService {
       'kinhte': 'Kinh Tế', 'tongmon': 'Tông Môn'
     };
 
-    let prediction = `**Biến Động Linh Mạch (7 ngày qua):**\n`;
+    let prediction = `**Dự báo Leyline (7 ngày qua):**\n`;
     for (const l of leylines) {
       const pct = Math.round(((counts[l] || 0) / total) * 100);
       const bar = '█'.repeat(Math.round(pct / 5)) + '░'.repeat(20 - Math.round(pct / 5));
