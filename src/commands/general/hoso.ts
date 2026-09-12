@@ -669,7 +669,7 @@ export function getHoSoAllComponents(userId: string, activeTab: HoSoTab = 'chiso
     const lbTypes = [
       { id: 'combatPower', label: 'Lực Chiến', emoji: '⚔️' },
       { id: 'realm', label: 'Cảnh Giới', emoji: '🌀' },
-      { id: 'wealth', label: 'Tài Sản', emoji: '1547866122123218945' },
+      { id: 'wealth', label: 'Tài Sản', emoji: '🌀' },
       { id: 'sectContribution', label: 'Cống Hiến', emoji: '🏛️' },
     ];
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
