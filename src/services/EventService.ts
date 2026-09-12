@@ -53,7 +53,7 @@ export const EVENT_TEMPLATES: EventConfig[] = [
     id: 'linhtrieu',
     name: 'Linh Triều Dâng Thế',
     type: 'double_exp',
-    description: '⚠️ CUỐI TUẦN EXP X2! Thiên địa linh khí chợt dâng, linh triều cuồn cuộn khắp Thương Mang. Trong thời gian diễn ra sự kiện, tất cả Tu Vi nhận được từ thiền định, luyện đan, làm việc và bí cảnh được nhân đôi!',
+    description: '🌊 CUỐI TUẦN EXP X2! Thiên địa linh khí chợt dâng, linh triều cuồn cuộn khắp Thương Mang. Trong thời gian diễn ra sự kiện, tất cả Tu Vi nhận được từ thiền định, luyện đan, làm việc và bí cảnh được nhân đôi!',
     durationHours: 48, // 2 ngày (thứ 7-CN)
     rewards: [
       { type: 'tuvi', amount: 0 } // 0 = buff multiplier, not direct reward
