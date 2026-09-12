@@ -15,14 +15,14 @@ interface BountyQuest {
 }
 
 const BOUNTY_POOL: BountyQuest[] = [
-  { id: 'b_com_1', name: 'Sát Thủ', description: 'Đánh bại 5 kẻ địch', category: 'combat', tier: 'common', requirement: 'kill', target: 5, rewardExp: 200, rewardCoins: 500, rewardKnb: 0 },
-  { id: 'b_com_2', name: 'Chiến Binh', description: 'Đánh bại 10 kẻ địch', category: 'combat', tier: 'elite', requirement: 'kill', target: 10, rewardExp: 500, rewardCoins: 1500, rewardKnb: 5 },
-  { id: 'b_com_3', name: 'Tổng Tư Lệnh', description: 'Đánh bại 20 kẻ địch', category: 'combat', tier: 'legendary', requirement: 'kill', target: 20, rewardExp: 1500, rewardCoins: 5000, rewardKnb: 20 },
-  { id: 'b_life_1', name: 'Thu Mùa', description: 'Hái 3 thảo dược', category: 'life', tier: 'common', requirement: 'herb', target: 3, rewardExp: 150, rewardCoins: 300, rewardKnb: 0 },
-  { id: 'b_life_2', name: 'Đại Thu Mùa', description: 'Hái 8 thảo dược', category: 'life', tier: 'elite', requirement: 'herb', target: 8, rewardExp: 400, rewardCoins: 1000, rewardKnb: 5 },
-  { id: 'b_soc_1', name: 'Hảo Hán', description: 'Trao đổi 2 vật phẩm', category: 'social', tier: 'common', requirement: 'trade', target: 2, rewardExp: 150, rewardCoins: 400, rewardKnb: 0 },
-  { id: 'b_spec_1', name: 'Thám Hiểm', description: 'Hoàn thành 1 lần thám hiểm', category: 'special', tier: 'common', requirement: 'explore', target: 1, rewardExp: 300, rewardCoins: 800, rewardKnb: 0 },
-  { id: 'b_spec_2', name: 'Thám Hiểm Sâu', description: 'Hoàn thành 3 lần thám hiểm', category: 'special', tier: 'elite', requirement: 'explore', target: 3, rewardExp: 800, rewardCoins: 2000, rewardKnb: 10 },
+  { id: 'b_com_1', name: 'Chiến Đấu', description: 'Đánh bại 5 kẻ địch', category: 'combat', tier: 'common', requirement: 'kill', target: 5, rewardExp: 200, rewardCoins: 500, rewardKnb: 0 },
+  { id: 'b_com_2', name: 'Dũng Chiến', description: 'Đánh bại 10 kẻ địch', category: 'combat', tier: 'elite', requirement: 'kill', target: 10, rewardExp: 500, rewardCoins: 1500, rewardKnb: 5 },
+  { id: 'b_com_3', name: 'Chiến Công Hiển Hách', description: 'Đánh bại 20 kẻ địch', category: 'combat', tier: 'legendary', requirement: 'kill', target: 20, rewardExp: 1500, rewardCoins: 5000, rewardKnb: 20 },
+  { id: 'b_life_1', name: 'Thu Thập Linh Thảo', description: 'Hái 3 thảo dược', category: 'life', tier: 'common', requirement: 'herb', target: 3, rewardExp: 150, rewardCoins: 300, rewardKnb: 0 },
+  { id: 'b_life_2', name: 'Thảo Dược Đầy Túi', description: 'Hái 8 thảo dược', category: 'life', tier: 'elite', requirement: 'herb', target: 8, rewardExp: 400, rewardCoins: 1000, rewardKnb: 5 },
+  { id: 'b_soc_1', name: 'Giao Hảo', description: 'Trao đổi 2 vật phẩm', category: 'social', tier: 'common', requirement: 'trade', target: 2, rewardExp: 150, rewardCoins: 400, rewardKnb: 0 },
+  { id: 'b_spec_1', name: 'Bước Chân Giang Hồ', description: 'Hoàn thành 1 lần thám hiểm', category: 'special', tier: 'common', requirement: 'explore', target: 1, rewardExp: 300, rewardCoins: 800, rewardKnb: 0 },
+  { id: 'b_spec_2', name: 'Du Ngoạn Tứ Phương', description: 'Hoàn thành 3 lần thám hiểm', category: 'special', tier: 'elite', requirement: 'explore', target: 3, rewardExp: 800, rewardCoins: 2000, rewardKnb: 10 },
 ];
 
 class BountyBoardService {
