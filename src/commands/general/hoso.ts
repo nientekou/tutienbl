@@ -107,8 +107,8 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
   ) : baseCp;
 
   let alignmentStr = 'Tán Tu ⚪';
-  if (user.alignment === 'orthodox') alignmentStr = 'Chính Đạo ⚖️';
-  else if (user.alignment === 'demonic') alignmentStr = 'Ma Đạo 👿';
+  if (user.alignment === 'orthodox') alignmentStr = 'Chính Đạo <:chinhdao:1547974602792247446>';
+  else if (user.alignment === 'demonic') alignmentStr = 'Ma Đạo <:madao:1547974606047158372>';
 
   const embed = new EmbedBuilder()
     .setTitle(`<:inv:1547865980854599693> HỒ SƠ TU SĨ - ${user.name}`)
@@ -129,7 +129,7 @@ function getChiSoTabEmbed(user: UserEntity, activeStats: ActiveStats | null): Em
       {
         name: '### ✨ Trạng Thái',
         value: [
-          `Cảnh giới: **${realmInfo.fullName}**`,
+          `\nCảnh giới: **${realmInfo.fullName}**`,
           `Đạo Thống: **${alignmentStr}**`,
           `Ngộ Tính: **${user.ngotinh}**`,
           `Thể Lực: **${user.stamina}/500**`,
@@ -237,9 +237,9 @@ function getTaiSanTabEmbed(user: UserEntity): EmbedBuilder {
       {
         name: '### <:tvp1:1547866133242056704> Linh Thạch & Cực Phẩm Linh Thạch',
         value: [
-          `🟤 Hạ Phẩm: **${formatNumber(user.coin_ha_pham)}** LT`,
-          `⚪ Trung Phẩm: **${formatNumber(user.coin_trung_pham)}** LT`,
-          `🟡 Thượng Phẩm: **${formatNumber(user.coin_thuong_pham)}** LT`,
+          `\n <:lt1:1547866122123218945> Hạ Phẩm: **${formatNumber(user.coin_ha_pham)}** LT`,
+          `<:lt1:1547866122123218945> Trung Phẩm: **${formatNumber(user.coin_trung_pham)}** LT`,
+          `<:lt1:1547866122123218945> Thượng Phẩm: **${formatNumber(user.coin_thuong_pham)}** LT`,
           `<:lt2:1547866118817845309> **Cực Phẩm Linh Thạch:** **${formatNumber(user.knb)}** CPLT`,
         ].join('\n'),
         inline: true,
@@ -247,7 +247,7 @@ function getTaiSanTabEmbed(user: UserEntity): EmbedBuilder {
       {
         name: '### <:tvp1:1547866133242056704> Hành Trang',
         value: [
-          `<:a1:1547866004573392926> **Tổng số:** **${formatNumber(totalItems)}** món`,
+          `\n<:a1:1547866004573392926> **Tổng số:** **${formatNumber(totalItems)}** món`,
           `<:idef:1547935867149099083> **Trang bị mặc:** **${equippedCount}** món`,
           `<:tt1:1547866327144734730> **Nguyên liệu:** **${formatNumber(materialCount)}** món`,
           `<:dan:1547866099339624458> **Đan dược:** **${formatNumber(pillCount)}** món`,
@@ -310,7 +310,7 @@ function getChienTichTabEmbed(user: UserEntity): EmbedBuilder {
       {
         name: '### <:iiatk:1547935869602631680> Chiến Trường PvP',
         value: [
-          `🎖️ **Điểm Phong Thần:** **${formatNumber(user.pvp_points)}**`,
+          `\n🎖️ **Điểm Phong Thần:** **${formatNumber(user.pvp_points)}**`,
           `🔥 **Thắng trận:** **${formatNumber(pvpWins)}** | 💀 **Thất bại:** **${formatNumber(pvpLosses)}**`,
           winRateBar ? `<:sotay:1547883761776197632> **Tỷ lệ thắng:** ${winRateBar}` : '',
         ].filter(Boolean).join('\n'),
@@ -319,7 +319,7 @@ function getChienTichTabEmbed(user: UserEntity): EmbedBuilder {
       {
         name: '### 🏆 Thành Tựu & Danh Hiệu',
         value: [
-          `<:sotay:1547883761776197632> **Tiến độ:** **${completedAchievements}/${totalAchievements}** (${totalAchievements > 0 ? Math.round((completedAchievements / totalAchievements) * 100) : 0}%)`,
+          `\n<:sotay:1547883761776197632> **Tiến độ:** **${completedAchievements}/${totalAchievements}** (${totalAchievements > 0 ? Math.round((completedAchievements / totalAchievements) * 100) : 0}%)`,
           `🎖️ **Danh hiệu đã mở:** **${achievementService.getUserTitles(user.discord_id).length}**`,
           `\n*Dùng \`/thanhtuu\` để xem chi tiết*`,
         ].join('\n'),
@@ -328,7 +328,7 @@ function getChienTichTabEmbed(user: UserEntity): EmbedBuilder {
       {
         name: '### 🌀 Luân Hồi & Sủng Thú',
         value: [
-          `🌀 **Luân hồi:** **${user.luan_hoi_count}** lần`,
+          `\n🌀 **Luân hồi:** **${user.luan_hoi_count}** lần`,
           `<:ilt:1547950632562982994> **Linh thú sở hữu:** **${petCount?.c || 0}** con`,
           `<:ilt:1547950632562982994> **Đang xuất chiến:** ${activePetDesc}`,
           `<:lc1:1547866362511368212> **Ngộ Tính tích lũy:** **${formatNumber(user.ngotinh)}** điểm`,
@@ -338,7 +338,7 @@ function getChienTichTabEmbed(user: UserEntity): EmbedBuilder {
       },
       // W9-03: Extended stats
       {
-        name: '### <:sotay:1547883761776197632> Thống Kê Mở Rộng',
+        name: '### <:sotay:1547883761776197632> Thống Kê Mở Rộng\n',
         value: (() => {
           const stats: string[] = [];
           // Tower
@@ -573,12 +573,12 @@ function getSoMenhTabEmbed(user: UserEntity): EmbedBuilder {
     .setDescription(`*Định mệnh đã an bài, hay do tự tay ngươi xoay chuyển?*`)
     .addFields(
       {
-        name: '<:tin4:1547875508174327828> Lá Số Tử Vi',
-        value: `*${prophecy}*`,
+        name: '### <:tin4:1547875508174327828> Lá Số Tử Vi',
+        value: `\n*${prophecy}*`,
         inline: false,
       },
       {
-        name: '<:ic:1547865958431985714> Vật Gia Truyền\n',
+        name: '<:ic:1547865958431985714> Vật Gia Truyền',
         value: heirloomText,
         inline: false,
       }
