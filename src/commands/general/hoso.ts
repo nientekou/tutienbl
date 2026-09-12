@@ -605,7 +605,8 @@ export function getTabNavigationRows(userId: string, activeTab: HoSoTab): Action
         const isActive = tab === activeTab;
         return new ButtonBuilder()
           .setCustomId(`hosotab_${tab}_${userId}`)
-          .setLabel(`${info.emoji} ${info.name}`)
+          .setLabel(TAB_LABELS[tab].name)
+          .setEmoji(TAB_LABELS[tab].emoji)
           .setStyle(isActive ? ButtonStyle.Primary : ButtonStyle.Secondary)
           .setDisabled(isActive);
       })
