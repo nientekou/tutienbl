@@ -417,7 +417,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
   interaction.isStringSelectMenu() &&
   interaction.customId.startsWith('camnang_')
 ) {
-  const { handleCamNangSelect } = await import('../commands/general/camnang');
+  const { handleCamNangSelect } = await import('../commands/general/camnang.js');
   await handleCamNangSelect(interaction);
   return;
 }
