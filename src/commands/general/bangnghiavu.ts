@@ -29,7 +29,7 @@ export default class BangNghiaVuCommand extends Command {
     const tierEmoji: Record<string, string> = { common: '⚪', elite: '🟢', legendary: '🟡' };
 
     let desc = `<:thienthu:1547875509919289465> **Bảng Nghĩa Vụ** — Chọn 3 nhiệm vụ\n`;
-    desc += `🔥 Streak: ${streak}/5 ngày${streak >= 5 ? ' (Guaranteed Legendary!)' : ''}\n`;
+    desc += `🔥 Liên Tục Tu Hành: ${streak}/5 ngày${streak >= 5 ? ' (Thiên Cơ tất ứng, tất đắc Thiên Phẩm!)' : ''}\n`;
     desc += isCompleted ? `✅ Đã hoàn thành hôm nay` : `⏳ Chưa hoàn thành\n\n`;
 
     if (!isCompleted) {
