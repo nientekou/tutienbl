@@ -50,8 +50,8 @@ export const EVENT_TEMPLATES: EventConfig[] = [
     repeatable: 'weekly'
   },
   {
-    id: 'linhtrieu',
-    name: 'Linh Triều Dâng Thế',
+    id: 'tulinh',
+    name: 'Thiên Địa Tụ Linh',
     type: 'double_exp',
     description: '🌊 CUỐI TUẦN EXP X2! Thiên địa linh khí chợt dâng, linh triều cuồn cuộn khắp Thương Mang. Trong thời gian diễn ra sự kiện, tất cả Tu Vi nhận được từ thiền định, luyện đan, làm việc và bí cảnh được nhân đôi!',
     durationHours: 48, // 2 ngày (thứ 7-CN)
@@ -105,8 +105,8 @@ export const EVENT_TEMPLATES: EventConfig[] = [
     repeatable: 'weekly'
   },
   {
-    id: 'hungthu',
-    name: 'Hung Thú Phá Giới',
+    id: 'yeuhoan',
+    name: 'Yêu Hoạn Hoành Hành',
     type: 'boss_invasion',
     description: '👾 Phong ấn rung chuyển, hung thú phá giới mà đến. Dị thú đang hoành hành giữa Thương Mang, mọi chiến công trong cuộc trấn áp lần này đều được thiên địa ban thêm một phần hậu thưởng.',
     durationHours: 48,
