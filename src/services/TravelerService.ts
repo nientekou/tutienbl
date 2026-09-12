@@ -120,7 +120,7 @@ export class TravelerService {
       let inventory: Record<string, TravelerItem> = {};
       try {
         inventory = JSON.parse(event.inventory || '{}');
-      } catch (e) { console.warn('[TravelerService] Failed to parse traveler event inventory:', e); }
+      } catch (e) { console.warn('[Thanh Huyền Lão Nhân] Mở rương thất bại:', e); }
 
       const item = inventory[itemId];
       if (!item) {
