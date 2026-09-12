@@ -627,7 +627,7 @@ export function getHoSoActionMenus(userId: string): ActionRowBuilder<StringSelec
       new StringSelectMenuOptionBuilder().setLabel('🗺️ Khám Phá Địa Đồ').setValue('khambhanav').setDescription('Du ngoạn thám hiểm khắp nơi'),
       new StringSelectMenuOptionBuilder().setLabel('🐺 Săn Bắn Yêu Thú').setValue('sanyeuthunaav').setDescription('Tiêu diệt dã thú nhặt chiến lợi phẩm'),
       new StringSelectMenuOptionBuilder().setLabel('🔮 Khiêu Chiến Bí Cảnh').setValue('bicanhnaav').setDescription('Khiêu chiến phó bản bí cảnh viễn cổ'),
-      new StringSelectMenuOptionBuilder().setLabel('🏯 Khiêu Chiến Trấn Yêu Tháp').setValue('leothapnav').setDescription('Leo Tháp Vô Hạn trừ ma'),
+      new StringSelectMenuOptionBuilder().setLabel('🏯 Khiêu Chiến Trấn Yêu Tháp').setValue('leothapnav').setDescription('Leo Tháp Vô Hạn trừ ma').setEmoji({ id: '1547954692116451358', name: 'thap' }),
       new StringSelectMenuOptionBuilder().setLabel('🛡️ Khiêu Chiến World Boss').setValue('worldbossnav').setDescription('Đại chiến Boss toàn server'),
       new StringSelectMenuOptionBuilder().setLabel('⚔️ Quyết Đấu PvP').setValue('quyetau').setDescription('Tỷ thí võ nghệ cướp linh thạch'),
       new StringSelectMenuOptionBuilder().setLabel('⚔️ Đấu Trường PvP (Ranked)').setValue('arenanav').setDescription('Khiêu chiến đối thủ ELO nâng cao'),
