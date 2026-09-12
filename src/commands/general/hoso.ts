@@ -17,17 +17,14 @@ export type HoSoTab = 'chiso' | 'taisan' | 'chientich' | 'trangbi' | 'linhthu' |
 
 const TAB_LABELS: Record<HoSoTab, { name: string; emoji: { id: string; name: string } }
 > = {
-  chiso: {
-    name: 'Chỉ Số',
-    emoji: { id: '1547875508174327828', name: 'tin4' },
-  },
-  taisan: { name: 'Tài Sản', emoji: { id: '1547875508174327828', name: 'tin4' }, },
-  chientich: { name: 'Chiến Tích', emoji: { id: '1547875508174327828', name: 'tin4' }, },
-  trangbi: { name: 'Trang Bị', emoji: { id: '1547875508174327828', name: 'tin4' }, },
-  linhthu: { name: 'Linh Thú', emoji: { id: '1547875508174327828', name: 'tin4' }, },
-  somenh: { name: 'Số Mệnh', emoji: { id: '1547875508174327828', name: 'tin4' }, },
-  bangxephang: { name: 'Bảng Phong Thần', emoji: { id: '1547875508174327828', name: 'tin4' }, },
-  thongke: { name: 'Thống Kê', emoji: { id: '1547875508174327828', name: 'tin4' }, },
+  chiso: { name: 'Chỉ Số', emoji: { id: '1547875508174327828', name: 'tin4' }, },
+  taisan: { name: 'Tài Sản', emoji: { id: '1547866133242056704', name: 'tvp1' }, },
+  chientich: { name: 'Chiến Tích', emoji: { id: '1547887626655240222', name: 'iauto' }, },
+  trangbi: { name: 'Trang Bị', emoji: { id: '1547883759527792710', name: 'itp' }, },
+  linhthu: { name: 'Linh Thú', emoji: { id: '1547950632562982994', name: 'ilt' }, },
+  somenh: { name: 'Số Mệnh', emoji: { id: '1547865894162661386', name: 'phieuvan' }, },
+  bangxephang: { name: 'Bảng Phong Thần', emoji: { id: '1547875509919289465', name: 'thienthu' }, },
+  thongke: { name: 'Thống Kê', emoji: { id: '1547866110190292992', name: 'tin1' }, },
 };
 
 const SLOT_EMOJI: Record<string, string> = {
@@ -670,16 +667,17 @@ export function getHoSoAllComponents(userId: string, activeTab: HoSoTab = 'chiso
   // Tab Bảng Phong Thần: hiển thị nút chọn danh mục & nút quay lại, ẩn các menu tab và menu hành động
   if (activeTab === 'bangxephang') {
     const lbTypes = [
-      { id: 'combatPower', label: 'Lực Chiến', emoji: '⚔️' },
-      { id: 'realm', label: 'Cảnh Giới', emoji: '🌀' },
-      { id: 'wealth', label: 'Tài Sản', emoji: '🪙' },
-      { id: 'sectContribution', label: 'Cống Hiến', emoji: '🏛️' },
+      { id: 'combatPower', label: 'Lực Chiến', emoji: { id: '1547887626655240222', name: 'iauto' }, },
+      { id: 'realm', label: 'Cảnh Giới', emoji: { id: '1547866362511368212', name: 'lc1' }, },
+      { id: 'wealth', label: 'Tài Sản', emoji: { id: '1547866122123218945', name: 'lt1' }, },
+      { id: 'sectContribution', label: 'Cống Hiến', emoji: { id: '1547866014857826354', name: 'tientrang' }, },
     ];
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       ...lbTypes.map(t =>
         new ButtonBuilder()
           .setCustomId(`hosolb_${t.id}_${userId}`)
-          .setLabel(`${t.emoji} ${t.label}`)
+          .setLabel(TAB_LABELS[tab].name)
+          .setEmoji(TAB_LABELS[tab].emoji)
           .setStyle(ButtonStyle.Secondary)
       ),
       new ButtonBuilder()
