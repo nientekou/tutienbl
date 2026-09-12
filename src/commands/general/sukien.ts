@@ -92,9 +92,9 @@ export default class SuKienCommand extends Command {
           activeText += `<:qua4:1547881540372009021> Thưởng: ${rewards}\n`;
           activeText += `🔹 Mã: \`${ev.id}\`\n\n`;
         }
-        embed.addFields({ name: '🟢 ĐANG DIỄN RA', value: activeText || '*Không có*' });
+        embed.addFields({ name: '### 🟢 ĐANG DIỄN RA', value: activeText || '*Không có*' });
       } else {
-        embed.addFields({ name: '🟢 ĐANG DIỄN RA', value: '*Hiện không có sự kiện nào đang diễn ra.*' });
+        embed.addFields({ name: '### 🟢 ĐANG DIỄN RA', value: '*Hiện không có sự kiện nào đang diễn ra.*' });
       }
 
       // Sự kiện sắp diễn ra
@@ -104,16 +104,16 @@ export default class SuKienCommand extends Command {
           const diff = ev.started_at - Math.floor(Date.now() / 1000);
           const hours = Math.floor(diff / 3600);
           const mins = Math.floor((diff % 3600) / 60);
-          upcomingText += `\n**${this.getEventEmoji(ev.type)} ${ev.name}** - Bắt đầu sau ${hours}h${mins}m (Mã: \`${ev.id}\`)\n`;
+          upcomingText += `**${this.getEventEmoji(ev.type)} ${ev.name}** - Bắt đầu sau ${hours}h${mins}m (Mã: \`${ev.id}\`)\n`;
         }
-        embed.addFields({ name: '<:thienthu:1547875509919289465> SẮP DIỄN RA', value: upcomingText });
+        embed.addFields({ name: '### <:thienthu:1547875509919289465> SẮP DIỄN RA', value: upcomingText });
       }
 
       // Sự kiện mẫu
       const templateText = EVENT_TEMPLATES.map(t =>
-        `\n${this.getEventEmoji(t.type)} **${t.name}** - ${t.durationHours}h - ${this.getEventTypeName(t.type)}`
+        `${this.getEventEmoji(t.type)} **${t.name}** - ${t.durationHours}h - ${this.getEventTypeName(t.type)}`
       ).join('\n');
-      embed.addFields({ name: '<:tin4:1547875508174327828> LOẠI SỰ KIỆN', value: templateText });
+      embed.addFields({ name: '### <:tin4:1547875508174327828> LOẠI SỰ KIỆN', value: templateText });
 
       embed.setFooter({ text: 'Dùng /sukien tham gia để tham gia sự kiện!' });
 
@@ -161,8 +161,8 @@ export default class SuKienCommand extends Command {
   private getEventEmoji(type: string): string {
     const map: Record<string, string> = {
       'weekly_boss': '<:boss:1548256901429469245>',
-      'double_exp': '⚡',
-      'seasonal': '🎊',
+      'double_exp': '🌊',
+      'seasonal': '<:nhh:1548374840170389626>',
       'mini_game': '<:mng:1548367699141464135>'
     };
     return map[type] || '<:tcdv:1548374838211649667>';
