@@ -207,7 +207,10 @@ export class TravelerService {
 
         result = { 
           success: true, 
-          message: `⚔️ Đạo Hữu đã **thắng trận**! Thanh Huyền Lão Nhân không nói một lời, chỉ khẽ vuốt râu, để lại túi càn khôn rồi thong thả rời đi. Đến khi định thần nhìn lại, bóng dáng lão nhân đã chẳng còn nơi đây.\nNhận được: ${itemsLooted.length > 0 ? itemsLooted.join(', ') : 'Không có gì'}` 
+          message: `⚔️ Đạo Hữu đã thắng trận!
+          Thanh Huyền Lão Nhân khẽ vuốt râu, trên môi thoáng hiện một nụ cười khó hiểu. Lão không nói thắng bại, chỉ tiện tay để lại túi càn khôn rồi xoay người rời bước.
+          Chẳng biết từ lúc nào, bóng áo xanh đã hòa vào mây xa. Đến khi Đạo Hữu nhìn lại, nơi ấy chỉ còn gió nhẹ phất qua.
+          Nhận được:\nNhận được: ${itemsLooted.length > 0 ? itemsLooted.join(', ') : 'Không có gì'}` 
         };
       } else {
         // Trừ 1 level
