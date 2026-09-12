@@ -36,8 +36,8 @@ export interface EventConfig {
 // Định nghĩa các sự kiện mẫu
 export const EVENT_TEMPLATES: EventConfig[] = [
   {
-    id: 'dithu',
-    name: 'Thiên Ngoại Dị Thú',
+    id: 'daiyeu',
+    name: 'Đại Yêu Xuất Thế',
     type: 'weekly_boss',
     description: 'Thiên tượng dị biến, hung thú từ ngoài cõi phá giới mà đến. Yêu khí phủ trời, họa loạn một phương. Chư vị Đạo Hữu, hãy cùng hợp lực trấn áp, tích lũy chiến công để mở khóa từng tầng trọng thưởng.',
     durationHours: 168, // 7 ngày
@@ -61,8 +61,8 @@ export const EVENT_TEMPLATES: EventConfig[] = [
     repeatable: 'weekly'
   },
   {
-    id: 'mid_autumn_festival',
-    name: 'Tết Trung Thu',
+    id: 'nguyethoa',
+    name: 'Nguyệt Hoa Hội',
     type: 'seasonal',
     description: 'Trăng sáng giữa trời, nguyệt hoa phủ xuống nhân gian. Chư vị Đạo Hữu có thể tham dự các hoạt động trong kỳ hội, tìm kiếm Nguyệt Bính cùng những vật phẩm chỉ xuất hiện trong đêm hội.!',
     durationHours: 72, // 3 ngày
@@ -189,7 +189,7 @@ class EventService {
     ).get();
 
     if (!weeklyBossExists) {
-      const template = EVENT_TEMPLATES.find(e => e.id === 'weekly_boss_rush')!;
+      const template = EVENT_TEMPLATES.find(e => e.id === 'daiyeu')!;
       const startOfWeek = this.getNextWeekStart();
       this.createEvent(template, startOfWeek, startOfWeek + template.durationHours * 3600);
     }
@@ -200,7 +200,7 @@ class EventService {
     ).get();
 
     if (!doubleExpExists) {
-      const template = EVENT_TEMPLATES.find(e => e.id === 'double_exp_weekend')!;
+      const template = EVENT_TEMPLATES.find(e => e.id === 'linhtrieu')!;
       const nextWeekend = this.getNextWeekendStart();
       this.createEvent(template, nextWeekend, nextWeekend + template.durationHours * 3600);
     }
@@ -212,7 +212,7 @@ class EventService {
     ).get(this.getMonthStart(now));
 
     if (!monthlyRaceExists) {
-      const template = EVENT_TEMPLATES.find(e => e.id === 'mini_game_race');
+      const template = EVENT_TEMPLATES.find(e => e.id === 'linhthu');
       if (template) {
         const monthStart = this.getMonthStart(now);
         this.createEvent(template, monthStart, monthStart + template.durationHours * 3600);
