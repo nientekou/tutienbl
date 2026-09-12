@@ -652,7 +652,7 @@ export function getHoSoActionMenus(userId: string): ActionRowBuilder<StringSelec
       new StringSelectMenuOptionBuilder().setLabel('Trở Về Tông Môn').setValue('tonmonnav').setDescription('Bái sư bách nghệ gia nhập tông môn').setEmoji({ id: '1548252342888042536', name: 'tongmon' }),
       new StringSelectMenuOptionBuilder().setLabel('Ghé Thăm Cửa Hàng Kim Vân Đài - Nhất Phẩm Các').setValue('shopnav').setDescription('Mua sắm dược phẩm và vé khiêu chiến').setEmoji({ id: '1547865947040256100', name: 'inpc' }),
       new StringSelectMenuOptionBuilder().setLabel('Tiệm Sách Kỹ Năng').setValue('shopkynangnav').setDescription('Mua sách học kỹ năng chiến đấu').setEmoji({ id: '1548252954610630726', name: 'skn' }),
-      new StringSelectMenuOptionBuilder().setLabel('Sàn Giao Dịch Vạn Bảo Lâu - Nhất Phẩm Các').setValue('vanbaolaunav').setDescription('Mua bán tự do với tu sĩ khác').setEmoji({ id: '1547865947040256100', name: 'thien_dinh' })
+      new StringSelectMenuOptionBuilder().setLabel('Sàn Giao Dịch Vạn Bảo Lâu - Nhất Phẩm Các').setValue('vanbaolaunav').setDescription('Mua bán tự do với tu sĩ khác').setEmoji({ id: '1547865947040256100', name: 'inpc' })
     );
 
   return [
