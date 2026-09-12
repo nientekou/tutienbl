@@ -72,11 +72,11 @@ export default class SuKienCommand extends Command {
       ).all() as any[];
 
       const embed = new EmbedBuilder()
-        .setTitle('🎪 THIÊN CƠ DỊ VĂN · THIÊN HẠ DỊ ĐỘNG')
+        .setTitle('<:tcdv:1548374838211649667> THIÊN CƠ DỊ VĂN · THIÊN HẠ DỊ ĐỘNG')
         .setColor(EMBED_COLORS.MYSTIC)
         .setDescription(
           'Thiên địa vận chuyển, phong vân biến đổi. Trong Thương Mang, những cơ duyên và dị tượng vẫn không ngừng xuất hiện, người hữu duyên ắt có ngày gặp được.\n' +
-          (eventService.isDoubleExpActive() ? '\n⚠️ **LINH TRIỀU DÂNG THẾ** · Thiên địa linh khí đang cuồn cuộn dâng trào, tu hành thuận thế mà đi, tu vi nhận **x2** từ mọi hoạt động!\n' : '')
+          (eventService.isDoubleExpActive() ? '\n🌊 **LINH TRIỀU DÂNG THẾ** · Thiên địa linh khí đang cuồn cuộn dâng trào, tu hành thuận thế mà đi, tu vi nhận **x2** từ mọi hoạt động!\n' : '')
         )
         .setTimestamp();
 
@@ -86,7 +86,7 @@ export default class SuKienCommand extends Command {
         for (const ev of activeEvents) {
           const info = eventService.getEventInfo(ev);
           const rewards = this.formatRewards(ev.rewards_config);
-          activeText += `**${this.getEventEmoji(ev.type)} ${ev.name}** [${this.getEventTypeName(ev.type)}]\n`;
+          activeText += `\n**${this.getEventEmoji(ev.type)} ${ev.name}** [${this.getEventTypeName(ev.type)}]\n`;
           activeText += `${ev.description}\n`;
           activeText += `⏳ ${info.timeLeft} | <:idrole:1547865936848101456> ${info.participantCount} người tham gia\n`;
           activeText += `<:qua4:1547881540372009021> Thưởng: ${rewards}\n`;
@@ -104,14 +104,14 @@ export default class SuKienCommand extends Command {
           const diff = ev.started_at - Math.floor(Date.now() / 1000);
           const hours = Math.floor(diff / 3600);
           const mins = Math.floor((diff % 3600) / 60);
-          upcomingText += `**${this.getEventEmoji(ev.type)} ${ev.name}** - Bắt đầu sau ${hours}h${mins}m (Mã: \`${ev.id}\`)\n`;
+          upcomingText += `\n**${this.getEventEmoji(ev.type)} ${ev.name}** - Bắt đầu sau ${hours}h${mins}m (Mã: \`${ev.id}\`)\n`;
         }
         embed.addFields({ name: '<:thienthu:1547875509919289465> SẮP DIỄN RA', value: upcomingText });
       }
 
       // Sự kiện mẫu
       const templateText = EVENT_TEMPLATES.map(t =>
-        `${this.getEventEmoji(t.type)} **${t.name}** - ${t.durationHours}h - ${this.getEventTypeName(t.type)}`
+        `\n${this.getEventEmoji(t.type)} **${t.name}** - ${t.durationHours}h - ${this.getEventTypeName(t.type)}`
       ).join('\n');
       embed.addFields({ name: '<:tin4:1547875508174327828> LOẠI SỰ KIỆN', value: templateText });
 
@@ -131,7 +131,7 @@ export default class SuKienCommand extends Command {
 
       const event = eventService.getEvent(eventId);
       const embed = new EmbedBuilder()
-        .setTitle(`🎪 THAM GIA SỰ KIỆN: ${event?.name}`)
+        .setTitle(`<:tcdv:1548374838211649667> THAM GIA SỰ KIỆN: ${event?.name}`)
         .setColor(EMBED_COLORS.SUCCESS)
         .setDescription(result.message)
         .setTimestamp();
@@ -165,15 +165,18 @@ export default class SuKienCommand extends Command {
       'seasonal': '🎊',
       'mini_game': '<:mng:1548367699141464135>'
     };
-    return map[type] || '🎪';
+    return map[type] || '<:tcdv:1548374838211649667>';
   }
 
   private getEventTypeName(type: string): string {
     const map: Record<string, string> = {
-      'weekly_boss': 'Thiên Ngoại Dị Thú',
-      'double_exp': 'Linh Triều Dâng Thế',
-      'seasonal': 'Thiên Thời Luân Chuyển',
-      'mini_game': 'Thiên Cơ Dị Hí'
+        'weekly_boss': 'Thiên Ngoại Dị Thú',
+        'double_exp': 'Linh Triều Dâng Thế',
+        'seasonal': 'Thiên Thời Luân Chuyển',
+        'mini_game': 'Thiên Cơ Dị Hí',
+        'loot_bonus': 'Thiên Cơ Khai Vận',
+        'craft_bonus': 'Lô Hỏa Thông Linh',
+        'boss_invasion': 'Hung Thú Phá Giới'
     };
     return map[type] || type;
   }
