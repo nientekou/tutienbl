@@ -378,13 +378,9 @@ export class LifeQuestHandler {
         // Cập nhật tiến trình nhiệm vụ hàng ngày khi làm việc
         dailyQuestService.updateProgress(workTargetId, 'daily_lamviec', 1);
 
-        // V17: Bảng Nghĩa Vụ — chỉ cộng khi công việc đã thực sự thành công
-        addBountyProgress('work', 1);
-        addBountyProgress('activity', 1);
-        if (jobType === 'mining') addBountyProgress('mine', 1);
-        if (jobType === 'gathering') addBountyProgress('herb', 1);
-        if (jobType === 'patrolling') addBountyProgress('patrol', 1);
-        if (jobType === 'escort') addBountyProgress('escort', 1);
+        // Bảng Nghĩa Vụ được cập nhật trực tiếp bên trong performWork()
+        // để cả /lamviec và nút Làm Việc trong /hoso dùng chung một logic,
+        // tránh trường hợp slash command không tăng hoặc button bị cộng 2 lần.
 
         const resultComponents: any[] = [];
         const encounter = result.encounter;
