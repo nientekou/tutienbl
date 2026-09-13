@@ -273,7 +273,7 @@ export class LeylineService {
     const isContaminated = Math.random() < 0.10;
     const msg = `⚡ **【LINH TRIỀU DỊ ĐỘNG】** Địa mạch **${names[surgeLeyline]}** chợt sinh dị biến, linh khí cuồn cuộn dâng trào!\n` +
       `✨ **Cống Hiến x2** trong **30 phút**. Thuận thế mà hành, ắt được thiên địa trợ lực.\n` +
-      (isContaminated ? `⚠️ **DỊ BIẾN:** Linh mạch dường như đã nhiễm một luồng uế khí. Dị tượng chưa rõ nguồn, chư vị đạo hữu chớ nên khinh suất`:'');
+      (isContaminated ? `⚠️ **DỊ BIẾN:** Linh mạch dường như đã nhiễm một luồng uế khí. Dị tượng chưa rõ nguồn, chư vị đạo hữu chớ nên khinh suất` : '');
 
     try {
       const configs = db.prepare('SELECT guild_id, event_channel_id FROM guild_configs WHERE event_channel_id IS NOT NULL').all() as any[];
