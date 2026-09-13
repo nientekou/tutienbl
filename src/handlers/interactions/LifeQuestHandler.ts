@@ -679,26 +679,44 @@ export class LifeQuestHandler {
       // --- Select Menu: LUYỆN KHÍ CHỌN CÔNG THỨC ---
       else if (action === 'luyenkhiselect' && interaction.isStringSelectMenu()) {
         const recipeId = interaction.values[0];
-        
         const res = blacksmithService.forgeItem(targetUserId, recipeId);
 
+        // Chỉ cộng tiến độ Bảng Nghĩa Vụ khi luyện khí thành công.
         if (res.success) {
           addBountyProgress('craft', 1);
           addBountyProgress('forge', 1);
           addBountyProgress('activity', 1);
         }
-        
-        await interaction.reply({ content: res.success ? res.message : `❌ ${res.message}` });
 
-        // Cập nhật lại UI Luyện Khí
-        const user = userRepository.get(targetUserId);
-        if (user) {
-          const embed = interaction.message.embeds[0];
-          const newEmbed = EmbedBuilder.from(embed).setFooter({ text: `Thể lực hiện tại: ${user.stamina}/500 | Linh Thạch: ${user.coin_ha_pham}` });
-          await interaction.client.rest.patch(Routes.channelMessage(interaction.channelId, interaction.message.id), { body: { components: [require('../../utils/uiSystem').embedToV2(newEmbed)], flags: require('../../utils/uiSystem').V2_FLAG } });
+        // Dù thành công hay thất bại đều dựng lại bảng Luyện Khí từ dữ liệu mới nhất.
+        const refreshedEmbed = getLuyenKhiEmbed(targetUserId);
+        const refreshedComponents = getLuyenKhiComponents(targetUserId);
+
+        if (refreshedEmbed) {
+          await safeV2Update(
+            interaction,
+            [refreshedEmbed],
+            refreshedComponents
+          );
+
+          // Kết quả luyện khí chỉ người thao tác nhìn thấy.
+          await interaction.followUp({
+            content: res.success ? `✅ ${res.message}` : `❌ ${res.message}`,
+            flags: MessageFlags.Ephemeral
+          });
+        } else {
+          // Fallback hiếm gặp nếu không thể dựng lại giao diện Luyện Khí.
+          await interaction.reply({
+            content: res.success ? `✅ ${res.message}` : `❌ ${res.message}`,
+            flags: MessageFlags.Ephemeral
+          });
         }
 
-        if (res.success) await tryAutoCompleteBounty();
+        if (res.success) {
+          await tryAutoCompleteBounty();
+        }
+
+        return;
       }
 
       if (action === 'linhdiennav') {
