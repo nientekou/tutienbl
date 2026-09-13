@@ -7,6 +7,7 @@ import { inventoryRepository } from '../../database/repositories/InventoryReposi
 import { achievementService } from '../../services/AchievementService';
 import { encounterService, Encounter } from '../../services/EncounterService';
 import { leylineService } from '../../services/LeylineService';
+import { bountyBoardService } from '../../services/BountyBoardService';
 import db from '../../database/database';
 import { getProgressBar } from '../../utils/constants';
 import { ITEMS } from '../../config/itemConstants';
@@ -23,7 +24,7 @@ const COOLDOWN_MS = 60000; // 60 giây
 export function performWork(
   discordId: string,
   workType: 'mining' | 'gathering' | 'patrolling' | 'adventure' | 'archaeology' | 'escort'
-): { success: boolean; message?: string; embed?: ContainerBuilder; encounter?: Encounter | null } {
+): { success: boolean; message?: string; embed?: ContainerBuilder; encounter?: Encounter | null; accident?: boolean } {
   const user = userRepository.get(discordId);
   if (!user) {
     return { success: false, message: '❌ Đạo hữu chưa khởi tạo nhân vật. Hãy sử dụng lệnh `/taonhanvat`!' };
@@ -248,6 +249,31 @@ export function performWork(
     mentorGainedCoins = mentResult.mentorGainedCoins;
   }
 
+  // Bảng Nghĩa Vụ: ghi nhận tiến độ tại nguồn dùng chung cho cả slash command và nút /hoso.
+  // Chỉ ghi nhận khi phiên lao động không gặp tai nạn.
+  if (!isAccident) {
+    try {
+      bountyBoardService.updateProgress(discordId, 'work', 1);
+      bountyBoardService.updateProgress(discordId, 'activity', 1);
+
+      if (workType === 'mining') {
+        bountyBoardService.updateProgress(discordId, 'mine', 1);
+      } else if (workType === 'gathering') {
+        bountyBoardService.updateProgress(discordId, 'herb', 1);
+      } else if (workType === 'patrolling') {
+        bountyBoardService.updateProgress(discordId, 'patrol', 1);
+      } else if (workType === 'adventure') {
+        bountyBoardService.updateProgress(discordId, 'adventure', 1);
+      } else if (workType === 'archaeology') {
+        bountyBoardService.updateProgress(discordId, 'archaeology', 1);
+      } else if (workType === 'escort') {
+        bountyBoardService.updateProgress(discordId, 'escort', 1);
+      }
+    } catch (error) {
+      console.warn('[BountyBoard] Không thể cập nhật tiến độ từ /lamviec:', error);
+    }
+  }
+
   const updatedUser = userRepository.get(discordId)!;
   const staminaBar = getProgressBar(updatedUser.stamina, 500, 8);
 
@@ -292,7 +318,7 @@ export function performWork(
 
   const embed = container(isAccident ? V2_COLORS.danger : V2_COLORS.success, content);
 
-  return { success: true, embed, encounter };
+  return { success: true, embed, encounter, accident: isAccident };
 }
 
 export default class LamViecCommand extends Command {
