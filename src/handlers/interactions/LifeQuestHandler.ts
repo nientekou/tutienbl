@@ -735,10 +735,10 @@ export class LifeQuestHandler {
       }
 
       // ============================================================
-      // V17: BẢNG NGHĨA VỤ — chọn đúng 3 nghĩa vụ trong ngày
-      // customId: bangnghiavu_select_<userId>
+      // V17: BẢNG NGHĨA VỤ — chọn từng nghĩa vụ bằng button
+      // customId: bangpick_<questId>_<userId>
       // ============================================================
-      else if (action === 'bangnghiavu_select' && interaction.isStringSelectMenu()) {
+      else if (action === 'bangpick' && interaction.isButton()) {
         if (interaction.user.id !== targetUserId) {
           await interaction.reply({
             content: '❌ Đây không phải Bảng Nghĩa Vụ của đạo hữu.',
@@ -747,70 +747,26 @@ export class LifeQuestHandler {
           return;
         }
 
-        if (bountyBoardService.isCompletedToday(targetUserId)) {
+        const questId = parts.slice(1, -1).join('_');
+        if (!questId) {
           await interaction.reply({
-            content: '✅ Nghĩa vụ hôm nay đã viên mãn, không thể tiếp nhận thêm.',
+            content: '❌ Không xác định được nghĩa vụ đã chọn.',
             flags: MessageFlags.Ephemeral
           });
           return;
         }
 
-        const existing = bountyBoardService.getSelectedBounties(targetUserId);
-        if (existing.length > 0) {
-          await interaction.reply({
-            content: '📜 Đạo hữu đã tiếp nhận ba nghĩa vụ hôm nay. Một khi đã nhận thì không thể đổi giữa chừng.',
-            flags: MessageFlags.Ephemeral
-          });
-          return;
-        }
-
-        const selectedIds = [...new Set(interaction.values)];
-        if (selectedIds.length !== 3) {
-          await interaction.reply({
-            content: '❌ Mỗi ngày phải chọn đúng **3 nghĩa vụ**.',
-            flags: MessageFlags.Ephemeral
-          });
-          return;
-        }
-
-        const user = userRepository.get(targetUserId);
-        if (!user) {
-          await interaction.reply({
-            content: '❌ Không tìm thấy hồ sơ tu hành của đạo hữu.',
-            flags: MessageFlags.Ephemeral
-          });
-          return;
-        }
-
-        const todayCards = bountyBoardService.getTodayCards(targetUserId, user.level);
-        const validIds = new Set(todayCards.map((q: any) => q.id));
-        if (selectedIds.some(id => !validIds.has(id))) {
-          await interaction.reply({
-            content: '❌ Trong lựa chọn có nghĩa vụ không thuộc bảng hôm nay.',
-            flags: MessageFlags.Ephemeral
-          });
-          return;
-        }
-
-        bountyBoardService.selectBounties(targetUserId, selectedIds);
-
-        const selectedNames = todayCards
-          .filter((q: any) => selectedIds.includes(q.id))
-          .map((q: any) => `• **${q.name}**`)
-          .join('\n');
-
+        const result = bountyBoardService.toggleBountySelection(targetUserId, questId);
         await interaction.reply({
-          content:
-            `📜 **Đã tiếp nhận ba đạo nghĩa vụ hôm nay.**\n` +
-            `${selectedNames}\n\n` +
-            `Tiến độ sẽ tự ghi nhận khi đạo hữu hành sự. Dùng lại \`/bangnghiavu\` để xem bảng.`,
+          content: result.message + (result.locked ? '\nDùng `/bangnghiavu` để xem tiến độ ba nghĩa vụ đã nhận.' : '\nBấm tiếp các nghĩa vụ còn lại cho tới khi đủ 3.'),
           flags: MessageFlags.Ephemeral
         });
         return;
       }
 
-      // V17: BẢNG NGHĨA VỤ — nhận/kết toán thủ công (giữ tương thích nút cũ)
-      else if (action === 'bangnghiavu_claim') {
+      // V17: BẢNG NGHĨA VỤ — nhận/kết toán thủ công
+      // customId: bangclaim_<userId>
+      else if (action === 'bangclaim' && interaction.isButton()) {
         if (interaction.user.id !== targetUserId) {
           await interaction.reply({
             content: '❌ Đây không phải Bảng Nghĩa Vụ của đạo hữu.',
