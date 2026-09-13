@@ -56,6 +56,8 @@ export interface BountySelectionResult {
  * - harvest  : thu hoạch Linh Điền
  * - patrol   : Tuần Tra
  * - escort   : Hộ Tiêu
+ * - adventure: Phiêu Lưu Bản Đồ từ /lamviec
+ * - archaeology: Khảo Cổ Cổ Mộ từ /lamviec
  * - explore  : hoàn thành Khám Phá
  * - craft    : nhận thành phẩm Chế Tạo / Luyện Khí thành công
  * - forge    : Luyện Khí thành công
@@ -160,6 +162,30 @@ const BOUNTY_POOL: BountyQuest[] = [
     target: 2,
     rewardExp: 200,
     rewardCoins: 520,
+    rewardKnb: 0
+  },
+  {
+    id: 'b_common_adventure_1',
+    name: 'Ngự Kiếm Sơ Hành',
+    description: 'Hoàn thành 1 lần phiêu lưu bản đồ',
+    category: 'exploration',
+    tier: 'common',
+    requirement: 'adventure',
+    target: 1,
+    rewardExp: 240,
+    rewardCoins: 600,
+    rewardKnb: 0
+  },
+  {
+    id: 'b_common_archaeology_1',
+    name: 'Tầm Cổ Sơ Thám',
+    description: 'Hoàn thành 1 lần khảo cổ cổ mộ',
+    category: 'exploration',
+    tier: 'common',
+    requirement: 'archaeology',
+    target: 1,
+    rewardExp: 260,
+    rewardCoins: 650,
     rewardKnb: 0
   },
   {
@@ -299,6 +325,30 @@ const BOUNTY_POOL: BountyQuest[] = [
     rewardKnb: 2
   },
   {
+    id: 'b_elite_adventure_1',
+    name: 'Vân Du Sơn Hà',
+    description: 'Hoàn thành 3 lần phiêu lưu bản đồ',
+    category: 'exploration',
+    tier: 'elite',
+    requirement: 'adventure',
+    target: 3,
+    rewardExp: 560,
+    rewardCoins: 1500,
+    rewardKnb: 3
+  },
+  {
+    id: 'b_elite_archaeology_1',
+    name: 'Cổ Mộ Tầm Tung',
+    description: 'Hoàn thành 2 lần khảo cổ cổ mộ',
+    category: 'exploration',
+    tier: 'elite',
+    requirement: 'archaeology',
+    target: 2,
+    rewardExp: 600,
+    rewardCoins: 1600,
+    rewardKnb: 3
+  },
+  {
     id: 'b_elite_explore_1',
     name: 'Du Ngoạn Tứ Phương',
     description: 'Hoàn thành 4 lần khám phá',
@@ -351,6 +401,30 @@ const BOUNTY_POOL: BountyQuest[] = [
     rewardKnb: 4
   },
   {
+    id: 'b_rare_adventure_1',
+    name: 'Ngự Kiếm Tầm Cơ',
+    description: 'Hoàn thành 5 lần phiêu lưu bản đồ',
+    category: 'exploration',
+    tier: 'rare',
+    requirement: 'adventure',
+    target: 5,
+    rewardExp: 950,
+    rewardCoins: 2700,
+    rewardKnb: 5
+  },
+  {
+    id: 'b_rare_archaeology_1',
+    name: 'Thám Mộ Tầm Trân',
+    description: 'Hoàn thành 4 lần khảo cổ cổ mộ',
+    category: 'exploration',
+    tier: 'rare',
+    requirement: 'archaeology',
+    target: 4,
+    rewardExp: 1000,
+    rewardCoins: 2850,
+    rewardKnb: 5
+  },
+  {
     id: 'b_rare_herb_1',
     name: 'Dược Hương Mãn Tụ',
     description: 'Thu thập 16 phần linh thảo hoặc linh thực',
@@ -361,6 +435,30 @@ const BOUNTY_POOL: BountyQuest[] = [
     rewardExp: 780,
     rewardCoins: 2100,
     rewardKnb: 4
+  },
+  {
+    id: 'b_rare_patrol_1',
+    name: 'Sơn Môn Bất Thất',
+    description: 'Hoàn thành 8 lần tuần tra',
+    category: 'work',
+    tier: 'rare',
+    requirement: 'patrol',
+    target: 8,
+    rewardExp: 850,
+    rewardCoins: 2350,
+    rewardKnb: 4
+  },
+  {
+    id: 'b_rare_escort_1',
+    name: 'Trường Lộ Hộ Thương',
+    description: 'Hoàn thành 7 lần hộ tiêu',
+    category: 'work',
+    tier: 'rare',
+    requirement: 'escort',
+    target: 7,
+    rewardExp: 900,
+    rewardCoins: 2550,
+    rewardKnb: 5
   },
   {
     id: 'b_rare_explore_1',
@@ -427,6 +525,66 @@ const BOUNTY_POOL: BountyQuest[] = [
     rewardKnb: 8
   },
   {
+    id: 'b_epic_adventure_1',
+    name: 'Vân Hải Du Tung',
+    description: 'Hoàn thành 8 lần phiêu lưu bản đồ',
+    category: 'exploration',
+    tier: 'epic',
+    requirement: 'adventure',
+    target: 8,
+    rewardExp: 1600,
+    rewardCoins: 4600,
+    rewardKnb: 10
+  },
+  {
+    id: 'b_epic_archaeology_1',
+    name: 'U Minh Khảo Cổ',
+    description: 'Hoàn thành 6 lần khảo cổ cổ mộ',
+    category: 'exploration',
+    tier: 'epic',
+    requirement: 'archaeology',
+    target: 6,
+    rewardExp: 1700,
+    rewardCoins: 4800,
+    rewardKnb: 10
+  },
+  {
+    id: 'b_epic_herb_1',
+    name: 'Vạn Thảo Quy Nang',
+    description: 'Thu thập 24 phần linh thảo hoặc linh thực',
+    category: 'life',
+    tier: 'epic',
+    requirement: 'herb',
+    target: 24,
+    rewardExp: 1450,
+    rewardCoins: 4100,
+    rewardKnb: 9
+  },
+  {
+    id: 'b_epic_patrol_1',
+    name: 'Trấn Vực Tuần Thiên',
+    description: 'Hoàn thành 12 lần tuần tra',
+    category: 'work',
+    tier: 'epic',
+    requirement: 'patrol',
+    target: 12,
+    rewardExp: 1500,
+    rewardCoins: 4300,
+    rewardKnb: 9
+  },
+  {
+    id: 'b_epic_escort_1',
+    name: 'Thiên Lý Hộ Đạo',
+    description: 'Hoàn thành 10 lần hộ tiêu',
+    category: 'work',
+    tier: 'epic',
+    requirement: 'escort',
+    target: 10,
+    rewardExp: 1650,
+    rewardCoins: 4700,
+    rewardKnb: 10
+  },
+  {
     id: 'b_epic_explore_1',
     name: 'Tầm U Thám Huyền',
     description: 'Hoàn thành 10 lần khám phá',
@@ -490,6 +648,66 @@ const BOUNTY_POOL: BountyQuest[] = [
     rewardExp: 2400,
     rewardCoins: 8000,
     rewardKnb: 18
+  },
+  {
+    id: 'b_legendary_adventure_1',
+    name: 'Thiên Nhai Vấn Đạo',
+    description: 'Hoàn thành 12 lần phiêu lưu bản đồ',
+    category: 'exploration',
+    tier: 'legendary',
+    requirement: 'adventure',
+    target: 12,
+    rewardExp: 3000,
+    rewardCoins: 9000,
+    rewardKnb: 20
+  },
+  {
+    id: 'b_legendary_archaeology_1',
+    name: 'Thái Cổ Tầm Bí',
+    description: 'Hoàn thành 10 lần khảo cổ cổ mộ',
+    category: 'exploration',
+    tier: 'legendary',
+    requirement: 'archaeology',
+    target: 10,
+    rewardExp: 3200,
+    rewardCoins: 9500,
+    rewardKnb: 22
+  },
+  {
+    id: 'b_legendary_herb_1',
+    name: 'Bách Thảo Triều Tông',
+    description: 'Thu thập 36 phần linh thảo hoặc linh thực',
+    category: 'life',
+    tier: 'legendary',
+    requirement: 'herb',
+    target: 36,
+    rewardExp: 2700,
+    rewardCoins: 8200,
+    rewardKnb: 18
+  },
+  {
+    id: 'b_legendary_patrol_1',
+    name: 'Tuần Thiên Trấn Giới',
+    description: 'Hoàn thành 18 lần tuần tra',
+    category: 'work',
+    tier: 'legendary',
+    requirement: 'patrol',
+    target: 18,
+    rewardExp: 2900,
+    rewardCoins: 8800,
+    rewardKnb: 20
+  },
+  {
+    id: 'b_legendary_escort_1',
+    name: 'Vạn Dặm Hộ Mệnh',
+    description: 'Hoàn thành 15 lần hộ tiêu',
+    category: 'work',
+    tier: 'legendary',
+    requirement: 'escort',
+    target: 15,
+    rewardExp: 3100,
+    rewardCoins: 9300,
+    rewardKnb: 21
   },
   {
     id: 'b_legendary_explore_1',
