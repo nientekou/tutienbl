@@ -37,29 +37,35 @@ interface CompleteResult {
   message: string;
 }
 
+export interface BountySelectionResult {
+  success: boolean;
+  selected: string[];
+  locked: boolean;
+  added?: boolean;
+  message: string;
+}
+
 /**
  * V17 — Bảng Nghĩa Vụ · Trấn Hải Các
  *
- * Requirement tương thích trực tiếp với LifeQuestHandler V17:
- *
- * activity  = hoàn thành một hoạt động hợp lệ
- * work      = hoàn thành Làm Việc
- * mine      = Khai Thác
- * herb      = Hái Lượm / thu hoạch Linh Điền
- * harvest   = thu hoạch Linh Điền
- * patrol    = Tuần Tra
- * escort    = Hộ Tiêu
- * explore   = hoàn thành Khám Phá
- * craft     = nhận thành phẩm Chế Tạo / Luyện Khí
- * forge     = Luyện Khí thành công
+ * Quy ước requirement phải khớp với LifeQuestHandler V17:
+ * - activity : hoàn thành một hoạt động hợp lệ bất kỳ
+ * - work     : hoàn thành một lần Làm Việc
+ * - mine     : Khai Thác
+ * - herb     : Hái Lượm / thu hoạch Linh Điền
+ * - harvest  : thu hoạch Linh Điền
+ * - patrol   : Tuần Tra
+ * - escort   : Hộ Tiêu
+ * - explore  : hoàn thành Khám Phá
+ * - craft    : nhận thành phẩm Chế Tạo / Luyện Khí thành công
+ * - forge    : Luyện Khí thành công
  *
  * Không có nhiệm vụ câu cá.
  */
 const BOUNTY_POOL: BountyQuest[] = [
   // ============================================================
-  // PHÀM PHẨM
+  // PHÀM PHẨM — COMMON
   // ============================================================
-
   {
     id: 'b_common_activity_1',
     name: 'Vạn Sự Khởi Đầu',
@@ -206,9 +212,8 @@ const BOUNTY_POOL: BountyQuest[] = [
   },
 
   // ============================================================
-  // LINH PHẨM
+  // LINH PHẨM — ELITE
   // ============================================================
-
   {
     id: 'b_elite_activity_1',
     name: 'Đạo Đồ Vạn Hành',
@@ -307,9 +312,8 @@ const BOUNTY_POOL: BountyQuest[] = [
   },
 
   // ============================================================
-  // HUYỀN PHẨM
+  // HUYỀN PHẨM — RARE
   // ============================================================
-
   {
     id: 'b_rare_activity_1',
     name: 'Bách Sự Luyện Tâm',
@@ -396,9 +400,8 @@ const BOUNTY_POOL: BountyQuest[] = [
   },
 
   // ============================================================
-  // ĐỊA PHẨM
+  // ĐỊA PHẨM — EPIC
   // ============================================================
-
   {
     id: 'b_epic_activity_1',
     name: 'Bách Nghệ Tu Hành',
@@ -461,9 +464,9 @@ const BOUNTY_POOL: BountyQuest[] = [
   },
 
   // ============================================================
-  // THIÊN PHẨM
+  // THIÊN PHẨM — LEGENDARY
+  // Ngày thứ 5 của chuỗi sẽ bảo đảm bảng có ít nhất một Thiên phẩm.
   // ============================================================
-
   {
     id: 'b_legendary_activity_1',
     name: 'Thiên Cơ Giáng Lâm',
@@ -542,555 +545,225 @@ class BountyBoardService {
       );
     `);
 
-    const columns = db
-      .prepare(`PRAGMA table_info(bounty_board)`)
-      .all() as Array<{ name: string }>;
-
+    // Migration cho bounty_board phiên bản cũ.
+    const columns = db.prepare(`PRAGMA table_info(bounty_board)`).all() as Array<{ name: string }>;
     const names = new Set(columns.map(c => c.name));
 
     if (!names.has('selected_json')) {
-      db.exec(`
-        ALTER TABLE bounty_board
-        ADD COLUMN selected_json TEXT DEFAULT '[]'
-      `);
+      db.exec(`ALTER TABLE bounty_board ADD COLUMN selected_json TEXT DEFAULT '[]'`);
     }
 
     if (!names.has('progress_json')) {
-      db.exec(`
-        ALTER TABLE bounty_board
-        ADD COLUMN progress_json TEXT DEFAULT '{}'
-      `);
+      db.exec(`ALTER TABLE bounty_board ADD COLUMN progress_json TEXT DEFAULT '{}'`);
     }
 
     if (!names.has('completed')) {
-      db.exec(`
-        ALTER TABLE bounty_board
-        ADD COLUMN completed INTEGER DEFAULT 0
-      `);
+      db.exec(`ALTER TABLE bounty_board ADD COLUMN completed INTEGER DEFAULT 0`);
     }
   }
 
   // ============================================================
-  // DATE
+  // DATE — UTC+7 / VIỆT NAM
   // ============================================================
 
   private getToday(): string {
     const now = new Date();
-
-    const vietnamTime = new Date(
-      now.getTime() + 7 * 60 * 60 * 1000
-    );
-
-    return vietnamTime
-      .toISOString()
-      .slice(0, 10);
+    const vietnam = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+    return vietnam.toISOString().slice(0, 10);
   }
 
   private getPreviousDay(day: string): string {
-    const date = new Date(
-      `${day}T00:00:00.000Z`
-    );
-
-    date.setUTCDate(
-      date.getUTCDate() - 1
-    );
-
-    return date
-      .toISOString()
-      .slice(0, 10);
+    const date = new Date(`${day}T00:00:00.000Z`);
+    date.setUTCDate(date.getUTCDate() - 1);
+    return date.toISOString().slice(0, 10);
   }
 
   // ============================================================
   // JSON HELPERS
   // ============================================================
 
-  private parseArray<T = string>(
-    raw: string | null | undefined
-  ): T[] {
-
-    if (!raw) {
-      return [];
-    }
+  private parseArray<T = string>(raw: string | null | undefined): T[] {
+    if (!raw) return [];
 
     try {
       const parsed = JSON.parse(raw);
-
-      return Array.isArray(parsed)
-        ? parsed
-        : [];
-
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
   }
 
-  private parseObject(
-    raw: string | null | undefined
-  ): Record<string, number> {
-
-    if (!raw) {
-      return {};
-    }
+  private parseObject(raw: string | null | undefined): Record<string, number> {
+    if (!raw) return {};
 
     try {
-
       const parsed = JSON.parse(raw);
-
-      if (
-        !parsed ||
-        typeof parsed !== 'object' ||
-        Array.isArray(parsed)
-      ) {
-        return {};
-      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
 
       const result: Record<string, number> = {};
-
-      for (
-        const [key, value]
-        of Object.entries(parsed)
-      ) {
-
-        const numberValue =
-          Number(value);
-
-        result[key] =
-          Number.isFinite(numberValue)
-            ? Math.max(
-                0,
-                numberValue
-              )
-            : 0;
+      for (const [key, value] of Object.entries(parsed)) {
+        const numberValue = Number(value);
+        result[key] = Number.isFinite(numberValue) ? Math.max(0, numberValue) : 0;
       }
-
       return result;
-
     } catch {
       return {};
     }
   }
 
-  private parseCards(
-    raw: string | null | undefined
-  ): BountyQuest[] {
-
-    if (!raw) {
-      return [];
-    }
+  private parseCards(raw: string | null | undefined): BountyQuest[] {
+    if (!raw) return [];
 
     try {
-
-      const parsed =
-        JSON.parse(raw);
-
-      return Array.isArray(parsed)
-        ? parsed as BountyQuest[]
-        : [];
-
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed as BountyQuest[] : [];
     } catch {
       return [];
     }
   }
 
   // ============================================================
-  // RANDOM
+  // RANDOM / GENERATION
   // ============================================================
 
-  private shuffle<T>(
-    array: T[]
-  ): T[] {
+  private shuffle<T>(array: T[]): T[] {
+    const result = [...array];
 
-    const result =
-      [...array];
-
-    for (
-      let i = result.length - 1;
-      i > 0;
-      i--
-    ) {
-
-      const j =
-        Math.floor(
-          Math.random() *
-          (i + 1)
-        );
-
-      [
-        result[i],
-        result[j]
-      ] = [
-        result[j],
-        result[i]
-      ];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
     }
 
     return result;
   }
 
-  private randomFrom<T>(
-    items: T[]
-  ): T | undefined {
-
-    if (
-      items.length === 0
-    ) {
-      return undefined;
-    }
-
-    return items[
-      Math.floor(
-        Math.random() *
-        items.length
-      )
-    ];
+  private randomFrom<T>(items: T[]): T | undefined {
+    if (items.length === 0) return undefined;
+    return items[Math.floor(Math.random() * items.length)];
   }
 
-  private allowedTiers(
-    level: number
-  ): BountyTier[] {
+  private allowedTiers(level: number): BountyTier[] {
+    const tiers: BountyTier[] = ['common'];
 
-    const tiers: BountyTier[] =
-      ['common'];
-
-    if (
-      level >= 10
-    ) {
-      tiers.push(
-        'elite'
-      );
-    }
-
-    if (
-      level >= 25
-    ) {
-      tiers.push(
-        'rare'
-      );
-    }
-
-    if (
-      level >= 45
-    ) {
-      tiers.push(
-        'epic'
-      );
-    }
-
-    if (
-      level >= 65
-    ) {
-      tiers.push(
-        'legendary'
-      );
-    }
+    if (level >= 10) tiers.push('elite');
+    if (level >= 25) tiers.push('rare');
+    if (level >= 45) tiers.push('epic');
+    if (level >= 65) tiers.push('legendary');
 
     return tiers;
   }
 
-  private rollTier(
-    level: number
-  ): BountyTier {
+  private rollTier(level: number): BountyTier {
+    const roll = Math.random();
 
-    const roll =
-      Math.random();
-
-    if (
-      level >= 65 &&
-      roll < 0.06
-    ) {
-      return 'legendary';
-    }
-
-    if (
-      level >= 45 &&
-      roll < 0.16
-    ) {
-      return 'epic';
-    }
-
-    if (
-      level >= 25 &&
-      roll < 0.33
-    ) {
-      return 'rare';
-    }
-
-    if (
-      level >= 10 &&
-      roll < 0.58
-    ) {
-      return 'elite';
-    }
+    if (level >= 65 && roll < 0.06) return 'legendary';
+    if (level >= 45 && roll < 0.16) return 'epic';
+    if (level >= 25 && roll < 0.33) return 'rare';
+    if (level >= 10 && roll < 0.58) return 'elite';
 
     return 'common';
   }
 
-  private generateCards(
-    level: number,
-    currentStreak: number
-  ): BountyQuest[] {
+  private generateCards(level: number, currentStreak: number): BountyQuest[] {
+    const result: BountyQuest[] = [];
+    const usedIds = new Set<string>();
+    const usedRequirements = new Set<string>();
+    const allowed = new Set(this.allowedTiers(level));
 
-    const result:
-      BountyQuest[] = [];
-
-    const usedIds =
-      new Set<string>();
-
-    const usedRequirements =
-      new Set<string>();
-
-    const allowed =
-      new Set(
-        this.allowedTiers(
-          level
-        )
+    // Ngày thứ 5 của chuỗi: bảo đảm xuất hiện một Thiên Phẩm.
+    // currentStreak = 4 nghĩa là hôm nay là ngày thứ 5 nếu hoàn thành.
+    if (currentStreak === 4) {
+      const legendaryPool = this.shuffle(
+        BOUNTY_POOL.filter(q => q.tier === 'legendary')
       );
 
-    // Ngày thứ 5 của chuỗi:
-    // luôn xuất hiện ít nhất 1 Thiên phẩm.
-    if (
-      currentStreak === 4
-    ) {
-
-      const legendaryPool =
-        this.shuffle(
-          BOUNTY_POOL.filter(
-            quest =>
-              quest.tier ===
-              'legendary'
-          )
-        );
-
-      const heavenly =
-        legendaryPool[0];
-
-      if (
-        heavenly
-      ) {
-
-        result.push(
-          heavenly
-        );
-
-        usedIds.add(
-          heavenly.id
-        );
-
-        usedRequirements.add(
-          heavenly.requirement
-        );
+      const heavenly = legendaryPool[0];
+      if (heavenly) {
+        result.push(heavenly);
+        usedIds.add(heavenly.id);
+        usedRequirements.add(heavenly.requirement);
       }
     }
 
+    // Ưu tiên 6 requirement khác nhau để bảng đa dạng hơn.
     let guard = 0;
-
-    while (
-      result.length < 6 &&
-      guard < 200
-    ) {
-
+    while (result.length < 6 && guard < 200) {
       guard += 1;
 
-      const tier =
-        this.rollTier(
-          level
-        );
+      const tier = this.rollTier(level);
+      if (!allowed.has(tier)) continue;
 
-      if (
-        !allowed.has(
-          tier
-        )
-      ) {
-        continue;
-      }
-
-      let pool =
-        BOUNTY_POOL.filter(
-          quest =>
-            quest.tier === tier &&
-            !usedIds.has(
-              quest.id
-            ) &&
-            !usedRequirements.has(
-              quest.requirement
-            )
-        );
-
-      if (
-        pool.length === 0
-      ) {
-
-        pool =
-          BOUNTY_POOL.filter(
-            quest =>
-              allowed.has(
-                quest.tier
-              ) &&
-              !usedIds.has(
-                quest.id
-              ) &&
-              !usedRequirements.has(
-                quest.requirement
-              )
-          );
-      }
-
-      const picked =
-        this.randomFrom(
-          pool
-        );
-
-      if (
-        !picked
-      ) {
-        break;
-      }
-
-      result.push(
-        picked
+      let pool = BOUNTY_POOL.filter(q =>
+        q.tier === tier &&
+        !usedIds.has(q.id) &&
+        !usedRequirements.has(q.requirement)
       );
 
-      usedIds.add(
-        picked.id
-      );
+      if (pool.length === 0) {
+        pool = BOUNTY_POOL.filter(q =>
+          allowed.has(q.tier) &&
+          !usedIds.has(q.id) &&
+          !usedRequirements.has(q.requirement)
+        );
+      }
 
-      usedRequirements.add(
-        picked.requirement
-      );
+      const picked = this.randomFrom(pool);
+      if (!picked) break;
+
+      result.push(picked);
+      usedIds.add(picked.id);
+      usedRequirements.add(picked.requirement);
     }
 
-    if (
-      result.length < 6
-    ) {
+    // Nếu chưa đủ 6 thì cho phép trùng requirement, nhưng tuyệt đối không trùng quest.
+    if (result.length < 6) {
+      const fallback = this.shuffle(
+        BOUNTY_POOL.filter(q => allowed.has(q.tier) && !usedIds.has(q.id))
+      );
 
-      const fallback =
-        this.shuffle(
-          BOUNTY_POOL.filter(
-            quest =>
-              allowed.has(
-                quest.tier
-              ) &&
-              !usedIds.has(
-                quest.id
-              )
-          )
-        );
-
-      for (
-        const quest
-        of fallback
-      ) {
-
-        if (
-          result.length >= 6
-        ) {
-          break;
-        }
-
-        result.push(
-          quest
-        );
-
-        usedIds.add(
-          quest.id
-        );
+      for (const quest of fallback) {
+        if (result.length >= 6) break;
+        result.push(quest);
+        usedIds.add(quest.id);
       }
     }
 
-    if (
-      result.length < 6
-    ) {
+    // Trường hợp người chơi cấp thấp nhưng bảng vẫn thiếu do pool thay đổi về sau.
+    if (result.length < 6) {
+      const ultimateFallback = this.shuffle(
+        BOUNTY_POOL.filter(q => !usedIds.has(q.id))
+      );
 
-      const fallback =
-        this.shuffle(
-          BOUNTY_POOL.filter(
-            quest =>
-              !usedIds.has(
-                quest.id
-              )
-          )
-        );
-
-      for (
-        const quest
-        of fallback
-      ) {
-
-        if (
-          result.length >= 6
-        ) {
-          break;
-        }
-
-        result.push(
-          quest
-        );
-
-        usedIds.add(
-          quest.id
-        );
+      for (const quest of ultimateFallback) {
+        if (result.length >= 6) break;
+        result.push(quest);
+        usedIds.add(quest.id);
       }
     }
 
-    return this.shuffle(
-      result.slice(
-        0,
-        6
-      )
-    );
+    return this.shuffle(result.slice(0, 6));
   }
 
   // ============================================================
   // DAILY BOARD
   // ============================================================
 
-  public getTodayCards(
-    userId: string,
-    userLevel: number
-  ): BountyQuest[] {
+  public getTodayCards(userId: string, userLevel: number): BountyQuest[] {
+    const today = this.getToday();
 
-    const today =
-      this.getToday();
+    const existing = db.prepare(`
+      SELECT cards_json
+      FROM bounty_board
+      WHERE user_id = ? AND day = ?
+    `).get(userId, today) as { cards_json: string } | undefined;
 
-    const existing =
-      db.prepare(`
-        SELECT cards_json
-        FROM bounty_board
-        WHERE user_id = ?
-          AND day = ?
-      `).get(
-        userId,
-        today
-      ) as {
-        cards_json: string
-      } | undefined;
-
-    if (
-      existing
-    ) {
-
-      const cards =
-        this.parseCards(
-          existing.cards_json
-        );
-
-      if (
-        cards.length > 0
-      ) {
-        return cards;
-      }
+    if (existing) {
+      const cards = this.parseCards(existing.cards_json);
+      if (cards.length > 0) return cards;
     }
 
-    const streak =
-      this.getStreak(
-        userId
-      );
-
-    const cards =
-      this.generateCards(
-        userLevel,
-        streak
-      );
+    const streak = this.getStreak(userId);
+    const cards = this.generateCards(userLevel, streak);
 
     db.prepare(`
       INSERT INTO bounty_board (
@@ -1101,240 +774,201 @@ class BountyBoardService {
         progress_json,
         completed
       )
-      VALUES (
-        ?,
-        ?,
-        ?,
-        '[]',
-        '{}',
-        0
-      )
-
-      ON CONFLICT(
-        user_id,
-        day
-      )
-      DO UPDATE SET
-        cards_json =
-          excluded.cards_json
+      VALUES (?, ?, ?, '[]', '{}', 0)
+      ON CONFLICT(user_id, day)
+      DO UPDATE SET cards_json = excluded.cards_json
     `).run(
       userId,
       today,
-      JSON.stringify(
-        cards
-      )
+      JSON.stringify(cards)
     );
 
     return cards;
   }
 
-  public isCompletedToday(
-    userId: string
-  ): boolean {
+  public isCompletedToday(userId: string): boolean {
+    const row = db.prepare(`
+      SELECT completed
+      FROM bounty_board
+      WHERE user_id = ? AND day = ?
+    `).get(userId, this.getToday()) as { completed: number } | undefined;
 
-    const row =
-      db.prepare(`
-        SELECT completed
-        FROM bounty_board
-        WHERE user_id = ?
-          AND day = ?
-      `).get(
-        userId,
-        this.getToday()
-      ) as {
-        completed: number
-      } | undefined;
-
-    return Boolean(
-      row?.completed
-    );
+    return Boolean(row?.completed);
   }
 
   // ============================================================
   // SELECT 3 / 6
   // ============================================================
 
-  public selectBounties(
-    userId: string,
-    questIds: string[]
-  ): void {
+  public selectBounties(userId: string, questIds: string[]): void {
+    const today = this.getToday();
+    const uniqueIds = [...new Set(questIds)];
 
-    const today =
-      this.getToday();
-
-    const uniqueIds =
-      [...new Set(
-        questIds
-      )];
-
-    if (
-      uniqueIds.length !== 3
-    ) {
-      throw new Error(
-        'Mỗi ngày phải chọn đúng 3 nghĩa vụ.'
-      );
+    if (uniqueIds.length !== 3) {
+      throw new Error('Mỗi ngày phải chọn đúng 3 nghĩa vụ.');
     }
 
-    const row =
-      db.prepare(`
-        SELECT
-          cards_json,
-          selected_json,
-          completed
+    const row = db.prepare(`
+      SELECT cards_json, selected_json, completed
+      FROM bounty_board
+      WHERE user_id = ? AND day = ?
+    `).get(userId, today) as Pick<BountyBoardRow, 'cards_json' | 'selected_json' | 'completed'> | undefined;
 
-        FROM bounty_board
-
-        WHERE user_id = ?
-          AND day = ?
-      `).get(
-        userId,
-        today
-      ) as Pick<
-        BountyBoardRow,
-        | 'cards_json'
-        | 'selected_json'
-        | 'completed'
-      > | undefined;
-
-    if (
-      !row
-    ) {
-      throw new Error(
-        'Bảng Nghĩa Vụ hôm nay chưa được khởi tạo.'
-      );
+    if (!row) {
+      throw new Error('Bảng Nghĩa Vụ hôm nay chưa được khởi tạo.');
     }
 
-    if (
-      row.completed
-    ) {
-      throw new Error(
-        'Bảng Nghĩa Vụ hôm nay đã hoàn thành.'
-      );
+    if (row.completed) {
+      throw new Error('Bảng Nghĩa Vụ hôm nay đã hoàn thành.');
     }
 
-    const existing =
-      this.parseArray<string>(
-        row.selected_json
-      );
-
-    if (
-      existing.length > 0
-    ) {
-      throw new Error(
-        'Đạo hữu đã tiếp nhận nghĩa vụ hôm nay.'
-      );
+    const existing = this.parseArray<string>(row.selected_json);
+    if (existing.length > 0) {
+      throw new Error('Đạo hữu đã tiếp nhận nghĩa vụ hôm nay.');
     }
 
-    const cards =
-      this.parseCards(
-        row.cards_json
-      );
+    const cards = this.parseCards(row.cards_json);
+    const validIds = new Set(cards.map(q => q.id));
 
-    const validIds =
-      new Set(
-        cards.map(
-          quest =>
-            quest.id
-        )
-      );
-
-    if (
-      uniqueIds.some(
-        id =>
-          !validIds.has(
-            id
-          )
-      )
-    ) {
-      throw new Error(
-        'Có nghĩa vụ không thuộc bảng hôm nay.'
-      );
+    if (uniqueIds.some(id => !validIds.has(id))) {
+      throw new Error('Có nghĩa vụ không thuộc bảng hôm nay.');
     }
 
-    const progress:
-      Record<string, number> =
-      {};
-
-    for (
-      const id
-      of uniqueIds
-    ) {
+    const progress: Record<string, number> = {};
+    for (const id of uniqueIds) {
       progress[id] = 0;
     }
 
     db.prepare(`
       UPDATE bounty_board
-
-      SET
-        selected_json = ?,
-        progress_json = ?
-
-      WHERE user_id = ?
-        AND day = ?
+      SET selected_json = ?, progress_json = ?
+      WHERE user_id = ? AND day = ?
     `).run(
-      JSON.stringify(
-        uniqueIds
-      ),
-      JSON.stringify(
-        progress
-      ),
+      JSON.stringify(uniqueIds),
+      JSON.stringify(progress),
       userId,
       today
     );
   }
 
-  public getSelectedBounties(
-    userId: string
-  ): string[] {
+  /**
+   * Chọn từng nghĩa vụ bằng button. Trước khi đủ 3 có thể bấm lại để bỏ chọn.
+   * Khi đã đủ 3, lựa chọn được khóa cho tới hết ngày.
+   */
+  public toggleBountySelection(userId: string, questId: string): BountySelectionResult {
+    const today = this.getToday();
 
-    const row =
-      db.prepare(`
-        SELECT selected_json
+    const row = db.prepare(`
+      SELECT cards_json, selected_json, completed
+      FROM bounty_board
+      WHERE user_id = ? AND day = ?
+    `).get(userId, today) as Pick<
+      BountyBoardRow,
+      'cards_json' | 'selected_json' | 'completed'
+    > | undefined;
 
-        FROM bounty_board
+    if (!row) {
+      return {
+        success: false,
+        selected: [],
+        locked: false,
+        message: '📜 Bảng Nghĩa Vụ hôm nay chưa được khởi tạo.'
+      };
+    }
 
-        WHERE user_id = ?
-          AND day = ?
-      `).get(
-        userId,
-        this.getToday()
-      ) as {
-        selected_json:
-          string | null
-      } | undefined;
+    if (row.completed) {
+      return {
+        success: false,
+        selected: this.parseArray<string>(row.selected_json),
+        locked: true,
+        message: '✅ Bảng Nghĩa Vụ hôm nay đã được kết toán.'
+      };
+    }
 
-    return this.parseArray<string>(
-      row?.selected_json
-    );
+    const cards = this.parseCards(row.cards_json);
+    const validIds = new Set(cards.map(q => q.id));
+    if (!validIds.has(questId)) {
+      return {
+        success: false,
+        selected: this.parseArray<string>(row.selected_json),
+        locked: false,
+        message: '❌ Nghĩa vụ này không thuộc bảng hôm nay.'
+      };
+    }
+
+    const selected = this.parseArray<string>(row.selected_json);
+
+    // Đủ 3 là khóa lựa chọn, không cho đổi giữa chừng.
+    if (selected.length >= 3) {
+      return {
+        success: false,
+        selected,
+        locked: true,
+        message: '📜 Đạo hữu đã tiếp nhận đủ ba nghĩa vụ hôm nay; không thể đổi giữa chừng.'
+      };
+    }
+
+    const index = selected.indexOf(questId);
+    let added = false;
+
+    if (index >= 0) {
+      selected.splice(index, 1);
+    } else {
+      selected.push(questId);
+      added = true;
+    }
+
+    // Chỉ giữ tiến độ của các quest còn đang được chọn.
+    const oldProgress = this.getProgress(userId);
+    const progress: Record<string, number> = {};
+    for (const id of selected) {
+      progress[id] = oldProgress[id] ?? 0;
+    }
+
+    db.prepare(`
+      UPDATE bounty_board
+      SET selected_json = ?, progress_json = ?
+      WHERE user_id = ? AND day = ?
+    `).run(JSON.stringify(selected), JSON.stringify(progress), userId, today);
+
+    const locked = selected.length === 3;
+    const quest = cards.find(q => q.id === questId);
+
+    return {
+      success: true,
+      selected,
+      locked,
+      added,
+      message: locked
+        ? `📜 Đã tiếp nhận đủ **3/3 nghĩa vụ**. Lựa chọn hôm nay đã được khóa.`
+        : added
+          ? `✅ Đã chọn **${quest?.name ?? questId}** · ${selected.length}/3.`
+          : `↩️ Đã bỏ chọn **${quest?.name ?? questId}** · ${selected.length}/3.`
+    };
+  }
+
+  public getSelectedBounties(userId: string): string[] {
+    const row = db.prepare(`
+      SELECT selected_json
+      FROM bounty_board
+      WHERE user_id = ? AND day = ?
+    `).get(userId, this.getToday()) as { selected_json: string | null } | undefined;
+
+    return this.parseArray<string>(row?.selected_json);
   }
 
   // ============================================================
   // PROGRESS
   // ============================================================
 
-  public getProgress(
-    userId: string
-  ): Record<string, number> {
+  public getProgress(userId: string): Record<string, number> {
+    const row = db.prepare(`
+      SELECT progress_json
+      FROM bounty_board
+      WHERE user_id = ? AND day = ?
+    `).get(userId, this.getToday()) as { progress_json: string | null } | undefined;
 
-    const row =
-      db.prepare(`
-        SELECT progress_json
-
-        FROM bounty_board
-
-        WHERE user_id = ?
-          AND day = ?
-      `).get(
-        userId,
-        this.getToday()
-      ) as {
-        progress_json:
-          string | null
-      } | undefined;
-
-    return this.parseObject(
-      row?.progress_json
-    );
+    return this.parseObject(row?.progress_json);
   }
 
   public updateProgress(
@@ -1342,221 +976,80 @@ class BountyBoardService {
     requirement: string,
     amount = 1
   ): void {
+    if (!requirement) return;
+    if (!Number.isFinite(amount) || amount <= 0) return;
 
-    if (
-      !requirement
-    ) {
-      return;
-    }
+    const today = this.getToday();
 
-    if (
-      !Number.isFinite(
-        amount
-      ) ||
-      amount <= 0
-    ) {
-      return;
-    }
+    const row = db.prepare(`
+      SELECT cards_json, selected_json, progress_json, completed
+      FROM bounty_board
+      WHERE user_id = ? AND day = ?
+    `).get(userId, today) as Pick<
+      BountyBoardRow,
+      'cards_json' | 'selected_json' | 'progress_json' | 'completed'
+    > | undefined;
 
-    const today =
-      this.getToday();
+    // Chưa mở /bangnghiavu hôm nay, chưa chọn nhiệm vụ, hoặc đã hoàn thành.
+    if (!row || row.completed) return;
 
-    const row =
-      db.prepare(`
-        SELECT
-          cards_json,
-          selected_json,
-          progress_json,
-          completed
+    const selected = this.parseArray<string>(row.selected_json);
+    if (selected.length !== 3) return;
 
-        FROM bounty_board
-
-        WHERE user_id = ?
-          AND day = ?
-      `).get(
-        userId,
-        today
-      ) as Pick<
-        BountyBoardRow,
-        | 'cards_json'
-        | 'selected_json'
-        | 'progress_json'
-        | 'completed'
-      > | undefined;
-
-    if (
-      !row ||
-      row.completed
-    ) {
-      return;
-    }
-
-    const selected =
-      this.parseArray<string>(
-        row.selected_json
-      );
-
-    if (
-      selected.length !== 3
-    ) {
-      return;
-    }
-
-    const cards =
-      this.parseCards(
-        row.cards_json
-      );
-
-    const progress =
-      this.parseObject(
-        row.progress_json
-      );
+    const cards = this.parseCards(row.cards_json);
+    const progress = this.parseObject(row.progress_json);
 
     let changed = false;
 
-    for (
-      const quest
-      of cards
-    ) {
+    for (const quest of cards) {
+      if (!selected.includes(quest.id)) continue;
+      if (quest.requirement !== requirement) continue;
 
-      if (
-        !selected.includes(
-          quest.id
-        )
-      ) {
-        continue;
-      }
+      const current = progress[quest.id] ?? 0;
+      const next = Math.min(quest.target, current + amount);
 
-      if (
-        quest.requirement !==
-        requirement
-      ) {
-        continue;
-      }
-
-      const current =
-        progress[
-          quest.id
-        ] ?? 0;
-
-      const next =
-        Math.min(
-          quest.target,
-          current + amount
-        );
-
-      if (
-        next !== current
-      ) {
-
-        progress[
-          quest.id
-        ] = next;
-
+      if (next !== current) {
+        progress[quest.id] = next;
         changed = true;
       }
     }
 
-    if (
-      !changed
-    ) {
-      return;
-    }
+    if (!changed) return;
 
     db.prepare(`
       UPDATE bounty_board
-
       SET progress_json = ?
-
-      WHERE user_id = ?
-        AND day = ?
+      WHERE user_id = ? AND day = ?
     `).run(
-      JSON.stringify(
-        progress
-      ),
+      JSON.stringify(progress),
       userId,
       today
     );
   }
 
-  public canCompleteToday(
-    userId: string
-  ): boolean {
+  public canCompleteToday(userId: string): boolean {
+    const row = db.prepare(`
+      SELECT cards_json, selected_json, progress_json, completed
+      FROM bounty_board
+      WHERE user_id = ? AND day = ?
+    `).get(userId, this.getToday()) as Pick<
+      BountyBoardRow,
+      'cards_json' | 'selected_json' | 'progress_json' | 'completed'
+    > | undefined;
 
-    const row =
-      db.prepare(`
-        SELECT
-          cards_json,
-          selected_json,
-          progress_json,
-          completed
+    if (!row || row.completed) return false;
 
-        FROM bounty_board
+    const selected = this.parseArray<string>(row.selected_json);
+    if (selected.length !== 3) return false;
 
-        WHERE user_id = ?
-          AND day = ?
-      `).get(
-        userId,
-        this.getToday()
-      ) as Pick<
-        BountyBoardRow,
-        | 'cards_json'
-        | 'selected_json'
-        | 'progress_json'
-        | 'completed'
-      > | undefined;
+    const cards = this.parseCards(row.cards_json);
+    const progress = this.parseObject(row.progress_json);
 
-    if (
-      !row ||
-      row.completed
-    ) {
-      return false;
-    }
+    for (const id of selected) {
+      const quest = cards.find(q => q.id === id);
+      if (!quest) return false;
 
-    const selected =
-      this.parseArray<string>(
-        row.selected_json
-      );
-
-    if (
-      selected.length !== 3
-    ) {
-      return false;
-    }
-
-    const cards =
-      this.parseCards(
-        row.cards_json
-      );
-
-    const progress =
-      this.parseObject(
-        row.progress_json
-      );
-
-    for (
-      const id
-      of selected
-    ) {
-
-      const quest =
-        cards.find(
-          q =>
-            q.id === id
-        );
-
-      if (
-        !quest
-      ) {
-        return false;
-      }
-
-      if (
-        (
-          progress[id] ?? 0
-        ) <
-        quest.target
-      ) {
+      if ((progress[id] ?? 0) < quest.target) {
         return false;
       }
     }
@@ -1568,86 +1061,40 @@ class BountyBoardService {
   // STREAK
   // ============================================================
 
-  private getRawStreakRow(
-    userId: string
-  ): BountyStreakRow | undefined {
-
+  private getRawStreakRow(userId: string): BountyStreakRow | undefined {
     return db.prepare(`
-      SELECT
-        user_id,
-        streak,
-        last_completed_day
-
+      SELECT user_id, streak, last_completed_day
       FROM bounty_streak
-
       WHERE user_id = ?
-    `).get(
-      userId
-    ) as
-      BountyStreakRow |
-      undefined;
+    `).get(userId) as BountyStreakRow | undefined;
   }
 
-  public getStreak(
-    userId: string
-  ): number {
+  /**
+   * Streak hiển thị theo chu kỳ 5 ngày.
+   * - Vừa hoàn thành ngày thứ 5: hôm đó vẫn hiển thị 5/5.
+   * - Sang ngày kế tiếp: bắt đầu chu kỳ mới, hiển thị 0/5.
+   */
+  public getStreak(userId: string): number {
+    const row = this.getRawStreakRow(userId);
+    if (!row || !row.last_completed_day) return 0;
 
-    const row =
-      this.getRawStreakRow(
-        userId
-      );
+    const today = this.getToday();
+    const yesterday = this.getPreviousDay(today);
+    const raw = Math.max(0, Number(row.streak) || 0);
 
-    if (
-      !row ||
-      !row.last_completed_day
-    ) {
-      return 0;
+    if (row.last_completed_day === today) {
+      return Math.min(raw, 5);
     }
 
-    const today =
-      this.getToday();
-
-    const yesterday =
-      this.getPreviousDay(
-        today
-      );
-
-    const raw =
-      Math.max(
-        0,
-        Number(
-          row.streak
-        ) || 0
-      );
-
-    if (
-      row.last_completed_day ===
-      today
-    ) {
-      return Math.min(
-        raw,
-        5
-      );
-    }
-
-    if (
-      row.last_completed_day ===
-      yesterday
-    ) {
-
-      return raw >= 5
-        ? 0
-        : Math.min(
-            raw,
-            4
-          );
+    if (row.last_completed_day === yesterday) {
+      return raw >= 5 ? 0 : Math.min(raw, 4);
     }
 
     return 0;
   }
 
   // ============================================================
-  // USER REWARD STORAGE
+  // REWARD HELPERS
   // ============================================================
 
   private findUserStorage(): {
@@ -1655,77 +1102,24 @@ class BountyBoardService {
     idColumn: string;
     columns: Set<string>;
   } | null {
+    const tableCandidates = ['users', 'user_profiles', 'players'];
 
-    const tableCandidates =
-      [
-        'users',
-        'user_profiles',
-        'players'
-      ];
+    for (const table of tableCandidates) {
+      const exists = db.prepare(`
+        SELECT name
+        FROM sqlite_master
+        WHERE type = 'table' AND name = ?
+      `).get(table) as { name: string } | undefined;
 
-    for (
-      const table
-      of tableCandidates
-    ) {
+      if (!exists) continue;
 
-      const exists =
-        db.prepare(`
-          SELECT name
+      const info = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+      const columns = new Set(info.map(c => c.name));
 
-          FROM sqlite_master
+      const idColumn = ['user_id', 'id', 'discord_id'].find(c => columns.has(c));
+      if (!idColumn) continue;
 
-          WHERE type = 'table'
-            AND name = ?
-        `).get(
-          table
-        ) as {
-          name: string
-        } | undefined;
-
-      if (
-        !exists
-      ) {
-        continue;
-      }
-
-      const info =
-        db.prepare(`
-          PRAGMA table_info(${table})
-        `).all() as Array<{
-          name: string
-        }>;
-
-      const columns =
-        new Set(
-          info.map(
-            column =>
-              column.name
-          )
-        );
-
-      const idColumn =
-        [
-          'user_id',
-          'id',
-          'discord_id'
-        ].find(
-          column =>
-            columns.has(
-              column
-            )
-        );
-
-      if (
-        !idColumn
-      ) {
-        continue;
-      }
-
-      return {
-        table,
-        idColumn,
-        columns
-      };
+      return { table, idColumn, columns };
     }
 
     return null;
@@ -1736,450 +1130,223 @@ class BountyBoardService {
     exp: number,
     coins: number,
     knb: number
-  ): {
-    expApplied: boolean
-  } {
+  ): { expApplied: boolean } {
+    const storage = this.findUserStorage();
 
-    const storage =
-      this.findUserStorage();
-
-    if (
-      !storage
-    ) {
-      throw new Error(
-        'Không tìm thấy bảng dữ liệu nhân vật để trao thưởng.'
-      );
+    if (!storage) {
+      throw new Error('Không tìm thấy bảng dữ liệu nhân vật để trao thưởng Bảng Nghĩa Vụ.');
     }
 
-    const {
-      table,
-      idColumn,
-      columns
-    } = storage;
+    const { table, idColumn, columns } = storage;
+    const updates: string[] = [];
+    const values: number[] = [];
 
-    const updates:
-      string[] = [];
-
-    const values:
-      number[] = [];
-
-    if (
-      columns.has(
-        'coin_ha_pham'
-      )
-    ) {
-
-      updates.push(
-        `coin_ha_pham = COALESCE(coin_ha_pham, 0) + ?`
-      );
-
-      values.push(
-        coins
-      );
+    if (columns.has('coin_ha_pham')) {
+      updates.push(`coin_ha_pham = COALESCE(coin_ha_pham, 0) + ?`);
+      values.push(coins);
     }
 
-    if (
-      columns.has(
-        'knb'
-      )
-    ) {
-
-      updates.push(
-        `knb = COALESCE(knb, 0) + ?`
-      );
-
-      values.push(
-        knb
-      );
+    if (columns.has('knb')) {
+      updates.push(`knb = COALESCE(knb, 0) + ?`);
+      values.push(knb);
     }
 
-    const expColumn =
-      [
-        'exp',
-        'experience',
-        'tu_vi',
-        'tuvi',
-        'cultivation_exp',
-        'cultivation'
-      ].find(
-        column =>
-          columns.has(
-            column
-          )
-      );
+    const expColumn = [
+      'exp',
+      'experience',
+      'tu_vi',
+      'tuvi',
+      'cultivation_exp',
+      'cultivation'
+    ].find(column => columns.has(column));
 
     let expApplied = false;
 
-    if (
-      expColumn
-    ) {
-
-      updates.push(
-        `${expColumn} = COALESCE(${expColumn}, 0) + ?`
-      );
-
-      values.push(
-        exp
-      );
-
+    if (expColumn) {
+      updates.push(`${expColumn} = COALESCE(${expColumn}, 0) + ?`);
+      values.push(exp);
       expApplied = true;
     }
 
-    if (
-      updates.length === 0
-    ) {
-      throw new Error(
-        'Không tìm thấy cột phần thưởng phù hợp.'
-      );
+    if (updates.length === 0) {
+      throw new Error('Không tìm thấy cột Linh Thạch/KNB/Tu Vi phù hợp để trao thưởng.');
     }
 
-    const result =
-      db.prepare(`
-        UPDATE ${table}
+    const result = db.prepare(`
+      UPDATE ${table}
+      SET ${updates.join(', ')}
+      WHERE ${idColumn} = ?
+    `).run(...values, userId);
 
-        SET ${updates.join(
-          ', '
-        )}
-
-        WHERE ${idColumn} = ?
-      `).run(
-        ...values,
-        userId
-      );
-
-    if (
-      result.changes <= 0
-    ) {
-      throw new Error(
-        'Không tìm thấy nhân vật để trao thưởng.'
-      );
+    if (result.changes <= 0) {
+      throw new Error('Không tìm thấy nhân vật để trao thưởng Bảng Nghĩa Vụ.');
     }
 
-    return {
-      expApplied
-    };
+    return { expApplied };
   }
 
   // ============================================================
-  // COMPLETE
+  // COMPLETE / CLAIM
   // ============================================================
 
-  public completeToday(
-    userId: string
-  ): CompleteResult {
+  public completeToday(userId: string): CompleteResult {
+    const today = this.getToday();
 
-    const today =
-      this.getToday();
+    const transaction = db.transaction((): CompleteResult => {
+      const row = db.prepare(`
+        SELECT cards_json, selected_json, progress_json, completed
+        FROM bounty_board
+        WHERE user_id = ? AND day = ?
+      `).get(userId, today) as Pick<
+        BountyBoardRow,
+        'cards_json' | 'selected_json' | 'progress_json' | 'completed'
+      > | undefined;
 
-    const transaction =
-      db.transaction(
-        (): CompleteResult => {
+      if (!row) {
+        return {
+          success: false,
+          streakBonus: 0,
+          message: '📜 Hôm nay đạo hữu vẫn chưa mở Bảng Nghĩa Vụ.'
+        };
+      }
 
-          const row =
-            db.prepare(`
-              SELECT
-                cards_json,
-                selected_json,
-                progress_json,
-                completed
+      if (row.completed) {
+        return {
+          success: false,
+          streakBonus: 0,
+          message: '✅ Bảng Nghĩa Vụ hôm nay đã được kết toán rồi.'
+        };
+      }
 
-              FROM bounty_board
+      const selected = this.parseArray<string>(row.selected_json);
+      if (selected.length !== 3) {
+        return {
+          success: false,
+          streakBonus: 0,
+          message: '📜 Đạo hữu cần tiếp nhận đủ **3 nghĩa vụ** trước.'
+        };
+      }
 
-              WHERE user_id = ?
-                AND day = ?
-            `).get(
-              userId,
-              today
-            ) as Pick<
-              BountyBoardRow,
-              | 'cards_json'
-              | 'selected_json'
-              | 'progress_json'
-              | 'completed'
-            > | undefined;
+      const cards = this.parseCards(row.cards_json);
+      const progress = this.parseObject(row.progress_json);
 
-          if (
-            !row
-          ) {
-            return {
-              success: false,
-              streakBonus: 0,
-              message:
-                '📜 Hôm nay đạo hữu vẫn chưa mở Bảng Nghĩa Vụ.'
-            };
-          }
+      const selectedQuests: BountyQuest[] = [];
 
-          if (
-            row.completed
-          ) {
-            return {
-              success: false,
-              streakBonus: 0,
-              message:
-                '✅ Bảng Nghĩa Vụ hôm nay đã được kết toán rồi.'
-            };
-          }
+      for (const id of selected) {
+        const quest = cards.find(q => q.id === id);
 
-          const selected =
-            this.parseArray<string>(
-              row.selected_json
-            );
-
-          if (
-            selected.length !== 3
-          ) {
-            return {
-              success: false,
-              streakBonus: 0,
-              message:
-                '📜 Đạo hữu cần tiếp nhận đủ **3 nghĩa vụ** trước.'
-            };
-          }
-
-          const cards =
-            this.parseCards(
-              row.cards_json
-            );
-
-          const progress =
-            this.parseObject(
-              row.progress_json
-            );
-
-          const selectedQuests:
-            BountyQuest[] = [];
-
-          for (
-            const id
-            of selected
-          ) {
-
-            const quest =
-              cards.find(
-                q =>
-                  q.id === id
-              );
-
-            if (
-              !quest
-            ) {
-              return {
-                success: false,
-                streakBonus: 0,
-                message:
-                  '❌ Dữ liệu nghĩa vụ hôm nay không còn hợp lệ.'
-              };
-            }
-
-            if (
-              (
-                progress[id] ?? 0
-              ) <
-              quest.target
-            ) {
-
-              return {
-                success: false,
-                streakBonus: 0,
-                message:
-                  `⏳ **${quest.name}** vẫn chưa hoàn thành (${progress[id] ?? 0}/${quest.target}).`
-              };
-            }
-
-            selectedQuests.push(
-              quest
-            );
-          }
-
-          let totalExp =
-            selectedQuests.reduce(
-              (
-                sum,
-                quest
-              ) =>
-                sum +
-                quest.rewardExp,
-              0
-            );
-
-          let totalCoins =
-            selectedQuests.reduce(
-              (
-                sum,
-                quest
-              ) =>
-                sum +
-                quest.rewardCoins,
-              0
-            );
-
-          let totalKnb =
-            selectedQuests.reduce(
-              (
-                sum,
-                quest
-              ) =>
-                sum +
-                quest.rewardKnb,
-              0
-            );
-
-          const streakRow =
-            this.getRawStreakRow(
-              userId
-            );
-
-          const yesterday =
-            this.getPreviousDay(
-              today
-            );
-
-          let newStreak = 1;
-
-          if (
-            streakRow?.last_completed_day ===
-            yesterday
-          ) {
-
-            newStreak =
-              streakRow.streak >= 5
-                ? 1
-                : Math.max(
-                    1,
-                    streakRow.streak + 1
-                  );
-          }
-
-          const reachedFiveDayMilestone =
-            newStreak === 5;
-
-          let streakBonus = 0;
-
-          if (
-            reachedFiveDayMilestone
-          ) {
-
-            streakBonus = 1;
-
-            totalExp += 1000;
-            totalCoins += 3000;
-            totalKnb += 10;
-          }
-
-          const rewardResult =
-            this.applyRewards(
-              userId,
-              totalExp,
-              totalCoins,
-              totalKnb
-            );
-
-          db.prepare(`
-            UPDATE bounty_board
-
-            SET completed = 1
-
-            WHERE user_id = ?
-              AND day = ?
-          `).run(
-            userId,
-            today
-          );
-
-          db.prepare(`
-            INSERT INTO bounty_streak (
-              user_id,
-              streak,
-              last_completed_day
-            )
-
-            VALUES (
-              ?,
-              ?,
-              ?
-            )
-
-            ON CONFLICT(user_id)
-
-            DO UPDATE SET
-              streak =
-                excluded.streak,
-
-              last_completed_day =
-                excluded.last_completed_day
-          `).run(
-            userId,
-            newStreak,
-            today
-          );
-
-          const completedNames =
-            selectedQuests
-              .map(
-                quest =>
-                  `• **${quest.name}**`
-              )
-              .join(
-                '\n'
-              );
-
-          let message =
-            `✅ **Ba đạo nghĩa vụ đã viên mãn.**\n` +
-            `${completedNames}\n\n` +
-            `🎁 **Công thưởng Trấn Hải Các**\n`;
-
-          if (
-            rewardResult.expApplied
-          ) {
-            message +=
-              `• Tu Vi: **+${totalExp.toLocaleString()}**\n`;
-          }
-
-          message +=
-            `• Linh Thạch: **+${totalCoins.toLocaleString()} LT**\n` +
-            `• Cống Phẩm Linh Thạch: **+${totalKnb.toLocaleString()}**\n` +
-            `• Liên Tục Tu Hành: **${newStreak}/5 ngày**`;
-
-          if (
-            reachedFiveDayMilestone
-          ) {
-
-            message +=
-              `\n\n🌌 **Thiên Cơ Hữu Ứng**\n` +
-              `Năm ngày nghĩa vụ không gián đoạn, thiên cơ khẽ động. ` +
-              `Trấn Hải Các ban thêm **1.000 Tu Vi · 3.000 LT · 10 Cống Phẩm Linh Thạch**.`;
-          }
-
+        if (!quest) {
           return {
-            success: true,
-            streakBonus,
-            message
+            success: false,
+            streakBonus: 0,
+            message: '❌ Dữ liệu nghĩa vụ hôm nay không còn hợp lệ.'
           };
         }
+
+        if ((progress[id] ?? 0) < quest.target) {
+          return {
+            success: false,
+            streakBonus: 0,
+            message: `⏳ **${quest.name}** vẫn chưa hoàn thành (${progress[id] ?? 0}/${quest.target}).`
+          };
+        }
+
+        selectedQuests.push(quest);
+      }
+
+      let totalExp = selectedQuests.reduce((sum, q) => sum + q.rewardExp, 0);
+      let totalCoins = selectedQuests.reduce((sum, q) => sum + q.rewardCoins, 0);
+      let totalKnb = selectedQuests.reduce((sum, q) => sum + q.rewardKnb, 0);
+
+      const streakRow = this.getRawStreakRow(userId);
+      const yesterday = this.getPreviousDay(today);
+
+      let newStreak = 1;
+
+      if (streakRow?.last_completed_day === yesterday) {
+        // Sau mốc 5 ngày, chu kỳ kế tiếp bắt đầu lại từ 1.
+        newStreak = streakRow.streak >= 5
+          ? 1
+          : Math.max(1, streakRow.streak + 1);
+      }
+
+      const reachedFiveDayMilestone = newStreak === 5;
+
+      // Thiên Cơ 5 ngày: thưởng thêm một phần ngoài ba nghĩa vụ.
+      let streakBonus = 0;
+      if (reachedFiveDayMilestone) {
+        streakBonus = 1;
+        totalExp += 1000;
+        totalCoins += 3000;
+        totalKnb += 10;
+      }
+
+      const rewardResult = this.applyRewards(
+        userId,
+        totalExp,
+        totalCoins,
+        totalKnb
       );
+
+      db.prepare(`
+        UPDATE bounty_board
+        SET completed = 1
+        WHERE user_id = ? AND day = ?
+      `).run(userId, today);
+
+      db.prepare(`
+        INSERT INTO bounty_streak (user_id, streak, last_completed_day)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_id)
+        DO UPDATE SET
+          streak = excluded.streak,
+          last_completed_day = excluded.last_completed_day
+      `).run(userId, newStreak, today);
+
+      const completedNames = selectedQuests
+        .map(q => `• **${q.name}**`)
+        .join('\n');
+
+      let message =
+        `✅ **Ba đạo nghĩa vụ đã viên mãn.**\n` +
+        `${completedNames}\n\n` +
+        `🎁 **Công thưởng Trấn Hải Các**\n`;
+
+      if (rewardResult.expApplied) {
+        message += `• Tu Vi: **+${totalExp.toLocaleString()}**\n`;
+      }
+
+      message +=
+        `• Linh Thạch: **+${totalCoins.toLocaleString()} LT**\n` +
+        `• Cống Phẩm Linh Thạch: **+${totalKnb.toLocaleString()}**\n` +
+        `• Liên Tục Tu Hành: **${newStreak}/5 ngày**`;
+
+      if (reachedFiveDayMilestone) {
+        message +=
+          `\n\n🌌 **Thiên Cơ Hữu Ứng**\n` +
+          `Năm ngày nghĩa vụ không gián đoạn, thiên cơ khẽ động. ` +
+          `Trấn Hải Các ban thêm **1.000 Tu Vi · 3.000 LT · 10 Cống Phẩm Linh Thạch**.`;
+      }
+
+      return {
+        success: true,
+        streakBonus,
+        message
+      };
+    });
 
     try {
-
       return transaction();
-
-    } catch (
-      error
-    ) {
-
-      console.error(
-        '[BountyBoardService] completeToday failed:',
-        error
-      );
+    } catch (error) {
+      console.error('[BountyBoardService] completeToday failed:', error);
 
       return {
         success: false,
         streakBonus: 0,
-        message:
-          '❌ Thiên cơ hỗn loạn, Bảng Nghĩa Vụ chưa thể kết toán. Vui lòng thử lại.'
+        message: '❌ Thiên cơ hỗn loạn, Bảng Nghĩa Vụ chưa thể kết toán. Vui lòng thử lại.'
       };
     }
   }
 }
 
-export const bountyBoardService =
-  new BountyBoardService();
+export const bountyBoardService = new BountyBoardService();
