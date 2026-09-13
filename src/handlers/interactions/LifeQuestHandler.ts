@@ -22,6 +22,7 @@ import { blacksmithService } from '../../services/BlacksmithService';
 import { EmbedBuilder as DiscordEmbedBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ContainerBuilder } from 'discord.js';
 import { container, header, body, separator, V2_COLORS } from '../../utils/v2Components';
 import { getProgressBar } from '../../utils/constants';
+import { bountyBoardService } from '../../services/BountyBoardService';
 
 export class LifeQuestHandler {
   public static async handle(
@@ -32,6 +33,34 @@ export class LifeQuestHandler {
   ): Promise<void> {
     try {
       const targetUserId = userId;
+
+      // ============================================================
+      // V17: BẢNG NGHĨA VỤ — helper cộng tiến độ an toàn
+      // ============================================================
+      const addBountyProgress = (requirement: string, amount = 1): void => {
+        try {
+          bountyBoardService.updateProgress(targetUserId, requirement, amount);
+        } catch (error) {
+          // Không để lỗi Bảng Nghĩa Vụ làm hỏng hành động chính của người chơi.
+          console.warn('[BountyBoard] Không thể cập nhật tiến độ:', requirement, error);
+        }
+      };
+
+      const tryAutoCompleteBounty = async (): Promise<void> => {
+        try {
+          if (!bountyBoardService.isCompletedToday(targetUserId) && bountyBoardService.canCompleteToday(targetUserId)) {
+            const bountyResult = bountyBoardService.completeToday(targetUserId);
+            if (bountyResult?.success && bountyResult?.message) {
+              await interaction.followUp({
+                content: `📜 **Bảng Nghĩa Vụ đã viên mãn.**\n${bountyResult.message}`,
+                flags: MessageFlags.Ephemeral
+              });
+            }
+          }
+        } catch (error) {
+          console.warn('[BountyBoard] Không thể tự kết toán nghĩa vụ:', error);
+        }
+      };
 
       if (action === 'linhdienharvest') {
         const plots = farmingService.getPlots(targetUserId);
@@ -52,11 +81,15 @@ export class LifeQuestHandler {
         // Nạp năng lượng Linh Mạch Thu Thập (5 năng lượng cho mỗi cây)
         leylineService.addEnergy(targetUserId, 'thuthap', harvested.length * 5);
         questChainService.updateProgress(targetUserId, 'collect', harvested.length);
+        addBountyProgress('herb', harvested.length);
+        addBountyProgress('harvest', harvested.length);
+        addBountyProgress('activity', 1);
 
         const embed = getLinhDienEmbed(targetUserId);
         const components = getLinhDienComponents(targetUserId);
         await safeV2Update(interaction, [embed], components);
         await interaction.followUp({ content: `✨ Đạo hữu thu hoạch thành công: ${harvested.map(h => `**${h}**`).join(', ')}!`, flags: MessageFlags.Ephemeral });
+        await tryAutoCompleteBounty();
       }
 
       // --- Nút: KHAI KHẨN LINH ĐIỀN ---
@@ -190,11 +223,14 @@ export class LifeQuestHandler {
 
         // Nạp năng lượng Linh Mạch Thu Thập (10 năng lượng cho mỗi lần chế)
         leylineService.addEnergy(targetUserId, 'thuthap', 10);
+        addBountyProgress('craft', 1);
+        addBountyProgress('activity', 1);
 
         const embed = getCraftingEmbed(targetUserId);
         const components = getCraftingComponents(targetUserId);
         await safeV2Update(interaction, [embed], components);
         await interaction.followUp({ content: result.message, flags: MessageFlags.Ephemeral });
+        await tryAutoCompleteBounty();
       }
 
       // --- Nút: LÀM MỚI LÒ CHẾ TẠO ---
@@ -342,6 +378,14 @@ export class LifeQuestHandler {
         // Cập nhật tiến trình nhiệm vụ hàng ngày khi làm việc
         dailyQuestService.updateProgress(workTargetId, 'daily_lamviec', 1);
 
+        // V17: Bảng Nghĩa Vụ — chỉ cộng khi công việc đã thực sự thành công
+        addBountyProgress('work', 1);
+        addBountyProgress('activity', 1);
+        if (jobType === 'mining') addBountyProgress('mine', 1);
+        if (jobType === 'gathering') addBountyProgress('herb', 1);
+        if (jobType === 'patrolling') addBountyProgress('patrol', 1);
+        if (jobType === 'escort') addBountyProgress('escort', 1);
+
         const resultComponents: any[] = [];
         const encounter = result.encounter;
         if (encounter) {
@@ -360,6 +404,7 @@ export class LifeQuestHandler {
 
         await safeV2Update(interaction, [embed], [workRow, backRow]);
         await interaction.followUp(toV2Payload([result.embed!], resultComponents, MessageFlags.Ephemeral));
+        await tryAutoCompleteBounty();
       }
 
       // --- Nút: ĐI ĐẾN NHIỆM VỤ HÀNG NGÀY (từ hồ sơ) ---
@@ -464,10 +509,13 @@ export class LifeQuestHandler {
           // Thu hoạch bình thường
           dailyQuestService.updateProgress(targetUserId, 'daily_khampha', 1);
           questChainService.updateProgress(targetUserId, 'explore', 1);
+          addBountyProgress('explore', 1);
+          addBountyProgress('activity', 1);
           const embed = getKhamPhaEmbed(targetUserId);
           const rows = getKhamPhaComponents(targetUserId);
           await safeV2Update(interaction, [embed], rows);
           await interaction.followUp({ content: result.message });
+          await tryAutoCompleteBounty();
         }
       }
 
@@ -479,11 +527,14 @@ export class LifeQuestHandler {
         const result = explorationService.resolveEvent(targetUserId, explorationId, choiceId);
         dailyQuestService.updateProgress(targetUserId, 'daily_khampha', 1);
         questChainService.updateProgress(targetUserId, 'explore', 1);
+        addBountyProgress('explore', 1);
+        addBountyProgress('activity', 1);
 
         const embed = getKhamPhaEmbed(targetUserId);
         const rows = getKhamPhaComponents(targetUserId);
         await safeV2Update(interaction, [embed], rows);
         await interaction.followUp({ content: result.message });
+        await tryAutoCompleteBounty();
       }
 
       // --- Nút: LỰA CHỌN ENCOUNTER (Kỳ Ngộ Làm Việc / Săn Yêu Thú) ---
@@ -630,6 +681,12 @@ export class LifeQuestHandler {
         const recipeId = interaction.values[0];
         
         const res = blacksmithService.forgeItem(targetUserId, recipeId);
+
+        if (res.success) {
+          addBountyProgress('craft', 1);
+          addBountyProgress('forge', 1);
+          addBountyProgress('activity', 1);
+        }
         
         await interaction.reply({ content: res.success ? res.message : `❌ ${res.message}` });
 
@@ -640,6 +697,8 @@ export class LifeQuestHandler {
           const newEmbed = EmbedBuilder.from(embed).setFooter({ text: `Thể lực hiện tại: ${user.stamina}/500 | Linh Thạch: ${user.coin_ha_pham}` });
           await interaction.client.rest.patch(Routes.channelMessage(interaction.channelId, interaction.message.id), { body: { components: [require('../../utils/uiSystem').embedToV2(newEmbed)], flags: require('../../utils/uiSystem').V2_FLAG } });
         }
+
+        if (res.success) await tryAutoCompleteBounty();
       }
 
       if (action === 'linhdiennav') {
@@ -675,11 +734,113 @@ export class LifeQuestHandler {
         return;
       }
 
-      // V15: Bounty Board claim
+      // ============================================================
+      // V17: BẢNG NGHĨA VỤ — chọn đúng 3 nghĩa vụ trong ngày
+      // customId: bangnghiavu_select_<userId>
+      // ============================================================
+      else if (action === 'bangnghiavu_select' && interaction.isStringSelectMenu()) {
+        if (interaction.user.id !== targetUserId) {
+          await interaction.reply({
+            content: '❌ Đây không phải Bảng Nghĩa Vụ của đạo hữu.',
+            flags: MessageFlags.Ephemeral
+          });
+          return;
+        }
+
+        if (bountyBoardService.isCompletedToday(targetUserId)) {
+          await interaction.reply({
+            content: '✅ Nghĩa vụ hôm nay đã viên mãn, không thể tiếp nhận thêm.',
+            flags: MessageFlags.Ephemeral
+          });
+          return;
+        }
+
+        const existing = bountyBoardService.getSelectedBounties(targetUserId);
+        if (existing.length > 0) {
+          await interaction.reply({
+            content: '📜 Đạo hữu đã tiếp nhận ba nghĩa vụ hôm nay. Một khi đã nhận thì không thể đổi giữa chừng.',
+            flags: MessageFlags.Ephemeral
+          });
+          return;
+        }
+
+        const selectedIds = [...new Set(interaction.values)];
+        if (selectedIds.length !== 3) {
+          await interaction.reply({
+            content: '❌ Mỗi ngày phải chọn đúng **3 nghĩa vụ**.',
+            flags: MessageFlags.Ephemeral
+          });
+          return;
+        }
+
+        const user = userRepository.get(targetUserId);
+        if (!user) {
+          await interaction.reply({
+            content: '❌ Không tìm thấy hồ sơ tu hành của đạo hữu.',
+            flags: MessageFlags.Ephemeral
+          });
+          return;
+        }
+
+        const todayCards = bountyBoardService.getTodayCards(targetUserId, user.level);
+        const validIds = new Set(todayCards.map((q: any) => q.id));
+        if (selectedIds.some(id => !validIds.has(id))) {
+          await interaction.reply({
+            content: '❌ Trong lựa chọn có nghĩa vụ không thuộc bảng hôm nay.',
+            flags: MessageFlags.Ephemeral
+          });
+          return;
+        }
+
+        bountyBoardService.selectBounties(targetUserId, selectedIds);
+
+        const selectedNames = todayCards
+          .filter((q: any) => selectedIds.includes(q.id))
+          .map((q: any) => `• **${q.name}**`)
+          .join('\n');
+
+        await interaction.reply({
+          content:
+            `📜 **Đã tiếp nhận ba đạo nghĩa vụ hôm nay.**\n` +
+            `${selectedNames}\n\n` +
+            `Tiến độ sẽ tự ghi nhận khi đạo hữu hành sự. Dùng lại \`/bangnghiavu\` để xem bảng.`,
+          flags: MessageFlags.Ephemeral
+        });
+        return;
+      }
+
+      // V17: BẢNG NGHĨA VỤ — nhận/kết toán thủ công (giữ tương thích nút cũ)
       else if (action === 'bangnghiavu_claim') {
-        const { bountyBoardService } = require('../../services/BountyBoardService');
+        if (interaction.user.id !== targetUserId) {
+          await interaction.reply({
+            content: '❌ Đây không phải Bảng Nghĩa Vụ của đạo hữu.',
+            flags: MessageFlags.Ephemeral
+          });
+          return;
+        }
+
+        const selected = bountyBoardService.getSelectedBounties(targetUserId);
+        if (selected.length !== 3) {
+          await interaction.reply({
+            content: '📜 Đạo hữu vẫn chưa tiếp nhận đủ **3 nghĩa vụ** hôm nay.',
+            flags: MessageFlags.Ephemeral
+          });
+          return;
+        }
+
+        if (!bountyBoardService.canCompleteToday(targetUserId)) {
+          await interaction.reply({
+            content: '⏳ Ba đạo nghĩa vụ vẫn chưa hoàn thành. Hãy tiếp tục hành sự rồi quay lại.',
+            flags: MessageFlags.Ephemeral
+          });
+          return;
+        }
+
         const result = bountyBoardService.completeToday(targetUserId);
-        await interaction.reply({ content: result.message, flags: MessageFlags.Ephemeral });
+        await interaction.reply({
+          content: result.message,
+          flags: MessageFlags.Ephemeral
+        });
         return;
       }
 
