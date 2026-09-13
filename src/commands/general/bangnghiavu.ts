@@ -28,8 +28,8 @@ export default class BangNghiaVuCommand extends Command {
 
     const tierEmoji: Record<string, string> = { common: '⚪', elite: '🟢', legendary: '🟡' };
 
-    let desc = `<:thienthu:1547875509919289465> **Bảng Nghĩa Vụ** — Chọn 3 nhiệm vụ\n`;
-    desc += `🔥 Liên Tục Tu Hành: ${streak}/5 ngày${streak >= 5 ? ' (Thiên Cơ tất ứng, tất đắc Thiên Phẩm!)' : ''}\n`;
+    let desc = `📋 **Bảng Nghĩa Vụ** — Chọn 3 nhiệm vụ\n`;
+    desc += `🔥 Streak: ${streak}/5 ngày${streak >= 5 ? ' (Guaranteed Legendary!)' : ''}\n`;
     desc += isCompleted ? `✅ Đã hoàn thành hôm nay` : `⏳ Chưa hoàn thành\n\n`;
 
     if (!isCompleted) {
@@ -37,14 +37,14 @@ export default class BangNghiaVuCommand extends Command {
       for (let i = 0; i < cards.length; i++) {
         const c = cards[i];
         desc += `${tierEmoji[c.tier]} **${c.name}** — ${c.description}\n`;
-        desc += `  <:tin4:1547875508174327828> ${c.requirement}: 0/${c.target} | <:qua4:1547881540372009021> ${c.rewardExp} <:iexp:1547935874077954078>, ${c.rewardCoins} LT <:lt1:1547866122123218945>`;
-        if (c.rewardKnb > 0) desc += `, ${c.rewardKnb} CPLT <:lt2:1547866118817845309>`;
+        desc += `  📊 ${c.requirement}: 0/${c.target} | 🎁 ${c.rewardExp} EXP, ${c.rewardCoins} LT`;
+        if (c.rewardKnb > 0) desc += `, ${c.rewardKnb} KNB`;
         desc += '\n';
       }
     }
 
     const embed = new EmbedBuilder()
-      .setTitle('<:thienthu:1547875509919289465> Bảng Nghĩa Vụ')
+      .setTitle('📋 Bảng Nghĩa Vụ')
       .setColor(EMBED_COLORS.MYSTIC)
       .setDescription(desc)
       .setTimestamp();
